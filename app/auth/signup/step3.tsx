@@ -7,9 +7,11 @@ import { signupStep3Schema } from "@/utils/validation";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { usePostHog } from "posthog-react-native";
 
 export default function SignupStep3() {
   const router = useRouter();
+  const posthog = usePostHog();
   const setStep3 = useSignupStore((s) => s.setStep3);
   const [entries, setEntries] = useState<SignupSportSelection[]>([]);
 
@@ -48,6 +50,11 @@ export default function SignupStep3() {
     });
     if (!parsed.success) return;
     setStep3(parsed.data.entries as SignupSportSelection[]);
+    posthog.capture("signup_step_completed", {
+      step: 3,
+      sports_count: entries.length,
+      sports: entries.map((e) => e.sportId),
+    });
     router.push("/auth/signup/step4");
   };
 

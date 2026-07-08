@@ -92,6 +92,14 @@ export const OBJECTIVES = [
   "Découvrir un nouveau sport",
 ] as const;
 
+export const PUBLIC_SPORT_STATUSES = [
+  "Coach",
+  "Amateur",
+  "Récréatif",
+  "Semi-Professionnel",
+  "Professionnel",
+] as const;
+
 export type CountryCode = string;
 
 export const COUNTRIES: { code: CountryCode; label: string }[] = [

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { posthog } from "@/src/config/posthog";
 import { useEffect } from "react";
 
 /**
@@ -15,11 +16,15 @@ export function useAuth() {
     let alive = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
-      setUserId(data.session?.user.id ?? null);
+      const userId = data.session?.user.id ?? null;
+      if (userId) posthog.identify(userId);
+      setUserId(userId);
       setInitialized(true);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user.id ?? null);
+      const userId = session?.user.id ?? null;
+      if (userId) posthog.identify(userId);
+      setUserId(userId);
       setInitialized(true);
     });
     return () => {

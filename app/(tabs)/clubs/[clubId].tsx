@@ -12,10 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useAuthStore } from "@/stores/authStore";
 import { queryClient } from "@/lib/queryClient";
+import { usePostHog } from "posthog-react-native";
 
 export default function ClubDetailScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const router = useRouter();
+  const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
 
   const { data: club, refetch } = useQuery({
@@ -35,6 +37,12 @@ export default function ClubDetailScreen() {
       if (error) throw error;
     },
     onSuccess: () => {
+      posthog.capture("club_join_requested", {
+        club_id: club?.id ?? null,
+        club_name: club?.name ?? null,
+        club_sport: club?.sport ?? null,
+        is_external: club?.is_external ?? null,
+      });
       Toast.show({ type: "success", text1: "Demande envoyée au créateur" });
       void queryClient.invalidateQueries({ queryKey: ["club", clubId] });
     },

@@ -8,11 +8,13 @@ import { Stack, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
+import { usePostHog } from "posthog-react-native";
 
 type Form = z.infer<typeof signupStep4Schema>;
 
 export default function SignupStep4() {
   const router = useRouter();
+  const posthog = usePostHog();
   const setStep4 = useSignupStore((s) => s.setStep4);
   const { control, handleSubmit, watch, setValue } = useForm<Form>({
     resolver: zodResolver(signupStep4Schema),
@@ -34,6 +36,11 @@ export default function SignupStep4() {
       objectives: values.objectives,
       heightCm: values.heightCm,
       weightKg: values.weightKg,
+    });
+    posthog.capture("signup_step_completed", {
+      step: 4,
+      objectives_count: values.objectives.length,
+      interested_sports_count: values.interestedSports.length,
     });
     router.push("/auth/signup/step5");
   });

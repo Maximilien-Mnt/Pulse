@@ -1,3 +1,4 @@
+import { PublicProfileActivationModal } from "@/components/profile/PublicProfileActivationModal";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -16,14 +17,17 @@ import { useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { usePostHog } from "posthog-react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
-  const { data: profile, refetch } = useProfile(userId);
+  const { data: profile, isLoading, isError, error, refetch } = useProfile(userId);
   const isDark = useThemeStore((s) => s.isDark);
   const setDark = useThemeStore((s) => s.setDark);
   const [editOpen, setEditOpen] = useState(false);
+  const [publicModalOpen, setPublicModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
@@ -58,6 +62,7 @@ export default function ProfileScreen() {
       if (error) throw error;
     },
     onSuccess: () => {
+      posthog.capture("profile_updated");
       setEditOpen(false);
       void refetch();
       void queryClient.invalidateQueries({ queryKey: ["profile", userId] });
@@ -66,14 +71,38 @@ export default function ProfileScreen() {
   });
 
   const signOut = async () => {
+    posthog.capture("user_signed_out");
+    posthog.reset();
     await supabase.auth.signOut();
     router.replace("/auth/signin");
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
+        <Text>Chargement…</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
+        <Text className="text-center mb-3 text-neutral-900 dark:text-neutral-50">
+          {error instanceof Error ? error.message : "Erreur de chargement"}
+        </Text>
+        <Button title="Réessayer" onPress={() => void refetch()} />
+      </SafeAreaView>
+    );
+  }
+
   if (!profile) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center">
-        <Text>Chargement…</Text>
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
+        <Text className="text-center mb-3 text-neutral-900 dark:text-neutral-50">
+          Profil introuvable. Crée d’abord la ligne profiles pour cet utilisateur.
+        </Text>
+        <Button title="Réessayer" onPress={() => void refetch()} />
       </SafeAreaView>
     );
   }
@@ -84,19 +113,25 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row justify-between items-center px-4 pt-2">
         <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Mon Profil</Text>
-        <Button title="Modifier" variant="ghost" onPress={() => {
-          setName(profile.full_name);
-          setBio(profile.bio ?? "");
-          setCity(profile.city ?? "");
-          setEditOpen(true);
-        }} />
+        <Button
+          title="Modifier"
+          variant="ghost"
+          onPress={() => {
+            setName(profile.full_name);
+            setBio(profile.bio ?? "");
+            setCity(profile.city ?? "");
+            setEditOpen(true);
+          }}
+        />
       </View>
+
       <ScrollView contentContainerClassName="px-4 pb-24 pt-4">
         <View className="items-center">
           <Avatar uri={profile.avatar_url} size={80} className="border-2 border-primary" />
           <Text className="text-2xl font-bold mt-3 text-neutral-900 dark:text-neutral-50">{profile.full_name}</Text>
           <Text className="text-neutral-500">@{profile.username}</Text>
         </View>
+
         <Card className="mt-6 p-4">
           <Text className="text-lg font-semibold mb-2">Infos personnelles</Text>
           <Text className="text-neutral-700 dark:text-neutral-200">Bio : {profile.bio ?? "—"}</Text>
@@ -105,6 +140,7 @@ export default function ProfileScreen() {
           <Text className="text-neutral-700 dark:text-neutral-200">Âge : {age ?? "—"}</Text>
           <Text className="text-neutral-700 dark:text-neutral-200">Langue : {profile.language}</Text>
         </Card>
+
         <Card className="mt-4 p-4">
           <Text className="text-lg font-semibold mb-2">Sports</Text>
           {sports.map((s) => (
@@ -113,6 +149,7 @@ export default function ProfileScreen() {
             </Text>
           ))}
         </Card>
+
         <Card className="mt-4 p-4">
           <Text className="text-lg font-semibold mb-2">Objectifs</Text>
           <View className="flex-row flex-wrap gap-2">
@@ -121,12 +158,29 @@ export default function ProfileScreen() {
             ))}
           </View>
         </Card>
-        <Button
-          title="Activer le profil public"
-          variant="secondary"
-          className="mt-6"
-          onPress={() => Toast.show({ type: "info", text1: "Fonctionnalité disponible dans la prochaine version" })}
-        />
+
+        {profile.is_public_profile ? (
+          <Button
+            title="Voir mon profil public"
+            variant="secondary"
+            className="mt-6"
+            onPress={() => router.push("/(tabs)/profile/public")}
+          />
+        ) : (
+          <Button
+            title="Activer le profil public"
+            variant="secondary"
+            className="mt-6"
+            onPress={() => {
+              if (sports.length === 0) {
+                Toast.show({ type: "info", text1: "Ajoute au moins un sport à ton profil" });
+                return;
+              }
+              setPublicModalOpen(true);
+            }}
+          />
+        )}
+
         <Card className="mt-6 p-4">
           <Text className="text-lg font-semibold mb-3">Paramètres</Text>
           <View className="flex-row justify-between items-center py-2">
@@ -135,6 +189,7 @@ export default function ProfileScreen() {
           </View>
           <Text className="text-sm text-neutral-500 mt-2">Langue : {LANGUAGES.find((l) => l.code === profile.language)?.label}</Text>
         </Card>
+
         <Button title="Se déconnecter" variant="secondary" className="mt-6" onPress={() => void signOut()} />
         <Button
           title="Supprimer mon compte"
@@ -162,6 +217,16 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {userId ? (
+        <PublicProfileActivationModal
+          visible={publicModalOpen}
+          onClose={() => setPublicModalOpen(false)}
+          userId={userId}
+          sports={sports}
+          onSuccess={() => void refetch()}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

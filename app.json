@@ -30,7 +30,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-image",
       "expo-secure-store",
       [
         "expo-image-picker",
@@ -38,7 +37,8 @@
           "photosPermission": "Pulse accède à vos photos pour les publications et le profil."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

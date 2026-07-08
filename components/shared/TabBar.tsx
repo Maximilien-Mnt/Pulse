@@ -11,7 +11,7 @@ const TAB = [
   { key: "clubs", href: "/(tabs)/clubs", label: "Clubs", inactive: "people-outline" as const, active: "people" as const },
   { key: "events", href: "/(tabs)/events", label: "Évènements", inactive: "calendar-outline" as const, active: "calendar" as const },
   { key: "conversations", href: "/(tabs)/conversations", label: "Messages", inactive: "chatbubbles-outline" as const, active: "chatbubbles" as const },
-];
+] as const;
 
 export function TabBar(_props: BottomTabBarProps) {
   const router = useRouter();

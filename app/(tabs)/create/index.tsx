@@ -14,9 +14,11 @@ import { useState, useCallback, useMemo } from "react";
 import { Modal, Pressable, ScrollView, Text, View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { usePostHog } from "posthog-react-native";
 
 export default function CreateScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
   const [postOpen, setPostOpen] = useState(false);
@@ -76,6 +78,12 @@ export default function CreateScreen() {
       if (error) throw error;
     },
     onSuccess: () => {
+      posthog.capture("post_published", {
+        format,
+        has_media: media.length > 0,
+        media_count: media.length,
+        has_tags: tags.trim().length > 0,
+      });
       Toast.show({ type: "success", text1: "Post publié !" });
       setPostOpen(false);
       setTitle("");
@@ -123,6 +131,7 @@ export default function CreateScreen() {
       return conv.id as string;
     },
     onSuccess: (cid) => {
+      posthog.capture("conversation_started");
       setConvOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["conversations", userId] });
       router.push(`/(tabs)/conversations/${cid}`);

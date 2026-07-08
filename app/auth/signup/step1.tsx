@@ -10,11 +10,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
+import { usePostHog } from "posthog-react-native";
 
 type Form = z.infer<typeof signupStep1Schema>;
 
 export default function SignupStep1() {
   const router = useRouter();
+  const posthog = usePostHog();
   const setStep1 = useSignupStore((s) => s.setStep1);
   const [langOpen, setLangOpen] = useState(false);
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
@@ -68,6 +70,7 @@ export default function SignupStep1() {
       email: values.email.trim(),
       password: values.password,
     });
+    posthog.capture("signup_step_completed", { step: 1, language: values.language });
     router.push("/auth/signup/step2");
   });
 

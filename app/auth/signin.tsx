@@ -8,18 +8,20 @@ import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { z } from "zod";
+import { usePostHog } from "posthog-react-native";
 
 type Form = z.infer<typeof signInSchema>;
 
 export default function SignInScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email.trim(),
       password: values.password,
     });
@@ -30,6 +32,14 @@ export default function SignInScreen() {
       });
       return;
     }
+    const userId = data.session?.user?.id;
+    if (userId) {
+      posthog.identify(userId, {
+        $set: { email: values.email.trim() },
+        $set_once: { first_sign_in_date: new Date().toISOString() },
+      });
+    }
+    posthog.capture("user_signed_in");
     router.replace("/(tabs)/feed");
   });
 

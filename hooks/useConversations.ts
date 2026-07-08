@@ -6,29 +6,36 @@ export type ConversationListItem = {
   conversation: Conversation;
   pinned: boolean;
   unread: number;
+  isPublicList: boolean;
   other: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
 };
 
 /**
  * Liste des conversations 1:1 pour l'utilisateur courant.
+ * @param publicList - false = privées, true = publiques, undefined = toutes
  */
-export function useConversations(userId: string | null) {
+export function useConversations(userId: string | null, publicList?: boolean) {
   return useQuery({
-    queryKey: ["conversations", userId],
+    queryKey: ["conversations", userId, publicList],
     enabled: !!userId,
     queryFn: async (): Promise<ConversationListItem[]> => {
-      const { data: mine, error: e1 } = await supabase
+      let partQuery = supabase
         .from("conversation_participants")
-        .select("conversation_id, pinned, unread_count, last_read_at")
+        .select("conversation_id, pinned, unread_count, last_read_at, is_public_list")
         .eq("user_id", userId!)
         .is("left_at", null);
+      if (publicList !== undefined) {
+        partQuery = partQuery.eq("is_public_list", publicList);
+      }
+      const { data: mine, error: e1 } = await partQuery;
       if (e1) throw e1;
       const convIds = (mine ?? []).map((m) => m.conversation_id);
       if (!convIds.length) return [];
       const { data: convs, error: e2 } = await supabase
         .from("conversations")
         .select("*")
-        .in("id", convIds);
+        .in("id", convIds)
+        .eq("is_group", false);
       if (e2) throw e2;
       const { data: others, error: e3 } = await supabase
         .from("conversation_participants")
@@ -63,6 +70,7 @@ export function useConversations(userId: string | null) {
           conversation: c as Conversation,
           pinned: meta?.pinned ?? false,
           unread: meta?.unread_count ?? 0,
+          isPublicList: meta?.is_public_list ?? false,
           other,
         };
       });

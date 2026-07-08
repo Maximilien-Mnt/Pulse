@@ -13,10 +13,12 @@ import Toast from "react-native-toast-message";
 import { useAuthStore } from "@/stores/authStore";
 import { formatDateLong } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
+import { usePostHog } from "posthog-react-native";
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const router = useRouter();
+  const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
 
   const { data: event } = useQuery({
@@ -35,7 +37,16 @@ export default function EventDetailScreen() {
       const { error } = await supabase.from("event_join_requests").insert({ event_id: event.id, user_id: userId });
       if (error) throw error;
     },
-    onSuccess: () => Toast.show({ type: "success", text1: "Demande envoyée" }),
+    onSuccess: () => {
+      posthog.capture("event_join_requested", {
+        event_id: event?.id ?? null,
+        event_name: event?.name ?? null,
+        event_sport: event?.sport ?? null,
+        is_paid: event?.is_paid ?? null,
+        is_external: event?.is_external ?? null,
+      });
+      Toast.show({ type: "success", text1: "Demande envoyée" });
+    },
     onError: () => Toast.show({ type: "error", text1: "Erreur" }),
   });
 

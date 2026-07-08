@@ -94,7 +94,7 @@ export function PostCard({ post }: Props) {
   const tags = useMemo(() => post.tags ?? [], [post.tags]);
 
   const onAuthorPress = () => {
-    Toast.show({ type: "info", text1: "Fonctionnalité bientôt disponible" });
+    router.push(`/profile/${post.author.id}`);
   };
 
   const toggleLike = () => {

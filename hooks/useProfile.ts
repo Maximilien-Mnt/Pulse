@@ -2,9 +2,6 @@ import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 
-/**
- * Profil Supabase (ligne `profiles`) pour un utilisateur donné.
- */
 export function useProfile(userId: string | null) {
   return useQuery({
     queryKey: ["profile", userId],

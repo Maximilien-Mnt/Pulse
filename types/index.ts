@@ -10,6 +10,17 @@ export type Json =
 
 export type PostFormat = "text" | "image" | "gallery";
 
+export type PublicSportStatus =
+  | "Coach"
+  | "Amateur"
+  | "Récréatif"
+  | "Semi-Professionnel"
+  | "Professionnel";
+
+export type PublicStatusMap = Record<string, PublicSportStatus>;
+
+export type MessageType = "text" | "image" | "file" | "system";
+
 export type Database = {
   public: {
     Tables: {
@@ -33,6 +44,9 @@ export type Database = {
           updated_at: string;
           deleted_at: string | null;
           is_public_profile: boolean;
+          public_status: Json;
+          public_photos: string[];
+          push_token: string | null;
         };
         Insert: {
           id: string;
@@ -53,6 +67,9 @@ export type Database = {
           updated_at?: string;
           deleted_at?: string | null;
           is_public_profile?: boolean;
+          public_status?: Json;
+          public_photos?: string[];
+          push_token?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];
@@ -139,6 +156,9 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          is_private: boolean;
+          training_schedule: Json;
+          website_url: string | null;
         };
         Insert: {
           id?: string;
@@ -167,6 +187,9 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_private?: boolean;
+          training_schedule?: Json;
+          website_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["clubs"]["Insert"]>;
         Relationships: [];
@@ -250,6 +273,10 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          is_private: boolean;
+          website_url: string | null;
+          age_min: number | null;
+          age_max: number | null;
         };
         Insert: {
           id?: string;
@@ -281,6 +308,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_private?: boolean;
+          website_url?: string | null;
+          age_min?: number | null;
+          age_max?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
         Relationships: [];
@@ -422,6 +453,9 @@ export type Database = {
           updated_at: string;
           last_message_at: string | null;
           last_message_preview: string | null;
+          is_group: boolean;
+          group_name: string | null;
+          group_photo_url: string | null;
         };
         Insert: {
           id?: string;
@@ -429,6 +463,9 @@ export type Database = {
           updated_at?: string;
           last_message_at?: string | null;
           last_message_preview?: string | null;
+          is_group?: boolean;
+          group_name?: string | null;
+          group_photo_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["conversations"]["Insert"]>;
         Relationships: [];
@@ -442,6 +479,7 @@ export type Database = {
           unread_count: number;
           last_read_at: string | null;
           joined_at: string;
+          is_public_list: boolean;
         };
         Insert: {
           conversation_id: string;
@@ -451,6 +489,7 @@ export type Database = {
           unread_count?: number;
           last_read_at?: string | null;
           joined_at?: string;
+          is_public_list?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["conversation_participants"]["Insert"]>;
         Relationships: [];
@@ -464,6 +503,11 @@ export type Database = {
           created_at: string;
           deleted_at: string | null;
           is_deleted: boolean;
+          is_edited: boolean;
+          pinned_until: string | null;
+          type: MessageType;
+          file_url: string | null;
+          file_name: string | null;
         };
         Insert: {
           id?: string;
@@ -473,6 +517,11 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           is_deleted?: boolean;
+          is_edited?: boolean;
+          pinned_until?: string | null;
+          type?: MessageType;
+          file_url?: string | null;
+          file_name?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
         Relationships: [];
@@ -562,6 +611,12 @@ export type Database = {
           following_count: number;
           posts_count: number;
           updated_at: string;
+          total_likes_received: number;
+          total_comments_received: number;
+          clubs_created_count: number;
+          events_created_count: number;
+          historical_follows_count: number;
+          unfollows_count: number;
         };
         Insert: {
           user_id: string;
@@ -569,6 +624,12 @@ export type Database = {
           following_count?: number;
           posts_count?: number;
           updated_at?: string;
+          total_likes_received?: number;
+          total_comments_received?: number;
+          clubs_created_count?: number;
+          events_created_count?: number;
+          historical_follows_count?: number;
+          unfollows_count?: number;
         };
         Update: Partial<Database["public"]["Tables"]["user_stats"]["Insert"]>;
         Relationships: [];
@@ -592,11 +653,25 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      feed_scored_posts: {
+        Row: Post & { base_score: number };
+        Relationships: [];
+      };
+    };
     Functions: {
       check_username_available: {
         Args: { p_username: string };
         Returns: boolean;
+      };
+      get_scored_feed: {
+        Args: {
+          p_user_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_tag?: string | null;
+        };
+        Returns: (Post & { score: number })[];
       };
     };
     Enums: Record<string, never>;
@@ -614,6 +689,22 @@ export type EventRow = Tables<"events">;
 export type Conversation = Tables<"conversations">;
 export type Message = Tables<"messages">;
 export type PostComment = Tables<"post_comments">;
+export type UserStats = Tables<"user_stats">;
+export type UserSport = Tables<"user_sports">;
+
+export type PublicProfile = Pick<
+  Profile,
+  | "id"
+  | "full_name"
+  | "username"
+  | "avatar_url"
+  | "bio"
+  | "country"
+  | "city"
+  | "is_public_profile"
+  | "public_status"
+  | "public_photos"
+>;
 
 export type FeedPost = Post & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;

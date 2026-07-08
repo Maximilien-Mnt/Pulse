@@ -7,17 +7,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { z } from "zod";
+import { usePostHog } from "posthog-react-native";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
 export default function SignupStep5() {
   const router = useRouter();
+  const posthog = usePostHog();
   const resetSignup = useSignupStore((s) => s.reset);
   const step1 = useSignupStore((s) => s.step1);
   const step2 = useSignupStore((s) => s.step2);
@@ -57,14 +60,24 @@ export default function SignupStep5() {
       Toast.show({ type: "error", text1: "Données d'inscription incomplètes" });
       return;
     }
+
     setSubmitting(true);
+
     try {
+      const emailRedirectTo = Linking.createURL("/auth/signin");
+
       const { data, error } = await supabase.auth.signUp({
         email: step1.email,
         password: step1.password,
+        options: {
+          emailRedirectTo,
+        },
       });
+
       if (error) throw error;
+
       const user = data.session?.user ?? data.user;
+
       if (!user) {
         Toast.show({ type: "info", text1: "Vérifie ta boîte mail pour confirmer ton compte" });
         router.replace("/auth/signin");
@@ -115,6 +128,7 @@ export default function SignupStep5() {
         });
         if (se) throw se;
       }
+
       for (const o of step4.objectives) {
         const { error: oe } = await supabase.from("user_objectives").insert({
           user_id: user.id,
@@ -122,6 +136,17 @@ export default function SignupStep5() {
         });
         if (oe) throw oe;
       }
+
+      posthog.identify(user.id, {
+        $set: { username: step1.username, language: step1.language },
+        $set_once: { signup_date: new Date().toISOString(), discovery_source: values.discovery || null },
+      });
+      posthog.capture("user_signed_up", {
+        language: step1.language,
+        has_avatar: !!avatarUri,
+        sports_count: step3.length,
+        discovery_source: values.discovery || null,
+      });
 
       resetSignup();
       Toast.show({ type: "success", text1: "Compte créé !" });

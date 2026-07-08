@@ -1,3 +1,3 @@
 /// <reference types="expo/types" />
 
-// NOTE: This file should not be edited and should be committed with your project.
+// NOTE: This file should not be edited and should be in your git ignore

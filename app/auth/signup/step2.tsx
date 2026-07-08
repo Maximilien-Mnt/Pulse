@@ -11,11 +11,13 @@ import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
+import { usePostHog } from "posthog-react-native";
 
 type Form = z.infer<typeof signupStep2Schema>;
 
 export default function SignupStep2() {
   const router = useRouter();
+  const posthog = usePostHog();
   const setStep2 = useSignupStore((s) => s.setStep2);
   const [countryOpen, setCountryOpen] = useState(false);
   const [showDate, setShowDate] = useState(Platform.OS === "ios");
@@ -38,6 +40,7 @@ export default function SignupStep2() {
       country: values.country,
       city: values.city?.trim() || undefined,
     });
+    posthog.capture("signup_step_completed", { step: 2, country: values.country });
     router.push("/auth/signup/step3");
   });
 

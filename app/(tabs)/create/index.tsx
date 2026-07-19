@@ -19,6 +19,7 @@ import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { ClubCreationModal } from "@/components/clubs/ClubCreationModal";
 import { EventCreationModal } from "@/components/events/EventCreationModal";
+import { TagInput } from "@/components/feed/TagInput";
 
 
 function base64ToArrayBuffer(base64: string) {
@@ -93,14 +94,17 @@ export default function CreateScreen() {
   });
 
 
-  const searchUsers = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setUserHits([]);
-      return;
-    }
-    const { data } = await supabase.from("profiles").select("id, username, full_name, avatar_url").ilike("username", `%${q}%`).limit(10);
-    setUserHits(data ?? []);
-  }, []);
+  const searchUsers = useCallback(
+    async (q: string) => {
+      if (q.length < 2) {
+        setUserHits([]);
+        return;
+      }
+      const { data } = await supabase.from("profiles").select("id, username, full_name, avatar_url").ilike("username", `%${q}%`).limit(10);
+      setUserHits(data ?? []);
+    },
+    []
+  );
 
 
   const publishMut = useMutation({
@@ -320,7 +324,7 @@ export default function CreateScreen() {
                 ))}
               </ScrollView>
             ) : null}
-            <Input label="Tags" value={tags} onChangeText={setTags} placeholder="#course #club" />
+            <TagInput value={tags} onChangeText={setTags} />
             <View className="flex-row gap-2 mt-4">
               <Button title="Annuler" variant="ghost" onPress={() => setPostOpen(false)} />
               <Button title="Publier" onPress={() => publishMut.mutate()} loading={publishMut.isPending} />

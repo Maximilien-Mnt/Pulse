@@ -7,7 +7,7 @@ type ThemeState = {
   isDark: boolean;
   setDark: (v: boolean) => void;
   toggle: () => void;
-  /** Hydrate theme from storage and/or system preference. Call once on app start. */
+  /** Hydrate theme from storage. Call once on app start. */
   hydrate: () => Promise<void>;
 };
 
@@ -29,12 +29,6 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
     const stored = await AsyncStorage.getItem(THEME_STORAGE_KEY);
     if (stored !== null) {
       set({ isDark: stored === "true" });
-    } else {
-      // Fall back to OS-level preference
-      const { useColorScheme } = await import("react-native");
-      const systemDark = useColorScheme() === "dark";
-      set({ isDark: systemDark });
-      void persistDark(systemDark);
     }
   },
 }));

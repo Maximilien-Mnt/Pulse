@@ -1,4 +1,3 @@
-import type { Ionicons } from "@expo/vector-icons";
 import { COUNTRIES as FULL_COUNTRIES } from "@/utils/countries";
 
 export { FULL_COUNTRIES as COUNTRIES };
@@ -20,7 +19,7 @@ export type SportId =
 export type SportDefinition = {
   id: SportId;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   color: string;
 };
 
@@ -30,9 +29,9 @@ export const SPORTS: SportDefinition[] = [
   { id: "tennis", label: "Tennis", icon: "tennisball-outline", color: "#EAB308" },
   { id: "running", label: "Course à pied", icon: "walk-outline", color: "#3B82F6" },
   { id: "cycling", label: "Cyclisme", icon: "bicycle-outline", color: "#6366F1" },
-  { id: "swimming", label: "Natation", icon: "water-outline", color: "#06B6D4" },
+  { id: "swimming", label: "Natation", icon: "swim-outline", color: "#06B6D4" },
   { id: "volleyball", label: "Volleyball", icon: "american-football-outline", color: "#F97316" },
-  { id: "handball", label: "Handball", icon: "hand-left-outline", color: "#DC2626" },
+  { id: "handball", label: "Handball", icon: "hand-right-outline", color: "#DC2626" },
   { id: "padel", label: "Padel", icon: "tennisball-outline", color: "#A855F7" },
   { id: "badminton", label: "Badminton", icon: "tennisball-outline", color: "#14B8A6" },
   { id: "fitness", label: "Fitness", icon: "barbell-outline", color: "#64748B" },

@@ -3,6 +3,7 @@ import type { ConversationListItem } from "@/hooks/useConversations";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { formatRelative } from "@/utils/date";
+import { exportConversationToJsonl } from "@/utils/conversationExport";
 import { useAuthStore } from "@/stores/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -69,12 +70,9 @@ export function ConversationItem({ item }: Props) {
       if (opts[i] === "Annuler") return;
       if (opts[i]?.startsWith("Éping") || opts[i]?.startsWith("Déséping")) pinMut.mutate();
       if (opts[i] === "Télécharger") {
-        const line = JSON.stringify({
-          conversationId: item.conversation.id,
-          preview: item.conversation.last_message_preview,
-          exportedAt: new Date().toISOString(),
-        });
-        void Share.share({ message: line, title: "conversation.jsonl" });
+        exportConversationToJsonl(item.conversation.id).catch(() =>
+          Toast.show({ type: "error", text1: "Export impossible" })
+        );
       }
       if (opts[i] === "Signaler") {
         Alert.alert("Signaler ?", "Des données peuvent être partagées avec l'équipe.", [

@@ -51,9 +51,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
               tab === t.key ? "border-primary" : "border-transparent"
             }`}
           >
-            <Text
-              className={`font-semibold ${tab === t.key ? "text-primary" : "text-neutral-500"}`}
-            >
+            <Text className={`font-semibold ${tab === t.key ? "text-primary" : "text-neutral-500"}`}>
               {t.label} ({t.count})
             </Text>
           </Pressable>
@@ -80,7 +78,12 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
                   className="rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700"
                 >
                   {thumb ? (
-                    <Image source={{ uri: thumb }} style={{ width: SIZE, height: SIZE }} contentFit="cover" />
+                    <Image
+                      source={{ uri: thumb }}
+                      style={{ width: SIZE, height: SIZE }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
                   ) : (
                     <View className="flex-1 items-center justify-center p-2">
                       <Text className="text-xs text-neutral-600 dark:text-neutral-300" numberOfLines={3}>

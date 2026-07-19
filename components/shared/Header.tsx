@@ -31,10 +31,12 @@ export function Header({
   rightSlot,
 }: Props) {
   const router = useRouter();
+
   return (
     <View className="px-4 pt-2 pb-3 bg-neutral-50 dark:bg-[#0A0F1E]">
       <View className="flex-row items-center gap-3">
         <Text className={cn("text-2xl font-bold text-primary flex-shrink", titleClassName)}>{title}</Text>
+
         {onSearchChange ? (
           <View className="flex-1">
             <SearchBar
@@ -46,10 +48,12 @@ export function Header({
             />
           </View>
         ) : null}
+
         {rightSlot}
+
         {showAvatar ? (
           <Pressable onPress={() => router.push("/(tabs)/profile")} hitSlop={8}>
-            <Avatar uri={avatarUrl} size={24} />
+            <Avatar uri={avatarUrl ?? null} size={24} />
           </Pressable>
         ) : null}
       </View>

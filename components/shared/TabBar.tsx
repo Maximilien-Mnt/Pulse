@@ -2,7 +2,7 @@ import { COLORS } from "@/lib/constants";
 import { cn } from "@/utils/format";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useSegments } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable, Text, View } from "react-native";
 
@@ -15,17 +15,10 @@ const TAB = [
 
 export function TabBar(_props: BottomTabBarProps) {
   const router = useRouter();
-  const segments = useSegments();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const path = segments.join("/");
 
-  const isActive = (key: string) => {
-    if (key === "feed") return path.includes("feed");
-    if (key === "clubs") return path.includes("clubs");
-    if (key === "events") return path.includes("events");
-    if (key === "conversations") return path.includes("conversations");
-    return false;
-  };
+  const isActive = (key: string) => pathname.includes(`/${key}`);
 
   return (
     <View
@@ -37,14 +30,7 @@ export function TabBar(_props: BottomTabBarProps) {
         return (
           <Pressable key={t.key} onPress={() => router.push(t.href)} className="items-center flex-1 pb-1">
             <Ionicons name={on ? t.active : t.inactive} size={24} color={on ? COLORS.primary : COLORS.inactiveTab} />
-            <Text
-              className={cn(
-                "text-xs mt-1",
-                on ? "text-primary font-medium" : "text-neutral-400"
-              )}
-            >
-              {t.label}
-            </Text>
+            <Text className={cn("text-xs mt-1", on ? "text-primary font-medium" : "text-neutral-400")}>{t.label}</Text>
           </Pressable>
         );
       })}

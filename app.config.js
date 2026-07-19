@@ -42,7 +42,9 @@ export default {
       ],
       "expo-notifications",
       "expo-localization",
+      "expo-video",
     ],
+
     experiments: {
       typedRoutes: true,
     },

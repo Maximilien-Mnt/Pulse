@@ -84,3 +84,73 @@ export const signupStep5Schema = z
     message: "Tu dois accepter la politique de confidentialité",
     path: ["acceptPrivacy"],
   });
+
+// Club creation schemas
+export const clubPrivateSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  sport: z.string().min(1, "Sport requis"),
+  description: z.string().optional(),
+  invitees: z.array(z.string()).default([]),
+});
+
+export const clubPublicSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  sport: z.string().min(1, "Sport requis"),
+  description: z.string().min(50, "Description minimum 50 caractères"),
+  country: z.string().min(1, "Pays requis"),
+  city: z.string().min(1, "Ville requise"),
+  registration_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  required_level: z.string().optional(),
+  logo_url: z.string().optional(),
+  hero_urls: z.array(z.string()).max(5).default([]),
+  address: z.string().optional(),
+  contact_email: z.string().email("Email invalide").optional().or(z.literal("")),
+  website_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  founded_date: z.string().optional(),
+  league: z.string().optional(),
+  age_min: z.number().optional(),
+  age_max: z.number().optional(),
+  training_schedule: z.any().optional(),
+});
+
+// Event creation schemas
+export const eventPrivateSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  sport: z.string().min(1, "Sport requis"),
+  start_date: z.string().datetime({ message: "Date de début requise" }),
+  end_date: z.string().datetime().optional(),
+  description: z.string().optional(),
+  venue: z.string().optional(),
+  club_id: z.string().optional(),
+  invitees: z.array(z.string()).default([]),
+});
+
+export const eventPublicSchema = z.object({
+  name: z.string().min(1, "Nom requis"),
+  sport: z.string().min(1, "Sport requis"),
+  start_date: z.string().datetime({ message: "Date de début requise" }),
+  end_date: z.string().datetime().optional(),
+  description: z.string().min(50, "Description minimum 50 caractères"),
+  country: z.string().min(1, "Pays requis"),
+  city: z.string().min(1, "Ville requise"),
+  registration_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  venue_address: z.string().optional(),
+  price_cents: z.number().min(0).optional(),
+  required_level: z.string().optional(),
+  difficulty: z.number().min(1).max(5).optional(),
+  category: z.string().optional(),
+  age_min: z.number().optional(),
+  age_max: z.number().optional(),
+  places_total: z.number().optional(),
+  club_id: z.string().optional(),
+  website_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  logo_url: z.string().optional(),
+  hero_urls: z.array(z.string()).max(5).default([]),
+});
+
+// Group conversation schema
+export const groupConversationSchema = z.object({
+  name: z.string().min(1, "Nom du groupe requis"),
+  memberIds: z.array(z.string()).min(1, "Ajoute au moins un membre"),
+  photo_url: z.string().optional(),
+});

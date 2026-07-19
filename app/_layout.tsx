@@ -1,6 +1,7 @@
 import "../global.css";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, restoreQueryCache, persistQueryCache } from "@/lib/queryClient";
 import { useThemeStore } from "@/stores/themeStore";
+
 import {
   Outfit_400Regular,
   Outfit_500Medium,
@@ -39,6 +40,21 @@ export default function RootLayout() {
     if (loaded) void SplashScreen.hideAsync();
   }, [loaded]);
 
+  // Hydrate theme preference from storage or system preference on start.
+  useEffect(() => {
+    void useThemeStore.getState().hydrate();
+  }, []);
+
+  // Offline mode: restore cached data on start, then persist future changes.
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    void restoreQueryCache().finally(() => {
+      unsubscribe = persistQueryCache();
+    });
+    return () => unsubscribe?.();
+  }, []);
+
+
   useEffect(() => {
     if (previousPathname.current !== pathname) {
       posthog.screen(pathname, {
@@ -70,7 +86,9 @@ export default function RootLayout() {
                 <Stack.Screen name="auth" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="profile" />
+                <Stack.Screen name="join" />
               </Stack>
+
               <Toast />
             </View>
           </PostHogProvider>

@@ -1,4 +1,7 @@
 import type { Ionicons } from "@expo/vector-icons";
+import { COUNTRIES as FULL_COUNTRIES } from "@/utils/countries";
+
+export { FULL_COUNTRIES as COUNTRIES };
 
 export type SportId =
   | "football"
@@ -102,66 +105,6 @@ export const PUBLIC_SPORT_STATUSES = [
 
 export type CountryCode = string;
 
-export const COUNTRIES: { code: CountryCode; label: string }[] = [
-  { code: "FR", label: "France" },
-  { code: "LU", label: "Luxembourg" },
-  { code: "BE", label: "Belgique" },
-  { code: "DE", label: "Allemagne" },
-  { code: "CH", label: "Suisse" },
-  { code: "ES", label: "Espagne" },
-  { code: "IT", label: "Italie" },
-  { code: "PT", label: "Portugal" },
-  { code: "NL", label: "Pays-Bas" },
-  { code: "GB", label: "Royaume-Uni" },
-  { code: "IE", label: "Irlande" },
-  { code: "AT", label: "Autriche" },
-  { code: "PL", label: "Pologne" },
-  { code: "CZ", label: "Tchéquie" },
-  { code: "SE", label: "Suède" },
-  { code: "NO", label: "Norvège" },
-  { code: "DK", label: "Danemark" },
-  { code: "FI", label: "Finlande" },
-  { code: "GR", label: "Grèce" },
-  { code: "RO", label: "Roumanie" },
-  { code: "HU", label: "Hongrie" },
-  { code: "HR", label: "Croatie" },
-  { code: "SI", label: "Slovénie" },
-  { code: "SK", label: "Slovaquie" },
-  { code: "BG", label: "Bulgarie" },
-  { code: "RS", label: "Serbie" },
-  { code: "UA", label: "Ukraine" },
-  { code: "TR", label: "Turquie" },
-  { code: "MA", label: "Maroc" },
-  { code: "DZ", label: "Algérie" },
-  { code: "TN", label: "Tunisie" },
-  { code: "SN", label: "Sénégal" },
-  { code: "CI", label: "Côte d'Ivoire" },
-  { code: "CM", label: "Cameroun" },
-  { code: "CA", label: "Canada" },
-  { code: "US", label: "États-Unis" },
-  { code: "MX", label: "Mexique" },
-  { code: "BR", label: "Brésil" },
-  { code: "AR", label: "Argentine" },
-  { code: "CL", label: "Chili" },
-  { code: "CO", label: "Colombie" },
-  { code: "JP", label: "Japon" },
-  { code: "KR", label: "Corée du Sud" },
-  { code: "CN", label: "Chine" },
-  { code: "IN", label: "Inde" },
-  { code: "AU", label: "Australie" },
-  { code: "NZ", label: "Nouvelle-Zélande" },
-  { code: "ZA", label: "Afrique du Sud" },
-  { code: "EG", label: "Égypte" },
-  { code: "IL", label: "Israël" },
-  { code: "AE", label: "Émirats arabes unis" },
-  { code: "SA", label: "Arabie saoudite" },
-  { code: "RU", label: "Russie" },
-  { code: "IS", label: "Islande" },
-  { code: "EE", label: "Estonie" },
-  { code: "LV", label: "Lettonie" },
-  { code: "LT", label: "Lituanie" },
-  { code: "MC", label: "Monaco" },
-];
 
 export const LANGUAGES = [
   { code: "fr", label: "Français" },
@@ -195,6 +138,7 @@ export const CLUB_SORT_OPTIONS = [
   { value: "members_asc", label: "Moins de membres" },
   { value: "recent", label: "Récent" },
   { value: "oldest", label: "Ancien" },
+  { value: "nearby", label: "Proche de moi" },
 ] as const;
 
 export const EVENT_SORT_OPTIONS = [
@@ -205,6 +149,7 @@ export const EVENT_SORT_OPTIONS = [
   { value: "price_desc", label: "Prix ↓" },
   { value: "difficulty_asc", label: "Difficulté ↑" },
   { value: "difficulty_desc", label: "Difficulté ↓" },
+  { value: "nearby", label: "Proche de moi" },
 ] as const;
 
 export const EVENT_CATEGORIES = ["Tournoi", "Stage", "Randonnée", "Séance ouverte", "Ligue", "Social"] as const;

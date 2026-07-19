@@ -7,13 +7,16 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { EventListFilters } from "@/hooks/useEvents";
 import { useEvents } from "@/hooks/useEvents";
+import { useLocation } from "@/hooks/useLocation";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { EventRow } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 
 const defaultFilters: EventListFilters = {
   sports: [],
@@ -29,16 +32,27 @@ const defaultFilters: EventListFilters = {
   externalOnly: false,
   favoritesOnly: false,
   sort: "date_asc",
+  radiusKm: 10,
 };
 
 export default function EventsScreen() {
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
+  const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
   const [filters, setFilters] = useState<EventListFilters>(defaultFilters);
   const [filterOpen, setFilterOpen] = useState(false);
   const [grid, setGrid] = useState(false);
+  
+  // Add location to filters when available
+  const filtersWithLocation = useMemo(() => {
+    if (filters.sort === "nearby" && latitude && longitude) {
+      return { ...filters, userLat: latitude, userLon: longitude };
+    }
+    return filters;
+  }, [filters, latitude, longitude]);
+  
   const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, isRefetching } =
-    useEvents(filters, userId);
+    useEvents(filtersWithLocation, userId);
 
   const events = useMemo(() => (data?.pages.flat() ?? []) as EventRow[], [data]);
   const onRefresh = useCallback(() => void refetch(), [refetch]);
@@ -74,16 +88,17 @@ export default function EventsScreen() {
           <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
         </Pressable>
       </View>
-      <EventFilters visible={filterOpen} onClose={() => setFilterOpen(false)} value={filters} onApply={setFilters} />
-      <FlatList
+      <EventFilters visible={filterOpen} onClose={() => setFilterOpen(false)} value={filters} onApply={setFilters} isLocationEnabled={isLocationEnabled} />
+      <FlashList
         key={grid ? "g" : "l"}
         numColumns={grid ? 2 : 1}
-        columnWrapperStyle={grid ? { gap: 8, paddingHorizontal: 16 } : undefined}
         data={events}
         keyExtractor={(e) => e.id}
         renderItem={({ item }) =>
           grid ? (
-            <EventCardGrid event={item} />
+            <View className="px-1">
+              <EventCardGrid event={item} />
+            </View>
           ) : (
             <View className="px-4">
               <EventCard event={item} />
@@ -91,12 +106,14 @@ export default function EventsScreen() {
           )
         }
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+        onEndReachedThreshold={0.5}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
         ListEmptyComponent={<EmptyState icon="calendar-outline" title="Aucun événement" subtitle="Modifie les filtres." />}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
+
     </SafeAreaView>
   );
 }

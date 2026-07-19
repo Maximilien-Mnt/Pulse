@@ -18,6 +18,9 @@ export type EventListFilters = {
   externalOnly: boolean;
   favoritesOnly: boolean;
   sort: string;
+  radiusKm?: number;
+  userLat?: number;
+  userLon?: number;
 };
 
 /**
@@ -31,6 +34,39 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
     queryFn: async ({ pageParam }): Promise<EventRow[]> => {
       const from = pageParam * PAGE;
       const to = from + PAGE - 1;
+      
+      // Handle "nearby" sort using RPC function
+      if (filters.sort === "nearby" && filters.userLat && filters.userLon) {
+        const { data, error } = await (supabase.rpc as any)("get_nearby_events", {
+          p_lat: filters.userLat,
+          p_lon: filters.userLon,
+          p_radius_km: filters.radiusKm ?? 10,
+          p_limit: PAGE,
+          p_offset: from,
+          p_future_only: true,
+        });
+        
+        if (error) throw error;
+        let rows = (data ?? []) as unknown as EventRow[];
+        
+        // Apply favorites filter on client side
+        if (filters.favoritesOnly && userId) {
+          const ids = rows.map((e) => e.id);
+          if (!ids.length) return rows;
+          const { data: favs, error: fe } = await supabase
+            .from("event_favorites")
+            .select("event_id")
+            .eq("user_id", userId)
+            .in("event_id", ids);
+          if (fe) throw fe;
+          const set = new Set((favs ?? []).map((x) => x.event_id));
+          rows = rows.filter((e) => set.has(e.id));
+        }
+        
+        return rows;
+      }
+      
+      // Standard query with PostgREST
       let q = supabase.from("events").select("*");
 
       if (filters.sports.length) q = q.in("sport", filters.sports);

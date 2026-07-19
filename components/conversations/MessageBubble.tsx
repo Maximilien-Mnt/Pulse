@@ -1,5 +1,9 @@
+import { supabase } from "@/lib/supabase";
+import { queryClient } from "@/lib/queryClient";
 import { formatTime } from "@/utils/date";
 import type { Message } from "@/types";
+import { useAuthStore } from "@/stores/authStore";
+import { useMutation } from "@tanstack/react-query";
 import { Alert, Pressable, Text, View } from "react-native";
 
 type Props = {
@@ -9,14 +13,42 @@ type Props = {
 };
 
 export function MessageBubble({ message, mine, senderName }: Props) {
+  const userId = useAuthStore((s) => s.userId);
+
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("messages")
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq("id", message.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["messages", message.conversation_id] });
+    },
+  });
+
+  const hideMut = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error("auth");
+      const { error } = await supabase.from("message_hidden").insert({
+        message_id: message.id,
+        user_id: userId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["messages", message.conversation_id] });
+    },
+  });
+
   const onLongPress = () => {
     Alert.alert("Message", undefined, [
       mine
-        ? { text: "Supprimer", style: "destructive", onPress: () => {} }
-        : { text: "Masquer", onPress: () => {} },
+        ? { text: "Supprimer", style: "destructive", onPress: () => deleteMut.mutate() }
+        : { text: "Masquer", onPress: () => hideMut.mutate() },
       { text: "Annuler", style: "cancel" },
     ]);
-    // TODO V2: suppression / masquage réel + sync serveur
   };
 
   if (message.is_deleted) {

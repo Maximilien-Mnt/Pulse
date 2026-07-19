@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.pulse.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pulse a besoin d'accéder à vos photos pour votre profil et vos publications.",
-        "NSCameraUsageDescription": "Pulse utilise l'appareil photo pour ajouter des images à vos posts."
+        "NSCameraUsageDescription": "Pulse utilise l'appareil photo pour ajouter des images à vos posts.",
+        "NSLocationWhenInUseUsageDescription": "Pulse utilise votre position pour vous proposer des clubs et événements proches de vous."
       }
     },
     "android": {
@@ -25,7 +26,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1E6BFF"
-      }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -38,10 +43,21 @@
         }
       ],
       "expo-notifications",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pulse utilise votre position pour vous proposer des clubs et événements proches de vous."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "pulse-app"
+      }
     }
   }
 }

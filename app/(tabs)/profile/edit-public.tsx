@@ -1,139 +1,285 @@
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { PUBLIC_SPORT_STATUSES, SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
-import { useProfile } from "@/hooks/useProfile";
-import { parsePublicStatus } from "@/hooks/usePublicProfile";
-import { useAuthStore } from "@/stores/authStore";
-import type { PublicStatusMap } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { useMutation } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
+import { Ionicons } from "@expo/vector-icons";
+import type { PublicStatusMap, PublicSportStatus, Profile } from "@/types";
 
-export default function EditPublicProfileScreen() {
-  const router = useRouter();
-  const userId = useAuthStore((s) => s.userId);
-  const { data: profile, refetch } = useProfile(userId);
-  const [bio, setBio] = useState("");
-  const [statusMap, setStatusMap] = useState<PublicStatusMap>({});
-  const [photos, setPhotos] = useState<string[]>([]);
+type Props = {
+  visible: boolean;
+  userId: string;
+  sports: { id: string; sport_id: string; level: string; practice: string }[];
+  onClose: () => void;
+  onSuccess?: () => void;
+};
 
-  const { data: sports = [] } = useQuery({
-    queryKey: ["my-sports", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_sports").select("*").eq("user_id", userId!);
-      if (error) throw error;
-      return data ?? [];
-    },
+type ProfilePublicData = Pick<Profile, "bio" | "public_status" | "public_photos" | "is_public_profile">;
+
+function base64ToArrayBuffer(base64: string) {
+  const binary = globalThis.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function uploadPublicProfileImage(uri: string, path: string) {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const { error } = await supabase.storage.from("public-profiles").upload(path, arrayBuffer, {
+    contentType: "image/jpeg",
+    upsert: false,
   });
+  if (error) throw error;
+  const { data } = supabase.storage.from("public-profiles").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+const PUBLIC_STATUS_OPTIONS: PublicSportStatus[] = [
+  "Coach",
+  "Amateur",
+  "Récréatif",
+  "Semi-Professionnel",
+  "Professionnel",
+];
+
+export default function EditPublicProfile({ visible, userId, sports, onClose, onSuccess }: Props) {
+  const [bio, setBio] = useState("");
+  const [statusBySport, setStatusBySport] = useState<PublicStatusMap>({});
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
-    if (profile) {
-      setBio(profile.bio ?? "");
-      setStatusMap(parsePublicStatus(profile.public_status));
-      setPhotos(profile.public_photos ?? []);
-    }
-  }, [profile]);
+    if (!visible) return;
+
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("bio, public_status, public_photos, is_public_profile")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        Toast.show({ type: "error", text1: "Impossible de charger le profil public" });
+        return;
+      }
+
+      const row = data as ProfilePublicData;
+      setBio(row.bio ?? "");
+      setStatusBySport((row.public_status ?? {}) as PublicStatusMap);
+      setSelectedPhotos(row.public_photos ?? []);
+      setStep(1);
+    };
+
+    void load();
+  }, [visible, userId]);
+
+  const canContinue = useMemo(() => {
+    if (step === 1) return true;
+    if (step === 2) return sports.every((s) => !!statusBySport[s.sport_id]);
+    if (step === 3) return selectedPhotos.length >= 1;
+    return true;
+  }, [step, statusBySport, selectedPhotos.length, sports]);
 
   const pickPhotos = async () => {
-    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!p.granted) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+
     const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 5,
-      quality: 0.7,
+      base64: false,
     });
-    if (!res.canceled) setPhotos(res.assets.map((a) => a.uri).slice(0, 5));
+
+    if (res.canceled) return;
+
+    const uris = res.assets.map((a) => a.uri).slice(0, 5);
+    setSelectedPhotos((prev) => Array.from(new Set([...prev, ...uris])).slice(0, 5));
   };
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      if (!userId) return;
-      const urls: string[] = [];
-      for (let i = 0; i < photos.length; i++) {
-        const uri = photos[i]!;
+      const uploaded: string[] = [];
+
+      for (let i = 0; i < selectedPhotos.length; i += 1) {
+        const uri = selectedPhotos[i]!;
         if (uri.startsWith("http")) {
-          urls.push(uri);
+          uploaded.push(uri);
           continue;
         }
-        const blob = await (await fetch(uri)).blob();
+
         const path = `${userId}/${Date.now()}_${i}.jpg`;
-        const { error } = await supabase.storage
-          .from("public-profiles")
-          .upload(path, blob, { contentType: "image/jpeg" });
-        if (error) throw error;
-        const { data: pub } = supabase.storage.from("public-profiles").getPublicUrl(path);
-        urls.push(pub.publicUrl);
+        const url = await uploadPublicProfileImage(uri, path);
+        uploaded.push(url);
       }
+
       const { error } = await supabase
         .from("profiles")
-        .update({ bio: bio.trim() || null, public_status: statusMap, public_photos: urls })
+        .update({
+          is_public_profile: true,
+          public_status: statusBySport,
+          public_photos: uploaded,
+          bio: bio.trim() || null,
+        })
         .eq("id", userId);
+
       if (error) throw error;
     },
-    onSuccess: () => {
-      Toast.show({ type: "success", text1: "Profil public mis à jour" });
-      void refetch();
-      void queryClient.invalidateQueries({ queryKey: ["public-profile", userId] });
-      router.back();
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+      Toast.show({ type: "success", text1: "Profil public activé" });
+      onSuccess?.();
+      onClose();
     },
-    onError: () => Toast.show({ type: "error", text1: "Échec de la mise à jour" }),
+    onError: () => {
+      Toast.show({ type: "error", text1: "Impossible d’activer le profil public" });
+    },
   });
 
-  const sportLabel = (id: string) => SPORTS.find((s) => s.id === id)?.label ?? id;
+  if (!visible) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <View className="flex-row items-center px-4 pt-2">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
-        <Text className="text-lg font-bold ml-3 text-neutral-900 dark:text-neutral-50">Modifier profil public</Text>
-      </View>
-
-      <ScrollView contentContainerClassName="px-4 pb-24 pt-4">
-        <Input label="Bio publique" value={bio} onChangeText={setBio} multiline />
-
-        <Text className="text-lg font-semibold mb-3 text-neutral-900 dark:text-neutral-50">Statuts par sport</Text>
-        {sports.map((s) => (
-          <View key={s.id} className="mb-4">
-            <Text className="font-medium mb-2 text-neutral-800 dark:text-neutral-100">{sportLabel(s.sport_id)}</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {PUBLIC_SPORT_STATUSES.map((st) => (
-                <Pressable
-                  key={st}
-                  onPress={() => setStatusMap((m) => ({ ...m, [s.sport_id]: st }))}
-                  className={`px-3 py-2 rounded-xl border ${
-                    statusMap[s.sport_id] === st ? "bg-primary border-primary" : "border-neutral-200 dark:border-neutral-700"
-                  }`}
-                >
-                  <Text className={statusMap[s.sport_id] === st ? "text-white" : "text-neutral-800 dark:text-neutral-100"}>
-                    {st}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View className="flex-1 bg-black/50 justify-end">
+        <View className="bg-white dark:bg-neutral-900 rounded-t-3xl p-4 max-h-[90%]">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-50">Profil public</Text>
+            <Pressable onPress={onClose}>
+              <Ionicons name="close" size={24} color="#64748B" />
+            </Pressable>
           </View>
-        ))}
 
-        <Text className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-50">Photos publiques</Text>
-        <Button title="Modifier les photos" variant="secondary" onPress={pickPhotos} />
-        <View className="flex-row flex-wrap gap-2 mt-3">
-          {photos.map((uri) => (
-            <Image key={uri} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} />
-          ))}
+          <View className="flex-row gap-2 mb-4">
+            {[1, 2, 3].map((n) => (
+              <View
+                key={n}
+                className={`h-2 flex-1 rounded-full ${step >= n ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"}`}
+              />
+            ))}
+          </View>
+
+          {step === 1 ? (
+            <ScrollView>
+              <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-3">
+                Le profil public permet de te mettre en avant dans Pulse.
+              </Text>
+              <Card className="p-4">
+                <Text className="font-semibold mb-2 text-neutral-900 dark:text-neutral-50">
+                  Statut par sport
+                </Text>
+                {sports.map((sport) => (
+                  <View key={sport.id} className="mb-3">
+                    <Text className="text-neutral-700 dark:text-neutral-200 mb-2">{sport.sport_id}</Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {PUBLIC_STATUS_OPTIONS.map((status) => (
+                        <Pressable
+                          key={status}
+                          onPress={() =>
+                            setStatusBySport((prev) => ({
+                              ...prev,
+                              [sport.sport_id]: status,
+                            }))
+                          }
+                          className={`px-3 py-2 rounded-full border ${
+                            statusBySport[sport.sport_id] === status
+                              ? "bg-primary border-primary"
+                              : "bg-transparent border-neutral-300 dark:border-neutral-700"
+                          }`}
+                        >
+                          <Text
+                            className={
+                              statusBySport[sport.sport_id] === status
+                                ? "text-white font-medium"
+                                : "text-neutral-700 dark:text-neutral-200"
+                            }
+                          >
+                            {status}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </ScrollView>
+          ) : null}
+
+          {step === 2 ? (
+            <ScrollView>
+              <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-3">
+                Ajoute jusqu’à 5 photos pour ton profil public.
+              </Text>
+              <Button title="Ajouter des photos" variant="secondary" onPress={() => void pickPhotos()} />
+              <View className="flex-row flex-wrap gap-2 mt-4">
+                {selectedPhotos.map((uri, index) => (
+                  <View
+                    key={`${uri}-${index}`}
+                    className="w-[30%] aspect-square rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800"
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          ) : null}
+
+          {step === 3 ? (
+            <ScrollView>
+              <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-3">
+                Vérifie les informations avant d’activer ton profil public.
+              </Text>
+              <Card className="p-4">
+                <Text className="font-semibold mb-2">Aperçu</Text>
+                <Text className="text-neutral-700 dark:text-neutral-200">Bio : {bio || "—"}</Text>
+                <Text className="text-neutral-700 dark:text-neutral-200 mt-2">
+                  Photos : {selectedPhotos.length}
+                </Text>
+              </Card>
+            </ScrollView>
+          ) : null}
+
+          <View className="mt-4">
+            <Input label="Bio" value={bio} onChangeText={setBio} multiline />
+          </View>
+
+          <View className="flex-row gap-2 mt-4">
+            <Button
+              title="Précédent"
+              variant="ghost"
+              onPress={() => setStep((s) => Math.max(1, s - 1))}
+              disabled={step === 1}
+            />
+            {step < 3 ? (
+              <Button
+                title="Continuer"
+                onPress={() => {
+                  if (!canContinue) {
+                    Toast.show({ type: "info", text1: "Complète les informations demandées" });
+                    return;
+                  }
+                  setStep((s) => s + 1);
+                }}
+              />
+            ) : (
+              <Button title="Activer" onPress={() => saveMut.mutate()} loading={saveMut.isPending} />
+            )}
+          </View>
         </View>
-
-        <Button title="Enregistrer" className="mt-6" onPress={() => saveMut.mutate()} loading={saveMut.isPending} />
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </Modal>
   );
 }

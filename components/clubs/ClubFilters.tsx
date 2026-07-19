@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/Input";
 import { CLUB_SORT_OPTIONS, SPORTS } from "@/lib/constants";
 import type { ClubListFilters } from "@/hooks/useClubs";
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Switch, Text, View } from "react-native";
 
@@ -11,9 +12,10 @@ type Props = {
   onClose: () => void;
   value: ClubListFilters;
   onApply: (v: ClubListFilters) => void;
+  isLocationEnabled?: boolean;
 };
 
-export function ClubFilters({ visible, onClose, value, onApply }: Props) {
+export function ClubFilters({ visible, onClose, value, onApply, isLocationEnabled = false }: Props) {
   const [draft, setDraft] = useState<ClubListFilters>(value);
   const toggleSport = (id: string) => {
     setDraft((d) => ({
@@ -21,6 +23,8 @@ export function ClubFilters({ visible, onClose, value, onApply }: Props) {
       sports: d.sports.includes(id) ? d.sports.filter((s) => s !== id) : [...d.sports, id],
     }));
   };
+
+  const showRadius = draft.sort === "nearby" && isLocationEnabled;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -86,9 +90,40 @@ export function ClubFilters({ visible, onClose, value, onApply }: Props) {
                 onPress={() => setDraft((d) => ({ ...d, sort: o.value }))}
                 className={`py-3 border-b border-neutral-100 dark:border-neutral-800 ${draft.sort === o.value ? "bg-primary/5" : ""}`}
               >
-                <Text className="text-base text-neutral-900 dark:text-neutral-50">{o.label}</Text>
+                <View className="flex-row items-center">
+                  <Text className="text-base text-neutral-900 dark:text-neutral-50">{o.label}</Text>
+                  {o.value === "nearby" && !isLocationEnabled && (
+                    <Ionicons name="location-outline" size={16} color="#64748B" className="ml-2" />
+                  )}
+                </View>
               </Pressable>
             ))}
+            
+            {/* Radius slider - shown only when "nearby" is selected and location is enabled */}
+            {showRadius && (
+              <View className="mt-4 mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Rayon de recherche</Text>
+                  <Text className="text-sm text-primary font-medium">{draft.radiusKm ?? 10} km</Text>
+                </View>
+                <Slider
+                  style={{ width: "100%", height: 40 }}
+                  minimumValue={1}
+                  maximumValue={100}
+                  step={1}
+                  value={draft.radiusKm ?? 10}
+                  onValueChange={(radiusKm) => setDraft((d) => ({ ...d, radiusKm }))}
+                  minimumTrackTintColor="#1E6BFF"
+                  maximumTrackTintColor="#E2E8F0"
+                  thumbTintColor="#1E6BFF"
+                />
+                <View className="flex-row justify-between">
+                  <Text className="text-xs text-neutral-500">1 km</Text>
+                  <Text className="text-xs text-neutral-500">100 km</Text>
+                </View>
+              </View>
+            )}
+            
             <View className="mt-6 gap-3">
               <Button
                 title="Appliquer"
@@ -109,6 +144,7 @@ export function ClubFilters({ visible, onClose, value, onApply }: Props) {
                     externalOnly: false,
                     favoritesOnly: false,
                     sort: "relevance",
+                    radiusKm: 10,
                   };
                   setDraft(reset);
                   onApply(reset);

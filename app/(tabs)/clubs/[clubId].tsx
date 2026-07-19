@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { InvitationButton } from "@/components/shared/InvitationButton";
+import { ClubMembersStrip } from "@/components/clubs/ClubMembersStrip";
+import { useClubMembers } from "@/hooks/useClubMembers";
 import { supabase } from "@/lib/supabase";
 import type { Club } from "@/types";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
-import { ScrollView, Share, Text, View, Pressable } from "react-native";
+import { ScrollView, Share, Text, View, Pressable, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
@@ -30,6 +33,8 @@ export default function ClubDetailScreen() {
     },
   });
 
+  const { data: members = [] } = useClubMembers(clubId ?? null);
+
   const joinMut = useMutation({
     mutationFn: async () => {
       if (!userId || !club) return;
@@ -46,7 +51,7 @@ export default function ClubDetailScreen() {
       Toast.show({ type: "success", text1: "Demande envoyée au créateur" });
       void queryClient.invalidateQueries({ queryKey: ["club", clubId] });
     },
-    onError: () => Toast.show({ type: "error", text1: "Impossible d’envoyer la demande" }),
+    onError: () => Toast.show({ type: "error", text1: "Impossible d'envoyer la demande" }),
   });
 
   if (!club) {
@@ -71,9 +76,22 @@ export default function ClubDetailScreen() {
         </Text>
       </View>
       <ScrollView className="flex-1 px-4">
-        {hero ? (
+        {/* Hero gallery */}
+        {club.hero_urls.length > 0 ? (
+          <FlatList
+            horizontal
+            data={club.hero_urls}
+            keyExtractor={(u) => u}
+            showsHorizontalScrollIndicator={false}
+            className="mb-4"
+            renderItem={({ item }) => (
+              <Image source={{ uri: item }} className="w-80 h-48 rounded-xl mr-2" contentFit="cover" />
+            )}
+          />
+        ) : hero ? (
           <Image source={{ uri: hero }} className="w-full h-48 rounded-xl mb-4" contentFit="cover" />
         ) : null}
+
         <View className="flex-row items-center gap-3 mb-2">
           {club.logo_url ? (
             <Image source={{ uri: club.logo_url }} style={{ width: 60, height: 60, borderRadius: 30 }} />
@@ -89,11 +107,47 @@ export default function ClubDetailScreen() {
             </Text>
           </View>
         </View>
+
         <Text className="text-base text-neutral-800 dark:text-neutral-100 mt-2">{club.description}</Text>
-        <Text className="text-sm text-neutral-500 mt-4">
-          Adresse : {club.address ?? "—"}
-        </Text>
-        <Text className="text-sm text-neutral-500">Membres : {club.member_count}</Text>
+
+        {/* Detailed info */}
+        <View className="mt-4 p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">
+          <Text className="text-sm text-neutral-500">Adresse : {club.address ?? "—"}</Text>
+          {club.founded_date ? (
+            <Text className="text-sm text-neutral-500 mt-1">Fondation : {club.founded_date}</Text>
+          ) : null}
+          {club.league ? (
+            <Text className="text-sm text-neutral-500 mt-1">Ligue/Division : {club.league}</Text>
+          ) : null}
+          {club.age_min != null || club.age_max != null ? (
+            <Text className="text-sm text-neutral-500 mt-1">
+              Tranche d'âge : {club.age_min ?? "—"} – {club.age_max ?? "—"} ans
+            </Text>
+          ) : null}
+          {club.required_level ? (
+            <Text className="text-sm text-neutral-500 mt-1">Niveau requis : {club.required_level}</Text>
+          ) : null}
+          {club.contact_email ? (
+            <Text className="text-sm text-neutral-500 mt-1">Contact : {club.contact_email}</Text>
+          ) : null}
+          <Text className="text-sm text-neutral-500 mt-1">Membres : {club.member_count}</Text>
+        </View>
+
+        {/* Members strip */}
+        {!club.is_external ? <ClubMembersStrip members={members} /> : null}
+
+        {/* Source link */}
+        {club.is_external && club.source_url ? (
+          <Pressable
+            className="mt-3"
+            onPress={() => void WebBrowser.openBrowserAsync(club.source_url!)}
+          >
+            <Text className="text-primary text-sm font-medium">
+              Source : {club.source_name ?? club.source_url}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View className="flex-row gap-3 mt-6 mb-10">
           <Button title="Partager" variant="secondary" onPress={() => void Share.share({ message: club.name })} />
         </View>
@@ -102,6 +156,12 @@ export default function ClubDetailScreen() {
         ) : (
           <Button title="Rejoindre le club" onPress={() => joinMut.mutate()} loading={joinMut.isPending} />
         )}
+        <InvitationButton
+          type="club"
+          targetId={club.id}
+          visible={!!userId && club.created_by === userId && !!club.is_private}
+          className="mt-3 mb-10"
+        />
       </ScrollView>
     </SafeAreaView>
   );

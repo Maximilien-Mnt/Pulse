@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { InvitationButton } from "@/components/shared/InvitationButton";
 import { supabase } from "@/lib/supabase";
+
 import type { EventRow } from "@/types";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -78,10 +80,27 @@ export default function EventDetailScreen() {
           <Badge>{event.sport}</Badge>
           {event.is_external ? <Badge variant="warning">Externe</Badge> : null}
         </View>
-        <Text className="mt-2 text-neutral-600 dark:text-neutral-300">{formatDateLong(event.start_date)}</Text>
-        <Text className="text-neutral-600">{event.city}, {event.country}</Text>
-        <Text className="mt-3 text-base">{event.description}</Text>
-        <Text className="mt-2 font-semibold text-primary">{formatPriceFromCents(event.price_cents, event.is_paid)}</Text>
+      <Text className="mt-2 text-neutral-600 dark:text-neutral-300">{formatDateLong(event.start_date)}</Text>
+      {event.end_date ? (
+        <Text className="text-neutral-600">Fin : {formatDateLong(event.end_date)}</Text>
+      ) : null}
+      <Text className="text-neutral-600">{event.city}, {event.country}</Text>
+      {event.venue_address ? (
+        <Text className="text-neutral-600">Lieu : {event.venue_address}</Text>
+      ) : null}
+      <Text className="mt-3 text-base">{event.description}</Text>
+      <Text className="mt-2 font-semibold text-primary">{formatPriceFromCents(event.price_cents, event.is_paid)}</Text>
+      {event.places_total != null ? (
+        <Text className="text-sm text-neutral-500 mt-1">Places : {event.places_left ?? 0} / {event.places_total}</Text>
+      ) : null}
+      {event.club_id ? (
+        <Pressable
+          className="mt-2"
+          onPress={() => router.push(`/(tabs)/clubs/${event.club_id}`)}
+        >
+          <Text className="text-primary text-sm font-medium">Club organisateur →</Text>
+        </Pressable>
+      ) : null}
         <View className="flex-row gap-3 mt-6">
           <Button title="Partager" variant="secondary" onPress={() => void Share.share({ message: event.name })} />
         </View>
@@ -90,7 +109,14 @@ export default function EventDetailScreen() {
         ) : (
           <Button title="Demander à participer" onPress={() => joinMut.mutate()} loading={joinMut.isPending} />
         )}
+        <InvitationButton
+          type="event"
+          targetId={event.id}
+          visible={!!userId && event.created_by === userId && !!event.is_private}
+          className="mt-3 mb-10"
+        />
       </ScrollView>
+
     </SafeAreaView>
   );
 }

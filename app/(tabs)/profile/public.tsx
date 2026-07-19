@@ -46,7 +46,7 @@ export default function MyPublicProfileScreen() {
           <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
         </Pressable>
         <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Mon profil public</Text>
-        <Button title="Modifier" variant="ghost" onPress={() => router.push("/(tabs)/profile/edit-public")} />
+        <Button title="Modifier" variant="ghost" onPress={() => router.push("/profile/edit-public")} />
       </View>
 
       <ScrollView contentContainerClassName="px-4 pb-24 pt-4">

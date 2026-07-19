@@ -8,6 +8,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { Stack, useRouter } from "expo-router";
 import * as Linking from "expo-linking";
+import * as FileSystem from "expo-file-system";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -15,8 +16,31 @@ import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-nati
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
+import { savePendingSignup } from "@/utils/signup";
 
 type Form = z.infer<typeof signupStep5Schema>;
+
+function base64ToArrayBuffer(base64: string) {
+  const binary = globalThis.atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function uploadAvatarToSupabase(uri: string, path: string) {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: "base64",
+  });
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const { error } = await supabase.storage.from("avatars").upload(path, arrayBuffer, {
+    contentType: "image/jpeg",
+    upsert: true,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
 
 export default function SignupStep5() {
   const router = useRouter();
@@ -30,7 +54,12 @@ export default function SignupStep5() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<Form>({
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<Form>({
     resolver: zodResolver(signupStep5Schema),
     defaultValues: {
       bio: "",
@@ -79,6 +108,27 @@ export default function SignupStep5() {
       const user = data.session?.user ?? data.user;
 
       if (!user) {
+        // Email confirmation required: persist signup data for replay after confirmation
+        await savePendingSignup({
+          profile: {
+            id: crypto.randomUUID(),
+            email: step1.email,
+            full_name: step1.fullName,
+            username: step1.username,
+            avatar_url: null,
+            bio: values.bio || null,
+            birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
+            country: step2.country,
+            city: step2.city ?? null,
+            language: step1.language,
+            height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
+            weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
+            discovery_source: values.discovery || null,
+            interested_sports: step4.interestedSports,
+          },
+          sports: step3,
+          objectives: step4.objectives,
+        });
         Toast.show({ type: "info", text1: "Vérifie ta boîte mail pour confirmer ton compte" });
         router.replace("/auth/signin");
         return;
@@ -86,17 +136,7 @@ export default function SignupStep5() {
 
       let avatar_url: string | null = null;
       if (avatarUri) {
-        const resBlob = await fetch(avatarUri);
-        const blob = await resBlob.blob();
-        const path = `${user.id}/avatar.jpg`;
-        const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, {
-          contentType: "image/jpeg",
-          upsert: true,
-        });
-        if (!upErr) {
-          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-          avatar_url = pub.publicUrl;
-        }
+        avatar_url = await uploadAvatarToSupabase(avatarUri, `${user.id}/avatar.jpg`);
       }
 
       const { error: pe } = await supabase.from("profiles").insert({

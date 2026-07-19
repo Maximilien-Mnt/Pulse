@@ -1,5 +1,4 @@
 import { TabBar } from "@/components/shared/TabBar";
-import { useAuth } from "@/hooks/useAuth";
 import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
@@ -16,7 +15,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="create/index" />
       <Tabs.Screen name="events/index" />
       <Tabs.Screen name="conversations/index" />
-      <Tabs.Screen name="profile/index" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

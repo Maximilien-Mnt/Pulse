@@ -8,7 +8,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type PostFormat = "text" | "image" | "gallery";
+export type PostFormat = "text" | "image" | "gallery" | "video";
 
 export type PublicSportStatus =
   | "Coach"
@@ -709,6 +709,9 @@ export type PublicProfile = Pick<
 export type FeedPost = Post & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
   liked_by_me?: boolean;
+  video_url?: string | null;
+  video_thumbnail?: string | null;
+  video_duration?: number | null;
 };
 
 export type SignupSportSelection = {
@@ -717,4 +720,26 @@ export type SignupSportSelection = {
   practice: string;
   weekdays: number[];
   timesPerWeek: number;
+};
+
+export type ConversationListItemDownload = {
+  type: "message";
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  created_at: string;
+  is_deleted: boolean;
+}[];
+
+export type TagSuggestion = { tag: string; count: number };
+
+export type ProfileUpdate = {
+  full_name?: string;
+  bio?: string | null;
+  city?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  avatar_url?: string | null;
+  language?: string;
 };

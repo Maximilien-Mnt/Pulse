@@ -20,6 +20,20 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Mot de passe requis"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Confirmation requise"),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas",
+    path: ["confirmPassword"],
+  });
+
 export const signupStep1Schema = z
   .object({
     language: z.string().min(1),
@@ -46,24 +60,45 @@ export const signupStep2Schema = z
     let age = now.getFullYear() - bd.getFullYear();
     const m = now.getMonth() - bd.getMonth();
     if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age -= 1;
-    if (age < 13) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Tu dois avoir au moins 13 ans", path: ["birthDate"] });
+    if (age < 16) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Tu dois avoir au moins 16 ans", path: ["birthDate"] });
     }
   });
 
-export const signupStep3Schema = z.object({
-  entries: z
-    .array(
-      z.object({
-        sportId: z.string(),
-        level: z.string().min(1, "Niveau requis"),
-        practice: z.string().min(1, "Type de pratique requis"),
-        weekdays: z.array(z.number()).min(1, "Au moins un jour"),
-        timesPerWeek: z.coerce.number().min(1).max(14),
-      })
-    )
-    .min(1, "Sélectionne au moins un sport"),
-});
+export const signupStep3Schema = z
+  .object({
+    entries: z
+      .array(
+        z.object({
+          sportId: z.string(),
+          level: z.string().min(1, "Niveau requis"),
+          practice: z.string().min(1, "Type de pratique requis"),
+          weekdays: z.array(z.number()).min(1, "Au moins un jour"),
+          startHour: z
+            .number({ invalid_type_error: "Heure de début requise" })
+            .int()
+            .min(6, "Heure de début invalide")
+            .max(21, "Heure de début invalide"),
+          endHour: z
+            .number({ invalid_type_error: "Heure de fin requise" })
+            .int()
+            .min(7, "Heure de fin invalide")
+            .max(23, "Heure de fin invalide"),
+        })
+      )
+      .min(1, "Sélectionne au moins un sport"),
+  })
+  .superRefine((d, ctx) => {
+    d.entries.forEach((entry, i) => {
+      if (entry.endHour <= entry.startHour) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "L'heure de fin doit être après l'heure de début",
+          path: ["entries", i, "endHour"],
+        });
+      }
+    });
+  });
 
 export const signupStep4Schema = z.object({
   interestedSports: z.array(z.string()).default([]),
@@ -76,6 +111,7 @@ export const signupStep5Schema = z
   .object({
     bio: z.string().max(300).optional(),
     discovery: z.string().optional(),
+    discoveryDetails: z.string().max(500, "500 caractères maximum").optional(),
     acceptTerms: z.boolean(),
     acceptPrivacy: z.boolean(),
   })
@@ -99,13 +135,13 @@ export const clubPublicSchema = z.object({
   description: z.string().min(50, "Description minimum 50 caractères"),
   country: z.string().min(1, "Pays requis"),
   city: z.string().min(1, "Ville requise"),
-  registration_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  registration_url: z.string().optional().or(z.literal("")),
   required_level: z.string().optional(),
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
   address: z.string().optional(),
-  contact_email: z.string().email("Email invalide").optional().or(z.literal("")),
-  website_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  contact_email: z.string().optional().or(z.literal("")),
+  website_url: z.string().optional().or(z.literal("")),
   founded_date: z.string().optional(),
   league: z.string().optional(),
   age_min: z.number().optional(),
@@ -123,6 +159,12 @@ export const eventPrivateSchema = z.object({
   venue: z.string().optional(),
   club_id: z.string().optional(),
   invitees: z.array(z.string()).default([]),
+}).refine((d) => {
+  if (!d.end_date) return true;
+  return new Date(d.end_date) > new Date(d.start_date);
+}, {
+  message: "La date de fin doit être postérieure à la date de début",
+  path: ["end_date"],
 });
 
 export const eventPublicSchema = z.object({
@@ -133,7 +175,7 @@ export const eventPublicSchema = z.object({
   description: z.string().min(50, "Description minimum 50 caractères"),
   country: z.string().min(1, "Pays requis"),
   city: z.string().min(1, "Ville requise"),
-  registration_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  registration_url: z.string().optional().or(z.literal("")),
   venue_address: z.string().optional(),
   price_cents: z.number().min(0).optional(),
   required_level: z.string().optional(),
@@ -143,9 +185,15 @@ export const eventPublicSchema = z.object({
   age_max: z.number().optional(),
   places_total: z.number().optional(),
   club_id: z.string().optional(),
-  website_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  website_url: z.string().optional().or(z.literal("")),
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
+}).refine((d) => {
+  if (!d.end_date) return true;
+  return new Date(d.end_date) > new Date(d.start_date);
+}, {
+  message: "La date de fin doit être postérieure à la date de début",
+  path: ["end_date"],
 });
 
 // Group conversation schema

@@ -3,28 +3,28 @@ import { useMutation } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
 
 /**
- * Password re-auth → soft delete profiles.deleted_at = now().
- * The auth user deletion is handled server-side via a trigger or admin.
+ * Password-gated HARD delete of the caller's account.
+ *
+ * Delegates to the SECURITY DEFINER RPC `delete_my_account` so the password
+ * is verified server-side and the `auth.users` row is deleted (cascading to
+ * all user data). After the RPC succeeds we sign out explicitly, because
+ * deleting the auth user server-side does not emit a client auth event — the
+ * current session must be invalidated locally so the user is logged out
+ * immediately.
  */
 export function useDeleteAccount() {
   return useMutation({
     mutationFn: async (password: string) => {
-      // 1. Re-authenticate with password
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("Utilisateur non trouvé");
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password,
+      const { error } = await supabase.rpc("delete_my_account", {
+        p_password: password,
       });
-      if (signInError) throw new Error("Mot de passe incorrect");
-
-      // 2. Soft-delete the profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", user.id);
-      if (profileError) throw profileError;
+      if (error) throw new Error(error.message);
+      // Invalidate the current session right away. The onAuthStateChange
+      // listener in useAuth clears the auth store, and AuthGuard redirects
+      // to sign-in. This is best-effort: the account is already deleted
+      // server-side, so a sign-out failure must not surface as a deletion
+      // error.
+      await supabase.auth.signOut().catch(() => {});
     },
     onError: (error: Error) => {
       Toast.show({ type: "error", text1: error.message });

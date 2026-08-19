@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   expo: {
     name: "Pulse",
     slug: "pulse",
@@ -8,7 +8,7 @@ export default {
     icon: "./assets/images/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/splash.png",
+      image: "./assets/images/icon.png",
       resizeMode: "contain",
       backgroundColor: "#1E6BFF",
     },
@@ -20,14 +20,20 @@ export default {
           "Pulse a besoin d'accéder à vos photos pour votre profil et vos publications.",
         NSCameraUsageDescription:
           "Pulse utilise l'appareil photo pour ajouter des images à vos posts.",
+        NSLocationWhenInUseUsageDescription:
+          "Pulse utilise votre position pour vous proposer des clubs et événements proches de vous.",
       },
     },
     android: {
       package: "com.pulse.app",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#1E6BFF",
       },
+      permissions: [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+      ],
     },
     plugins: [
       "expo-router",
@@ -43,11 +49,14 @@ export default {
       "expo-notifications",
       "expo-localization",
       "expo-video",
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "Pulse utilise votre position pour vous proposer des clubs et événements proches de vous.",
+        },
+      ],
     ],
-
-    experiments: {
-      typedRoutes: true,
-    },
     extra: {
       posthogProjectToken: process.env.POSTHOG_PROJECT_TOKEN,
       posthogHost: process.env.POSTHOG_HOST || "https://eu.i.posthog.com",

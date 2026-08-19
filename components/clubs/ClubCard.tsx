@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/utils/format";
+import { getCountryDisplay } from "@/utils/countries";
 import type { Club } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
@@ -61,7 +62,7 @@ export function ClubCard({ club, compact }: Props) {
           ) : null}
         </View>
         <Text className="text-sm text-neutral-500 mt-1" numberOfLines={1}>
-          {club.city}, {club.country} · {club.member_count} membres
+          {club.city}, {getCountryDisplay(club.country)} · {club.member_count} membres
         </Text>
       </View>
       <View className="justify-between items-end">

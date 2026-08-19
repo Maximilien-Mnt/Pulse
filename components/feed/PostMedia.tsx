@@ -117,6 +117,11 @@ function VideoPost({
 export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuration, isActive = true }: Props) {
   const [viewer, setViewer] = useState<string | null>(null);
   const [pdfOpen, setPdfOpen] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  const handleImageError = (url: string) => {
+    setFailedImages((prev) => new Set(prev).add(url));
+  };
 
   if (format === "text" && !videoUrl) return null;
 
@@ -139,18 +144,25 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
   if (format === "image") {
     return (
       <>
-        <Pressable
-          className="mt-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
-          onPress={() => setViewer(urls[0] ?? null)}
-        >
-          <Image
-            source={{ uri: urls[0] ?? "" }}
-            style={{ width: W, height: (W * 9) / 16 }}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
-        </Pressable>
+          <Pressable
+            className="mt-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
+            onPress={() => setViewer(urls[0] ?? null)}
+          >
+            {failedImages.has(urls[0] ?? "") ? (
+              <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
+                <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+              </View>
+            ) : (
+              <Image
+                source={{ uri: urls[0] ?? "" }}
+                style={{ width: W, height: (W * 9) / 16 }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+                onError={() => handleImageError(urls[0] ?? "")}
+              />
+            )}
+          </Pressable>
 
         <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
           <View className="flex-1 bg-black">
@@ -184,19 +196,26 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
           snapToInterval={W + 8}
           decelerationRate="fast"
           renderItem={({ item, index }) => (
-            <Pressable
-              className="mr-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
-              style={{ width: W }}
-              onPress={() => setViewer(item)}
-            >
-              <Image
-                source={{ uri: item }}
-                style={{ width: W, height: (W * 9) / 16 }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-              />
-            </Pressable>
+              <Pressable
+                className="mr-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
+                style={{ width: W }}
+                onPress={() => setViewer(item)}
+              >
+                {failedImages.has(item) ? (
+                  <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
+                    <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: item }}
+                    style={{ width: W, height: (W * 9) / 16 }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                    onError={() => handleImageError(item)}
+                  />
+                )}
+              </Pressable>
           )}
         />
 
@@ -247,13 +266,20 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
             className="rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
             onPress={() => setViewer(url)}
           >
-            <Image
-              source={{ uri: url }}
-              style={{ width: W, height: (W * 9) / 16 }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={200}
-            />
+            {failedImages.has(url) ? (
+              <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
+                <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+              </View>
+            ) : (
+              <Image
+                source={{ uri: url }}
+                style={{ width: W, height: (W * 9) / 16 }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+                onError={() => handleImageError(url)}
+              />
+            )}
           </Pressable>
         );
       })}

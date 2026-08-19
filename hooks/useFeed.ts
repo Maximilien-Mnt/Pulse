@@ -1,14 +1,31 @@
 import { supabase } from "@/lib/supabase";
 import type { FeedPost } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/authStore";
+import type { FeedFilter } from "@/stores/feedStore";
+
+async function fetchBlockedIds(userId: string): Promise<string[]> {
+  // Never let a blocked_users failure break the whole feed.
+  try {
+    const { data, error } = await supabase
+      .from("blocked_users")
+      .select("blocked_id")
+      .eq("blocker_id", userId);
+
+    if (error) return [];
+    return (data ?? []).map((row) => row.blocked_id);
+  } catch {
+    return [];
+  }
+}
 
 type FeedPage = {
   items: FeedPost[];
   nextCursor: string | null;
 };
 
-function normalizeFeedPost(row: any): FeedPost {
-  return {
+function normalizeFeedPost(row: any, likedByMeSet?: Set<string>): FeedPost {
+  const post: FeedPost = {
     id: row.id,
     author_id: row.author_id,
     title: row.title,
@@ -30,10 +47,49 @@ function normalizeFeedPost(row: any): FeedPost {
       username: row.author?.username ?? "utilisateur",
       avatar_url: row.author?.avatar_url ?? null,
     },
+    liked_by_me: false,
   };
+  
+  // Check if user has liked this post
+  if (likedByMeSet && likedByMeSet.has(post.id)) {
+    post.liked_by_me = true;
+  }
+  
+  return post;
 }
 
-async function fetchFeedPage(cursor: string | null, tag: string | null): Promise<FeedPage> {
+/**
+ * Fetches the list of user IDs the current user follows (for the
+ * "Abonnements" feed filter).
+ */
+async function fetchFollowingIds(userId: string | null): Promise<string[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", userId);
+  if (error) {
+    if (__DEV__) {
+      console.error("[useFeed] fetchFollowingIds error", { userId, error });
+    }
+    throw error;
+  }
+  if (__DEV__) {
+    console.log("[useFeed] fetchFollowingIds", {
+      userId,
+      count: data?.length ?? 0,
+      followingIds: (data ?? []).map((row) => row.following_id),
+    });
+  }
+  return (data ?? []).map((row) => row.following_id);
+}
+
+async function fetchFeedPage(
+  cursor: string | null,
+  tag: string | null,
+  userId: string | null,
+  filter: FeedFilter
+): Promise<FeedPage> {
   let query = supabase
     .from("posts")
     .select(
@@ -50,7 +106,10 @@ async function fetchFeedPage(cursor: string | null, tag: string | null): Promise
       shares_count,
       created_at,
       updated_at,
-      author:profiles (
+      video_url,
+      video_thumbnail,
+      video_duration,
+      author:profiles!author_id (
         id,
         full_name,
         username,
@@ -69,10 +128,88 @@ async function fetchFeedPage(cursor: string | null, tag: string | null): Promise
     query = query.contains("tags", [tag]);
   }
 
-  const { data, error } = await query;
+  // ── Feed filter: sport → server-side tag match ─────────────────
+  if (filter.type === "sport") {
+    query = query.contains("tags", [filter.sport]);
+  }
+
+  // ── Feed filter: tag → server-side tag match ──────────────────
+  if (filter.type === "tag") {
+    query = query.contains("tags", [filter.tag]);
+  }
+
+  // ── Feed filter: following → only posts by followed authors ────
+  if (filter.type === "following") {
+    const followingIds = await fetchFollowingIds(userId);
+    if (followingIds.length === 0) {
+      if (__DEV__) {
+        console.warn("[useFeed] following filter: no followed users found", { userId });
+      }
+      // No followed users → empty feed
+      return { items: [], nextCursor: null };
+    }
+    query = query.in("author_id", followingIds);
+  }
+
+  // ── Blocked users filter ───────────────────────────────────────
+  if (userId) {
+    const blockedIds = await fetchBlockedIds(userId);
+    if (blockedIds.length > 0) {
+      query = query.not("author_id", "in", blockedIds);
+    }
+  }
+
+  // `video_*` columns were added by migration 026 but aren't in the generated types yet.
+  const { data, error } = (await query) as any;
   if (error) throw error;
 
-  const rows = (data ?? []).map(normalizeFeedPost);
+  // Get liked status for the current user if authenticated
+  let likedByMeSet: Set<string> | undefined;
+  if (userId && data && data.length > 0) {
+    try {
+      const postIds = data.map((row: any) => row.id);
+      console.log("[useFeed] Loading liked status for user", {
+        userId,
+        postIds,
+        postCount: postIds.length,
+      });
+      
+      const { data: likesData, error: likesError } = await supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", userId)
+        .in("post_id", postIds);
+
+      console.log("[useFeed] Liked status loaded", {
+        userId,
+        likesFound: likesData?.length ?? 0,
+        likedPostIds: likesData?.map(l => l.post_id),
+        error: likesError,
+        query: {
+          table: "post_likes",
+          filter: { user_id: userId, post_id: { in: postIds } },
+        },
+      });
+
+      if (likesData && likesData.length > 0) {
+        likedByMeSet = new Set(likesData.map((like) => like.post_id));
+      }
+    } catch (e) {
+      if (__DEV__) {
+        console.warn("[useFeed] Failed to load liked status", e);
+      }
+    }
+  } else {
+    if (__DEV__) {
+      console.log("[useFeed] Skipping liked status load", {
+        hasUserId: !!userId,
+        hasData: !!data,
+        dataLength: data?.length,
+      });
+    }
+  }
+
+  const rows = (data ?? []).map((row: any) => normalizeFeedPost(row, likedByMeSet));
 
   return {
     items: rows,
@@ -80,10 +217,28 @@ async function fetchFeedPage(cursor: string | null, tag: string | null): Promise
   };
 }
 
-export function useFeed(tag?: string | null) {
+export function useFeed(tag: string | null | undefined, filter: FeedFilter = { type: "for-you" }) {
+  const userId = useAuthStore((s) => s.userId);
+  
   return useInfiniteQuery({
-    queryKey: ["feed", tag],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, tag ?? null),
+    queryKey: ["feed", tag, filter, userId],
+    queryFn: async ({ pageParam }) => {
+      console.log("[useFeed] Fetching feed page", {
+        tag,
+        filter,
+        userId,
+        pageParam,
+      });
+      
+      const result = await fetchFeedPage(pageParam ?? null, tag ?? null, userId, filter);
+      
+      console.log("[useFeed] Feed page fetched", {
+        itemCount: result.items.length,
+        postIds: result.items.map(item => ({ id: item.id, liked: item.liked_by_me, likes: item.likes_count })),
+      });
+      
+      return result;
+    },
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   });

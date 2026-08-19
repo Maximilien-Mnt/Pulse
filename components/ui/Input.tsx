@@ -1,72 +1,140 @@
+// ---------------------------------------------------------------------------
+// PULSE DESIGN SYSTEM — Input
+//
+// Single-line text input and multi-line textarea with label, help text,
+// and error state, all driven by design tokens.
+//
+// Usage:
+//   <Input label="Email" placeholder="you@example.com" />
+//   <Input label="Bio" multiline numberOfLines={4} />
+//   <Input label="Name" error="Name is required" />
+// ---------------------------------------------------------------------------
+
+import React, { useState, useCallback } from "react";
+import {
+  TextInput as RNTextInput,
+  View,
+  type TextInputProps as RNTextInputProps,
+} from "react-native";
 import { cn } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Text } from "@/components/ui/Text";
+import { useDesignTokens } from "@/src/design-tokens/useDesignTokens";
 
-type Props = {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder?: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface InputProps extends Omit<RNTextInputProps, "style"> {
+  /** Label displayed above the input */
+  label?: string;
+  /** Help text displayed below the input */
+  help?: string;
+  /** Error message — when set, the border turns error-500 and message shows below */
   error?: string;
-  secureTextEntry?: boolean;
-  keyboardType?: "default" | "email-address" | "numeric" | "number-pad";
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  multiline?: boolean;
+  /** Additional Tailwind / NativeWind class names for the container */
   className?: string;
-};
+  /** Additional class names for the input itself */
+  inputClassName?: string;
+}
 
-export function Input({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  error,
-  secureTextEntry,
-  keyboardType,
-  autoCapitalize,
-  multiline,
-  className,
-}: Props) {
-  const [focused, setFocused] = useState(false);
-  const [hidden, setHidden] = useState(true);
-  const showToggle = !!secureTextEntry;
-  const borderClass = error
-    ? "border-error"
-    : focused
-      ? "border-primary"
-      : "border-neutral-200 dark:border-neutral-700";
+// ---------------------------------------------------------------------------
+// Shared classes
+// ---------------------------------------------------------------------------
 
-  return (
-    <View className={cn("mb-4", className)}>
-      <Text className="text-sm font-medium text-neutral-800 dark:text-neutral-100 mb-1">{label}</Text>
-      <View
-        className={cn(
-          "border-2 rounded-xl px-3.5 py-3.5 bg-white dark:bg-neutral-900 flex-row items-center",
-          borderClass
-        )}
-      >
-        <TextInput
-          className="flex-1 text-base text-neutral-900 dark:text-neutral-50"
-          placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry && hidden}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
+const baseInput =
+  "h-12 rounded-sm border-[1.5px] border-border bg-surface px-4 text-base text-text-primary dark:text-text-primary-dark placeholder:text-text-tertiary font-inter dark:border-border-dark dark:bg-surface-dark";
+
+const focusedInput =
+  "border-primary";
+
+const errorInput =
+  "border-error-500";
+
+const textareaExtra = "h-auto py-3";
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export const Input = React.forwardRef<RNTextInput, InputProps>(
+  (
+    {
+      label,
+      help,
+      error,
+      className,
+      inputClassName,
+      multiline,
+      onFocus,
+      onBlur,
+      ...rest
+    },
+    ref
+  ) => {
+    const tokens = useDesignTokens();
+    const [isFocused, setIsFocused] = useState(false);
+
+    const handleFocus = useCallback(
+      (e: Parameters<NonNullable<RNTextInputProps["onFocus"]>>[0]) => {
+        setIsFocused(true);
+        onFocus?.(e);
+      },
+      [onFocus]
+    );
+
+    const handleBlur = useCallback(
+      (e: Parameters<NonNullable<RNTextInputProps["onBlur"]>>[0]) => {
+        setIsFocused(false);
+        onBlur?.(e);
+      },
+      [onBlur]
+    );
+
+    const inputClasses = cn(
+      baseInput,
+      isFocused && !error && focusedInput,
+      error && errorInput,
+      multiline && textareaExtra,
+      inputClassName
+    );
+
+    return (
+      <View className={cn("gap-2", className)}>
+        {/* Label */}
+        {label ? (
+          <Text variant="caption" className="text-text-secondary">
+            {label}
+          </Text>
+        ) : null}
+
+        {/* Input field */}
+        <RNTextInput
+          ref={ref}
           multiline={multiline}
           textAlignVertical={multiline ? "top" : "center"}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          placeholderTextColor={tokens.colors["text-tertiary"]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          className={inputClasses}
+          {...rest}
         />
-        {showToggle ? (
-          <Pressable onPress={() => setHidden((h) => !h)} hitSlop={8}>
-            <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={22} color="#64748B" />
-          </Pressable>
+
+        {/* Help text (only when no error) */}
+        {help && !error ? (
+          <Text variant="caption" className="text-text-secondary">
+            {help}
+          </Text>
+        ) : null}
+
+        {/* Error message */}
+        {error ? (
+          <Text variant="caption" className="text-error-600">
+            {error}
+          </Text>
         ) : null}
       </View>
-      {error ? <Text className="text-sm text-error mt-1">{error}</Text> : null}
-    </View>
-  );
-}
+    );
+  }
+);
+
+Input.displayName = "Input";

@@ -5,17 +5,23 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Icon } from "@/components/ui/Icon";
 import { useContactUser } from "@/hooks/useContactUser";
 import { useFollow, useIsFollowing } from "@/hooks/useFollow";
 import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
 import { useUserPublicContent } from "@/hooks/useUserPublicContent";
+import { useBlockUser } from "@/hooks/useBlockUser";
 import { SPORTS } from "@/lib/constants";
+import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View, Alert } from "react-native";
+import { SafeScreen } from "@/components/shared/SafeScreen";
+import { ReportSheet } from "@/components/shared/ReportSheet";
+import { BackButton } from "@/components/ui/BackButton";
 import Toast from "react-native-toast-message";
 
 export default function UserPublicProfileScreen() {
@@ -23,37 +29,39 @@ export default function UserPublicProfileScreen() {
   const router = useRouter();
   const myId = useAuthStore((s) => s.userId);
   const isOwn = myId === targetUserId;
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
 
   const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(targetUserId);
   const { data: isFollowing } = useIsFollowing(isOwn ? null : targetUserId);
   const { followMut, unfollowMut } = useFollow(targetUserId);
   const contactMut = useContactUser();
+  const blockMut = useBlockUser();
   const { postsQuery, clubsQuery, eventsQuery } = useUserPublicContent(targetUserId);
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
+      <SafeScreen className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
         <LoadingSpinner />
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
   if (isError || !profile) {
     return (
-      <SafeAreaView className="flex-1">
+      <SafeScreen className="flex-1">
         <ErrorState message={error?.message ?? "Profil introuvable"} onRetry={() => void refetch()} />
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
   if (!profile.is_public_profile && !isOwn) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
+      <SafeScreen className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
         <Text className="text-center text-neutral-900 dark:text-neutral-50 mb-4">
           Ce profil n'est pas public.
         </Text>
         <Button title="Retour" variant="secondary" onPress={() => router.back()} />
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
@@ -76,13 +84,48 @@ export default function UserPublicProfileScreen() {
     });
   };
 
+  const handleBlock = () => {
+    Alert.alert(
+      "Bloquer cet utilisateur ?",
+      "En bloquant cet utilisateur, il ne pourra plus te contacter ni démarrer de nouvelle conversation avec toi. Tu ne verras plus ses posts, clubs ou événements dans ton feed. Tu peux toujours le débloquer depuis tes paramètres.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Bloquer",
+          style: "destructive",
+          onPress: () => {
+            blockMut.mutate(
+              { userId: targetUserId! },
+              {
+                onSuccess: () => {
+                  Toast.show({ type: "success", text1: "Utilisateur bloqué" });
+                  router.back();
+                },
+              }
+            );
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <View className="flex-row items-center px-4 pt-2">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
-        <Text className="text-lg font-bold ml-3 text-neutral-900 dark:text-neutral-50">Profil</Text>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+      <View className="flex-row items-center justify-between px-4 pt-2">
+        <View className="flex-row items-center gap-2">
+          <BackButton />
+          <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Profil</Text>
+        </View>
+        {!isOwn ? (
+          <Pressable
+            onPress={() => setReportSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Signaler ce profil"
+            hitSlop={8}
+          >
+            <Icon name="Flag" size={20} color="text-tertiary" />
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView contentContainerClassName="px-4 pb-24 pt-4">
@@ -94,7 +137,7 @@ export default function UserPublicProfileScreen() {
             <Text className="text-center text-neutral-700 dark:text-neutral-200 mt-2">{profile.bio}</Text>
           ) : null}
           <Text className="text-sm text-neutral-500 mt-1">
-            {[profile.city, profile.country].filter(Boolean).join(", ") || "—"}
+            {[profile.city, getCountryDisplay(profile.country)].filter(Boolean).join(", ") || "—"}
           </Text>
         </View>
 
@@ -126,6 +169,13 @@ export default function UserPublicProfileScreen() {
               className="flex-1"
               onPress={handleContact}
               loading={contactMut.isPending}
+            />
+            <Button
+              title="Bloquer"
+              variant="ghost"
+              className="flex-1"
+              onPress={handleBlock}
+              loading={blockMut.isPending}
             />
           </View>
         )}
@@ -169,6 +219,26 @@ export default function UserPublicProfileScreen() {
           ))}
         </Card>
 
+        <View className="mt-4">
+          <Pressable
+            onPress={() => router.push(`/(tabs)/profile/clubs`)}
+            className="flex-row items-center justify-between bg-white dark:bg-neutral-800 rounded-xl p-4 border border-neutral-100 dark:border-neutral-700"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Users" size={20} color="text-secondary" />
+              <View>
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
+                  Clubs
+                </Text>
+                <Text className="text-xs text-neutral-500 mt-0.5">
+                  {stats?.clubs_created_count ?? 0} clubs créés
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          </Pressable>
+        </View>
+
         <PublicProfileGallery
           posts={postsQuery.data ?? []}
           clubs={clubsQuery.data ?? []}
@@ -176,6 +246,15 @@ export default function UserPublicProfileScreen() {
           loading={postsQuery.isLoading || clubsQuery.isLoading || eventsQuery.isLoading}
         />
       </ScrollView>
-    </SafeAreaView>
+
+      <ReportSheet
+        visible={reportSheetVisible}
+        onClose={() => setReportSheetVisible(false)}
+        targetType="profile"
+        targetId={targetUserId}
+        targetAuthorId={targetUserId}
+        targetLabel={profile.full_name}
+      />
+    </SafeScreen>
   );
 }

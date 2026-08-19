@@ -9,14 +9,18 @@ import { clubPrivateSchema } from "@/utils/validation";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useKeyboardHeight } from "@/lib/keyboardUtils";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function CreatePrivateClubScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const keyboardHeight = useKeyboardHeight();
 
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
@@ -75,7 +79,7 @@ export default function CreatePrivateClubScreen() {
         .insert({
           name: name.trim(),
           sport,
-          description: description.trim() || null,
+          description: description.trim() || '',
           is_private: true,
           country: profile?.country || "",
           city: profile?.city || "",
@@ -94,14 +98,14 @@ export default function CreatePrivateClubScreen() {
       });
       if (memberErr) throw memberErr;
 
-      // Send invitations
+      // Send invitations (via SECURITY DEFINER RPC to bypass notifications RLS)
       for (const inviteeId of invitees) {
-        await supabase.from("notifications").insert({
-          user_id: inviteeId,
-          type: "club_invitation",
-          title: "Invitation à rejoindre un club",
-          body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à rejoindre "${name}"`,
-          data: { club_id: club.id, inviter_id: userId },
+        await supabase.rpc("notify_user", {
+          p_user_id: inviteeId,
+          p_type: "club_invitation",
+          p_title: "Invitation à rejoindre un club",
+          p_body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à rejoindre "${name}"`,
+          p_data: { club_id: club.id, inviter_id: userId },
         });
       }
 
@@ -119,18 +123,19 @@ export default function CreatePrivateClubScreen() {
   const isValid = name.trim().length > 0 && sport.length > 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
+        <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
           Club privé
         </Text>
-        <View className="w-6" />
+        <View className="w-11" />
       </View>
 
-      <ScrollView contentContainerClassName="p-4 pb-24">
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
             Crée un club privé pour inviter uniquement tes amis et contacts.
@@ -140,7 +145,7 @@ export default function CreatePrivateClubScreen() {
             label="Nom du club *"
             value={name}
             onChangeText={setName}
-            placeholder="Ex: Équipe de tennis du周末"
+            placeholder="Ex: Équipe de tennis du matin"
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
@@ -194,13 +199,13 @@ export default function CreatePrivateClubScreen() {
 
           {searchHits.length > 0 && (
             <View className="mt-2 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden">
-              {searchHits.map((user) => (
+              {searchHits.map((user, index) => (
                 <Pressable
                   key={user.id}
                   onPress={() => toggleInvitee(user.id)}
-                  className="flex-row items-center p-3 border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                  className={`flex-row items-center p-4 active:bg-primary/5 ${index < searchHits.length - 1 ? 'border-b border-neutral-100 dark:border-neutral-800' : ''}`}
                 >
-                  <Avatar uri={user.avatar_url} size={32} />
+                  <Avatar uri={user.avatar_url} size={40} />
                   <View className="ml-3 flex-1">
                     <Text className="font-medium text-neutral-900 dark:text-neutral-50">
                       {user.full_name}
@@ -246,6 +251,6 @@ export default function CreatePrivateClubScreen() {
           className="mt-4"
         />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

@@ -43,6 +43,8 @@ export function useFollow(targetUserId: string | null | undefined) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["is-following", userId, targetUserId] });
       void queryClient.invalidateQueries({ queryKey: ["public-profile", targetUserId] });
+      // Refresh the feed so the "Abonnements" filter reflects the new follow.
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
 
@@ -59,6 +61,8 @@ export function useFollow(targetUserId: string | null | undefined) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["is-following", userId, targetUserId] });
       void queryClient.invalidateQueries({ queryKey: ["public-profile", targetUserId] });
+      // Refresh the feed so the "Abonnements" filter reflects the removed follow.
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
 

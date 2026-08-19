@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import { SPORT_LEVELS, SPORT_PRACTICES, SPORTS, WEEKDAYS } from "@/lib/constants";
 import type { SportId } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
@@ -6,14 +7,25 @@ import type { SignupSportSelection } from "@/types";
 import { signupStep3Schema } from "@/utils/validation";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { FlatList, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { usePostHog } from "posthog-react-native";
+
+// Hours available for selection (6 AM → 11 PM)
+const HOURS = Array.from({ length: 18 }, (_, i) => 6 + i);
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
 
 export default function SignupStep3() {
   const router = useRouter();
   const posthog = usePostHog();
   const setStep3 = useSignupStore((s) => s.setStep3);
   const [entries, setEntries] = useState<SignupSportSelection[]>([]);
+  const [hourPickerOpen, setHourPickerOpen] = useState<{
+    sportId: SportId;
+    field: "startHour" | "endHour";
+  } | null>(null);
 
   const toggleSport = (id: SportId) => {
     setEntries((prev) => {
@@ -28,7 +40,8 @@ export default function SignupStep3() {
           level: levels[0] ?? "",
           practice: practices[0] ?? "",
           weekdays: [1, 3],
-          timesPerWeek: 2,
+          startHour: 8,
+          endHour: 20,
         },
       ];
     });
@@ -45,7 +58,8 @@ export default function SignupStep3() {
         level: e.level,
         practice: e.practice,
         weekdays: e.weekdays,
-        timesPerWeek: e.timesPerWeek,
+        startHour: e.startHour,
+        endHour: e.endHour,
       })),
     });
     if (!parsed.success) return;
@@ -61,7 +75,7 @@ export default function SignupStep3() {
   const sportLabel = useMemo(() => Object.fromEntries(SPORTS.map((s) => [s.id, s.label])), []);
 
   return (
-    <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+    <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <Stack.Screen options={{ title: "Étape 3/5" }} />
       <ScrollView contentContainerClassName="px-4 py-4 pb-24">
         <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-3">Sports pratiqués (min. 1)</Text>
@@ -82,6 +96,7 @@ export default function SignupStep3() {
         {entries.map((e) => (
           <View key={e.sportId} className="mt-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800">
             <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2">{sportLabel[e.sportId]}</Text>
+
             <Text className="text-sm text-neutral-500 mb-1">Niveau</Text>
             <View className="flex-row flex-wrap mb-2">
               {(SPORT_LEVELS[e.sportId as SportId] ?? []).map((lvl) => (
@@ -94,6 +109,7 @@ export default function SignupStep3() {
                 </Pressable>
               ))}
             </View>
+
             <Text className="text-sm text-neutral-500 mb-1">Type de pratique</Text>
             <View className="flex-row flex-wrap mb-2">
               {(SPORT_PRACTICES[e.sportId as SportId] ?? []).map((p) => (
@@ -106,6 +122,7 @@ export default function SignupStep3() {
                 </Pressable>
               ))}
             </View>
+
             <Text className="text-sm text-neutral-500 mb-1">Jours</Text>
             <View className="flex-row flex-wrap mb-2">
               {WEEKDAYS.map((d, idx) => {
@@ -125,20 +142,63 @@ export default function SignupStep3() {
                 );
               })}
             </View>
-            <Text className="text-sm text-neutral-500 mb-1">Fois / semaine</Text>
-            <TextInput
-              keyboardType="number-pad"
-              className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-neutral-900 dark:text-neutral-50"
-              value={String(e.timesPerWeek)}
-              onChangeText={(t) => updateEntry(e.sportId as SportId, { timesPerWeek: Math.min(14, Math.max(1, Number(t) || 1)) })}
-            />
+
+            <Text className="text-sm text-neutral-500 mb-1">Disponibilités horaires</Text>
+            <Text className="text-xs text-neutral-400 dark:text-neutral-500 mb-2">
+              Indiquez quand vous avez du temps pour ce sport. Ces horaires nous aident à vous faire découvrir des clubs
+              et événements dont les créneaux correspondent à vos disponibilités.
+            </Text>
+            <View className="flex-row gap-2 mb-2">
+              <Pressable
+                onPress={() => setHourPickerOpen({ sportId: e.sportId as SportId, field: "startHour" })}
+                className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-3 flex-1 items-center"
+              >
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">{formatHour(e.startHour)}</Text>
+                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Début</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setHourPickerOpen({ sportId: e.sportId as SportId, field: "endHour" })}
+                className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-3 flex-1 items-center"
+              >
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">{formatHour(e.endHour)}</Text>
+                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Fin</Text>
+              </Pressable>
+            </View>
           </View>
         ))}
+
+        <Modal visible={!!hourPickerOpen} transparent animationType="fade" onRequestClose={() => setHourPickerOpen(null)}>
+          <Pressable className="flex-1 bg-black/40 justify-end" onPress={() => setHourPickerOpen(null)}>
+            <View className="bg-white dark:bg-neutral-900 rounded-t-2xl p-4 max-h-[50%]">
+              <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                {hourPickerOpen?.field === "startHour" ? "Heure de début" : "Heure de fin"}
+              </Text>
+              <FlatList
+                data={HOURS}
+                keyExtractor={(h) => String(h)}
+                renderItem={({ item: h }) => (
+                  <Pressable
+                    className="py-3 border-b border-neutral-100 dark:border-neutral-800"
+                    onPress={() => {
+                      if (hourPickerOpen) {
+                        updateEntry(hourPickerOpen.sportId, { [hourPickerOpen.field]: h });
+                      }
+                      setHourPickerOpen(null);
+                    }}
+                  >
+                    <Text className="text-center text-lg text-neutral-900 dark:text-neutral-50">{formatHour(h)}</Text>
+                  </Pressable>
+                )}
+              />
+            </View>
+          </Pressable>
+        </Modal>
+
         <View className="flex-row gap-3 mt-6">
           <Button title="Précédent" variant="secondary" onPress={() => router.back()} />
           <Button title="Continuer" onPress={onContinue} disabled={!entries.length} className="flex-1" />
         </View>
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }

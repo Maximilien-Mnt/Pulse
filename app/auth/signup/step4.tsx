@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
 import { OBJECTIVES, SPORTS } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
@@ -46,7 +47,7 @@ export default function SignupStep4() {
   });
 
   return (
-    <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+    <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <Stack.Screen options={{ title: "Étape 4/5" }} />
       <ScrollView contentContainerClassName="px-4 py-4 pb-24">
         <Text className="text-base font-semibold mb-2">Sports intéressés (optionnel)</Text>
@@ -92,6 +93,6 @@ export default function SignupStep4() {
           <Button title="Continuer" onPress={onSubmit} className="flex-1" />
         </View>
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }

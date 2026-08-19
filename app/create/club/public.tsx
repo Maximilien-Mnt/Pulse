@@ -2,43 +2,32 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { COUNTRIES, SPORTS } from "@/lib/constants";
+import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
+import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
-import * as FileSystem from "expo-file-system";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import { Image } from "expo-image";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
-
-function base64ToArrayBuffer(base64: string) {
-  const binary = globalThis.atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
+import { useKeyboardHeight } from "@/lib/keyboardUtils";
+import { BackButton } from "@/components/ui/BackButton";
 
 async function uploadImage(uri: string, path: string) {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
-  const arrayBuffer = base64ToArrayBuffer(base64);
-  const { error } = await supabase.storage.from("clubs").upload(path, arrayBuffer, {
-    contentType: "image/jpeg",
-    upsert: false,
-  });
-  if (error) throw error;
-  const { data } = supabase.storage.from("clubs").getPublicUrl(path);
-  return data.publicUrl;
+  return uploadImageToStorage({ bucket: "clubs", path, uri });
 }
 
 export default function CreatePublicClubScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const keyboardHeight = useKeyboardHeight();
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -62,8 +51,17 @@ export default function CreatePublicClubScreen() {
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
   const [description, setDescription] = useState("");
-  const [country, setCountry] = useState(profile?.country ?? "");
-  const [city, setCity] = useState(profile?.city ?? "");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  // Sync country/city from profile once loaded
+  const [synced, setSynced] = useState(false);
+  useEffect(() => {
+    if (profile && !synced) {
+      if (profile.country) setCountry(profile.country);
+      if (profile.city) setCity(profile.city);
+      setSynced(true);
+    }
+  }, [profile, synced]);
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [requiredLevel, setRequiredLevel] = useState("");
   const [address, setAddress] = useState("");
@@ -71,22 +69,8 @@ export default function CreatePublicClubScreen() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [league, setLeague] = useState("");
   const [foundedDate, setFoundedDate] = useState("");
-  const [logoUri, setLogoUri] = useState<string | null>(null);
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const pickLogo = async () => {
-    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!res.canceled && res.assets[0]) {
-      setLogoUri(res.assets[0].uri);
-    }
-  };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -141,12 +125,6 @@ export default function CreatePublicClubScreen() {
         throw new Error("Validation failed");
       }
 
-      // Upload logo
-      let logoUrl: string | null = null;
-      if (logoUri) {
-        logoUrl = await uploadImage(logoUri, `clubs/${userId}/${Date.now()}_logo.jpg`);
-      }
-
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
@@ -166,7 +144,7 @@ export default function CreatePublicClubScreen() {
           city,
           registration_url: registrationUrl || null,
           required_level: requiredLevel || null,
-          logo_url: logoUrl,
+          logo_url: null,
           hero_urls: heroUrls,
           address: address || null,
           contact_email: contactEmail || null,
@@ -206,18 +184,19 @@ export default function CreatePublicClubScreen() {
   const isValid = name.trim().length > 0 && sport.length > 0 && description.length >= 50 && country && city;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
+        <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
           Club public
         </Text>
-        <View className="w-6" />
+        <View className="w-11" />
       </View>
 
-      <ScrollView contentContainerClassName="p-4 pb-24">
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
             Crée un club public visible par tous. Tu dois avoir un profil public activé.
@@ -249,7 +228,7 @@ export default function CreatePublicClubScreen() {
                   {s.label}
                 </Text>
               </Pressable>
-            ))}
+            ))}  
           </ScrollView>
           {errors.sport && <Text className="text-error text-sm mb-2">{errors.sport}</Text>}
 
@@ -261,13 +240,17 @@ export default function CreatePublicClubScreen() {
             error={errors.description}
             placeholder="Décris ton club en détail..."
           />
-          <Text className="text-xs text-neutral-500">{description.length}/50 caractères</Text>
+          <Text className="text-xs text-neutral-500">
+            {description.length < 50
+              ? `Encore ${50 - description.length} caractères requis`
+              : "Longueur minimale atteinte"}
+          </Text>
 
           <View className="flex-row gap-3 mt-4">
             <View className="flex-1">
               <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays *</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {COUNTRIES.slice(0, 10).map((c) => (
+                {COMMON_COUNTRIES.map((c) => (
                   <Pressable
                     key={c.code}
                     onPress={() => setCountry(c.code)}
@@ -280,14 +263,18 @@ export default function CreatePublicClubScreen() {
                         country === c.code ? "text-white font-medium text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"
                       }
                     >
-                      {c.code}
+                      {flagEmoji(c.code)} {c.label}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
+              {!country && <Text className="text-error text-xs mt-1">Sélectionne un pays</Text>}
             </View>
           </View>
 
+          {(errors.country || !country) && (
+            <Text className="text-error text-xs mt-1 mb-2">{errors.country || "Le pays est requis"}</Text>
+          )}
           <Input label="Ville *" value={city} onChangeText={setCity} error={errors.city} />
 
           <Input
@@ -295,7 +282,7 @@ export default function CreatePublicClubScreen() {
             value={registrationUrl}
             onChangeText={setRegistrationUrl}
             error={errors.registration_url}
-            placeholder="https://..."
+            placeholder="https://"
             autoCapitalize="none"
           />
 
@@ -316,24 +303,29 @@ export default function CreatePublicClubScreen() {
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
             error={errors.website_url}
-            placeholder="https://..."
+            placeholder="https://"
             autoCapitalize="none"
           />
           <Input label="Ligue/Division" value={league} onChangeText={setLeague} />
           <Input label="Date de fondation" value={foundedDate} onChangeText={setFoundedDate} placeholder="YYYY-MM-DD" />
+          {!isValid && (
+            <View className="mt-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
+              <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+                Champs requis manquants :
+              </Text>
+              <Text className="text-xs text-neutral-700 dark:text-neutral-300">
+                {name.trim().length === 0 && "• Nom du club\n"}
+                {sport.length === 0 && "• Sport\n"}
+                {description.length < 50 && "• Description (50 caractères minimum)\n"}
+                {!country && "• Pays\n"}
+                {!city && "• Ville"}
+              </Text>
+            </View>
+          )}
         </Card>
 
         <Card className="p-4 mb-4">
           <Text className="text-lg font-semibold mb-3">Photos</Text>
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Logo</Text>
-          <Pressable onPress={pickLogo} className="w-24 h-24 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 items-center justify-center mb-4">
-            {logoUri ? (
-              <Image source={{ uri: logoUri }} style={{ width: 88, height: 88, borderRadius: 16 }} />
-            ) : (
-              <Ionicons name="camera-outline" size={32} color="#94A3B8" />
-            )}
-          </Pressable>
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
             Photos ({heroUris.length}/5)
@@ -343,7 +335,7 @@ export default function CreatePublicClubScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
               {heroUris.map((uri, i) => (
                 <View key={uri} className="mr-2 relative">
-                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} />
+                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                   <Pressable
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"
@@ -364,6 +356,6 @@ export default function CreatePublicClubScreen() {
           className="mt-4"
         />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

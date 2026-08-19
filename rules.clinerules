@@ -1,1 +1,81 @@
-# Rules for Cline about the Pulse project
+# Rules for Cline — Pulse project
+
+- Follow the best practices for the Pulse project.
+- Keep code clean, readable, and consistent with the existing architecture.
+- When possible, add ways for the user to understand future problems that might appear (for example, ensure that the maximum of information possible is automatically given through logs or other means, and ensure that every possible error is also described as logs, so that the user can just copy the logs and send it to you).
+- Before changing anything, understand the current structure and avoid unnecessary edits.
+- Stay focused on your task and don't corrupt, break or delete unrelated features.
+- For every new SQL query to be executed, write it in a separate file in the supabase/migrations folder.
+- Name each SQL file clearly using the pattern: `XXX_name-of-the-feature-or-correction.sql`, with XXX being it's number relative to the other sql files of the folder.
+- Never change or add content to an already existing sql migration file; when sql needs to be executed, always create a new migration file for it
+- Prefer small, focused and effective changes over large rewrites.
+- Respect security, performance, and maintainability.
+- If a task is unclear, ask before assuming.
+- When the user describes an error, always be sure he did all the manual actions needed, by asking/reminding him (e.g. applying Supabase migrations)
+- When possible, reuse existing components, utilities, and patterns.
+- All creation form text areas must be positioned at the top of the screen to ensure they are never covered by the keyboard when it appears.
+- Keyboard dismissal buttons (Done, Return, etc.) must be implemented for all text input fields to allow users to dismiss the keyboard easily.
+- The keyboard must never cover any content that is meant to be interacted with by the user, particularly text input areas in creation forms.
+
+# Visual Identity & Design System — mandatory for all UI work
+
+Pulse's identity is built around one idea: the mix of sport and social. Tone is energetic but composed, social but not childish, athletic but never corporate-cold. Any UI decision must sit inside this frame; when in doubt, ask rather than invent a new visual language.
+
+## Golden rule — no drift
+- Never hardcode a raw color hex, font size/family, spacing/margin/padding number, border-radius, icon library, or animation curve directly in a component. Always use the shared design tokens / shared components created for this system (colors, typography, spacing, radius — see token files, typically `theme/` or equivalent, created during the design system implementation).
+- If a screen needs a color, spacing value, radius, icon, or motion pattern that doesn't already exist in the tokens/components, stop and ask the user before inventing one. Do not silently introduce a new value "close enough" to an existing one.
+- Never add a second icon library, a third font family, a new accent color, or a new signature motif alongside the pulse-ring — the system stays closed unless the user explicitly extends it.
+
+## Colors
+- Brand anchors, do not change without explicit user approval: primary blue `#3358FF` (all navigation, primary actions, links, brand marks), accent coral `#FF5A36` (energy/gamification/live moments ONLY — never a default button color), success green `#17C982` (positive/confirmation states only), error `#E5484D`/`#C7222D`, warning `#F5A524`.
+- Full 50–900 scales and light/dark semantic mappings live in the token file — always read/import from there, never repeat a hex literal in component code.
+- Only one saturated accent (coral) may appear per screen, and only for a genuine energy/live/achievement moment. Standard CTAs are always primary blue.
+- Status/state information (member, pending, error, online, unread…) must never rely on color alone — always pair it with an icon and/or a text label.
+- Dark mode is not optional: every screen must resolve its colors through the semantic tokens so light/dark both work automatically. Never ship a component that only has light-mode styling.
+- Cards/surfaces: light mode uses a subtle shadow + 1px border; dark mode drops the shadow entirely and relies on the border only.
+
+## Typography
+- Two font families only, project-wide: Space Grotesk (display/headings/stat numerals) and Inter (body/UI/labels/buttons). Never introduce a third typeface.
+- Always use the shared Text/Heading components and their defined variants (display, h1, h2, subtitle, body, bodyLarge, caption, overline, stat/button-label) — never set `fontSize`/`fontFamily`/`fontWeight` inline on ad hoc text.
+- Stats and counters (likes, followers, scores, timers…) always use tabular numerals.
+- At most one `display`-level heading visible per screen. Body text never smaller than 14px; 12px is the absolute floor (captions/legal only).
+
+## Spacing & layout grid
+- All spacing (padding, margin, gap) must come from the approved scale: 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96px. Never use an arbitrary value outside this list.
+- Radius scale is fixed and exhaustive: 6 (xs) / 8 (sm) / 12 (md) / 16 (lg) / 24 (xl) / full (pills, avatars). Never introduce a new radius value.
+- Respect the breakpoints: <768px = mobile, bottom tab bar; ≥768px = left nav rail; main content column caps at max-width 640px from ≥1024px.
+- Minimum tappable/clickable area: 44px (iOS) / 48px (Android & web) even when the visible icon/element is smaller — pad the hit area, don't shrink the touch target.
+
+## Components
+- Always reuse the shared primitives (Button, Input, Chip/Badge, Card, Icon, Text) instead of building a one-off styled variant. If a new pattern is genuinely needed, propose adding it to the shared library rather than writing local styles.
+- Button variants are fixed: `primary` / `secondary` / `ghost` / `destructive` / `energy`. `destructive` is reserved for irreversible actions and must always be paired with a confirmation step. `energy` (coral) appears at most once per screen and only for gamification/live/highlight moments.
+- Any "join/follow/request" type interaction always follows the 3-state pattern (none → pending → member/joined), each state visually distinct beyond just a color change (label + icon + treatment).
+- Never mix component styles from different screens for the same semantic purpose (e.g. two different-looking "primary button" implementations).
+
+## Iconography
+- Lucide icons only (`lucide-react-native` on mobile, `lucide-react` on web) through the shared Icon wrapper. Stroke width fixed at 1.75, sizes limited to 16 / 20 / 24 / 32px. Never mix stroke weights on the same screen and never bring in a second icon set.
+- Inactive/default icon state = outline + `text-tertiary`; active/selected state = filled or duotone + `primary`. Selected state is never conveyed by color alone at the same visual weight.
+
+## Illustration & imagery
+- User-generated photos/videos are shown as-is, no forced filter or color treatment imposed by the app.
+- System illustrations (onboarding, empty states, errors) are flat duotone (blue+coral for energetic/empty prompts, blue+green for positive/success), matching the icon stroke weight — never a separate illustration "language."
+- No mascots, no cartoon characters, no generic stock photography of athletes, no heavy drop-shadow/3D icon treatments, no decorative gradients outside the one reserved use below.
+- The blue→coral gradient wash is reserved exclusively for the onboarding hero screen. Never reuse it as a decorative background elsewhere.
+
+## Motion
+- Easing is always ease-out (no spring/bounce/overshoot) — motion should read as fast and composed, never bouncy or playful.
+- Timing budget: micro-interactions (tap, toggle) 120–180ms; screen/sheet transitions 250–320ms; the pulse-ring signature animation 600–900ms as a one-shot (continuous slow loop reserved strictly for genuine "live now" indicators).
+- Always check `prefers-reduced-motion` (web) / `AccessibilityInfo.isReduceMotionEnabled` (React Native) and fall back to opacity-only fades for any non-essential animation (ripples, loops, decorative transitions) when it's enabled.
+- The heart/like animation (fill + expanding ring, ~700ms) is the only place that specific micro-interaction is used — don't repeat it for unrelated actions.
+
+## Voice & UX copy
+- French copy is always tutoiement ("tu"), never "vous."
+- Button/CTA labels are action verbs in the infinitive ("Rejoindre", "Publier", "Créer le club") — never generic labels like "Soumettre"/"Valider".
+- No exclamation marks and no emoji in system-generated UI copy (labels, buttons, errors, empty states). Emoji are only ever part of user-generated content.
+- Error messages state what happened and how to fix it — no "Oups"/apology filler. Empty states always offer one concrete next action, never just a flat statement.
+
+## Accessibility — non-negotiable
+- WCAG AA contrast minimum for every text/icon-over-background pairing, checked in both light and dark themes before shipping.
+- Every interactive element has a visible keyboard focus state on web.
+- Layouts must not break when text scales up to 200% (dynamic type / OS font scaling).
+- No status, error, or state indicator may rely on color as its only differentiator — always add icon and/or text.

@@ -1,48 +1,37 @@
 import { Avatar } from "@/components/ui/Avatar";
+import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { COUNTRIES, EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
+import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
+import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
-import * as FileSystem from "expo-file-system";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import { Image } from "expo-image";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
-
-function base64ToArrayBuffer(base64: string) {
-  const binary = globalThis.atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
+import { useKeyboardHeight } from "@/lib/keyboardUtils";
 
 async function uploadImage(uri: string, path: string) {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
-  const arrayBuffer = base64ToArrayBuffer(base64);
-  const { error } = await supabase.storage.from("events").upload(path, arrayBuffer, {
-    contentType: "image/jpeg",
-    upsert: false,
-  });
-  if (error) throw error;
-  const { data } = supabase.storage.from("events").getPublicUrl(path);
-  return data.publicUrl;
+  return uploadImageToStorage({ bucket: "events", path, uri });
 }
 
 export default function CreatePublicEventScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const keyboardHeight = useKeyboardHeight();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -78,12 +67,21 @@ export default function CreatePublicEventScreen() {
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
   const [description, setDescription] = useState("");
-  const [country, setCountry] = useState(profile?.country ?? "");
-  const [city, setCity] = useState(profile?.city ?? "");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  // Sync country/city from profile once loaded
+  const [synced, setSynced] = useState(false);
+  useEffect(() => {
+    if (profile && !synced) {
+      if (profile.country) setCountry(profile.country);
+      if (profile.city) setCity(profile.city);
+      setSynced(true);
+    }
+  }, [profile, synced]);
   const [venueAddress, setVenueAddress] = useState("");
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [priceCents, setPriceCents] = useState(0);
+  const [priceInput, setPriceInput] = useState("");
   const [requiredLevel, setRequiredLevel] = useState("");
   const [difficulty, setDifficulty] = useState(3);
   const [category, setCategory] = useState("");
@@ -93,22 +91,9 @@ export default function CreatePublicEventScreen() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [endDateError, setEndDateError] = useState("");
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const pickLogo = async () => {
-    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!res.canceled && res.assets[0]) {
-      setLogoUri(res.assets[0].uri);
-    }
-  };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -137,6 +122,8 @@ export default function CreatePublicEventScreen() {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+
+      const priceCents = Math.round((parseFloat(priceInput) || 0) * 100);
 
       const data = {
         name,
@@ -169,12 +156,6 @@ export default function CreatePublicEventScreen() {
         throw new Error("Validation failed");
       }
 
-      // Upload logo
-      let logoUrl: string | null = null;
-      if (logoUri) {
-        logoUrl = await uploadImage(logoUri, `events/${userId}/${Date.now()}_logo.jpg`);
-      }
-
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
@@ -202,7 +183,7 @@ export default function CreatePublicEventScreen() {
           category: category || null,
           places_total: placesTotal ? parseInt(placesTotal) : null,
           places_left: placesTotal ? parseInt(placesTotal) : null,
-          logo_url: logoUrl,
+          logo_url: null,
           hero_urls: heroUrls,
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
@@ -222,7 +203,7 @@ export default function CreatePublicEventScreen() {
         status: "confirmed",
       });
 
-      // Notify club members if linked to a club
+      // Notify club members if linked to a club (via SECURITY DEFINER RPC to bypass notifications RLS)
       if (clubId) {
         const { data: members } = await supabase
           .from("club_members")
@@ -230,12 +211,12 @@ export default function CreatePublicEventScreen() {
           .eq("club_id", clubId);
         for (const member of members ?? []) {
           if (member.user_id !== userId) {
-            await supabase.from("notifications").insert({
-              user_id: member.user_id,
-              type: "event_notification",
-              title: "Nouvel événement dans ton club",
-              body: `Un nouvel événement "${name}" a été créé dans un de tes clubs`,
-              data: { event_id: event.id, club_id: clubId },
+            await supabase.rpc("notify_user", {
+              p_user_id: member.user_id,
+              p_type: "event_notification",
+              p_title: "Nouvel événement dans ton club",
+              p_body: `Un nouvel événement "${name}" a été créé dans un de tes clubs`,
+              p_data: { event_id: event.id, club_id: clubId },
             });
           }
         }
@@ -257,18 +238,19 @@ export default function CreatePublicEventScreen() {
   const isValid = name.trim().length > 0 && sport.length > 0 && description.length >= 50 && country && city;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
+        <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
           Événement public
         </Text>
-        <View className="w-6" />
+        <View className="w-11" />
       </View>
 
-      <ScrollView contentContainerClassName="p-4 pb-24">
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
             Crée un événement public visible par tous. Tu dois avoir un profil public activé.
@@ -279,7 +261,7 @@ export default function CreatePublicEventScreen() {
             value={name}
             onChangeText={setName}
             error={errors.name}
-            placeholder="Ex: Tournoi de tennis d'été"
+            placeholder="Ex: Compétition de tennis"
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
@@ -328,7 +310,13 @@ export default function CreatePublicEventScreen() {
               mode="datetime"
               onChange={(_, date) => {
                 setShowStartPicker(false);
-                if (date) setStartDate(date);
+                if (date) {
+                  setStartDate(date);
+                  if (endDate && date >= endDate) {
+                    setEndDate(null);
+                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                  }
+                }
               }}
             />
           )}
@@ -359,10 +347,20 @@ export default function CreatePublicEventScreen() {
               mode="datetime"
               onChange={(_, date) => {
                 setShowEndPicker(false);
-                if (date) setEndDate(date);
+                if (date) {
+                  if (date <= startDate) {
+                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                  } else {
+                    setEndDateError("");
+                    setEndDate(date);
+                  }
+                }
               }}
             />
           )}
+          {endDateError ? (
+            <Text className="text-error text-sm mb-4">{endDateError}</Text>
+          ) : null}
 
           <Input
             label="Description * (min 50 caractères)"
@@ -372,13 +370,17 @@ export default function CreatePublicEventScreen() {
             error={errors.description}
             placeholder="Décris ton événement en détail..."
           />
-          <Text className="text-xs text-neutral-500">{description.length}/50 caractères</Text>
+          <Text className="text-xs text-neutral-500">
+            {description.length < 50
+              ? `Encore ${50 - description.length} caractères requis`
+              : "Longueur minimale atteinte"}
+          </Text>
 
           <View className="flex-row gap-3 mt-4">
             <View className="flex-1">
               <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays *</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {COUNTRIES.slice(0, 10).map((c) => (
+                {COMMON_COUNTRIES.map((c) => (
                   <Pressable
                     key={c.code}
                     onPress={() => setCountry(c.code)}
@@ -393,49 +395,42 @@ export default function CreatePublicEventScreen() {
                           : "text-neutral-700 dark:text-neutral-200 text-sm"
                       }
                     >
-                      {c.code}
+                      {flagEmoji(c.code)} {c.label}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
+              {!country && <Text className="text-error text-xs mt-1">Sélectionne un pays</Text>}
             </View>
           </View>
 
+          {(errors.country || !country) && (
+            <Text className="text-error text-xs mt-1 mb-2">{errors.country || "Le pays est requis"}</Text>
+          )}
           <Input label="Ville *" value={city} onChangeText={setCity} error={errors.city} />
           <Input label="Adresse exacte" value={venueAddress} onChangeText={setVenueAddress} />
           <Input
             label="Lien d'inscription"
             value={registrationUrl}
             onChangeText={setRegistrationUrl}
-            placeholder="https://..."
+            placeholder="https://"
             autoCapitalize="none"
           />
           <Input
             label="Site web"
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
-            placeholder="https://..."
+            placeholder="https://"
             autoCapitalize="none"
           />
 
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Prix (en centimes) - 0 = gratuit
-          </Text>
-          <View className="flex-row items-center gap-3 mb-4">
-            <Slider
-              style={{ flex: 1, height: 40 }}
-              minimumValue={0}
-              maximumValue={10000}
-              step={100}
-              value={priceCents}
-              onValueChange={(v) => setPriceCents(Math.round(v))}
-              minimumTrackTintColor="#1E6BFF"
-              maximumTrackTintColor="#CBD5E1"
-            />
-            <Text className="w-20 text-right text-neutral-900 dark:text-neutral-50">
-              {(priceCents / 100).toFixed(2)} €
-            </Text>
-          </View>
+          <Input
+            label="Prix (€) - 0 = gratuit"
+            value={priceInput}
+            onChangeText={setPriceInput}
+            keyboardType="decimal-pad"
+            placeholder="0"
+          />
 
           <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} />
 
@@ -507,22 +502,24 @@ export default function CreatePublicEventScreen() {
               </ScrollView>
             </>
           )}
+          {!isValid && (
+            <View className="mt-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
+              <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+                Champs requis manquants :
+              </Text>
+              <Text className="text-xs text-neutral-700 dark:text-neutral-300">
+                {name.trim().length === 0 && "• Nom de l'événement\n"}
+                {sport.length === 0 && "• Sport\n"}
+                {description.length < 50 && "• Description (50 caractères minimum)\n"}
+                {!country && "• Pays\n"}
+                {!city && "• Ville"}
+              </Text>
+            </View>
+          )}
         </Card>
 
         <Card className="p-4 mb-4">
           <Text className="text-lg font-semibold mb-3">Photos</Text>
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Logo</Text>
-          <Pressable
-            onPress={pickLogo}
-            className="w-24 h-24 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 items-center justify-center mb-4"
-          >
-            {logoUri ? (
-              <Image source={{ uri: logoUri }} style={{ width: 88, height: 88, borderRadius: 16 }} />
-            ) : (
-              <Ionicons name="camera-outline" size={32} color="#94A3B8" />
-            )}
-          </Pressable>
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
             Photos ({heroUris.length}/5)
@@ -532,7 +529,7 @@ export default function CreatePublicEventScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
               {heroUris.map((uri, i) => (
                 <View key={uri} className="mr-2 relative">
-                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} />
+                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                   <Pressable
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"
@@ -553,6 +550,6 @@ export default function CreatePublicEventScreen() {
           className="mt-4"
         />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

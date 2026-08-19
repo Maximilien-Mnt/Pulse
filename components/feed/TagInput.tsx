@@ -33,9 +33,9 @@ export function TagInput({ value, onChangeText, placeholder = "#course #club" }:
           data={suggestions}
           keyExtractor={(s) => s.tag}
           className="mt-1 border border-neutral-200 dark:border-neutral-700 rounded-xl"
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <Pressable
-              className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800"
+              className={`px-4 py-3 ${index < suggestions.length - 1 ? 'border-b border-neutral-100 dark:border-neutral-800' : ''} active:bg-primary/5`}
               onPress={() => {
                 // Replace the current word (last word) with the suggestion
                 const parts = value.split(/[\s,]+/);
@@ -44,7 +44,7 @@ export function TagInput({ value, onChangeText, placeholder = "#course #club" }:
                 onChangeText(parts.join(", "));
               }}
             >
-              <Text className="text-sm text-neutral-800 dark:text-neutral-100">
+              <Text className="text-sm text-neutral-800 dark:text-neutral-100 font-medium">
                 #{item.tag}
               </Text>
               <Text className="text-xs text-neutral-400">{item.count} posts</Text>

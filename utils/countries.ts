@@ -200,3 +200,59 @@ export const COUNTRIES: { code: string; label: string }[] = [
   { code: "ZM", label: "Zambie" },
   { code: "ZW", label: "Zimbabwe" },
 ];
+
+export type Country = { code: string; label: string };
+
+/**
+ * Curated shortlist of common countries (French labels), ordered with
+ * France first. Used for event/club creation and signup country pickers.
+ */
+export const COMMON_COUNTRIES: Country[] = [
+  { code: "FR", label: "France" },
+  { code: "BE", label: "Belgique" },
+  { code: "LU", label: "Luxembourg" },
+  { code: "IT", label: "Italie" },
+  { code: "DE", label: "Allemagne" },
+  { code: "ES", label: "Espagne" },
+  { code: "CH", label: "Suisse" },
+  { code: "NL", label: "Pays-Bas" },
+  { code: "PT", label: "Portugal" },
+  { code: "GB", label: "Royaume-Uni" },
+  { code: "IE", label: "Irlande" },
+  { code: "US", label: "États-Unis" },
+  { code: "CA", label: "Canada" },
+  { code: "MA", label: "Maroc" },
+  { code: "TN", label: "Tunisie" },
+  { code: "DZ", label: "Algérie" },
+];
+
+/**
+ * Returns the native OS flag emoji for an ISO 3166-1 alpha-2 code
+ * (e.g. "FR" -> "🇫🇷"). Falls back to an empty string for invalid codes.
+ */
+export function flagEmoji(code: string): string {
+  const upper = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(upper)) return "";
+  // Regional indicator symbols: each letter A-Z maps to U+1F1E6..U+1F1FF
+  return String.fromCodePoint(
+    ...Array.from(upper, (c) => 0x1f1e6 + c.charCodeAt(0) - 65)
+  );
+}
+
+/**
+ * Returns the French label for an ISO country code, falling back to the
+ * raw code itself when the code is unknown (e.g. externally-synced rows).
+ */
+export function getCountryLabel(code: string | null | undefined): string {
+  if (!code) return "";
+  return COUNTRIES.find((c) => c.code === code)?.label ?? code;
+}
+
+/**
+ * Returns a display string with the flag emoji + French label:
+ * "FR" -> "🇫🇷 France". Falls back to the raw code if unknown.
+ */
+export function getCountryDisplay(code: string | null | undefined): string {
+  if (!code) return "";
+  return `${flagEmoji(code)} ${getCountryLabel(code)}`.trim();
+}

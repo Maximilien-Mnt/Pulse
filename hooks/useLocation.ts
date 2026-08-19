@@ -26,9 +26,9 @@ interface LocationState {
 
 const isWeb = Platform.OS === "web";
 
-// Lazy import: only on native. This avoids the web bundle pulling in
-// `expo-location` which is not bundled for web by default and can break
-// the metro/webpack resolution.
+// Try to import expo-location at the top level. On web this will be tree-shaken
+// by Metro; on native it provides the real module. If the version is incompatible
+// the import will fail and we fall back to navigator.geolocation.
 type ExpoLocationModule = {
   Accuracy: { Balanced: number; High: number; Low: number };
   requestForegroundPermissionsAsync: () => Promise<{ status: string }>;
@@ -41,10 +41,22 @@ function getLocationModule(): ExpoLocationModule | null {
   if (isWeb) return null;
   if (LocationModule) return LocationModule;
   try {
+    // Dynamic import to avoid web bundling issues
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    LocationModule = require("expo-location") as ExpoLocationModule;
+    const expoLocation = require("expo-location");
+    // Validate the module has the expected API surface
+    if (
+      typeof expoLocation !== "object" ||
+      expoLocation === null ||
+      typeof expoLocation.requestForegroundPermissionsAsync !== "function"
+    ) {
+      console.warn("expo-location loaded but API surface is incomplete — version mismatch?");
+      return null;
+    }
+    LocationModule = expoLocation as ExpoLocationModule;
     return LocationModule;
-  } catch {
+  } catch (e) {
+    console.warn("expo-location not available, falling back to navigator.geolocation:", e);
     return null;
   }
 }

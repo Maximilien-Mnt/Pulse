@@ -1,0 +1,87 @@
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/authStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+/**
+ * Mutations pour les actions de conversation : épingler, désépingler, supprimer.
+ * Chaque mutation invalide la liste des conversations pour refléter les changements.
+ */
+export function usePinConversation() {
+  const userId = useAuthStore((s) => s.userId);
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      if (!userId) throw new Error("Non connecté");
+      // Try with pinned_at first; fall back to just pinned if column doesn't exist
+      const { error } = await supabase
+        .from("conversation_participants")
+        .update({ pinned: true, pinned_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userId);
+      if (error && error.code === "42703") {
+        // pinned_at column doesn't exist — fall back to just pinned
+        const { error: e2 } = await supabase
+          .from("conversation_participants")
+          .update({ pinned: true })
+          .eq("conversation_id", conversationId)
+          .eq("user_id", userId);
+        if (e2) throw e2;
+      } else if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conv-pinned"] });
+    },
+  });
+}
+
+export function useUnpinConversation() {
+  const userId = useAuthStore((s) => s.userId);
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      if (!userId) throw new Error("Non connecté");
+      // Try with pinned_at first; fall back to just pinned if column doesn't exist
+      const { error } = await supabase
+        .from("conversation_participants")
+        .update({ pinned: false, pinned_at: null })
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userId);
+      if (error && error.code === "42703") {
+        // pinned_at column doesn't exist — fall back to just pinned
+        const { error: e2 } = await supabase
+          .from("conversation_participants")
+          .update({ pinned: false })
+          .eq("conversation_id", conversationId)
+          .eq("user_id", userId);
+        if (e2) throw e2;
+      } else if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conv-pinned"] });
+    },
+  });
+}
+
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase.rpc("delete_conversation_for_me", {
+        p_conv_id: conversationId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}

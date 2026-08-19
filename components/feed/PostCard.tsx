@@ -1,254 +1,359 @@
-import { Avatar } from "@/components/ui/Avatar";
-import { Tag } from "@/components/ui/Tag";
-import { supabase } from "@/lib/supabase";
-import { queryClient } from "@/lib/queryClient";
-import { formatRelative } from "@/utils/date";
-import type { FeedPost } from "@/types";
-import { useAuthStore } from "@/stores/authStore";
-import { useFeedStore } from "@/stores/feedStore";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+// ---------------------------------------------------------------------------
+// PULSE FEED — Post Card
+//
+// Uses Card (prompt 3), Text (prompt 2), Icon (prompt 4), Tag (prompt 3),
+// and Avatar components from the design system.
+// ---------------------------------------------------------------------------
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Modal,
+  Animated,
   Pressable,
   Share,
-  Text,
-  TextInput,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import { useRouter } from "expo-router";
+import type { FeedPost } from "@/types";
+import { useAuthStore } from "@/stores/authStore";
+import { formatRelative } from "@/utils/date";
+import { normalizeTag } from "@/utils/format";
+import { SPORTS } from "@/lib/constants";
+
+import { Card } from "@/components/ui/Card";
+import { Text } from "@/components/ui/Text";
+import { Icon } from "@/components/ui/Icon";
+import { Tag } from "@/components/ui/Tag";
+import { Avatar } from "@/components/ui/Avatar";
 import { PostMedia } from "./PostMedia";
+import { ReportSheet } from "@/components/shared/ReportSheet";
+import { usePostLike } from "@/hooks/usePostLike";
 
+// ---------------------------------------------------------------------------
+// Like animation ring
+// ---------------------------------------------------------------------------
 
-type Props = { post: FeedPost; isActive?: boolean };
+function LikeRing({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  const scale = useRef(new Animated.Value(0.6)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
+  useEffect(() => {
+    if (!visible) return;
+    scale.setValue(0.6);
+    opacity.setValue(1);
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: 2.0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onDone();
+    });
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
-export function PostCard({ post, isActive = true }: Props) {
-
-  const router = useRouter();
-  const userId = useAuthStore((s) => s.userId);
-  const setActiveTag = useFeedStore((s) => s.setActiveTag);
-  const [expanded, setExpanded] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportMsg, setReportMsg] = useState("");
-  const heartScale = useSharedValue(1);
-  const heartStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: heartScale.value }],
-  }));
-
-
-  const liked = !!post.liked_by_me;
-
-
-  const likeMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId) throw new Error("auth");
-      if (liked) {
-        const { error } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", post.id)
-          .eq("user_id", userId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: userId });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["feed"] });
-    },
-    onError: () => {
-      Toast.show({ type: "error", text1: "Impossible de mettre à jour le like" });
-    },
-  });
-
-
-  const shareMutation = useMutation({
-    mutationFn: async () => {
-      const msg = `${post.title}\n\n${post.body ?? ""}`.slice(0, 4000);
-      await Share.share({ message: msg, title: post.title });
-      if (userId) {
-        await supabase.from("feed_interactions").insert({
-          user_id: userId,
-          post_id: post.id,
-          action: "share",
-        });
-      }
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["feed"] });
-    },
-  });
-
-
-  const reportMutation = useMutation({
-    mutationFn: async (msg: string | null) => {
-      if (!userId) throw new Error("auth");
-      const { error } = await supabase.from("reports").insert({
-        reporter_id: userId,
-        target_type: "post",
-        target_id: post.id,
-        message: msg,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setReportOpen(false);
-      setReportMsg("");
-      Toast.show({ type: "success", text1: "Signalement envoyé" });
-    },
-    onError: () => Toast.show({ type: "error", text1: "Échec du signalement" }),
-  });
-
-
-  const tags = useMemo(() => post.tags ?? [], [post.tags]);
-
-
-  const onAuthorPress = () => {
-    router.push(`/profile/${post.author.id}`);
-  };
-
-
-  const toggleLike = () => {
-    heartScale.value = withSequence(withTiming(1.2, { duration: 120 }), withTiming(1, { duration: 120 }));
-    likeMutation.mutate();
-  };
-
+  if (!visible) return null;
 
   return (
-    <View className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-      <Pressable onPress={onAuthorPress} className="flex-row items-center gap-3">
-        <Avatar uri={post.author.avatar_url} size={40} />
-        <View className="flex-1">
-          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-            {post.author.full_name}
-          </Text>
-          <Text className="text-sm text-neutral-500">@{post.author.username}</Text>
-        </View>
-        <Text className="text-xs text-neutral-400">{formatRelative(post.created_at)}</Text>
-      </Pressable>
-
-
-      <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mt-2">{post.title}</Text>
-      {post.body ? (
-        <View>
-          <Text
-            className="text-base text-neutral-800 dark:text-neutral-100 mt-1"
-            numberOfLines={expanded ? undefined : 3}
-          >
-            {post.body}
-          </Text>
-          {post.body.length > 120 ? (
-            <Pressable onPress={() => setExpanded((e) => !e)} className="mt-1">
-              <Text className="text-primary font-semibold text-sm">{expanded ? "Réduire" : "... Voir plus"}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
-
-
-      <PostMedia 
-        format={post.format} 
-        urls={post.media_urls ?? []} 
-        videoUrl={(post as any).video_url}
-        videoThumbnail={(post as any).video_thumbnail}
-        videoDuration={(post as any).video_duration}
-        isActive={isActive}
+    <Animated.View
+      pointerEvents="none"
+      className="absolute inset-0 items-center justify-center z-10"
+    >
+      <Animated.View
+        className="w-10 h-10 rounded-full border-2 border-primary"
+        style={{ transform: [{ scale }], opacity }}
       />
+    </Animated.View>
+  );
+}
 
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
+// Max lines the bottom tag text can occupy before collapsing (truncated)
+const MAX_TAGS_LINES = 3;
 
-      {tags.length ? (
-        <FlatList
-          horizontal
-          data={tags}
-          keyExtractor={(t) => t}
-          showsHorizontalScrollIndicator={false}
-          className="mt-2"
-          renderItem={({ item }) => (
-          <Tag
-              label={item}
-              onPress={() => {
-                setActiveTag(item);
-                // Show a brief toast to confirm the filter action
-                Toast.show({ type: "info", text1: `Filtre : ${item}`, visibilityTime: 1000 });
-              }}
-            />
-          )}
-        />
-      ) : null}
+interface PostCardProps {
+  post: FeedPost;
+  onCommentPress?: () => void;
+  onLayout?: (event: { nativeEvent: { layout: { height: number } } }) => void;
+}
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
-      <View className="flex-row items-center mt-3 justify-between">
-        <View className="flex-row items-center gap-4">
+export function PostCard({ post, onCommentPress, onLayout }: PostCardProps) {
+  const router = useRouter();
+  
+  // Use centralized like management hook with optimistic updates
+  const { liked, likesCount, isPending, toggleLike } = usePostLike({
+    postId: post.id,
+    initialLiked: (post as any).liked_by_me as boolean ?? false,
+    initialLikesCount: post.likes_count ?? 0,
+    onOptimisticUpdate: (postId, newLiked, newLikesCount) => {
+      // Trigger animation when liking (not unliking)
+      if (newLiked) {
+        setShowRing(true);
+      }
+    },
+  });
+  
+  // Only local state is UI-related
+  const [showRing, setShowRing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [tagsContentLineCount, setTagsContentLineCount] = useState(0);
+
+  const bodyTruncated = useMemo(() => {
+    if (!post.body) return false;
+    const lines = post.body.split("\n");
+    if (lines.length > 4) return true;
+    return post.body.length > 280;
+  }, [post.body]);
+
+  // Reset tag expansion state when the card is recycled for a new post
+  useEffect(() => {
+    setTagsExpanded(false);
+    setTagsContentLineCount(0);
+  }, [post.id]);
+
+  const handleLike = useCallback(() => {
+    // Hook handles authentication and pending state internally
+    void toggleLike();
+  }, [toggleLike]);
+
+  const handleComment = useCallback(() => {
+    if (onCommentPress) {
+      onCommentPress();
+    } else {
+      router.push(`/(tabs)/feed/${post.id}/comments` as any);
+    }
+  }, [router, post.id, onCommentPress]);
+
+  const handleShare = useCallback(() => {
+    void Share.share({ message: post.title ?? post.body ?? "Post Pulse" });
+  }, [post.title, post.body]);
+
+  const handleAuthorPress = useCallback(() => {
+    if (post.author?.id) {
+      router.push(`/profile/${post.author.id}` as any);
+    }
+  }, [router, post.author?.id]);
+
+  const authorName = post.author?.full_name ?? post.author?.username ?? "Utilisateur";
+  const avatarUrl = post.author?.avatar_url ?? undefined;
+  const allTags = post.tags ?? [];
+  const sportTag = allTags.length > 0 ? allTags[0] : null;
+  const isSportTag = sportTag != null && SPORTS.some((s) => s.id === sportTag);
+  const sportValue = isSportTag ? sportTag : null;
+  const sportLabel = sportValue
+    ? SPORTS.find((s) => s.id === sportValue)?.label ?? sportValue
+    : null;
+  // Hashtags = everything in tags except the sport (kept up top)
+  const hashtagTags = useMemo(
+    () => allTags.filter((t) => (sportValue ? t !== sportValue : true)),
+    [allTags, sportValue]
+  );
+  const hashtagText = useMemo(
+    () => hashtagTags.map((t) => normalizeTag(t)).join(" "),
+    [hashtagTags]
+  );
+  const hasTags = hashtagText.length > 0;
+  const tagsOverflow = tagsContentLineCount > MAX_TAGS_LINES;
+
+  return (
+    <View onLayout={onLayout}>
+      <Card className="mb-3 p-0">
+        <View className="p-4">
+        {/* Header */}
+        <View className="flex-row items-center gap-3">
           <Pressable
-            className="flex-row items-center gap-1"
-            onPress={() => router.push(`/(tabs)/feed/${post.id}/comments`)}
+            onPress={handleAuthorPress}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir le profil de ${authorName}`}
           >
-            <Ionicons name="chatbubble-outline" size={22} color="#64748B" />
-            <Text className="text-sm text-neutral-600 dark:text-neutral-300">{post.comments_count}</Text>
+            <Avatar size={40} uri={avatarUrl} />
           </Pressable>
-          <Pressable className="flex-row items-center gap-1" onPress={toggleLike} disabled={!userId}>
-            <Animated.View style={heartStyle}>
-              <Ionicons name={liked ? "heart" : "heart-outline"} size={24} color={liked ? "#EF4444" : "#64748B"} />
-            </Animated.View>
-            <Text className="text-sm text-neutral-600 dark:text-neutral-300">{post.likes_count}</Text>
-          </Pressable>
-          <Pressable className="flex-row items-center gap-1" onPress={() => shareMutation.mutate()}>
-            <Ionicons name="share-social-outline" size={22} color="#64748B" />
-            <Text className="text-sm text-neutral-600 dark:text-neutral-300">{post.shares_count}</Text>
-          </Pressable>
-        </View>
-        <Pressable
-          hitSlop={8}
-          onPress={() => setReportOpen(true)}
-        >
-          <Ionicons name="flag-outline" size={18} color="#94A3B8" />
-        </Pressable>
-      </View>
-
-
-      <Modal visible={reportOpen} transparent animationType="fade" onRequestClose={() => setReportOpen(false)}>
-        <View className="flex-1 bg-black/40 justify-center px-4">
-          <View className="bg-white dark:bg-neutral-900 rounded-2xl p-4">
-            <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Signaler ce contenu</Text>
-            <Text className="text-sm text-neutral-500 mt-1">Tu peux ajouter un message optionnel.</Text>
-            <TextInput
-              className="mt-3 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-base text-neutral-900 dark:text-neutral-50 min-h-24"
-              placeholder="Décris le problème (optionnel)"
-              placeholderTextColor="#94A3B8"
-              multiline
-              value={reportMsg}
-              onChangeText={setReportMsg}
-            />
-            <View className="flex-row gap-2 mt-4">
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
               <Pressable
-                className="flex-1 py-3 rounded-xl bg-neutral-200 dark:bg-neutral-800 items-center"
-                onPress={() => {
-                  setReportOpen(false);
-                  setReportMsg("");
-                }}
+                onPress={handleAuthorPress}
+                accessibilityRole="button"
+                accessibilityLabel={`Voir le profil de ${authorName}`}
               >
-                <Text className="font-semibold text-neutral-800 dark:text-neutral-100">Annuler</Text>
+                <Text variant="subtitle" className="text-text-primary">
+                  {authorName}
+                </Text>
               </Pressable>
-              <Pressable
-                className="flex-1 py-3 rounded-xl bg-red-500 items-center"
-                onPress={() => {
-                  reportMutation.mutate(reportMsg.trim() ? reportMsg.trim() : null);
-                }}
-              >
-                <Text className="font-semibold text-white">Signaler</Text>
-              </Pressable>
+              {sportLabel ? (
+                <Tag variant="chip" active={false}>
+                  {sportLabel}
+                </Tag>
+              ) : null}
+            </View>
+            <View className="flex-row items-center gap-2 mt-0.5">
+              <Text variant="caption" className="text-text-tertiary">
+                {formatRelative(post.created_at)}
+              </Text>
+              {(post.author as any)?.city ? (
+                <Text variant="caption" className="text-text-tertiary">
+                  · {(post.author as any).city}
+                </Text>
+              ) : null}
             </View>
           </View>
         </View>
-      </Modal>
-    </View>
+
+        {/* Title */}
+        {post.title ? (
+          <Text variant="h2" className="text-text-primary mt-3">
+            {post.title}
+          </Text>
+        ) : null}
+
+        {/* Body */}
+        {post.body ? (
+          <View className="mt-2">
+            <Text
+              variant="body"
+              className="text-text-secondary"
+              numberOfLines={expanded || !bodyTruncated ? undefined : 4}
+            >
+              {post.body}
+            </Text>
+            {bodyTruncated && !expanded ? (
+              <Pressable onPress={() => setExpanded(true)} className="mt-1">
+                <Text variant="caption" className="text-primary">
+                  Voir plus
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Media */}
+        {post.media_urls && post.media_urls.length > 0 ? (
+          <View className="mt-3 -mx-4">
+            <PostMedia
+              urls={post.media_urls}
+              format={post.format}
+              videoUrl={post.video_url ?? undefined}
+              videoThumbnail={post.video_thumbnail ?? undefined}
+            />
+          </View>
+        ) : null}
+
+        {/* Tags — bottom of the post content, above the actions bar.
+            Rendered as inline text (with visible #) so hashtags stay readable. */}
+        {hasTags ? (
+          <View className="mt-3 relative">
+            {/* Invisible measurer — full unclamped text so we can detect overflow */}
+            <View className="absolute top-0 left-0 right-0 opacity-0" pointerEvents="none">
+              <Text
+                variant="body"
+                className="text-text-tertiary"
+                onTextLayout={(e) => setTagsContentLineCount(e.nativeEvent.lines.length)}
+              >
+                {hashtagText}
+              </Text>
+            </View>
+
+            {/* Visible — clamped to ~3 lines until expanded */}
+            <Text
+              variant="body"
+              className="text-text-tertiary"
+              numberOfLines={tagsExpanded ? undefined : MAX_TAGS_LINES}
+            >
+              {hashtagText}
+            </Text>
+
+            {!tagsExpanded && tagsOverflow ? (
+              <Pressable onPress={() => setTagsExpanded(true)} className="mt-1">
+                <Text variant="caption" className="text-primary">
+                  Voir plus
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+
+      {/* Actions bar */}
+      <View className="flex-row items-center justify-around px-4 py-3 border-t border-border">
+        {/* Like */}
+        <Pressable
+          onPress={handleLike}
+          disabled={isPending}
+          accessibilityRole="button"
+          accessibilityLabel={liked ? "Ne plus aimer" : "Aimer"}
+          className="flex-row items-center gap-1.5"
+          style={{ opacity: isPending ? 0.6 : 1 }}
+        >
+          <View>
+            <Icon
+              name="Heart"
+              size={20}
+              color={liked ? "primary" : "text-tertiary"}
+              active={liked}
+            />
+            <LikeRing visible={showRing} onDone={() => setShowRing(false)} />
+          </View>
+          <Text variant="caption" className="text-text-tertiary tabular-nums">
+            {likesCount}
+          </Text>
+        </Pressable>
+
+        {/* Comment */}
+        <Pressable
+          onPress={handleComment}
+          accessibilityRole="button"
+          accessibilityLabel="Commenter"
+          className="flex-row items-center gap-1.5"
+        >
+          <Icon name="MessageSquare" size={20} color="text-tertiary" />
+          <Text variant="caption" className="text-text-tertiary tabular-nums">
+            {post.comments_count ?? 0}
+          </Text>
+        </Pressable>
+
+        {/* Share */}
+        <Pressable
+          onPress={handleShare}
+          accessibilityRole="button"
+          accessibilityLabel="Partager"
+          className="flex-row items-center gap-1.5"
+        >
+          <Icon name="Share2" size={20} color="text-tertiary" />
+        </Pressable>
+
+        {/* Report */}
+        <Pressable
+          onPress={() => setReportSheetVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Signaler"
+          className="flex-row items-center gap-1.5"
+        >
+          <Icon name="Flag" size={20} color="text-tertiary" />
+        </Pressable>
+      </View>
+
+      {/* Report sheet (shared with the public profile screen) */}
+      <ReportSheet
+        visible={reportSheetVisible}
+        onClose={() => setReportSheetVisible(false)}
+        targetType="post"
+        targetId={post.id}
+        targetAuthorId={post.author?.id}
+        targetLabel={post.title ?? post.body?.slice(0, 50)}
+      />
+    </Card>
+  </View>
   );
 }

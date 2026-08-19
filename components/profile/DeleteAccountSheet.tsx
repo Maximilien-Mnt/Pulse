@@ -53,7 +53,7 @@ export function DeleteAccountSheet({ visible, onClose }: Props) {
             <Button title="Annuler" variant="ghost" onPress={onClose} />
             <Button
               title="Supprimer définitivement"
-              variant="danger"
+              variant="destructive"
               onPress={handleDelete}
               loading={deleteMut.isPending}
             />

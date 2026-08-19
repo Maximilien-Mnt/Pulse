@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 
 export default function JoinClubScreen() {
@@ -14,15 +14,15 @@ export default function JoinClubScreen() {
   const { clubId, token } = useLocalSearchParams<{ clubId: string; token?: string }>();
   const userId = useAuthStore((s) => s.userId);
   const redeem = useRedeemInvitation();
-  const [club, setClub] = useState<{ name: string; sport: string | null } | null>(null);
+  const [club, setClub] = useState<{ name: string; sport: string | null; created_by: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const { data } = await supabase.from("clubs").select("name, sport").eq("id", clubId).maybeSingle();
+      const { data } = await supabase.from("clubs").select("name, sport, created_by").eq("id", clubId).maybeSingle();
       if (active) {
-        setClub(data);
+        setClub(data as any);
         setLoading(false);
       }
     })();
@@ -47,7 +47,7 @@ export default function JoinClubScreen() {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["clubs"] });
           Toast.show({ type: "success", text1: "Tu as rejoint le club !" });
-          router.replace(`/clubs/${clubId}` as any);
+          router.replace(`/(tabs)/clubs/${clubId}`);
         },
         onError: (e) => {
           Toast.show({ type: "error", text1: e instanceof Error ? e.message : "Erreur" });
@@ -57,7 +57,7 @@ export default function JoinClubScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
       <View className="flex-1 items-center justify-center px-6">
         {loading ? (
           <ActivityIndicator color="#1E6BFF" />
@@ -78,12 +78,14 @@ export default function JoinClubScreen() {
             <Text className="text-neutral-600 dark:text-neutral-300 text-center mt-4 mb-8">
               Tu as été invité(e) à rejoindre ce club privé. Accepte l'invitation pour y accéder.
             </Text>
-            <Button
-              title="Rejoindre le club"
-              onPress={handleJoin}
-              loading={redeem.isPending}
-              className="w-full"
-            />
+            {userId && club?.created_by === userId ? null : (
+              <Button
+                title="Rejoindre le club"
+                onPress={handleJoin}
+                loading={redeem.isPending}
+                className="w-full"
+              />
+            )}
             <Button
               title="Annuler"
               variant="ghost"
@@ -93,6 +95,6 @@ export default function JoinClubScreen() {
           </>
         )}
       </View>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

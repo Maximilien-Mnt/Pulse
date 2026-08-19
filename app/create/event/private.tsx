@@ -10,14 +10,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useKeyboardHeight } from "@/lib/keyboardUtils";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function CreatePrivateEventScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const keyboardHeight = useKeyboardHeight();
 
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
@@ -27,6 +30,7 @@ export default function CreatePrivateEventScreen() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [endDateError, setEndDateError] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [invitees, setInvitees] = useState<string[]>([]);
   const [searchHits, setSearchHits] = useState<
@@ -91,7 +95,7 @@ export default function CreatePrivateEventScreen() {
         .insert({
           name: name.trim(),
           sport,
-          description: description.trim() || null,
+          description: description.trim() || '',
           venue_address: venue || null,
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
@@ -113,14 +117,14 @@ export default function CreatePrivateEventScreen() {
       });
       if (participantErr) throw participantErr;
 
-      // Send invitations
+      // Send invitations (via SECURITY DEFINER RPC to bypass notifications RLS)
       for (const inviteeId of invitees) {
-        await supabase.from("notifications").insert({
-          user_id: inviteeId,
-          type: "event_invitation",
-          title: "Invitation à un événement",
-          body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à "${name}"`,
-          data: { event_id: event.id, inviter_id: userId },
+        await supabase.rpc("notify_user", {
+          p_user_id: inviteeId,
+          p_type: "event_invitation",
+          p_title: "Invitation à un événement",
+          p_body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à "${name}"`,
+          p_data: { event_id: event.id, inviter_id: userId },
         });
       }
 
@@ -131,25 +135,27 @@ export default function CreatePrivateEventScreen() {
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
-      Toast.show({ type: "error", text1: err instanceof Error ? err.message : "Erreur" });
+      const message = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      Toast.show({ type: "error", text1: message });
     },
   });
 
   const isValid = name.trim().length > 0 && sport.length > 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
+        <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
           Événement privé
         </Text>
-        <View className="w-6" />
+        <View className="w-11" />
       </View>
 
-      <ScrollView contentContainerClassName="p-4 pb-24">
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
             Crée un événement privé pour inviter tes amis.
@@ -207,7 +213,13 @@ export default function CreatePrivateEventScreen() {
               mode="datetime"
               onChange={(_, date) => {
                 setShowStartPicker(false);
-                if (date) setStartDate(date);
+                if (date) {
+                  setStartDate(date);
+                  if (endDate && date >= endDate) {
+                    setEndDate(null);
+                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                  }
+                }
               }}
             />
           )}
@@ -238,10 +250,20 @@ export default function CreatePrivateEventScreen() {
               mode="datetime"
               onChange={(_, date) => {
                 setShowEndPicker(false);
-                if (date) setEndDate(date);
+                if (date) {
+                  if (date <= startDate) {
+                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                  } else {
+                    setEndDateError("");
+                    setEndDate(date);
+                  }
+                }
               }}
             />
           )}
+          {endDateError ? (
+            <Text className="text-error text-sm mb-4">{endDateError}</Text>
+          ) : null}
 
           <Input
             label="Lieu"
@@ -274,13 +296,13 @@ export default function CreatePrivateEventScreen() {
 
           {searchHits.length > 0 && (
             <View className="mt-2 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden">
-              {searchHits.map((user) => (
+              {searchHits.map((user, index) => (
                 <Pressable
                   key={user.id}
                   onPress={() => toggleInvitee(user.id)}
-                  className="flex-row items-center p-3 border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                  className={`flex-row items-center p-4 active:bg-primary/5 ${index < searchHits.length - 1 ? 'border-b border-neutral-100 dark:border-neutral-800' : ''}`}
                 >
-                  <Avatar uri={user.avatar_url} size={32} />
+                  <Avatar uri={user.avatar_url} size={40} />
                   <View className="ml-3 flex-1">
                     <Text className="font-medium text-neutral-900 dark:text-neutral-50">
                       {user.full_name}
@@ -326,6 +348,6 @@ export default function CreatePrivateEventScreen() {
           className="mt-4"
         />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

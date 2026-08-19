@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { supabase } from "@/lib/supabase";
+import { DISCOVERY_SOURCES } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep5Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +20,24 @@ import { usePostHog } from "posthog-react-native";
 import { savePendingSignup } from "@/utils/signup";
 
 type Form = z.infer<typeof signupStep5Schema>;
+
+/** The Other chip value that reveals a free-text details field. */
+const OTHER_OPTION = "Autre";
+
+/**
+ * Resolve the value persisted as discovery_source:
+ *  - a preset option -> the option itself
+ *  - Other           -> the user's free-text details (falls back to Other
+ *                        when no details were provided)
+ */
+function resolveDiscovery(values: Form): string | null {
+  if (!values.discovery) return null;
+  if (values.discovery === OTHER_OPTION) {
+    const details = values.discoveryDetails?.trim();
+    return details ? details : OTHER_OPTION;
+  }
+  return values.discovery || null;
+}
 
 function base64ToArrayBuffer(base64: string) {
   const binary = globalThis.atob(base64);
@@ -64,6 +83,7 @@ export default function SignupStep5() {
     defaultValues: {
       bio: "",
       discovery: "",
+      discoveryDetails: "",
       acceptTerms: false,
       acceptPrivacy: false,
     },
@@ -89,6 +109,8 @@ export default function SignupStep5() {
       Toast.show({ type: "error", text1: "Données d'inscription incomplètes" });
       return;
     }
+
+    const discoverySource = resolveDiscovery(values);
 
     setSubmitting(true);
 
@@ -116,6 +138,7 @@ export default function SignupStep5() {
             full_name: step1.fullName,
             username: step1.username,
             avatar_url: null,
+            avatarLocalUri: avatarUri,
             bio: values.bio || null,
             birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
             country: step2.country,
@@ -123,7 +146,7 @@ export default function SignupStep5() {
             language: step1.language,
             height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
             weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
-            discovery_source: values.discovery || null,
+            discovery_source: discoverySource,
             interested_sports: step4.interestedSports,
           },
           sports: step3,
@@ -152,7 +175,7 @@ export default function SignupStep5() {
         language: step1.language,
         height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
         weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
-        discovery_source: values.discovery || null,
+        discovery_source: discoverySource,
         interested_sports: step4.interestedSports,
       });
       if (pe) throw pe;
@@ -164,7 +187,8 @@ export default function SignupStep5() {
           level: s.level,
           practice: s.practice,
           weekdays: s.weekdays,
-          times_per_week: s.timesPerWeek,
+          start_hour: s.startHour,
+          end_hour: s.endHour,
         });
         if (se) throw se;
       }
@@ -179,13 +203,13 @@ export default function SignupStep5() {
 
       posthog.identify(user.id, {
         $set: { username: step1.username, language: step1.language },
-        $set_once: { signup_date: new Date().toISOString(), discovery_source: values.discovery || null },
+        $set_once: { signup_date: new Date().toISOString(), discovery_source: discoverySource },
       });
       posthog.capture("user_signed_up", {
         language: step1.language,
         has_avatar: !!avatarUri,
         sports_count: step3.length,
-        discovery_source: values.discovery || null,
+        discovery_source: discoverySource,
       });
 
       resetSignup();
@@ -230,30 +254,75 @@ export default function SignupStep5() {
             </View>
           )}
         </Pressable>
+        <Text className="text-xs text-neutral-500 text-center mb-4">Optionnel - Tu pourras ajouter une photo plus tard</Text>
+        <Text className="text-sm text-neutral-500 mb-2">Comment as-tu découvert Pulse ? (optionnel)</Text>
         <Controller
           control={control}
           name="discovery"
           render={({ field: { value, onChange } }) => (
-            <Input label="Comment as-tu découvert Pulse ? (optionnel)" value={value ?? ""} onChangeText={onChange} />
+            <View className="flex-row flex-wrap mb-4">
+              {DISCOVERY_SOURCES.map((o) => (
+                <Pressable
+                  key={o}
+                  onPress={() => onChange(value === o ? "" : o)}
+                  className={
+                    value === o
+                      ? "px-3 py-2 rounded-full mr-2 mb-2 bg-primary"
+                      : "px-3 py-2 rounded-full mr-2 mb-2 bg-neutral-200 dark:bg-neutral-800"
+                  }
+                >
+                  <Text className={value === o ? "text-white text-xs" : "text-xs text-neutral-800 dark:text-neutral-100"}>{o}</Text>
+                </Pressable>
+              ))}
+            </View>
           )}
         />
-        <View className="flex-row items-center justify-between py-3">
-          <Text className="flex-1 text-neutral-800 dark:text-neutral-100 pr-4">J&apos;accepte les CGU</Text>
+        {watch("discovery") === OTHER_OPTION ? (
+          <Controller
+            control={control}
+            name="discoveryDetails"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label="Précisez (optionnel)"
+                value={value ?? ""}
+                onChangeText={onChange}
+                placeholder="Racontez-nous comment vous avez trouvé Pulse..."
+                multiline
+              />
+            )}
+          />
+        ) : null}
+        <Pressable
+          onPress={() => router.push("/auth/signup/legal?document=terms")}
+          className="flex-row items-center justify-between py-3"
+        >
+          <Text className="flex-1 text-primary underline dark:text-primary pr-4">J'accepte les CGU</Text>
           <Controller
             control={control}
             name="acceptTerms"
-            render={({ field: { value, onChange } }) => <Switch value={value} onValueChange={onChange} />}
+            render={({ field: { value, onChange } }) => (
+              <Pressable onPress={() => onChange(!value)} hitSlop={8}>
+                <Switch value={value} onValueChange={onChange} />
+              </Pressable>
+            )}
           />
-        </View>
+        </Pressable>
         {errors.acceptTerms ? <Text className="text-error text-sm mb-2">{String(errors.acceptTerms.message)}</Text> : null}
-        <View className="flex-row items-center justify-between py-3">
-          <Text className="flex-1 text-neutral-800 dark:text-neutral-100 pr-4">Politique de confidentialité</Text>
+        <Pressable
+          onPress={() => router.push("/auth/signup/legal?document=privacy")}
+          className="flex-row items-center justify-between py-3"
+        >
+          <Text className="flex-1 text-primary underline dark:text-primary pr-4">Politique de confidentialité</Text>
           <Controller
             control={control}
             name="acceptPrivacy"
-            render={({ field: { value, onChange } }) => <Switch value={value} onValueChange={onChange} />}
+            render={({ field: { value, onChange } }) => (
+              <Pressable onPress={() => onChange(!value)} hitSlop={8}>
+                <Switch value={value} onValueChange={onChange} />
+              </Pressable>
+            )}
           />
-        </View>
+        </Pressable>
         {errors.acceptPrivacy ? <Text className="text-error text-sm mb-2">{String(errors.acceptPrivacy.message)}</Text> : null}
         <View className="flex-row gap-3 mt-4">
           <Button title="Précédent" variant="secondary" onPress={() => router.back()} />

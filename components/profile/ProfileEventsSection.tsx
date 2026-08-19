@@ -11,6 +11,10 @@ export function ProfileEventsSection() {
   const userId = useAuthStore((s) => s.userId);
   const { data, isLoading, isError } = useMyUpcomingEvents(userId);
 
+  // Filter to get only upcoming events
+  const now = new Date().toISOString();
+  const upcomingEvents = data?.filter((item) => item.event.start_date > now) ?? [];
+
   if (isLoading) {
     return (
       <View className="mt-4">
@@ -21,14 +25,14 @@ export function ProfileEventsSection() {
     );
   }
 
-  if (isError || !data?.length) return null;
+  if (isError || !upcomingEvents.length) return null;
 
   return (
     <View className="mt-4">
       <Text className="text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-50">
-        Événements à venir ({data.length})
+        Événements à venir ({upcomingEvents.length})
       </Text>
-      {data.map((item) => (
+      {upcomingEvents.map((item) => (
         <EventCard key={item.event.id} event={item.event} compact />
       ))}
     </View>

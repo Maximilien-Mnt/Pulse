@@ -1,6 +1,30 @@
 import { COUNTRIES as FULL_COUNTRIES } from "@/utils/countries";
+import { Platform } from "react-native";
 
 export { FULL_COUNTRIES as COUNTRIES };
+
+/**
+ * Builds the redirect URL used by Supabase Auth for password recovery.
+ *
+ * - On web: uses the current origin so it works in dev (localhost) and prod.
+ * - On native (Expo Go / standalone): uses the app scheme so the link opens
+ *   the app via deep linking (e.g. `pulse://auth/reset-password`).
+ *
+ * The path `/auth/reset-password` maps to `app/auth/reset-password.tsx` in Expo Router.
+ */
+export function getRedirectUrl(): string {
+  const path = "/auth/reset-password";
+  if (Platform.OS === "web") {
+    // Use the current origin on web (works for localhost dev and production)
+    if (typeof window !== "undefined" && window.location.origin) {
+      return `${window.location.origin}${path}`;
+    }
+    return `http://localhost:8081${path}`;
+  }
+  // Native: use the app scheme (e.g. pulse://auth/reset-password)
+  const scheme = process.env.EXPO_PUBLIC_APP_SCHEME || "pulse";
+  return `${scheme}://${path.replace(/^\//, "")}`;
+}
 
 export type SportId =
   | "football"
@@ -94,6 +118,23 @@ export const OBJECTIVES = [
   "Découvrir un nouveau sport",
 ] as const;
 
+/**
+ * Discovery sources shown on signup step 5 to answer
+ * "Comment avez-vous découvert Pulse ?"
+ *
+ * The last entry ("Autre") is special: when selected by the user, a
+ * free-text Input is revealed so they can provide additional details.
+ */
+export const DISCOVERY_SOURCES = [
+  "IA / Assistant de conversation",
+  "Publicité / Annonce",
+  "Navigateur web / moteur de recherche",
+  "Réseaux sociaux",
+  "Ami / Recommandation",
+  "Application similaire",
+  "Autre",
+] as const;
+
 export const PUBLIC_SPORT_STATUSES = [
   "Coach",
   "Amateur",
@@ -104,29 +145,37 @@ export const PUBLIC_SPORT_STATUSES = [
 
 export type CountryCode = string;
 
-
 export const LANGUAGES = [
   { code: "fr", label: "Français" },
-  { code: "en", label: "English" },
-  { code: "de", label: "Deutsch" },
-  { code: "pt", label: "Português" },
 ] as const;
 
+/**
+ * @deprecated Use `src/design-tokens/` instead.
+ * Import { semanticColors } from "@/design-tokens" and use
+ * semanticColors.light / semanticColors.dark.
+ *
+ * Kept for backward compatibility with existing callers
+ * (e.g. constants.ts COLORS is still imported by some components).
+ */
+export { semanticColors } from "@/src/design-tokens";
+
+// Re-export the light mode tokens under the old COLORS name
+// for existing code that imports { COLORS } from "@/lib/constants".
 export const COLORS = {
-  primary: "#1E6BFF",
-  primaryDark: "#1550CC",
-  accent: "#FFD600",
-  success: "#22C55E",
-  error: "#EF4444",
-  warning: "#F59E0B",
-  lightBackground: "#F8FAFC",
-  lightSurface: "#FFFFFF",
-  lightText: "#0F172A",
-  darkBackground: "#0A0F1E",
-  darkSurface: "#131929",
-  darkText: "#F8FAFC",
-  darkBorder: "#1E293B",
-  inactiveTab: "#94A3B8",
+  primary: "#3358FF",           // blue-500
+  primaryDark: "#2542DB",       // blue-600
+  accent: "#FF5A36",            // coral-500
+  success: "#17C982",           // green-500
+  error: "#E5484D",             // error-500
+  warning: "#F5A524",           // warning-500
+  lightBackground: "#FAFAFB",   // neutral-25
+  lightSurface: "#FFFFFF",      // neutral-0
+  lightText: "#14161A",         // neutral-900
+  darkBackground: "#0E1015",
+  darkSurface: "#171A20",
+  darkText: "#F5F6F8",
+  darkBorder: "#262A32",
+  inactiveTab: "#888D97",       // neutral-400
 } as const;
 
 export const CLUB_SORT_OPTIONS = [
@@ -151,4 +200,4 @@ export const EVENT_SORT_OPTIONS = [
   { value: "nearby", label: "Proche de moi" },
 ] as const;
 
-export const EVENT_CATEGORIES = ["Tournoi", "Stage", "Randonnée", "Séance ouverte", "Ligue", "Social"] as const;
+export const EVENT_CATEGORIES = ["Compétition", "Entraînement", "Sortie", "Ligue", "Social"] as const;

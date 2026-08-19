@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import type { SignupSportSelection } from "@/types";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 
 const PENDING_SIGNUP_KEY = "pulse:pending-signup";
 
@@ -11,6 +12,7 @@ export type PendingSignupData = {
     full_name: string;
     username: string;
     avatar_url: string | null;
+    avatarLocalUri: string | null;
     bio: string | null;
     birth_date: string;
     country: string;
@@ -53,13 +55,28 @@ export async function loadPendingSignup(): Promise<PendingSignupData | null> {
 export async function completeSignup(data: PendingSignupData): Promise<void> {
   const { profile, sports, objectives } = data;
 
+  let avatarUrl = profile.avatar_url;
+  if (!avatarUrl && profile.avatarLocalUri) {
+    try {
+      avatarUrl = await uploadImageToStorage({
+        bucket: "avatars",
+        path: `${profile.id}/avatar.jpg`,
+        uri: profile.avatarLocalUri,
+        upsert: true,
+        cacheBust: true,
+      });
+    } catch (e) {
+      console.warn("Failed to upload pending signup avatar", e);
+    }
+  }
+
   const { error: pe } = await supabase.from("profiles").upsert(
     {
       id: profile.id,
       email: profile.email,
       full_name: profile.full_name,
       username: profile.username,
-      avatar_url: profile.avatar_url,
+      avatar_url: avatarUrl,
       bio: profile.bio,
       birth_date: profile.birth_date,
       country: profile.country,
@@ -82,7 +99,8 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
         level: s.level,
         practice: s.practice,
         weekdays: s.weekdays,
-        times_per_week: s.timesPerWeek,
+        start_hour: s.startHour,
+        end_hour: s.endHour,
       },
       { onConflict: "id", ignoreDuplicates: true }
     );

@@ -1,154 +1,335 @@
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { supabase } from "@/lib/supabase";
-import { LANGUAGES } from "@/lib/constants";
-import { useAuthStore } from "@/stores/authStore";
-import { useThemeStore } from "@/stores/themeStore";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
-import { ProfileClubsSection } from "@/components/profile/ProfileClubsSection";
-import { ProfileEventsSection } from "@/components/profile/ProfileEventsSection";
-import { SecuritySection } from "@/components/profile/SecuritySection";
-import { EditProfileSheet } from "@/components/profile/EditProfileSheet";
-import { DeleteAccountSheet } from "@/components/profile/DeleteAccountSheet";
-import dayjs from "dayjs";
-import { useQuery, type QueryObserverResult } from "@tanstack/react-query";
-import type { UserSport } from "@/types";
+// ---------------------------------------------------------------------------
+// PULSE PROFILE SCREEN
+//
+// Cover image (3:1), avatar 96px overlay, H1 name, body bio, sport chips,
+// stats row, public profile toggle, edit button, settings access.
+// ---------------------------------------------------------------------------
+
+import React, { useCallback, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
-import { usePostHog } from "posthog-react-native";
+import { useAuthStore } from "@/stores/authStore";
+import { useProfile } from "@/hooks/useProfile";
+import { useUserSports } from "@/hooks/useUserSports";
+import { useMyClubMemberships } from "@/hooks/useMyClubMemberships";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
+import { SPORTS } from "@/lib/constants";
+
+import { Text } from "@/components/ui/Text";
+import { Icon } from "@/components/ui/Icon";
+import { Tag } from "@/components/ui/Tag";
+import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { GoPublicSheet } from "@/components/profile/GoPublicSheet";
+import { SafeScreen } from "@/components/shared/SafeScreen";
+
+// ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function ProfileSkeleton() {
+  return (
+    <SafeScreen edges={["top"]}>
+      <Skeleton className="w-full h-32 rounded-none" />
+      <View className="px-4 gap-4 -mt-12">
+        <Skeleton className="w-24 h-24 rounded-full" />
+        <Skeleton className="w-48 h-6 rounded-sm" />
+        <Skeleton className="w-full h-8 rounded-sm" />
+        <View className="flex-row gap-2">
+          <Skeleton className="w-16 h-8 rounded-full" />
+          <Skeleton className="w-16 h-8 rounded-full" />
+        </View>
+      </View>
+    </SafeScreen>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stats row
+// ---------------------------------------------------------------------------
+
+function StatsRow({
+  posts,
+  clubs,
+  followers,
+}: {
+  posts: number;
+  clubs: number;
+  followers: number;
+}) {
+  return (
+    <View className="flex-row py-4">
+      <View className="flex-1 items-center">
+        <Text variant="stat" className="text-text-primary tabular-nums">
+          {posts}
+        </Text>
+        <Text variant="caption" className="text-text-tertiary mt-1">
+          Posts
+        </Text>
+      </View>
+      <View className="flex-1 items-center">
+        <Text variant="stat" className="text-text-primary tabular-nums">
+          {clubs}
+        </Text>
+        <Text variant="caption" className="text-text-tertiary mt-1">
+          Clubs
+        </Text>
+      </View>
+      <View className="flex-1 items-center">
+        <Text variant="stat" className="text-text-primary tabular-nums">
+          {followers}
+        </Text>
+        <Text variant="caption" className="text-text-tertiary mt-1">
+          Abonnés
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main screen
+// ---------------------------------------------------------------------------
 
 export default function ProfileScreen() {
-  const router = useRouter();
-  const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
-  const { data: profile, isLoading, isError, error, refetch } = useProfile(userId);
-  const updateMut = useUpdateProfile(userId);
-  const isDark = useThemeStore((s) => s.isDark);
-  const setDark = useThemeStore((s) => s.setDark);
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const router = useRouter();
+  const { data: profile, isLoading, isError, refetch } = useProfile(userId);
+  const { data: userSports } = useUserSports(userId, "practiced");
+  const { data: memberships } = useMyClubMemberships(userId);
+  const [goPublicOpen, setGoPublicOpen] = useState(false);
 
-  const { data: sports = [] } = useQuery({
-    queryKey: ["my-sports", userId],
+  // Post count
+  const { data: postCount = 0 } = useQuery({
+    queryKey: ["post-count", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("user_sports").select("*").eq("user_id", userId!);
+      const { count, error } = await supabase
+        .from("posts")
+        .select("*", { count: "exact", head: true })
+        .eq("author_id", userId!);
       if (error) throw error;
-      return data ?? [];
+      return count ?? 0;
     },
   });
 
-  const { data: objectives = [] } = useQuery({
-    queryKey: ["my-objectives", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_objectives").select("*").eq("user_id", userId!);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const isPublic = profile?.is_public_profile ?? false;
 
-  const signOut = async () => {
-    posthog.capture("user_signed_out");
-    posthog.reset();
-    await supabase.auth.signOut();
-    router.replace("/auth/signin");
-  };
+  if (isLoading) return <ProfileSkeleton />;
 
-  if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
-        <Text>Chargement…</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (isError) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
-        <Text className="text-center mb-3 text-neutral-900 dark:text-neutral-50">
-          {error instanceof Error ? error.message : "Erreur de chargement"}
-        </Text>
-        <Button title="Réessayer" onPress={() => void refetch()} />
-      </SafeAreaView>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E] px-6">
-        <Text className="text-center mb-3 text-neutral-900 dark:text-neutral-50">
-          Profil introuvable. Crée d’abord la ligne profiles pour cet utilisateur.
-        </Text>
-        <Button title="Réessayer" onPress={() => void refetch()} />
-      </SafeAreaView>
-    );
-  }
-
-  const age = profile.birth_date ? dayjs().diff(dayjs(profile.birth_date), "year") : null;
+  const coverUrl = profile?.avatar_url ?? null;
+  const name = profile?.full_name ?? "Utilisateur";
+  const bio = profile?.bio ?? "";
+  const sports: string[] = userSports ?? [];
+  const clubCount = memberships?.length ?? 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <ScrollView contentContainerClassName="px-4 pb-24 pt-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Mon Profil</Text>
-          <Button title="Modifier" variant="ghost" onPress={() => setEditOpen(true)} />
+    <SafeScreen edges={["top"]}>
+      <ScrollView bounces={false}>
+        {/* Cover */}
+        <View>
+          {coverUrl ? (
+            <Image
+              key={coverUrl}
+              source={{ uri: coverUrl }}
+              style={{ width: "100%", height: 220 }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <View className="w-full bg-primary-tint" style={{ height: 220 }} />
+          )}
+
+          {/* Avatar overlay */}
+          <View className="absolute bottom-0 left-4 translate-y-1/2">
+            <Avatar
+              uri={coverUrl}
+              size={96}
+              className="border-[3px] border-surface"
+            />
+          </View>
         </View>
 
-        <View className="items-center">
-          <Avatar uri={profile.avatar_url} size={80} className="border-2 border-primary" />
-          <Text className="text-2xl font-bold mt-3 text-neutral-900 dark:text-neutral-50">{profile.full_name}</Text>
-          <Text className="text-neutral-500">@{profile.username}</Text>
-        </View>
+        {/* Body */}
+        <View className="px-4 mt-14 gap-4">
+          {/* Name */}
+          <Text variant="h1" className="text-text-primary">
+            {name}
+          </Text>
 
-        <Card className="mt-6 p-4">
-          <Text className="text-lg font-semibold mb-2">Infos personnelles</Text>
-          <Text className="text-neutral-700 dark:text-neutral-200">Bio : {profile.bio ?? "—"}</Text>
-          <Text className="text-neutral-700 dark:text-neutral-200 mt-1">Pays : {profile.country ?? "—"}</Text>
-          <Text className="text-neutral-700 dark:text-neutral-200">Ville : {profile.city ?? "—"}</Text>
-          <Text className="text-neutral-700 dark:text-neutral-200">Âge : {age ?? "—"}</Text>
-          <Text className="text-neutral-700 dark:text-neutral-200">Langue : {profile.language}</Text>
-          {profile.height_cm ? (
-            <Text className="text-neutral-700 dark:text-neutral-200">Taille : {profile.height_cm} cm</Text>
-          ) : null}
-          {profile.weight_kg ? (
-            <Text className="text-neutral-700 dark:text-neutral-200">Poids : {profile.weight_kg} kg</Text>
-          ) : null}
-        </Card>
-
-        <Card className="mt-4 p-4">
-          <Text className="text-lg font-semibold mb-2">Sports</Text>
-          {sports.map((s: UserSport) => (
-            <Text key={s.id} className="text-neutral-700 dark:text-neutral-200 mb-1">
-              {s.sport_id} — {s.level} — {s.practice} — {s.times_per_week}x/sem
+          {/* Name tag (username) */}
+          {profile?.username ? (
+            <Text variant="caption" className="text-text-tertiary -mt-1">
+              @{profile.username}
             </Text>
-          ))}
-        </Card>
+          ) : null}
 
-        <SecuritySection email={profile.email} />
+          {/* Bio */}
+          {bio ? (
+            <Text variant="body" className="text-text-secondary">
+              {bio}
+            </Text>
+          ) : null}
 
-        <ProfileClubsSection />
+          {/* Sport chips */}
+          {sports.length > 0 ? (
+            <View className="flex-row flex-wrap gap-2">
+              {sports.map((s) => (
+                <Tag key={s} variant="chip" active={false}>
+                  {SPORTS.find((sp) => sp.id === s)?.label ?? s}
+                </Tag>
+              ))}
+            </View>
+          ) : null}
 
-        <ProfileEventsSection />
-
-        <View className="flex-row gap-3 mt-6">
-          <Button title="Se déconnecter" variant="secondary" className="flex-1" onPress={() => void signOut()} />
-          <Button
-            title="Supprimer mon compte"
-            variant="danger"
-            className="flex-1"
-            onPress={() => setDeleteOpen(true)}
+          {/* Stats */}
+          <StatsRow
+            posts={postCount}
+            clubs={clubCount}
+            followers={0}
           />
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* Public profile activation button (only visible when profile is private) */}
+          {!isPublic && (
+            <View className="py-4">
+              <Text variant="subtitle" className="text-text-primary mb-2">
+                Profil public
+              </Text>
+              <Text variant="caption" className="text-text-tertiary mb-3">
+                Un profil public permet de créer des posts visibles par tous.
+                Cette action est irréversible.
+              </Text>
+              <Button
+                title="Activer le profil public"
+                variant="primary"
+                onPress={() => setGoPublicOpen(true)}
+              />
+            </View>
+          )}
+
+          {/* Public profile status (only visible when profile is public) */}
+          {isPublic && (
+            <View className="flex-row items-center justify-between py-4">
+              <View className="flex-1 mr-4">
+                <Text variant="subtitle" className="text-text-primary">
+                  Profil public actif
+                </Text>
+                <Text variant="caption" className="text-text-tertiary mt-1">
+                  Votre profil est visible par tous les utilisateurs.
+                </Text>
+              </View>
+              <Icon name="CheckCircle2" size={24} color="success" />
+            </View>
+          )}
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* Notifications access */}
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile/notifications" as any)}
+            className="flex-row items-center justify-between py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Bell" size={20} color="text-secondary" />
+              <Text variant="body" className="text-text-secondary">
+                Notifications
+              </Text>
+            </View>
+            <Icon name="Search" size={16} color="text-tertiary" />
+          </Pressable>
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* Settings access */}
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile/settings" as any)}
+            className="flex-row items-center justify-between py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Settings" size={20} color="text-secondary" />
+              <Text variant="body" className="text-text-secondary">
+                Paramètres
+              </Text>
+            </View>
+            <Icon name="Search" size={16} color="text-tertiary" />
+          </Pressable>
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* Clubs */}
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile/clubs" as any)}
+            className="flex-row items-center justify-between py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Users" size={20} color="text-secondary" />
+              <Text variant="body" className="text-text-secondary">
+                Clubs
+              </Text>
+            </View>
+            <Icon name="Search" size={16} color="text-tertiary" />
+          </Pressable>
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* Accepted Events */}
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile/accepted-events" as any)}
+            className="flex-row items-center justify-between py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="CheckCircle2" size={20} color="text-secondary" />
+              <Text variant="body" className="text-text-secondary">
+                Événements acceptés
+              </Text>
+            </View>
+            <Icon name="Search" size={16} color="text-tertiary" />
+          </Pressable>
+
+          {/* Divider */}
+          <View className="border-t border-border" />
+
+          {/* My Posts - only visible for public profiles */}
+          {isPublic && (
+            <>
+              <Pressable
+                onPress={() => router.push("/(tabs)/profile/user-posts" as any)}
+                className="flex-row items-center justify-between py-4"
+              >
+                <View className="flex-row items-center gap-3">
+                  <Icon name="Image" size={20} color="text-secondary" />
+                  <Text variant="body" className="text-text-secondary">
+                    Mes posts
+                  </Text>
+                </View>
+                <Icon name="Search" size={16} color="text-tertiary" />
+              </Pressable>
+
+              {/* Divider */}
+              <View className="border-t border-border" />
+            </>
+          )}
         </View>
+
+        <View className="h-8" />
       </ScrollView>
 
-      <EditProfileSheet visible={editOpen} onClose={() => setEditOpen(false)} profile={profile} />
-      <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
-    </SafeAreaView>
+      {/* Go public sheet */}
+      <GoPublicSheet visible={goPublicOpen} onClose={() => setGoPublicOpen(false)} />
+    </SafeScreen>
   );
 }

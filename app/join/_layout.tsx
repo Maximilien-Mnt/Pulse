@@ -1,5 +1,10 @@
 import { Stack } from "expo-router";
+import { AuthGuard } from "@/components/shared/AuthGuard";
 
 export default function JoinLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <AuthGuard>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AuthGuard>
+  );
 }

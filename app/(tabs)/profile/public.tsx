@@ -12,7 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function MyPublicProfileScreen() {
   const router = useRouter();
@@ -22,17 +23,17 @@ export default function MyPublicProfileScreen() {
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1">
+      <SafeScreen className="flex-1">
         <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
   if (isLoading || !profile) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
+      <SafeScreen className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
         <Text>Chargement…</Text>
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
@@ -40,13 +41,11 @@ export default function MyPublicProfileScreen() {
   const stats = profile.stats;
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center justify-between px-4 pt-2">
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#1E6BFF" />
-        </Pressable>
+        <BackButton />
         <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Mon profil public</Text>
-        <Button title="Modifier" variant="ghost" onPress={() => router.push("/profile/edit-public")} />
+        <Button title="Modifier" variant="ghost" onPress={() => router.push("/(tabs)/profile/edit-public")} />
       </View>
 
       <ScrollView contentContainerClassName="px-4 pb-24 pt-4">
@@ -105,6 +104,6 @@ export default function MyPublicProfileScreen() {
           loading={postsQuery.isLoading || clubsQuery.isLoading || eventsQuery.isLoading}
         />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

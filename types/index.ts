@@ -82,7 +82,8 @@ export type Database = {
           level: string;
           practice: string;
           weekdays: number[];
-          times_per_week: number;
+          start_hour: number | null;
+          end_hour: number | null;
           created_at: string;
         };
         Insert: {
@@ -92,7 +93,8 @@ export type Database = {
           level: string;
           practice: string;
           weekdays?: number[];
-          times_per_week?: number;
+          start_hour?: number | null;
+          end_hour?: number | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["user_sports"]["Insert"]>;
@@ -268,6 +270,7 @@ export type Database = {
           source_name: string | null;
           places_total: number | null;
           places_left: number | null;
+          accepted_count: number;
           required_level: string | null;
           club_id: string | null;
           created_by: string | null;
@@ -303,6 +306,7 @@ export type Database = {
           source_name?: string | null;
           places_total?: number | null;
           places_left?: number | null;
+          accepted_count?: number;
           required_level?: string | null;
           club_id?: string | null;
           created_by?: string | null;
@@ -475,6 +479,7 @@ export type Database = {
           conversation_id: string;
           user_id: string;
           pinned: boolean;
+          pinned_at: string | null;
           left_at: string | null;
           unread_count: number;
           last_read_at: string | null;
@@ -485,6 +490,7 @@ export type Database = {
           conversation_id: string;
           user_id: string;
           pinned?: boolean;
+          pinned_at?: string | null;
           left_at?: string | null;
           unread_count?: number;
           last_read_at?: string | null;
@@ -580,6 +586,38 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>;
         Relationships: [];
       };
+      bug_reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          message: string;
+          platform: string;
+          os_version: string | null;
+          app_version: string;
+          device_model: string | null;
+          locale: string | null;
+          screen_resolution: string | null;
+          timezone: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          message: string;
+          platform: string;
+          os_version?: string | null;
+          app_version: string;
+          device_model?: string | null;
+          locale?: string | null;
+          screen_resolution?: string | null;
+          timezone?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bug_reports"]["Insert"]>;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -652,6 +690,20 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["feed_interactions"]["Insert"]>;
         Relationships: [];
       };
+      blocked_users: {
+        Row: {
+          blocker_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          blocker_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blocked_users"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       feed_scored_posts: {
@@ -673,6 +725,81 @@ export type Database = {
         };
         Returns: (Post & { score: number })[];
       };
+      create_direct_conversation: {
+        Args: {
+          p_other_user_id: string;
+          p_other_is_public_list?: boolean;
+        };
+        Returns: string;
+      };
+      delete_conversation_for_me: {
+        Args: {
+          p_conv_id: string;
+        };
+        Returns: undefined;
+      };
+      get_my_conversations: {
+        Args: Record<string, never>;
+        Returns: Conversation[];
+      };
+      get_conversation_other_participants: {
+        Args: {
+          p_user_id: string;
+          p_conv_ids: string[];
+        };
+        Returns: Array<{ conversation_id: string; other_user_id: string }>;
+      };
+      get_my_conversations_full: {
+        Args: {
+          p_is_public_list: boolean | null;
+        };
+        Returns: Array<{
+          conversation_id: string;
+          conversation_created_at: string;
+          conversation_updated_at: string;
+          conversation_last_message_at: string | null;
+          conversation_last_message_preview: string | null;
+          conversation_is_group: boolean;
+          conversation_group_name: string | null;
+          conversation_group_photo_url: string | null;
+          pinned: boolean;
+          pinned_at: string | null;
+          unread_count: number;
+          is_public_list: boolean;
+          other_user_id: string | null;
+          other_full_name: string | null;
+          other_username: string | null;
+          other_avatar_url: string | null;
+        }>;
+      };
+      notify_user: {
+        Args: {
+          p_user_id: string;
+          p_type: string;
+          p_title?: string | null;
+          p_body?: string | null;
+          p_data?: Json;
+        };
+        Returns: undefined;
+      };
+      increment_post_likes: {
+        Args: {
+          post_id: string;
+        };
+        Returns: void;
+      };
+      decrement_post_likes: {
+        Args: {
+          post_id: string;
+        };
+        Returns: void;
+      };
+      delete_my_account: {
+        Args: {
+          p_password: string;
+        };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -684,13 +811,18 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
 
 export type Profile = Tables<"profiles">;
 export type Post = Tables<"posts">;
-export type Club = Tables<"clubs">;
-export type EventRow = Tables<"events">;
+export type Club = Tables<"clubs"> & {
+  creator?: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
+};
+export type EventRow = Tables<"events"> & {
+  creator?: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
+};
 export type Conversation = Tables<"conversations">;
 export type Message = Tables<"messages">;
 export type PostComment = Tables<"post_comments">;
 export type UserStats = Tables<"user_stats">;
 export type UserSport = Tables<"user_sports">;
+export type BlockedUser = Tables<"blocked_users">;
 
 export type PublicProfile = Pick<
   Profile,
@@ -719,7 +851,8 @@ export type SignupSportSelection = {
   level: string;
   practice: string;
   weekdays: number[];
-  timesPerWeek: number;
+  startHour: number;
+  endHour: number;
 };
 
 export type ConversationListItemDownload = {

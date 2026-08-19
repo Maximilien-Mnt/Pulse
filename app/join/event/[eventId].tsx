@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 
 export default function JoinEventScreen() {
@@ -14,16 +14,16 @@ export default function JoinEventScreen() {
   const { eventId, token } = useLocalSearchParams<{ eventId: string; token?: string }>();
   const userId = useAuthStore((s) => s.userId);
   const redeem = useRedeemInvitation();
-  const [event, setEvent] = useState<{ name: string; sport: string | null } | null>(null);
+  const [event, setEvent] = useState<{ name: string; sport: string | null; created_by: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const { data } = await supabase.from("events").select("name, sport").eq("id", eventId).maybeSingle();
+      const { data } = await supabase.from("events").select("name, sport, created_by").eq("id", eventId).maybeSingle();
 
       if (active) {
-        setEvent(data);
+        setEvent(data as any);
         setLoading(false);
       }
     })();
@@ -48,7 +48,7 @@ export default function JoinEventScreen() {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["events"] });
           Toast.show({ type: "success", text1: "Tu participes à l'événement !" });
-          router.replace(`/events/${eventId}` as any);
+          router.replace(`/(tabs)/events/${eventId}`);
         },
         onError: (e) => {
           Toast.show({ type: "error", text1: e instanceof Error ? e.message : "Erreur" });
@@ -58,7 +58,7 @@ export default function JoinEventScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
       <View className="flex-1 items-center justify-center px-6">
         {loading ? (
           <ActivityIndicator color="#1E6BFF" />
@@ -80,12 +80,14 @@ export default function JoinEventScreen() {
             <Text className="text-neutral-600 dark:text-neutral-300 text-center mt-4 mb-8">
               Tu as été invité(e) à participer à cet événement privé. Accepte l'invitation pour rejoindre.
             </Text>
-            <Button
-              title="Participer"
-              onPress={handleJoin}
-              loading={redeem.isPending}
-              className="w-full"
-            />
+            {userId && event?.created_by === userId ? null : (
+              <Button
+                title="Participer"
+                onPress={handleJoin}
+                loading={redeem.isPending}
+                className="w-full"
+              />
+            )}
             <Button
               title="Annuler"
               variant="ghost"
@@ -95,6 +97,6 @@ export default function JoinEventScreen() {
           </>
         )}
       </View>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

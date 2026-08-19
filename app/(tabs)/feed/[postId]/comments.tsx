@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 
 export default function PostCommentsModal() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
@@ -79,6 +79,7 @@ export default function PostCommentsModal() {
     onSuccess: () => {
       setBody("");
       void queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      void queryClient.invalidateQueries({ queryKey: ["post-comments-count", postId] });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
   });
@@ -86,7 +87,7 @@ export default function PostCommentsModal() {
   const title = useMemo(() => `Commentaires (${count})`, [count]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900" edges={["top", "bottom"]}>
+    <SafeScreen className="flex-1 bg-white dark:bg-neutral-900" edges={["top", "bottom"]}>
       <Stack.Screen options={{ title }} />
       <View className="flex-row items-center justify-between px-4 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{title}</Text>
@@ -123,6 +124,6 @@ export default function PostCommentsModal() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

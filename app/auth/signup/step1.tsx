@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/Button";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
-import { LANGUAGES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep1Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Stack, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, Stack, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 
@@ -18,10 +18,9 @@ export default function SignupStep1() {
   const router = useRouter();
   const posthog = usePostHog();
   const setStep1 = useSignupStore((s) => s.setStep1);
-  const [langOpen, setLangOpen] = useState(false);
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<Form>({
+  const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep1Schema),
     defaultValues: {
       language: "fr",
@@ -34,12 +33,6 @@ export default function SignupStep1() {
   });
 
   const username = watch("username");
-  const language = watch("language");
-
-  const langLabel = useMemo(
-    () => LANGUAGES.find((l) => l.code === language)?.label ?? "Français",
-    [language]
-  );
 
   const checkUsername = useCallback(async (u: string) => {
     if (u.length < 3) {
@@ -75,35 +68,20 @@ export default function SignupStep1() {
   });
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Stack.Screen options={{ title: "Étape 1/5" }} />
-      <ScrollView contentContainerClassName="px-6 py-4" keyboardShouldPersistTaps="handled">
-        <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">Créer un compte</Text>
+    <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <Stack.Screen options={{ title: "Étape 1/5" }} />
+        <ScrollView contentContainerClassName="px-6 pt-4 pb-4" keyboardShouldPersistTaps="handled">
+          <Link href="/" asChild>
+            <Pressable className="mb-4">
+              <Text className="text-sm font-semibold text-primary">← Retour à l'accueil</Text>
+            </Pressable>
+          </Link>
+          <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">Créer un compte</Text>
         <Text className="text-sm text-neutral-500 mb-2">Langue</Text>
-        <Pressable onPress={() => setLangOpen(true)} className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
-          <Text className="text-base text-neutral-900 dark:text-neutral-50">{langLabel}</Text>
-        </Pressable>
-        <Modal visible={langOpen} transparent animationType="fade">
-          <Pressable className="flex-1 bg-black/40 justify-end" onPress={() => setLangOpen(false)}>
-            <View className="bg-white dark:bg-neutral-900 rounded-t-2xl p-4 max-h-[50%]">
-              <FlatList
-                data={[...LANGUAGES]}
-                keyExtractor={(i) => i.code}
-                renderItem={({ item }) => (
-                  <Pressable
-                    className="py-3 border-b border-neutral-100 dark:border-neutral-800"
-                    onPress={() => {
-                      setValue("language", item.code, { shouldValidate: true });
-                      setLangOpen(false);
-                    }}
-                  >
-                    <Text className="text-lg text-neutral-900 dark:text-neutral-50">{item.label}</Text>
-                  </Pressable>
-                )}
-              />
-            </View>
-          </Pressable>
-        </Modal>
+        <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
+          <Text className="text-base text-neutral-900 dark:text-neutral-50">Français</Text>
+        </View>
         <Controller
           control={control}
           name="fullName"
@@ -146,7 +124,8 @@ export default function SignupStep1() {
         <View className="mt-4">
           <Button title="Continuer" onPress={onSubmit} loading={isSubmitting} disabled={usernameOk === false} />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeScreen>
   );
 }

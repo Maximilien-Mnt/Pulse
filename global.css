@@ -1,3 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------
+ * PULSE DESIGN SYSTEM — CSS Variables (Web)
+ *
+ * These variables are consumed by Tailwind utilities on web.
+ * They mirror the design tokens from src/design-tokens/.
+ * --------------------------------------------------------------- */
+
+:root {
+  --font-display: "SpaceGrotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+/* Light mode (default) */
+:root {
+  --color-bg: #FAFBFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E7EB;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  --color-primary: #3B82F6;
+  --color-primary-hover: #2563EB;
+  --color-primary-active: #1D4ED8;
+  --color-primary-tint: #EFF6FF;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-error-600: #DC2626;
+  --color-warning: #F59E0B;
+  --color-warning-700: #B45309;
+  --color-accent: #FB7185;
+  --color-disabled-bg: #F3F4F6;
+  --color-disabled-text: #9CA3AF;
+}
+
+/* Dark mode */
+:root.dark {
+  --color-bg: #0E1015;
+  --color-surface: #171A20;
+  --color-border: #262A32;
+  --color-text-primary: #F5F6F8;
+  --color-text-secondary: #A7ACB5;
+  --color-text-tertiary: #767C87;
+  --color-text-inverse: #14161A;
+  --color-primary: #60A5FA;
+  --color-primary-hover: #93C5FD;
+  --color-primary-active: #7A9CFF;
+  --color-primary-tint: #182240;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-error-600: #DC2626;
+  --color-warning: #F59E0B;
+  --color-warning-700: #B45309;
+  --color-accent: #FB7185;
+  --color-disabled-bg: #2A2F3A;
+  --color-disabled-text: #5A6070;
+}
+
+/* Web-only: reduce noisy runtime overlay accessibility warnings from RN web.
+ * This targets generated overlay containers and keeps them non-interactive
+ * when visually hidden, avoiding focus-trap warnings without changing app
+ * logic.
+ */
+@media (pointer: fine) {
+  [aria-hidden="true"] {
+    pointer-events: none;
+  }
+}

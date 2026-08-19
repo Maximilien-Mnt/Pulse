@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/Button";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
 import { supabase } from "@/lib/supabase";
+import { setStoredPassword } from "@/lib/passwordStorage";
 import { signInSchema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useRouter } from "expo-router";
@@ -34,6 +36,9 @@ export default function SignInScreen() {
     }
     const userId = data.session?.user?.id;
     if (userId) {
+      // Store password securely so the user can view it in Settings.
+      // Supabase only stores the hash, so we persist the plaintext on-device.
+      await setStoredPassword(userId, values.password);
       posthog.identify(userId, {
         $set: { email: values.email.trim() },
         $set_once: { first_sign_in_date: new Date().toISOString() },
@@ -44,11 +49,17 @@ export default function SignInScreen() {
   });
 
   return (
+    <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
     <KeyboardAvoidingView
-      className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]"
+      className="flex-1"
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerClassName="px-6 pt-16 pb-10" keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
+        <Link href="/" asChild>
+          <Pressable className="mb-4">
+            <Text className="text-sm font-semibold text-primary">← Retour à l'accueil</Text>
+          </Pressable>
+        </Link>
         <Text className="text-3xl font-bold text-primary mb-2">Pulse</Text>
         <Text className="text-neutral-600 dark:text-neutral-300 mb-8">Connecte-toi pour continuer</Text>
         <Controller
@@ -65,19 +76,22 @@ export default function SignInScreen() {
             <Input label="Mot de passe" value={value} onChangeText={onChange} secureTextEntry error={errors.password?.message} />
           )}
         />
-        <Pressable className="mb-6">
-          <Text className="text-primary font-semibold">Mot de passe oublié</Text>
-        </Pressable>
+        <Link href="/auth/forgot-password" asChild>
+          <Pressable className="mb-6">
+            <Text className="text-primary font-semibold">Mot de passe oublié ?</Text>
+          </Pressable>
+        </Link>
         <Button title="Se connecter" onPress={onSubmit} loading={isSubmitting} />
         <View className="flex-row justify-center mt-8">
           <Text className="text-neutral-600 dark:text-neutral-300">Pas encore de compte ? </Text>
           <Link href="/auth/signup/step1" asChild>
             <Pressable>
-              <Text className="text-primary font-semibold">S&apos;inscrire</Text>
+              <Text className="text-primary font-semibold">S'inscrire</Text>
             </Pressable>
           </Link>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeScreen>
   );
 }

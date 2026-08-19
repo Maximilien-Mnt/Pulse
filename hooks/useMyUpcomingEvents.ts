@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { EventRow } from "@/types";
 
 /**
- * Fetches upcoming events (start_date > now()) the user is registered to.
+ * Fetches events the user is registered to.
  */
 export function useMyUpcomingEvents(userId: string | null) {
   return useQuery({
@@ -17,17 +17,25 @@ export function useMyUpcomingEvents(userId: string | null) {
           event_id,
           status,
           event:events (*)
-        `
+          `
         )
-        .eq("user_id", userId!)
-        .gte("events.start_date", new Date().toISOString());
+        .eq("user_id", userId!);
 
       if (error) throw error;
 
-      return (data ?? []).map((row: any) => ({
-        event: row.event as EventRow,
-        status: row.status,
-      })) as { event: EventRow; status: string }[];
+      // Process the data - handle both single object and array cases
+      const events = (data ?? [])
+        .map((row: any) => {
+          const event = Array.isArray(row.event) ? row.event[0] : row.event;
+          if (!event) return null;
+          return {
+            event: event as EventRow,
+            status: row.status,
+          };
+        })
+        .filter((item): item is { event: EventRow; status: string } => item !== null);
+
+      return events;
     },
   });
 }

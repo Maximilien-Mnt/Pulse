@@ -1,79 +1,55 @@
-import { supabase } from "@/lib/supabase";
-import { queryClient } from "@/lib/queryClient";
-import { formatTime } from "@/utils/date";
-import type { Message } from "@/types";
-import { useAuthStore } from "@/stores/authStore";
-import { useMutation } from "@tanstack/react-query";
-import { Alert, Pressable, Text, View } from "react-native";
+// ---------------------------------------------------------------------------
+// PULSE CONVERSATIONS — Message Bubble
+//
+// "moi" = primary bg, white text, right-aligned
+// "autre" = bg-alt, text-primary, left-aligned, radius lg
+// ---------------------------------------------------------------------------
 
-type Props = {
-  message: Message;
-  mine: boolean;
-  senderName: string;
-};
+import React from "react";
+import { View } from "react-native";
+import { cn } from "@/utils/format";
+import { Text } from "@/components/ui/Text";
+import type { MessageType } from "@/types";
 
-export function MessageBubble({ message, mine, senderName }: Props) {
-  const userId = useAuthStore((s) => s.userId);
+interface MessageBubbleProps {
+  text: string;
+  isMine: boolean;
+  type?: MessageType;
+  className?: string;
+}
 
-  const deleteMut = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("messages")
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-        .eq("id", message.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["messages", message.conversation_id] });
-    },
-  });
-
-  const hideMut = useMutation({
-    mutationFn: async () => {
-      if (!userId) throw new Error("auth");
-      const { error } = await supabase.from("message_hidden").insert({
-        message_id: message.id,
-        user_id: userId,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["messages", message.conversation_id] });
-    },
-  });
-
-  const onLongPress = () => {
-    Alert.alert("Message", undefined, [
-      mine
-        ? { text: "Supprimer", style: "destructive", onPress: () => deleteMut.mutate() }
-        : { text: "Masquer", onPress: () => hideMut.mutate() },
-      { text: "Annuler", style: "cancel" },
-    ]);
-  };
-
-  if (message.is_deleted) {
+export function MessageBubble({ text, isMine, type, className }: MessageBubbleProps) {
+  // System messages: small, grey, centered, no sender
+  if (type === "system") {
     return (
-      <View className={`mb-3 max-w-[85%] ${mine ? "self-end" : "self-start"}`}>
-        <Text className="text-sm italic text-neutral-400">Message supprimé</Text>
+      <View className={cn("max-w-[90%] py-2 my-1 self-center", className)}>
+        <Text
+          variant="caption"
+          className="text-neutral-500 dark:text-neutral-400 text-center italic"
+        >
+          {text}
+        </Text>
       </View>
     );
   }
 
+  // Regular messages (text, image, file)
   return (
-    <Pressable
-      onLongPress={onLongPress}
-      className={`mb-3 max-w-[85%] px-4 py-3 rounded-2xl ${
-        mine
-          ? "self-end bg-primary rounded-tr-sm"
-          : "self-start bg-neutral-100 dark:bg-neutral-800 rounded-tl-sm"
-      }`}
+    <View
+      className={cn(
+        "max-w-[80%] px-4 py-3 rounded-lg my-1",
+        isMine
+          ? "bg-primary self-end rounded-br-sm"
+          : "bg-neutral-100 dark:bg-neutral-800 self-start rounded-bl-sm",
+        className
+      )}
     >
-      <Text className={`text-base ${mine ? "text-white" : "text-neutral-900 dark:text-neutral-50"}`}>
-        {message.body}
+      <Text
+        variant="body"
+        className={isMine ? "text-white" : "text-text-primary"}
+      >
+        {text}
       </Text>
-      <Text className={`text-xs mt-1 ${mine ? "text-white/80" : "text-neutral-400"}`}>
-        {senderName} · {formatTime(message.created_at)}
-      </Text>
-    </Pressable>
+    </View>
   );
 }

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import type { ClubListFilters } from "@/hooks/useClubs";
 import { useClubs } from "@/hooks/useClubs";
 import { useLocation } from "@/hooks/useLocation";
+import { useResponsiveListGrid } from "@/hooks/useResponsiveListGrid";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { Club } from "@/types";
@@ -15,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
 
 
 const defaultFilters: ClubListFilters = {
@@ -35,8 +36,8 @@ export default function ClubsScreen() {
   const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
   const [filters, setFilters] = useState<ClubListFilters>(defaultFilters);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [grid, setGrid] = useState(false);
-  
+  const { grid, setGrid, columns, showViewToggle } = useResponsiveListGrid();
+
   // Add location to filters when available
   const filtersWithLocation = useMemo(() => {
     if (filters.sort === "nearby" && latitude && longitude) {
@@ -61,34 +62,36 @@ export default function ClubsScreen() {
 
   if (isLoading && !data) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+      <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
         <Header title="Clubs" showAvatar avatarUrl={profile?.avatar_url} />
         <View className="px-4 gap-3">
           <Skeleton height={80} />
           <Skeleton height={80} />
         </View>
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1">
+      <SafeScreen className="flex-1">
         <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <Header title="Clubs" showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between items-center py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
           <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />
         </Pressable>
-        <Pressable onPress={() => setGrid((g) => !g)}>
-          <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
-        </Pressable>
+        {showViewToggle ? (
+          <Pressable onPress={() => setGrid((g) => !g)}>
+            <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
+          </Pressable>
+        ) : null}
       </View>
       <ClubFilters 
         visible={filterOpen} 
@@ -99,7 +102,7 @@ export default function ClubsScreen() {
       />
       <FlashList
         key={grid ? "g" : "l"}
-        numColumns={grid ? 2 : 1}
+        numColumns={grid ? columns : 1}
         data={clubs}
         keyExtractor={(c) => c.id}
         renderItem={({ item }) =>
@@ -108,8 +111,8 @@ export default function ClubsScreen() {
               <ClubCardGrid club={item} />
             </View>
           ) : (
-            <View className="px-4">
-              <ClubCard club={item} />
+            <View>
+              <ClubCard club={item} compact />
             </View>
           )
         }
@@ -122,6 +125,6 @@ export default function ClubsScreen() {
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 
-    </SafeAreaView>
+    </SafeScreen>
   );
 }

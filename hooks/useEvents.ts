@@ -27,14 +27,15 @@ export type EventListFilters = {
  * Liste paginée des événements avec filtres.
  */
 export function useEvents(filters: EventListFilters, userId: string | null) {
-  return useInfiniteQuery({
+  return useInfiniteQuery<EventRow[]>({
     queryKey: ["events", filters, userId],
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: EventRow[], allPages) => (lastPage.length < PAGE ? undefined : allPages.length),
+    initialPageParam: 0 as number,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE ? undefined : allPages.length,
     queryFn: async ({ pageParam }): Promise<EventRow[]> => {
-      const from = pageParam * PAGE;
+      const from = (pageParam as number) * PAGE;
       const to = from + PAGE - 1;
-      
+
       // Handle "nearby" sort using RPC function
       if (filters.sort === "nearby" && filters.userLat && filters.userLon) {
         const { data, error } = await (supabase.rpc as any)("get_nearby_events", {
@@ -45,29 +46,30 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
           p_offset: from,
           p_future_only: true,
         });
-        
+
         if (error) throw error;
-        let rows = (data ?? []) as unknown as EventRow[];
-        
-        // Apply favorites filter on client side
-        if (filters.favoritesOnly && userId) {
-          const ids = rows.map((e) => e.id);
-          if (!ids.length) return rows;
-          const { data: favs, error: fe } = await supabase
-            .from("event_favorites")
-            .select("event_id")
-            .eq("user_id", userId)
-            .in("event_id", ids);
-          if (fe) throw fe;
-          const set = new Set((favs ?? []).map((x) => x.event_id));
-          rows = rows.filter((e) => set.has(e.id));
-        }
-        
+        let rows = ((data ?? []) as any).map((row: any) => ({
+          ...row,
+          creator: row.creator
+            ? {
+                id: row.creator.id,
+                full_name: row.creator.full_name ?? "Utilisateur",
+                username: row.creator.username ?? "utilisateur",
+                avatar_url: row.creator.avatar_url ?? null,
+              }
+            : undefined,
+        })) as EventRow[];
         return rows;
       }
-      
+
       // Standard query with PostgREST
-      let q = supabase.from("events").select("*");
+      let q = supabase
+        .from("events")
+        .select(
+          `
+          *
+        `
+        );
 
       if (filters.sports.length) q = q.in("sport", filters.sports);
       if (filters.location.trim()) {
@@ -111,19 +113,30 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
 
       const { data, error } = await q.range(from, to);
       if (error) throw error;
-      let rows = (data ?? []) as EventRow[];
-      if (filters.favoritesOnly && userId) {
-        const ids = rows.map((e) => e.id);
-        if (!ids.length) return rows;
-        const { data: favs, error: fe } = await supabase
-          .from("event_favorites")
-          .select("event_id")
-          .eq("user_id", userId)
-          .in("event_id", ids);
-        if (fe) throw fe;
-        const set = new Set((favs ?? []).map((x) => x.event_id));
-        rows = rows.filter((e) => set.has(e.id));
+      const creatorIds = Array.from(
+        new Set((data ?? []).map((row: any) => row.created_by).filter((id: any): id is string => typeof id === "string" && !!id))
+      );
+      const creatorMap = new Map<string, any>();
+      if (creatorIds.length) {
+        const { data: creators, error: creatorsError } = await supabase
+          .from("profiles")
+          .select("id, full_name, username, avatar_url")
+          .in("id", creatorIds);
+        if (creatorsError) throw creatorsError;
+        (creators ?? []).forEach((profile: any) => {
+          creatorMap.set(profile.id, {
+            id: profile.id,
+            full_name: profile.full_name ?? "Utilisateur",
+            username: profile.username ?? "utilisateur",
+            avatar_url: profile.avatar_url ?? null,
+          });
+        });
       }
+      const rows = ((data ?? []) as any).map((row: any) => ({
+        ...row,
+        creator: row.created_by ? creatorMap.get(row.created_by) ?? undefined : undefined,
+      })) as EventRow[];
+
       return rows;
     },
   });

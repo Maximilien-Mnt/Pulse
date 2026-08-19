@@ -1,4 +1,5 @@
 import { MessageBubble } from "@/components/conversations/MessageBubble";
+import { ConversationActionSheet } from "@/components/conversations/ConversationActionSheet";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import type { Message } from "@/types";
@@ -15,7 +16,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeScreen } from "@/components/shared/SafeScreen";
+import { Avatar } from "@/components/ui/Avatar";
+import { BackButton } from "@/components/ui/BackButton";
 import Toast from "react-native-toast-message";
 
 export default function ConversationScreen() {
@@ -24,9 +27,14 @@ export default function ConversationScreen() {
   const userId = useAuthStore((s) => s.userId);
   const qc = useQueryClient();
   const [text, setText] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const { data: title = "Messages" } = useQuery({
-    queryKey: ["conv-title", conversationId, userId],
+  const { data: other } = useQuery<{
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null>({
+    queryKey: ["conv-other", conversationId, userId],
     enabled: !!conversationId && !!userId,
     queryFn: async () => {
       const { data: parts } = await supabase
@@ -35,9 +43,31 @@ export default function ConversationScreen() {
         .eq("conversation_id", conversationId!)
         .neq("user_id", userId!);
       const oid = parts?.[0]?.user_id;
-      if (!oid) return "Messages";
-      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", oid).single();
-      return p?.full_name ?? "Messages";
+      if (!oid) return null;
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .eq("id", oid)
+        .single();
+      return p
+        ? { id: p.id, full_name: p.full_name, avatar_url: p.avatar_url }
+        : null;
+    },
+  });
+
+  const title = other?.full_name ?? "Messages";
+
+  const { data: pinned = false } = useQuery({
+    queryKey: ["conv-pinned", conversationId, userId],
+    enabled: !!conversationId && !!userId,
+    queryFn: async () => {
+      const { data: row } = await supabase
+        .from("conversation_participants")
+        .select("pinned")
+        .eq("conversation_id", conversationId!)
+        .eq("user_id", userId!)
+        .single();
+      return row?.pinned ?? false;
     },
   });
 
@@ -67,26 +97,32 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     if (!conversationId) return;
-    const ch = supabase
-      .channel(`conv-${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        () => {
-          void qc.invalidateQueries({ queryKey: ["messages", conversationId] });
-          void qc.invalidateQueries({ queryKey: ["conversations", userId] });
-        }
-      )
-      .subscribe();
+    // Use a unique channel name per effect run so React StrictMode's
+    // double-mount doesn't reattach callbacks to an already-subscribed
+    // channel (which throws "cannot add postgres_changes callbacks ...
+    // after subscribe()").
+    const channelName = `conv-${conversationId}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    const ch = supabase.channel(channelName);
+    ch.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      () => {
+        void qc.invalidateQueries({ queryKey: ["messages", conversationId] });
+        void qc.invalidateQueries({ queryKey: ["conversations"] });
+      }
+    );
+    ch.subscribe();
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [conversationId, qc, userId]);
+  }, [conversationId, qc]);
 
   const sendMut = useMutation({
     mutationFn: async () => {
@@ -108,14 +144,25 @@ export default function ConversationScreen() {
   const dataInverted = useMemo(() => [...messages].reverse(), [messages]);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <Stack.Screen options={{ title }} />
       <View className="flex-row items-center px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="#0F172A" />
+        <BackButton fallbackRoute="/(tabs)/conversations" />
+        <Pressable
+          className="flex-1 flex-row items-center gap-2 pl-1"
+          onPress={() => {
+            if (other?.id) router.push(`/profile/${other.id}`);
+          }}
+        >
+          <Avatar uri={other?.avatar_url} size={36} />
+          <Text
+            className="text-base font-semibold text-neutral-900 dark:text-neutral-50"
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
         </Pressable>
-        <Text className="flex-1 text-center text-base font-semibold text-neutral-900 dark:text-neutral-50">{title}</Text>
-        <Pressable onPress={() => Toast.show({ type: "info", text1: "Fonctionnalité bientôt disponible" })}>
+        <Pressable onPress={() => setMenuOpen(true)}>
           <Ionicons name="settings-outline" size={22} color="#64748B" />
         </Pressable>
       </View>
@@ -125,7 +172,11 @@ export default function ConversationScreen() {
           data={dataInverted}
           keyExtractor={(m) => m.id}
           renderItem={({ item }) => (
-            <MessageBubble message={item} mine={item.sender_id === userId} senderName={nameMap[item.sender_id] ?? ""} />
+            <MessageBubble
+              text={item.body ?? ""}
+              isMine={item.sender_id === userId}
+              type={item.type}
+            />
           )}
           contentContainerClassName="px-4 py-3"
         />
@@ -143,6 +194,16 @@ export default function ConversationScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+
+      <ConversationActionSheet
+        visible={menuOpen}
+        conversationId={conversationId ?? ""}
+        name={title}
+        pinned={pinned}
+        onClose={() => setMenuOpen(false)}
+        onDeleted={() => router.back()}
+        targetAuthorId={other?.id}
+      />
+    </SafeScreen>
   );
 }

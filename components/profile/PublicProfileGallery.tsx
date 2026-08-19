@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Dimensions, FlatList, Pressable, Text, View } from "react-native";
+import { Dimensions, Pressable, Text, View } from "react-native";
 
 type Tab = "posts" | "clubs" | "events";
 
@@ -62,39 +62,41 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
         posts.length === 0 ? (
           <EmptyState icon="images-outline" title="Aucun post" />
         ) : (
-          <FlatList
-            data={posts}
-            numColumns={COLS}
-            scrollEnabled={false}
-            keyExtractor={(p) => p.id}
-            columnWrapperStyle={{ gap: GAP }}
-            contentContainerStyle={{ gap: GAP }}
-            renderItem={({ item }) => {
-              const thumb = item.media_urls?.[0];
-              return (
-                <Pressable
-                  onPress={() => router.push(`/(tabs)/feed/${item.id}/comments`)}
-                  style={{ width: SIZE, height: SIZE }}
-                  className="rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700"
-                >
-                  {thumb ? (
-                    <Image
-                      source={{ uri: thumb }}
+          <View className="gap-2">
+            {Array.from({ length: Math.ceil(posts.length / COLS) }).map((_, rowIndex) => (
+              <View key={rowIndex} className="flex-row gap-2">
+                {Array.from({ length: COLS }).map((_, colIndex) => {
+                  const index = rowIndex * COLS + colIndex;
+                  const item = posts[index];
+                  if (!item) return <View key={colIndex} style={{ width: SIZE, height: SIZE }} />;
+                  const thumb = item.media_urls?.[0];
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => router.push(`/(tabs)/feed/${item.id}/comments`)}
                       style={{ width: SIZE, height: SIZE }}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  ) : (
-                    <View className="flex-1 items-center justify-center p-2">
-                      <Text className="text-xs text-neutral-600 dark:text-neutral-300" numberOfLines={3}>
-                        {item.title}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            }}
-          />
+                      className="rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700"
+                    >
+                      {thumb ? (
+                        <Image
+                          source={{ uri: thumb }}
+                          style={{ width: SIZE, height: SIZE }}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                        />
+                      ) : (
+                        <View className="flex-1 items-center justify-center p-2">
+                          <Text className="text-xs text-neutral-600 dark:text-neutral-300" numberOfLines={3}>
+                            {item.title}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
         )
       )}
 
@@ -102,25 +104,27 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
         clubs.length === 0 ? (
           <EmptyState icon="people-outline" title="Aucun club" />
         ) : (
-          clubs.map((c) => (
-            <Card key={c.id} onPress={() => router.push(`/(tabs)/clubs/${c.id}`)} className="p-4 mb-3">
-              <View className="flex-row items-center gap-3">
-                {c.logo_url ? (
-                  <Image source={{ uri: c.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} />
-                ) : (
-                  <View className="w-12 h-12 rounded-xl bg-primary/10 items-center justify-center">
-                    <Ionicons name="people" size={24} color="#1E6BFF" />
+          <View className="gap-3">
+            {clubs.map((c) => (
+              <Card key={c.id} onPress={() => router.push(`/(tabs)/clubs/${c.id}`)} className="p-4">
+                <View className="flex-row items-center gap-3">
+                  {c.logo_url ? (
+                    <Image source={{ uri: c.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} />
+                  ) : (
+                    <View className="w-12 h-12 rounded-xl bg-primary/10 items-center justify-center">
+                      <Ionicons name="people" size={24} color="#1E6BFF" />
+                    </View>
+                  )}
+                  <View className="flex-1">
+                    <Text className="font-semibold text-neutral-900 dark:text-neutral-50">{c.name}</Text>
+                    <Text className="text-sm text-neutral-500">
+                      {SPORTS.find((s) => s.id === c.sport)?.label ?? c.sport} · {c.city}
+                    </Text>
                   </View>
-                )}
-                <View className="flex-1">
-                  <Text className="font-semibold text-neutral-900 dark:text-neutral-50">{c.name}</Text>
-                  <Text className="text-sm text-neutral-500">
-                    {SPORTS.find((s) => s.id === c.sport)?.label ?? c.sport} · {c.city}
-                  </Text>
                 </View>
-              </View>
-            </Card>
-          ))
+              </Card>
+            ))}
+          </View>
         )
       )}
 
@@ -128,14 +132,16 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
         events.length === 0 ? (
           <EmptyState icon="calendar-outline" title="Aucun événement" />
         ) : (
-          events.map((e) => (
-            <Card key={e.id} onPress={() => router.push(`/(tabs)/events/${e.id}`)} className="p-4 mb-3">
-              <Text className="font-semibold text-neutral-900 dark:text-neutral-50">{e.name}</Text>
-              <Text className="text-sm text-neutral-500 mt-1">
-                {SPORTS.find((s) => s.id === e.sport)?.label ?? e.sport} · {e.city}
-              </Text>
-            </Card>
-          ))
+          <View className="gap-3">
+            {events.map((e) => (
+              <Card key={e.id} onPress={() => router.push(`/(tabs)/events/${e.id}`)} className="p-4">
+                <Text className="font-semibold text-neutral-900 dark:text-neutral-50">{e.name}</Text>
+                <Text className="text-sm text-neutral-500 mt-1">
+                  {SPORTS.find((s) => s.id === e.sport)?.label ?? e.sport} · {e.city}
+                </Text>
+              </Card>
+            ))}
+          </View>
         )
       )}
     </View>

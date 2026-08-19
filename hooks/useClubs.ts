@@ -33,46 +33,67 @@ const defaultFilters: ClubListFilters = {
  */
 export function useClubs(filters: ClubListFilters, userId: string | null) {
   const f = filters ?? defaultFilters;
-  return useInfiniteQuery({
+  return useInfiniteQuery<Club[]>({
     queryKey: ["clubs", f, userId],
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: Club[], allPages) => (lastPage.length < PAGE ? undefined : allPages.length),
+    initialPageParam: 0 as number,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE ? undefined : allPages.length,
     queryFn: async ({ pageParam }): Promise<Club[]> => {
-      const from = pageParam * PAGE;
+      const from = (pageParam as number) * PAGE;
       const to = from + PAGE - 1;
-      
+
       // Handle "nearby" sort using RPC function
       if (f.sort === "nearby" && f.userLat && f.userLon) {
-        const { data, error } = await (supabase.rpc as any)("get_nearby_clubs", {
-          p_lat: f.userLat,
-          p_lon: f.userLon,
-          p_radius_km: f.radiusKm ?? 10,
-          p_limit: PAGE,
-          p_offset: from,
-        });
-        
-        if (error) throw error;
-        let rows = (data ?? []) as unknown as Club[];
-        
-        // Apply favorites filter on client side
-        if (f.favoritesOnly && userId) {
-          const ids = rows.map((c) => c.id);
-          if (!ids.length) return rows;
-          const { data: favs, error: fe } = await supabase
-            .from("club_favorites")
-            .select("club_id")
-            .eq("user_id", userId)
-            .in("club_id", ids);
-          if (fe) throw fe;
-          const set = new Set((favs ?? []).map((x) => x.club_id));
-          rows = rows.filter((c) => set.has(c.id));
+        try {
+          const { data, error } = await (supabase.rpc as any)("get_nearby_clubs", {
+            p_lat: f.userLat,
+            p_lon: f.userLon,
+            p_radius_km: f.radiusKm ?? 10,
+            p_limit: PAGE,
+            p_offset: from,
+          });
+
+          if (error) throw error;
+          const rows = ((data ?? []) as any).map((row: any) => ({
+            ...row,
+            creator: row.creator
+              ? {
+                  id: row.creator.id,
+                  full_name: row.creator.full_name ?? "Utilisateur",
+                  username: row.creator.username ?? "utilisateur",
+                  avatar_url: row.creator.avatar_url ?? null,
+                }
+              : undefined,
+          })) as Club[];
+
+          if (f.favoritesOnly && userId) {
+            const ids = rows.map((c) => c.id);
+            if (!ids.length) return rows;
+            const { data: favs, error: fe } = await supabase
+              .from("club_favorites")
+              .select("club_id")
+              .eq("user_id", userId)
+              .in("club_id", ids);
+            if (fe) throw fe;
+            const set = new Set((favs ?? []).map((x) => x.club_id));
+            return rows.filter((c) => set.has(c.id));
+          }
+
+          return rows;
+        } catch (err) {
+          console.warn("[useClubs] nearby fetch failed", err);
+          return [];
         }
-        
-        return rows;
       }
-      
+
       // Standard query with PostgREST
-      let q = supabase.from("clubs").select("*");
+      let q = supabase
+        .from("clubs")
+        .select(
+          `
+          *
+        `
+        );
 
       if (f.sports.length) q = q.in("sport", f.sports);
       if (f.location.trim()) {
@@ -108,7 +129,30 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
 
       const { data, error } = await q.range(from, to);
       if (error) throw error;
-      let rows = (data ?? []) as Club[];
+      const creatorIds = Array.from(
+        new Set((data ?? []).map((row: any) => row.created_by).filter((id: any): id is string => typeof id === "string" && !!id))
+      );
+      const creatorMap = new Map<string, any>();
+      if (creatorIds.length) {
+        const { data: creators, error: creatorsError } = await supabase
+          .from("profiles")
+          .select("id, full_name, username, avatar_url")
+          .in("id", creatorIds);
+        if (creatorsError) throw creatorsError;
+        (creators ?? []).forEach((profile: any) => {
+          creatorMap.set(profile.id, {
+            id: profile.id,
+            full_name: profile.full_name ?? "Utilisateur",
+            username: profile.username ?? "utilisateur",
+            avatar_url: profile.avatar_url ?? null,
+          });
+        });
+      }
+      const rows = ((data ?? []) as any).map((row: any) => ({
+        ...row,
+        creator: row.created_by ? creatorMap.get(row.created_by) ?? undefined : undefined,
+      })) as Club[];
+
       if (f.favoritesOnly && userId) {
         const ids = rows.map((c) => c.id);
         if (!ids.length) return rows;
@@ -119,8 +163,9 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
           .in("club_id", ids);
         if (fe) throw fe;
         const set = new Set((favs ?? []).map((x) => x.club_id));
-        rows = rows.filter((c) => set.has(c.id));
+        return rows.filter((c) => set.has(c.id));
       }
+
       return rows;
     },
   });

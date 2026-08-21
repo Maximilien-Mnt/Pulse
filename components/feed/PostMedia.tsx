@@ -123,14 +123,10 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
   const galleryListRef = useRef<FlatList<string>>(null);
   const [galleryScrollX, setGalleryScrollX] = useState(0);
   const [maxScroll, setMaxScroll] = useState(0);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const STEP_OFFSET = 260;
   const galleryWrapperRef = useRef<View | null>(null);
-  const dragState = useRef<{
-    startX: number;
-    scrollStart: number;
-    dragging: boolean;
-    pointerMoved: boolean;
-  } | null>(null);
+  const webScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleImageError = (url: string) => {
     setFailedImages((prev) => new Set(prev).add(url));
@@ -213,7 +209,54 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
       setViewer(item);
     };
 
+    const getWebScrollEl = () => {
+      if (webScrollRef.current) return webScrollRef.current;
+      const wrapper = galleryWrapperRef.current as unknown as HTMLElement | null;
+      if (!wrapper) return null;
+      const list = wrapper.querySelector('[data-testid="flatlist-scrollview"]') as HTMLDivElement | null;
+      if (list) {
+        webScrollRef.current = list;
+        return list;
+      }
+      const roleList = wrapper.querySelector('[role="list"]') as HTMLDivElement | null;
+      if (roleList && roleList.scrollWidth > roleList.clientWidth) {
+        webScrollRef.current = roleList;
+        return roleList;
+      }
+      const divs = wrapper.querySelectorAll("div");
+      for (const div of divs) {
+        const d = div as HTMLDivElement;
+        if (d.scrollWidth > d.clientWidth + 1) {
+          webScrollRef.current = d;
+          return d;
+        }
+      }
+      return null;
+    };
+
     const scrollGallery = (dir: "left" | "right") => {
+      if (isWeb) {
+        const tryScroll = () => {
+          const scrollEl = getWebScrollEl();
+          if (!scrollEl) return false;
+          const current = scrollEl.scrollLeft;
+          const max = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+          const next = dir === "left" ? current - STEP_OFFSET : current + STEP_OFFSET;
+          const clamped = Math.max(0, Math.min(max, next));
+          scrollEl.style.scrollBehavior = "smooth";
+          scrollEl.scrollLeft = clamped;
+          return true;
+        };
+        if (tryScroll()) return;
+        if (typeof window !== "undefined") {
+          const id = window.setTimeout(() => tryScroll(), 60);
+          window.setTimeout(() => {
+            window.clearTimeout(id);
+          }, 800);
+        }
+        return;
+      }
+
       const list = galleryListRef.current;
       if (!list) return;
       const current = galleryScrollX;
@@ -224,48 +267,60 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
     };
 
     const canLeft = galleryScrollX > 1;
-    const canRight = galleryScrollX < maxScroll - 1;
+    const canRight = !hasScrolled || galleryScrollX < maxScroll - 1;
 
     useEffect(() => {
       if (!isWeb) return;
-      const el = galleryWrapperRef.current;
-      if (!el) return;
-      const host = (el as any).componentRef ?? (el as any)._root;
-      const scrollEl = host?.querySelector?.('[data-gallery-flatlist]') ?? null;
-      if (!scrollEl) return;
-
-      const onDown = (e: any) => {
-        const state = {
-          startX: e.clientX,
-          scrollStart: scrollEl.scrollLeft,
-          dragging: false,
-          pointerMoved: false,
-        };
-        const onMove = (ev: PointerEvent) => {
-          const dx = ev.clientX - state.startX;
-          if (!state.dragging && Math.abs(dx) > 5) {
-            state.dragging = true;
-            (scrollEl as any).style.scrollBehavior = "auto";
+      let raf = 0;
+      let tries = 0;
+      const tryBind = () => {
+        const scrollEl = getWebScrollEl();
+        if (!scrollEl) {
+          if (tries < 40) {
+            tries += 1;
+            raf = requestAnimationFrame(tryBind);
           }
-          if (state.dragging) {
-            state.pointerMoved = true;
-            scrollEl.scrollLeft = state.scrollStart - dx;
-          }
+          return () => {};
+        }
+        const onDown = (e: any) => {
+          const state = {
+            startX: e.clientX,
+            scrollStart: scrollEl.scrollLeft,
+            dragging: false,
+            pointerMoved: false,
+          };
+          const onMove = (ev: PointerEvent) => {
+            const dx = ev.clientX - state.startX;
+            if (!state.dragging && Math.abs(dx) > 5) {
+              state.dragging = true;
+              scrollEl.style.scrollBehavior = "auto";
+            }
+            if (state.dragging) {
+              state.pointerMoved = true;
+              scrollEl.scrollLeft = state.scrollStart - dx;
+            }
+          };
+          const onUp = () => {
+            scrollEl.style.scrollBehavior = "smooth";
+            scrollEl.removeEventListener("pointermove", onMove);
+            scrollEl.removeEventListener("pointerup", onUp);
+            scrollEl.removeEventListener("pointerleave", onUp);
+          };
+          scrollEl.addEventListener("pointermove", onMove);
+          scrollEl.addEventListener("pointerup", onUp);
+          scrollEl.addEventListener("pointerleave", onUp);
         };
-        const onUp = () => {
-          (scrollEl as any).style.scrollBehavior = "smooth";
-          scrollEl.removeEventListener("pointermove", onMove);
-          scrollEl.removeEventListener("pointerup", onUp);
-          scrollEl.removeEventListener("pointerleave", onUp);
+        scrollEl.addEventListener("pointerdown", onDown);
+        return () => {
+          cancelAnimationFrame(raf);
+          scrollEl.removeEventListener("pointerdown", onDown);
+          scrollEl.style.scrollBehavior = "";
         };
-        scrollEl.addEventListener("pointermove", onMove);
-        scrollEl.addEventListener("pointerup", onUp);
-        scrollEl.addEventListener("pointerleave", onUp);
       };
-
-      scrollEl.addEventListener("pointerdown", onDown);
+      const cleanup = tryBind();
       return () => {
-        scrollEl.removeEventListener("pointerdown", onDown);
+        if (typeof cleanup === "function") cleanup();
+        else cancelAnimationFrame(raf);
       };
     }, [isWeb]);
 
@@ -285,6 +340,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
               const cw = e.nativeEvent.contentSize.width;
               setGalleryScrollX(x);
               setMaxScroll(Math.max(0, cw - width));
+              setHasScrolled(true);
             }}
             scrollEventThrottle={16}
             renderItem={({ item, index }) => {
@@ -302,13 +358,14 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
                     <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: containerWidth, height: imageHeight }}>
                       <Ionicons name="image-outline" size={48} color="#9CA3AF" />
                     </View>
-                  ) : (
+                    ) : (
                     <Image
                       source={{ uri: item }}
                       style={{ width: containerWidth, height: imageHeight }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
                       transition={200}
+                      pointerEvents="none"
                       onError={() => handleImageError(item)}
                       onLoad={(e) => {
                         const { width: natW, height: natH } = e.source;

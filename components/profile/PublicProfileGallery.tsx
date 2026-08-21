@@ -2,25 +2,22 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SPORTS } from "@/lib/constants";
-import type { Club, EventRow, Post } from "@/types";
+import type { Club, EventRow, FeedPost } from "@/types";
+import { PostCard } from "@/components/feed/PostCard";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Dimensions, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 type Tab = "posts" | "clubs" | "events";
 
 type Props = {
-  posts: Post[];
+  posts: FeedPost[];
   clubs: Club[];
   events: EventRow[];
   loading?: boolean;
 };
-
-const COLS = 3;
-const GAP = 4;
-const SIZE = (Dimensions.get("window").width - 32 - GAP * (COLS - 1)) / COLS;
 
 export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
   const router = useRouter();
@@ -62,39 +59,13 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
         posts.length === 0 ? (
           <EmptyState icon="images-outline" title="Aucun post" />
         ) : (
-          <View className="gap-2">
-            {Array.from({ length: Math.ceil(posts.length / COLS) }).map((_, rowIndex) => (
-              <View key={rowIndex} className="flex-row gap-2">
-                {Array.from({ length: COLS }).map((_, colIndex) => {
-                  const index = rowIndex * COLS + colIndex;
-                  const item = posts[index];
-                  if (!item) return <View key={colIndex} style={{ width: SIZE, height: SIZE }} />;
-                  const thumb = item.media_urls?.[0];
-                  return (
-                    <Pressable
-                      key={item.id}
-                      onPress={() => router.push(`/(tabs)/feed/${item.id}/comments`)}
-                      style={{ width: SIZE, height: SIZE }}
-                      className="rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-700"
-                    >
-                      {thumb ? (
-                        <Image
-                          source={{ uri: thumb }}
-                          style={{ width: SIZE, height: SIZE }}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                        />
-                      ) : (
-                        <View className="flex-1 items-center justify-center p-2">
-                          <Text className="text-xs text-neutral-600 dark:text-neutral-300" numberOfLines={3}>
-                            {item.title}
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
+          <View className="pb-4">
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onCommentPress={() => router.push(`/(tabs)/feed/${post.id}/comments`)}
+              />
             ))}
           </View>
         )

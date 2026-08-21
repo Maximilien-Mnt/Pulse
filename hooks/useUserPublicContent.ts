@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Club, EventRow, Post } from "@/types";
+import type { Club, EventRow, FeedPost, Post } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -24,7 +24,7 @@ export function useUserPublicContent(userId: string | null | undefined) {
   const postsQuery = useQuery({
     queryKey: ["user-posts", userId],
     enabled: !!userId,
-    queryFn: async () => {
+    queryFn: async (): Promise<FeedPost[]> => {
       // Check if target user is blocked
       if (currentUserId && userId) {
         const blockedIds = await fetchBlockedUserIds(currentUserId);
@@ -33,13 +33,40 @@ export function useUserPublicContent(userId: string | null | undefined) {
         }
       }
 
-      const { data, error } = await supabase
+      // Fetch posts in chronological order (oldest first)
+      const { data: posts, error } = await supabase
         .from("posts")
         .select("*")
         .eq("author_id", userId!)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Post[];
+      if (!posts || posts.length === 0) return [];
+
+      // Fetch author profile for these posts (the profile of the user whose posts we're viewing)
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url, city")
+        .eq("id", userId!);
+
+      const profile = profiles?.[0];
+      const author = profile ? {
+        id: profile.id,
+        full_name: profile.full_name,
+        username: profile.username,
+        avatar_url: profile.avatar_url,
+      } : {
+        id: userId!,
+        full_name: "Utilisateur",
+        username: "utilisateur",
+        avatar_url: null,
+      };
+
+      // Transform to FeedPost format with author data
+      return (posts as Post[]).map((post) => ({
+        ...post,
+        author,
+        liked_by_me: false,
+      }));
     },
   });
 

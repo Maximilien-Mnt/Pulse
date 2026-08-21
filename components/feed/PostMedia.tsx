@@ -2,12 +2,13 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
+import { useWindowDimensions } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import type { PostFormat } from "@/types";
-import { Dimensions, FlatList, Modal, Pressable, Text, View } from "react-native";
-import { useState, useEffect, useRef } from "react";
+import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
+import { useState, useEffect, useRef, useMemo } from "react";
 
-const W = Dimensions.get("window").width - 32;
+const calculateImageHeight = (width: number) => Math.min(300, Math.max(200, width * 0.35));
 
 type Props = {
   format: PostFormat;
@@ -15,10 +16,8 @@ type Props = {
   videoUrl?: string | null;
   videoThumbnail?: string | null;
   videoDuration?: number | null;
-  /** Whether this post is the active/visible one in the feed (controls inline video autoplay). */
   isActive?: boolean;
 };
-
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "";
@@ -27,20 +26,20 @@ function formatDuration(seconds: number | null): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-/**
- * Inline feed video: autoplay muted when active, unmute button, and native
- * fullscreen. Uses expo-video's imperative player.
- */
 function VideoPost({
   videoUrl,
   videoThumbnail,
   videoDuration,
   isActive,
+  width,
+  height,
 }: {
   videoUrl: string;
   videoThumbnail?: string | null;
   videoDuration?: number | null;
   isActive: boolean;
+  width: number;
+  height: number;
 }) {
   const viewRef = useRef<VideoView>(null);
   const player = useVideoPlayer(videoUrl, (p) => {
@@ -51,11 +50,8 @@ function VideoPost({
   const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
   const [muted, setMuted] = useState(true);
 
-  // Autoplay muted inline when the post becomes active in the feed.
-  useEffect(() => {
-    if (isActive) player.play();
-    else player.pause();
-  }, [isActive, player]);
+  if (isActive) player.play();
+  else player.pause();
 
   const toggleMute = () => {
     const next = !muted;
@@ -68,14 +64,13 @@ function VideoPost({
       <VideoView
         ref={viewRef}
         player={player}
-        style={{ width: W, height: (W * 9) / 16 }}
+        style={{ width, height }}
         contentFit="cover"
         nativeControls={false}
         allowsFullscreen
         allowsPictureInPicture={false}
       />
 
-      {/* Play/pause overlay when paused */}
       {!isPlaying ? (
         <Pressable
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
@@ -86,7 +81,6 @@ function VideoPost({
         </Pressable>
       ) : null}
 
-      {/* Fullscreen button */}
       <Pressable
         className="absolute top-2 right-2 bg-black/60 p-2 rounded-full"
         onPress={() => viewRef.current?.enterFullscreen()}
@@ -95,7 +89,6 @@ function VideoPost({
         <Ionicons name="expand" size={18} color="#fff" />
       </Pressable>
 
-      {/* Inline mute/unmute button */}
       <Pressable
         className="absolute bottom-2 right-2 bg-black/60 p-2 rounded-full"
         onPress={toggleMute}
@@ -104,7 +97,6 @@ function VideoPost({
         <Ionicons name={muted ? "volume-mute" : "volume-high"} size={18} color="#fff" />
       </Pressable>
 
-      {/* Duration badge */}
       <View className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded">
         <Text className="text-white text-xs">
           {videoDuration ? formatDuration(videoDuration) : "Vidéo"}
@@ -115,17 +107,44 @@ function VideoPost({
 }
 
 export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuration, isActive = true }: Props) {
+  const { width: screenWidth } = useWindowDimensions();
+
+  const { width, imageHeight } = useMemo(() => {
+    const w = screenWidth - 32;
+    return { width: w, imageHeight: calculateImageHeight(w) };
+  }, [screenWidth]);
+
   const [viewer, setViewer] = useState<string | null>(null);
   const [pdfOpen, setPdfOpen] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [imageDimensions, setImageDimensions] = useState<Record<string, { width: number; height: number }>>({});
+
+  const isWeb = Platform.OS === "web";
+  const galleryListRef = useRef<FlatList<string>>(null);
+  const [galleryScrollX, setGalleryScrollX] = useState(0);
+  const [maxScroll, setMaxScroll] = useState(0);
+  const STEP_OFFSET = 260;
+  const galleryWrapperRef = useRef<View | null>(null);
+  const dragState = useRef<{
+    startX: number;
+    scrollStart: number;
+    dragging: boolean;
+    pointerMoved: boolean;
+  } | null>(null);
 
   const handleImageError = (url: string) => {
     setFailedImages((prev) => new Set(prev).add(url));
   };
 
+  const handleImageLoad = (url: string, naturalWidth: number, naturalHeight: number) => {
+    setImageDimensions((prev) => ({
+      ...prev,
+      [url]: { width: naturalWidth, height: naturalHeight },
+    }));
+  };
+
   if (format === "text" && !videoUrl) return null;
 
-  // Handle video format — inline autoplay muted with unmute + fullscreen
   if (format === "video" && videoUrl) {
     return (
       <VideoPost
@@ -133,36 +152,42 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
         videoThumbnail={videoThumbnail}
         videoDuration={videoDuration}
         isActive={isActive}
+        width={width}
+        height={(width * 9) / 16}
       />
     );
   }
 
-
   if (!urls.length) return null;
 
-
   if (format === "image") {
+    const firstUrl = urls[0] ?? "";
+    const dim = imageDimensions[firstUrl];
+    const naturalAspect = dim ? dim.width / dim.height : null;
+    const containerWidth = naturalAspect ? Math.min(imageHeight * naturalAspect, width) : width;
+
     return (
       <>
-          <Pressable
-            className="mt-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
-            onPress={() => setViewer(urls[0] ?? null)}
-          >
-            {failedImages.has(urls[0] ?? "") ? (
-              <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
-                <Ionicons name="image-outline" size={48} color="#9CA3AF" />
-              </View>
-            ) : (
-              <Image
-                source={{ uri: urls[0] ?? "" }}
-                style={{ width: W, height: (W * 9) / 16 }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-                onError={() => handleImageError(urls[0] ?? "")}
-              />
-            )}
-          </Pressable>
+        <Pressable className="mt-2" onPress={() => setViewer(firstUrl)}>
+          {failedImages.has(firstUrl) ? (
+            <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-lg overflow-hidden" style={{ width: containerWidth, height: imageHeight }}>
+              <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+            </View>
+          ) : (
+            <Image
+              source={{ uri: firstUrl }}
+              style={{ width: containerWidth, height: imageHeight }}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={200}
+              onError={() => handleImageError(firstUrl)}
+              onLoad={(e) => {
+                const { width: natW, height: natH } = e.source;
+                if (natW && natH) handleImageLoad(firstUrl, natW, natH);
+              }}
+            />
+          )}
+        </Pressable>
 
         <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
           <View className="flex-1 bg-black">
@@ -184,40 +209,139 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
   }
 
   if (format === "gallery") {
+    const handleGalleryItemPress = (item: string) => {
+      setViewer(item);
+    };
+
+    const scrollGallery = (dir: "left" | "right") => {
+      const list = galleryListRef.current;
+      if (!list) return;
+      const current = galleryScrollX;
+      const max = Math.max(0, maxScroll);
+      const next = dir === "left" ? current - STEP_OFFSET : current + STEP_OFFSET;
+      const clamped = Math.max(0, Math.min(max, next));
+      list.scrollToOffset({ offset: clamped, animated: true } as never);
+    };
+
+    const canLeft = galleryScrollX > 1;
+    const canRight = galleryScrollX < maxScroll - 1;
+
+    useEffect(() => {
+      if (!isWeb) return;
+      const el = galleryWrapperRef.current;
+      if (!el) return;
+      const host = (el as any).componentRef ?? (el as any)._root;
+      const scrollEl = host?.querySelector?.('[data-gallery-flatlist]') ?? null;
+      if (!scrollEl) return;
+
+      const onDown = (e: any) => {
+        const state = {
+          startX: e.clientX,
+          scrollStart: scrollEl.scrollLeft,
+          dragging: false,
+          pointerMoved: false,
+        };
+        const onMove = (ev: PointerEvent) => {
+          const dx = ev.clientX - state.startX;
+          if (!state.dragging && Math.abs(dx) > 5) {
+            state.dragging = true;
+            (scrollEl as any).style.scrollBehavior = "auto";
+          }
+          if (state.dragging) {
+            state.pointerMoved = true;
+            scrollEl.scrollLeft = state.scrollStart - dx;
+          }
+        };
+        const onUp = () => {
+          (scrollEl as any).style.scrollBehavior = "smooth";
+          scrollEl.removeEventListener("pointermove", onMove);
+          scrollEl.removeEventListener("pointerup", onUp);
+          scrollEl.removeEventListener("pointerleave", onUp);
+        };
+        scrollEl.addEventListener("pointermove", onMove);
+        scrollEl.addEventListener("pointerup", onUp);
+        scrollEl.addEventListener("pointerleave", onUp);
+      };
+
+      scrollEl.addEventListener("pointerdown", onDown);
+      return () => {
+        scrollEl.removeEventListener("pointerdown", onDown);
+      };
+    }, [isWeb]);
+
     return (
       <>
-        <FlatList
-          horizontal
-          data={urls}
-          keyExtractor={(u, index) => `${u}-${index}`}
-          showsHorizontalScrollIndicator={false}
-          className="mt-2"
-          pagingEnabled
-          snapToInterval={W + 8}
-          decelerationRate="fast"
-          renderItem={({ item, index }) => (
-              <Pressable
-                className="mr-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
-                style={{ width: W }}
-                onPress={() => setViewer(item)}
-              >
-                {failedImages.has(item) ? (
-                  <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
-                    <Ionicons name="image-outline" size={48} color="#9CA3AF" />
-                  </View>
-                ) : (
-                  <Image
-                    source={{ uri: item }}
-                    style={{ width: W, height: (W * 9) / 16 }}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={200}
-                    onError={() => handleImageError(item)}
-                  />
-                )}
-              </Pressable>
-          )}
-        />
+        <View className={`mt-2 ${isWeb ? "relative" : ""}`} ref={galleryWrapperRef}>
+          <FlatList
+            ref={galleryListRef}
+            horizontal
+            data={urls}
+            keyExtractor={(u, index) => `${u}-${index}`}
+            showsHorizontalScrollIndicator={false}
+            className="pr-10"
+            contentContainerStyle={{ alignItems: "flex-start", paddingLeft: 0 }}
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const cw = e.nativeEvent.contentSize.width;
+              setGalleryScrollX(x);
+              setMaxScroll(Math.max(0, cw - width));
+            }}
+            scrollEventThrottle={16}
+            renderItem={({ item, index }) => {
+              const dim = imageDimensions[item];
+              const naturalAspect = dim ? dim.width / dim.height : null;
+              const containerWidth = naturalAspect ? Math.min(imageHeight * naturalAspect, width) : width;
+
+              return (
+                <Pressable
+                  className="mr-2 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800"
+                  style={{ width: containerWidth, height: imageHeight }}
+                  onPress={() => handleGalleryItemPress(item)}
+                >
+                  {failedImages.has(item) ? (
+                    <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: containerWidth, height: imageHeight }}>
+                      <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: item }}
+                      style={{ width: containerWidth, height: imageHeight }}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                      onError={() => handleImageError(item)}
+                      onLoad={(e) => {
+                        const { width: natW, height: natH } = e.source;
+                        if (natW && natH) handleImageLoad(item, natW, natH);
+                      }}
+                    />
+                  )}
+                </Pressable>
+              );
+            }}
+          />
+
+          {isWeb && urls.length > 1 ? (
+            <>
+              {canLeft ? (
+                <Pressable
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
+                  onPress={() => scrollGallery("left")}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#111" />
+                </Pressable>
+              ) : null}
+              {canRight ? (
+                <Pressable
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
+                  onPress={() => scrollGallery("right")}
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#111" />
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
+        </View>
 
         <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
           <View className="flex-1 bg-black">
@@ -260,6 +384,10 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
           );
         }
 
+        const dim = imageDimensions[url];
+        const naturalAspect = dim ? dim.width / dim.height : null;
+        const containerWidth = naturalAspect ? Math.min(imageHeight * naturalAspect, width) : width;
+
         return (
           <Pressable
             key={key}
@@ -267,17 +395,21 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
             onPress={() => setViewer(url)}
           >
             {failedImages.has(url) ? (
-              <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: W, height: (W * 9) / 16 }}>
+              <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: containerWidth, height: imageHeight }}>
                 <Ionicons name="image-outline" size={48} color="#9CA3AF" />
               </View>
             ) : (
               <Image
                 source={{ uri: url }}
-                style={{ width: W, height: (W * 9) / 16 }}
-                contentFit="cover"
+                style={{ width: containerWidth, height: imageHeight }}
+                contentFit="contain"
                 cachePolicy="memory-disk"
                 transition={200}
                 onError={() => handleImageError(url)}
+                onLoad={(e) => {
+                  const { width: natW, height: natH } = e.source;
+                  if (natW && natH) handleImageLoad(url, natW, natH);
+                }}
               />
             )}
           </Pressable>

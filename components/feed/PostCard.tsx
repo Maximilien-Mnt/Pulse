@@ -81,6 +81,7 @@ const MAX_TAGS_LINES = 3;
 interface PostCardProps {
   post: FeedPost;
   onCommentPress?: () => void;
+  onDeletePress?: () => void;
   onLayout?: (event: { nativeEvent: { layout: { height: number } } }) => void;
 }
 
@@ -88,7 +89,7 @@ interface PostCardProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function PostCard({ post, onCommentPress, onLayout }: PostCardProps) {
+export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: PostCardProps) {
   const router = useRouter();
   
   // Use centralized like management hook with optimistic updates
@@ -342,6 +343,22 @@ export function PostCard({ post, onCommentPress, onLayout }: PostCardProps) {
         >
           <Icon name="Flag" size={20} color="text-tertiary" />
         </Pressable>
+
+        {/* Delete */}
+        {onDeletePress ? (
+          <Pressable
+            onPress={() => {
+              console.log("Delete pressed in PostCard");
+              onDeletePress();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Supprimer"
+            className="flex-row items-center justify-center w-12 h-12 rounded-lg bg-primary/10"
+            hitSlop={8}
+          >
+            <Icon name="Trash2" size={20} color="error-500" />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Report sheet (shared with the public profile screen) */}

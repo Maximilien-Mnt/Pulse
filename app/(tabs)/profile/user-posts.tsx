@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useUserPosts } from "@/hooks/useUserPosts";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   FlatList,
   View,
@@ -25,19 +25,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-type ViewMode = "grid" | "list";
-
-const COLS = 3;
-const GAP = 8;
-const SIZE =
-  (Dimensions.get("window").width - 32 - GAP * (COLS - 1)) / COLS;
-
 export default function UserPostsScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const queryClient = useQueryClient();
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     data: posts = [],
@@ -53,17 +49,44 @@ export default function UserPostsScreen() {
     setSelectedPostId(null);
   };
 
-  const renderGridItem = ({ item }: { item: any }) => {
-    return (
-      <View style={{ width: SIZE, height: SIZE }}>
-        <PostCard post={item} onCommentPress={() => handlePostPress(item.id)} />
-      </View>
-    );
-  };
+  const handleDeletePress = useCallback((postId: string) => {
+    setDeleteConfirmId(postId);
+    setDeleteError(null);
+  }, []);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmId(null);
+    setDeleteError(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteConfirmId || !userId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", deleteConfirmId);
+      if (error) {
+        setDeleteError("Impossible de supprimer le post.");
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["user-posts-with-author", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["user-posts"] }),
+        queryClient.invalidateQueries({ queryKey: ["feed"] }),
+      ]);
+      setDeleteConfirmId(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteConfirmId, userId, queryClient]);
 
   const renderListItem = ({ item }: { item: any }) => (
     <View className="px-4 py-2">
-      <PostCard post={item} onCommentPress={() => handlePostPress(item.id)} />
+      <PostCard
+        post={item}
+        onCommentPress={() => handlePostPress(item.id)}
+        onDeletePress={() => handleDeletePress(item.id)}
+      />
     </View>
   );
 
@@ -96,15 +119,6 @@ export default function UserPostsScreen() {
         showBackButton
         showAvatar
         avatarUrl={profile?.avatar_url}
-        rightSlot={
-          <Pressable onPress={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
-            <Ionicons
-              name={viewMode === "grid" ? "list" : "grid"}
-              size={24}
-              color="#1E6BFF"
-            />
-          </Pressable>
-        }
       />
 
       {posts.length === 0 ? (
@@ -115,16 +129,6 @@ export default function UserPostsScreen() {
             subtitle=" Vos posts apparaîtront ici."
           />
         </View>
-      ) : viewMode === "grid" ? (
-        <FlatList
-          data={posts}
-          numColumns={COLS}
-          scrollEnabled={false}
-          keyExtractor={(item) => item.id}
-          columnWrapperStyle={{ gap: GAP }}
-          contentContainerStyle={{ gap: GAP, paddingHorizontal: 16, paddingTop: 16 }}
-          renderItem={renderGridItem}
-        />
       ) : (
         <FlatList
           data={posts}
@@ -133,6 +137,57 @@ export default function UserPostsScreen() {
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        visible={!!deleteConfirmId}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelDelete}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 items-center justify-center"
+          onPress={handleCancelDelete}
+        >
+          <Pressable
+            className="bg-white dark:bg-neutral-900 rounded-2xl p-5"
+            style={{ width: Dimensions.get("window").width * 0.85, maxHeight: Dimensions.get("window").height * 0.35 }}
+            onPress={() => {}}
+          >
+            <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+              Supprimer le post ?
+            </Text>
+            <Text className="text-neutral-600 dark:text-neutral-400 mb-5">
+              Cette action est irréversible.
+            </Text>
+
+            {deleteError ? (
+              <Text className="text-red-500 mb-3">{deleteError}</Text>
+            ) : null}
+
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={handleCancelDelete}
+                className="flex-1 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700"
+                disabled={isDeleting}
+              >
+                <Text className="text-center font-semibold text-neutral-900 dark:text-neutral-50">
+                  Annuler
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleConfirmDelete}
+                className="flex-1 py-3 rounded-xl bg-red-500"
+                disabled={isDeleting}
+              >
+                <Text className="text-center font-semibold text-white">
+                  {isDeleting ? "Suppression…" : "Supprimer"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Centered Modal for Comments */}
       <Modal

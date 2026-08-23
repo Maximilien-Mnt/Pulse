@@ -1,20 +1,20 @@
 import { Badge } from "@/components/ui/Badge";
+import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 import { getCountryDisplay } from "@/utils/countries";
 import type { Club } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Pressable, Share, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 
-type Props = { club: Club; compact?: boolean };
+type Props = { club: Club; compact?: boolean; showDelete?: boolean; onDelete?: () => void };
 
-export function ClubCard({ club, compact }: Props) {
+export function ClubCard({ club, compact, showDelete, onDelete }: Props) {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
 
@@ -68,7 +68,7 @@ export function ClubCard({ club, compact }: Props) {
       <View className="justify-between items-end">
         <View className="flex-row gap-2">
           <Pressable onPress={() => fav.mutate()} hitSlop={8}>
-            <Ionicons name="heart-outline" size={22} color="#64748B" />
+            <Icon name="Heart" size={20} color="text-secondary" />
           </Pressable>
           <Pressable
             onPress={() =>
@@ -76,8 +76,13 @@ export function ClubCard({ club, compact }: Props) {
             }
             hitSlop={8}
           >
-            <Ionicons name="share-social-outline" size={22} color="#64748B" />
+            <Icon name="Share2" size={20} color="text-secondary" />
           </Pressable>
+          {showDelete && onDelete && (
+            <Pressable onPress={onDelete} hitSlop={8}>
+              <Icon name="Trash2" size={20} color="error-500" />
+            </Pressable>
+          )}
         </View>
       </View>
     </Pressable>

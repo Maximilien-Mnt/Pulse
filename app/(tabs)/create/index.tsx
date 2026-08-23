@@ -38,8 +38,6 @@ import { Tag } from "@/components/ui/Tag";
 import { TagInput } from "@/components/feed/TagInput";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { ClubCreationModal } from "@/components/clubs/ClubCreationModal";
-import { EventCreationModal } from "@/components/events/EventCreationModal";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -515,16 +513,6 @@ export default function CreateScreen() {
     else router.push("/(tabs)/feed");
   }, [router]);
 
-  // Club & event modals (keep existing modal components)
-  const [clubModalOpen, setClubModalOpen] = useState(false);
-  const [eventModalOpen, setEventModalOpen] = useState(false);
-
-  // Open modals when mode is specified
-  React.useEffect(() => {
-    if (mode === "club") setClubModalOpen(true);
-    if (mode === "event") setEventModalOpen(true);
-  }, [mode]);
-
   // Safety net: this screen is only reached with a ?mode= param now.
   // The create menu is a modal overlay (CreateBottomSheet) opened from
   // the TabBar / SideRail, so a missing mode means redirect to the feed.
@@ -538,14 +526,8 @@ export default function CreateScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-bg" edges={["top"]}>
-      {mode === "post" ? <PostForm onClose={handleClose} /> :
-       mode === "conversation" ? <ConversationForm onClose={handleClose} /> :
-       mode === "club" || mode === "event" ? (
-        <View className="flex-1">
-          <ClubCreationModal visible={clubModalOpen} onClose={() => { setClubModalOpen(false); handleClose(); }} />
-          <EventCreationModal visible={eventModalOpen} onClose={() => { setEventModalOpen(false); handleClose(); }} />
-        </View>
-      ) : null}
+      {mode === "post" ? <PostForm onClose={handleClose} /> : null}
+      {mode === "conversation" ? <ConversationForm onClose={handleClose} /> : null}
     </SafeScreen>
   );
 }

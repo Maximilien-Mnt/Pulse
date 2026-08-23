@@ -4,11 +4,15 @@
 // Opens as a modal overlay when the "+" button is tapped. Shows 4 creation
 // options: Post, Club, Événement, Conversation.
 //
-// Each option navigates to the appropriate creation screen.
-// Dimmed backdrop, sheet anchored to the bottom, radius top 24.
+// Club and Événement are two-step flows: tapping them switches the sheet to
+// a "Privé / Public" sub-step (with a back button) instead of opening a
+// second Modal. Tapping a final choice navigates directly to the form screen
+// and then closes the sheet (navigate-then-close) — this avoids the nested
+// Modal + close-and-navigate race that caused white screens and the
+// "message channel closed before a response was received" console error.
 // ---------------------------------------------------------------------------
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -26,11 +30,61 @@ interface CreateOption {
 }
 
 const CREATE_OPTIONS: CreateOption[] = [
-  { key: "post",     label: "Post",        icon: "PlusCircle",   route: "/(tabs)/create?mode=post" },
-  { key: "club",     label: "Club",        icon: "Users",        route: "/(tabs)/create?mode=club" },
-  { key: "event",    label: "Événement",   icon: "Calendar",     route: "/(tabs)/create?mode=event" },
-  { key: "conv",     label: "Conversation",icon: "MessageCircle",route: "/(tabs)/create?mode=conversation" },
+  { key: "post",     label: "Post",        icon: "PlusCircle",    route: "/(tabs)/create?mode=post" },
+  { key: "club",     label: "Club",        icon: "Users",         route: "" },
+  { key: "event",    label: "Événement",   icon: "Calendar",      route: "" },
+  { key: "conv",     label: "Conversation",icon: "MessageCircle", route: "/(tabs)/create?mode=conversation" },
 ];
+
+type VisibilityStep = "club" | "event" | null;
+
+interface VisibilityOption {
+  key: string;
+  label: string;
+  description: string;
+  icon: IconName;
+  route: string;
+}
+
+const VISIBILITY_OPTIONS: Record<Exclude<VisibilityStep, null>, VisibilityOption[]> = {
+  club: [
+    {
+      key: "private",
+      label: "Club privé",
+      description: "Invite uniquement tes amis et contacts",
+      icon: "Lock",
+      route: "/create/club/private",
+    },
+    {
+      key: "public",
+      label: "Club public",
+      description: "Visible par tous, nécessite un profil public",
+      icon: "Globe",
+      route: "/create/club/public",
+    },
+  ],
+  event: [
+    {
+      key: "private",
+      label: "Événement privé",
+      description: "Accessible uniquement aux personnes invitées",
+      icon: "Lock",
+      route: "/create/event/private",
+    },
+    {
+      key: "public",
+      label: "Événement public",
+      description: "Visible par tous, nécessite un profil public",
+      icon: "Globe",
+      route: "/create/event/public",
+    },
+  ],
+};
+
+const STEP_TITLES: Record<Exclude<VisibilityStep, null>, string> = {
+  club: "Nouveau club",
+  event: "Nouvel événement",
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -43,13 +97,31 @@ interface CreateBottomSheetProps {
 
 export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) {
   const router = useRouter();
+  const [step, setStep] = useState<VisibilityStep>(null);
+
+  // Reset to the root step whenever the sheet reopens.
+  useEffect(() => {
+    if (visible) setStep(null);
+  }, [visible]);
 
   const handleSelect = (option: CreateOption) => {
-    // Close the sheet, then navigate to the creation screen
+    if (option.key === "club" || option.key === "event") {
+      // Switch to the visibility sub-step inside the same sheet.
+      setStep(option.key);
+      return;
+    }
+    // Navigate first, then close — avoids the close-and-navigate race.
+    router.push(option.route as any);
     onClose();
-    setTimeout(() => {
-      router.push(option.route as any);
-    }, 50);
+  };
+
+  const handleVisibilitySelect = (option: VisibilityOption) => {
+    router.push(option.route as any);
+    onClose();
+  };
+
+  const handleBack = () => {
+    setStep(null);
   };
 
   return (
@@ -68,30 +140,78 @@ export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) 
           {/* Handle indicator */}
           <View className="self-center w-10 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600 mb-6" />
 
-          {/* Title */}
-          <Text variant="subtitle" className="text-text-primary mb-6">
-            Créer
-          </Text>
+          {step === null ? (
+            <>
+              {/* Title */}
+              <Text variant="subtitle" className="text-text-primary mb-6">
+                Créer
+              </Text>
 
-          {/* Options */}
-          <View className="gap-2">
-            {CREATE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.key}
-                onPress={() => handleSelect(opt)}
-                accessibilityRole="button"
-                className="flex-row items-center gap-4 py-4 px-3 rounded-lg active:bg-primary-tint"
-              >
-                <View className="w-10 h-10 rounded-full bg-neutral-50 dark:bg-neutral-800 items-center justify-center">
-                  <Icon name={opt.icon} size={20} color="text-secondary" />
-                </View>
-                <Text variant="bodyLarge" className="text-text-primary flex-1">
-                  {opt.label}
+              {/* Options */}
+              <View className="gap-2">
+                {CREATE_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => handleSelect(opt)}
+                    accessibilityRole="button"
+                    className="flex-row items-center gap-4 py-4 px-3 rounded-lg active:bg-primary-tint"
+                  >
+                    <View className="w-10 h-10 rounded-full bg-neutral-50 dark:bg-neutral-800 items-center justify-center">
+                      <Icon name={opt.icon} size={20} color="text-secondary" />
+                    </View>
+                    <Text variant="bodyLarge" className="text-text-primary flex-1">
+                      {opt.label}
+                    </Text>
+                    <Icon name="PlusCircle" size={20} color="text-tertiary" />
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Sub-step header with back button */}
+              <View className="flex-row items-center mb-6">
+                <Pressable
+                  onPress={handleBack}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retour"
+                  hitSlop={8}
+                  className="p-1 -ml-1"
+                >
+                  <Icon name="ChevronLeft" size={24} color="text-secondary" />
+                </Pressable>
+                <Text variant="subtitle" className="text-text-primary flex-1 text-center">
+                  {STEP_TITLES[step]}
                 </Text>
-                <Icon name="PlusCircle" size={20} color="text-tertiary" />
-              </Pressable>
-            ))}
-          </View>
+                <View className="w-8" />
+              </View>
+
+              {/* Visibility options */}
+              <View className="gap-2">
+                {VISIBILITY_OPTIONS[step].map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => handleVisibilitySelect(opt)}
+                    accessibilityRole="button"
+                    className="flex-row items-center gap-4 py-4 px-3 rounded-lg active:bg-primary-tint"
+                  >
+                    <View className="w-10 h-10 rounded-full bg-neutral-50 dark:bg-neutral-800 items-center justify-center">
+                      <Icon name={opt.icon} size={20} color="text-secondary" />
+                    </View>
+                    <View className="flex-1">
+                      <Text variant="bodyLarge" className="text-text-primary">
+                        {opt.label}
+                      </Text>
+                      <Text variant="caption" className="text-text-tertiary">
+                        {opt.description}
+                      </Text>
+                    </View>
+                    <Icon name="PlusCircle" size={20} color="text-tertiary" />
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
         </View>
       </View>
     </Modal>

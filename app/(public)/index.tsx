@@ -1,11 +1,13 @@
 import { Redirect, Link } from "expo-router";
-import { ScrollView, View, Pressable } from "react-native";
+import { ScrollView, View } from "react-native";
+import { Image } from "expo-image";
 import { useAuthStore } from "@/stores/authStore";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
 const FEATURES: { icon: IconName; title: string; description: string }[] = [
   {
@@ -57,49 +59,57 @@ export default function LandingScreen() {
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-24">
-        <View className="px-6 pt-4 pb-6">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-3xl font-bold text-primary">Pulse</Text>
-            <View className="flex-row gap-2">
-              <Link href="/legal" asChild>
-                <Pressable className="px-3 py-2">
-                  <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                    Informations légales
-                  </Text>
-                </Pressable>
-              </Link>
-              <Link href="/auth/signin" asChild>
-                <Pressable className="px-3 py-2">
-                  <Text className="text-sm font-semibold text-primary">Se connecter</Text>
-                </Pressable>
-              </Link>
-            </View>
+        {/* ── Logo / brand mark (no header buttons or links) ── */}
+        <View className="pt-12 pb-6 items-center">
+          <View className="w-20 h-20 rounded-2xl bg-primary items-center justify-center overflow-hidden">
+            <Image
+              source={require("@/assets/logo/pulse-icon.png")}
+              style={{ width: 56, height: 56 }}
+              contentFit="contain"
+            />
           </View>
         </View>
 
-        <View className="px-6 py-8 gap-4">
-          <Text className="text-4xl font-bold text-neutral-900 dark:text-neutral-50 leading-tight">
+        {/* ── Hero section ── */}
+        <View className="px-6 py-8 gap-6 items-center">
+          <Text variant="display" className="text-center leading-tight">
             Le réseau social du sport
           </Text>
-          <Text className="text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed">
-            Rejoignez une communauté de sportifs, partagez vos activités, trouvez des événements
-            et des clubs près de chez vous.
+
+          <Text
+            variant="bodyLarge"
+            className="text-center text-neutral-600 dark:text-neutral-300 max-w-sm leading-relaxed"
+          >
+            Rejoignez une communauté de sportifs, partagez vos activités, trouvez
+            des événements et des clubs près de chez vous.
           </Text>
-          <View className="flex-row flex-wrap gap-3 mt-2">
+
+          {/* Big, wide, full-width CTA buttons (stacked for mobile UX) */}
+          <View className="w-full gap-4 mt-2">
             <Link href="/auth/signup/step1" asChild>
-              <Button title="Créer un compte" className="flex-1" />
+              <Button
+                title="Créer mon compte"
+                className="h-14 w-full px-6"
+                icon="PlusCircle"
+              />
             </Link>
             <Link href="/auth/signin" asChild>
-              <Button title="Se connecter" variant="secondary" className="flex-1" />
+              <Button
+                title="Se connecter"
+                variant="secondary"
+                className="h-14 w-full px-6"
+                icon="User"
+              />
             </Link>
           </View>
-          <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+
+          <Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             Web disponible — Apps iOS & Android bientôt.
           </Text>
         </View>
 
         <View className="px-6 py-6 gap-4">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">
+          <Text variant="h2" className="text-neutral-900 dark:text-neutral-50 mb-2">
             Fonctionnalités
           </Text>
           <View className="gap-3">
@@ -125,52 +135,27 @@ export default function LandingScreen() {
         </View>
 
         <View className="px-6 py-8">
-          <View className="bg-primary rounded-2xl p-6 gap-3">
-            <Text className="text-xl font-bold text-white">
+          <View className="bg-primary dark:bg-primary-dark rounded-2xl p-6 gap-3">
+            <Text variant="subtitle" className="text-white font-semibold">
               Prêt à rejoindre la communauté ?
             </Text>
-            <Text className="text-white/90 leading-relaxed">
-              Créez votre compte gratuitement et commencez à explorer Pulse dès maintenant.
+            <Text className="text-white/90 dark:text-white/90 leading-relaxed">
+              Créez votre compte gratuitement et commencez à explorer Pulse dès
+              maintenant.
             </Text>
             <Link href="/auth/signup/step1" asChild>
-              <Button title="S'inscrire" className="mt-2 bg-white" />
+              <Button
+                title="S'inscrire gratuitement"
+                variant="ghost"
+                className="h-14 w-full mt-2 bg-white dark:bg-white"
+                icon="PlusCircle"
+              />
             </Link>
           </View>
         </View>
 
-        <View className="px-6 py-6 gap-3">
-          <Text className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-            Informations légales
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            <Link href="/legal/terms" asChild>
-              <Pressable>
-                <Text className="text-sm text-primary">Conditions d'utilisation</Text>
-              </Pressable>
-            </Link>
-            <Link href="/legal/privacy" asChild>
-              <Pressable>
-                <Text className="text-sm text-primary">Politique de confidentialité</Text>
-              </Pressable>
-            </Link>
-            <Link href="/legal/imprint" asChild>
-              <Pressable>
-                <Text className="text-sm text-primary">Mentions légales</Text>
-              </Pressable>
-            </Link>
-            <Link href="/legal/contact" asChild>
-              <Pressable>
-                <Text className="text-sm text-primary">Contact</Text>
-              </Pressable>
-            </Link>
-          </View>
-          <Text className="text-xs text-neutral-500">
-            Éditeur : Maximilien MONTANT — maximilien.montant@gmail.com
-          </Text>
-          <Text className="text-xs text-neutral-500">
-            © {new Date().getFullYear()} Pulse. Tous droits réservés.
-          </Text>
-        </View>
+        {/* ── Footer with all legal documents ── */}
+        <LandingFooter />
       </ScrollView>
     </SafeScreen>
   );

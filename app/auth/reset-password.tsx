@@ -46,27 +46,54 @@ export default function ResetPasswordScreen() {
       setError(null);
 
       // Attempt to exchange the deep-link code for a session.
-      // If this fails (e.g. token already consumed / expired), we still
-      // check getSession() below because a recovery session may already
-      // be present in storage (e.g. re-opened link, partial exchange).
-      let exchangeFailed = false;
+      // Supabase may return the session directly in the response,
+      // but it may not yet be persisted in getSession() immediately
+      // (especially on web), so we capture it here and use it as
+      // a primary source, with a getSession() fallback + retry.
+      let exchangeError: { message: string } | null = null;
+      let exchangedSession: { user: { id: string } } | null = null;
       if (code) {
         try {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            exchangeFailed = true;
+          const result = await supabase.auth.exchangeCodeForSession(code);
+          if (result.error) {
+            exchangeError = result.error;
+          } else {
+            exchangedSession = result.data.session ?? null;
           }
         } catch {
-          exchangeFailed = true;
+          exchangeError = { message: "Unexpected error" };
         }
       }
 
-      const { data } = await supabase.auth.getSession();
+      // If exchange succeeded and returned a session directly, use it.
+      if (exchangedSession) {
+        if (alive) setReady(true);
+        return;
+      }
+
+      // Fallback: getSession may return the session a moment later
+      // after it’s been persisted internally.
+      let session: { user: { id: string } } | null = null;
+      const maxAttempts = 3;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (!alive) return;
+        try {
+          const { data } = await supabase.auth.getSession();
+          session = data.session ?? null;
+          if (session) break;
+        } catch {
+          // continue retrying
+        }
+        if (!session && attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+      }
+
       if (!alive) return;
 
-      if (data.session) {
+      if (session) {
         setReady(true);
-      } else if (code && exchangeFailed) {
+      } else if (code && exchangeError) {
         setError(
           "Ce lien de réinitialisation est invalide ou a expiré. " +
             "Veuillez demander un nouveau lien."

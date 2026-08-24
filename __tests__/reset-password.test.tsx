@@ -54,9 +54,9 @@ describe("ResetPasswordScreen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default: session is established
-    mockExchangeCode.mockResolvedValueOnce({ error: null });
-    mockGetSession.mockResolvedValueOnce({
+    // Default: exchange succeeds and returns a session directly
+    mockExchangeCode.mockResolvedValue({
+      error: null,
       data: { session: { user: { id: "user-123" } } },
     });
   });

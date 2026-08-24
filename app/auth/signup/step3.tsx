@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { Header } from "@/components/shared/Header";
 import { SPORT_LEVELS, SPORT_PRACTICES, SPORTS, WEEKDAYS } from "@/lib/constants";
 import type { SportId } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import type { SignupSportSelection } from "@/types";
 import { signupStep3Schema } from "@/utils/validation";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { usePostHog } from "posthog-react-native";
@@ -76,7 +77,7 @@ export default function SignupStep3() {
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Stack.Screen options={{ title: "Étape 3/5" }} />
+      <Header title="Étape 3/5" showBackButton backToLanding className="mb-2" />
       <ScrollView contentContainerClassName="px-4 py-4 pb-24">
         <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-3">Sports pratiqués (min. 1)</Text>
         <View className="flex-row flex-wrap">

@@ -59,6 +59,8 @@ import {
   Lock,
   Moon,
   Globe,
+  Eye,
+  EyeOff,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -108,6 +110,8 @@ export const ICON_MAP = {
   Lock,
   Moon,
   Globe,
+  Eye,
+  EyeOff,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON_MAP;

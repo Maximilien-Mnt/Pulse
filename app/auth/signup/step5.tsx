@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/Button";
+import { SafeScreen } from "@/components/shared/SafeScreen";
+import { Header } from "@/components/shared/Header";
 import { Input } from "@/components/ui/Input";
 import { supabase } from "@/lib/supabase";
 import { DISCOVERY_SOURCES } from "@/lib/constants";
@@ -7,7 +9,7 @@ import { signupStep5Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import * as FileSystem from "expo-file-system";
 import dayjs from "dayjs";
@@ -224,8 +226,8 @@ export default function SignupStep5() {
   });
 
   return (
-    <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Stack.Screen options={{ title: "Étape 5/5" }} />
+    <SafeScreen edges={["top"]} className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+      <Header title="Étape 5/5" showBackButton backToLanding className="mb-2" />
       <ScrollView contentContainerClassName="px-4 py-4 pb-24">
         <Text className="text-sm text-neutral-500 mb-1">Biographie (optionnel, max 300)</Text>
         <Controller
@@ -329,6 +331,6 @@ export default function SignupStep5() {
           <Button title="Créer mon compte" onPress={onSubmit} loading={submitting} className="flex-1" />
         </View>
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }

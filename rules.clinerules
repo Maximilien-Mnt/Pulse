@@ -69,6 +69,11 @@ Pulse's identity is built around one idea: the mix of sport and social. Tone is 
 - Always check `prefers-reduced-motion` (web) / `AccessibilityInfo.isReduceMotionEnabled` (React Native) and fall back to opacity-only fades for any non-essential animation (ripples, loops, decorative transitions) when it's enabled.
 - The heart/like animation (fill + expanding ring, ~700ms) is the only place that specific micro-interaction is used — don't repeat it for unrelated actions.
 
+## Headers
+- Use the shared `Header` component whenever a bespoke top header is required. Do not invent per-screen header rows.
+- If a screen needs a custom header row, follow this exact pattern: back button on the left, centered title, and a spacer on the right for layout balance.
+- Header titles inside custom top header bars must use `text-lg font-bold`. Never introduce ad-hoc font sizes or weights for titles.
+
 ## Voice & UX copy
 - French copy is always tutoiement ("tu"), never "vous."
 - Button/CTA labels are action verbs in the infinitive ("Rejoindre", "Publier", "Créer le club") — never generic labels like "Soumettre"/"Valider".

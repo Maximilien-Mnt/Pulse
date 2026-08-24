@@ -35,6 +35,8 @@ export interface InputProps extends Omit<RNTextInputProps, "style"> {
   className?: string;
   /** Additional class names for the input itself */
   inputClassName?: string;
+  /** Optional element rendered at the trailing edge of the input */
+  rightElement?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +69,7 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
       multiline,
       onFocus,
       onBlur,
+      rightElement,
       ...rest
     },
     ref
@@ -95,6 +98,7 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
       isFocused && !error && focusedInput,
       error && errorInput,
       multiline && textareaExtra,
+      rightElement && "pr-11",
       inputClassName
     );
 
@@ -107,17 +111,24 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
           </Text>
         ) : null}
 
-        {/* Input field */}
-        <RNTextInput
-          ref={ref}
-          multiline={multiline}
-          textAlignVertical={multiline ? "top" : "center"}
-          placeholderTextColor={tokens.colors["text-tertiary"]}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          className={inputClasses}
-          {...rest}
-        />
+        {/* Input field container */}
+        <View className="relative">
+          <RNTextInput
+            ref={ref}
+            multiline={multiline}
+            textAlignVertical={multiline ? "top" : "center"}
+            placeholderTextColor={tokens.colors["text-tertiary"]}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            className={inputClasses}
+            {...rest}
+          />
+          {rightElement ? (
+            <View className="absolute right-2 top-0 bottom-0 justify-center items-center">
+              {rightElement}
+            </View>
+          ) : null}
+        </View>
 
         {/* Help text (only when no error) */}
         {help && !error ? (

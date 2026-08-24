@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
-import { Stack, useRouter } from "expo-router";
+import { Header } from "@/components/shared/Header";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -9,8 +10,8 @@ export default function CheckEmailScreen() {
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Stack.Screen options={{ title: "" }} />
-<ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
+      <Header title="" showBackButton backToLanding className="mb-4" />
+      <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
         <View className="items-center mt-12 mb-8">
           <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-6">
             <Ionicons name="mail-outline" size={48} color="#1E6BFF" />

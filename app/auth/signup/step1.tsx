@@ -1,29 +1,36 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
+import { Icon } from "@/components/ui/Icon";
+import { BackButton } from "@/components/ui/BackButton";
 import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep1Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, Stack, useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguageStore } from "@/stores/languageStore";
 
 type Form = z.infer<typeof signupStep1Schema>;
 
 export default function SignupStep1() {
   const router = useRouter();
   const posthog = usePostHog();
+  const { t, language } = useTranslation();
   const setStep1 = useSignupStore((s) => s.setStep1);
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep1Schema),
     defaultValues: {
-      language: "fr",
+      language: useLanguageStore.getState().language,
       fullName: "",
       username: "",
       email: "",
@@ -67,63 +74,137 @@ export default function SignupStep1() {
     router.push("/auth/signup/step2");
   });
 
+  const languageLabel = language === "fr" ? t("common.french") : t("common.english");
+
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <Stack.Screen options={{ title: "Étape 1/5" }} />
-        <ScrollView contentContainerClassName="px-6 pt-4 pb-4" keyboardShouldPersistTaps="handled">
-          <Link href="/" asChild>
-            <Pressable className="mb-4">
-              <Text className="text-sm font-semibold text-primary">← Retour à l'accueil</Text>
-            </Pressable>
-          </Link>
-          <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">Créer un compte</Text>
-        <Text className="text-sm text-neutral-500 mb-2">Langue</Text>
-        <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
-          <Text className="text-base text-neutral-900 dark:text-neutral-50">Français</Text>
-        </View>
-        <Controller
-          control={control}
-          name="fullName"
-          render={({ field: { value, onChange } }) => (
-            <Input label="Nom complet" value={value} onChangeText={onChange} error={errors.fullName?.message} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="username"
-          render={({ field: { value, onChange } }) => (
-            <View>
-              <Input label="Nom d&apos;utilisateur" value={value} onChangeText={onChange} autoCapitalize="none" error={errors.username?.message} />
-              {usernameOk === true ? <Text className="text-success text-sm -mt-2 mb-2">✓ Disponible</Text> : null}
-              {usernameOk === false ? <Text className="text-error text-sm -mt-2 mb-2">✗ Déjà pris</Text> : null}
-            </View>
-          )}
-        />
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { value, onChange } }) => (
-            <Input label="Email" value={value} onChangeText={onChange} keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { value, onChange } }) => (
-            <Input label="Mot de passe" value={value} onChangeText={onChange} secureTextEntry error={errors.password?.message} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="confirmPassword"
-          render={({ field: { value, onChange } }) => (
-            <Input label="Confirmer le mot de passe" value={value} onChangeText={onChange} secureTextEntry error={errors.confirmPassword?.message} />
-          )}
-        />
-        <View className="mt-4">
-          <Button title="Continuer" onPress={onSubmit} loading={isSubmitting} disabled={usernameOk === false} />
-        </View>
+        <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
+          <View className="flex-row items-center justify-between mb-6">
+            <BackButton fallbackRoute="/" />
+            <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+              {t("signup.step1.title")}
+            </Text>
+            <View className="w-11" />
+          </View>
+
+          <Text className="text-sm text-neutral-500 mb-2">{t("common.language")}</Text>
+          <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
+            <Text className="text-base text-neutral-900 dark:text-neutral-50">{languageLabel}</Text>
+          </View>
+          <Controller
+            control={control}
+            name="fullName"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label={t("signup.step1.fullName")}
+                value={value}
+                onChangeText={onChange}
+                error={errors.fullName?.message}
+                className="mb-4"
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="username"
+            render={({ field: { value, onChange } }) => (
+              <View className="mb-4">
+                <Input
+                  label={t("signup.step1.username")}
+                  value={value}
+                  onChangeText={onChange}
+                  autoCapitalize="none"
+                  error={errors.username?.message}
+                />
+                {usernameOk === true ? (
+                  <Text className="text-success text-sm mt-1">{t("signup.step1.usernameAvailable")}</Text>
+                ) : null}
+                {usernameOk === false ? (
+                  <Text className="text-error text-sm mt-1">{t("signup.step1.usernameTaken")}</Text>
+                ) : null}
+              </View>
+            )}
+          />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label={t("signup.step1.email")}
+                value={value}
+                onChangeText={onChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={errors.email?.message}
+                className="mb-4"
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label={t("signup.step1.password")}
+                value={value}
+                onChangeText={onChange}
+                secureTextEntry={!showPassword}
+                error={errors.password?.message}
+                rightElement={
+                  <Pressable
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                    className="p-1 active:opacity-70"
+                  >
+                    <Icon
+                      name={showPassword ? "EyeOff" : "Eye"}
+                      size={20}
+                      color="text-secondary"
+                    />
+                  </Pressable>
+                }
+                className="mb-4"
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label={t("signup.step1.confirmPassword")}
+                value={value}
+                onChangeText={onChange}
+                secureTextEntry={!showConfirmPassword}
+                error={errors.confirmPassword?.message}
+                rightElement={
+                  <Pressable
+                    onPress={() => setShowConfirmPassword((prev) => !prev)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={showConfirmPassword ? "Hide password" : "Show password"}
+                    className="p-1 active:opacity-70"
+                  >
+                    <Icon
+                      name={showConfirmPassword ? "EyeOff" : "Eye"}
+                      size={20}
+                      color="text-secondary"
+                    />
+                  </Pressable>
+                }
+                className="mb-6"
+              />
+            )}
+          />
+          <Button
+            title={t("signup.step1.continue")}
+            onPress={onSubmit}
+            loading={isSubmitting}
+            disabled={usernameOk === false}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeScreen>

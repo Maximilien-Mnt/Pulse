@@ -4,12 +4,11 @@ import { useRouter } from "expo-router";
 import Markdown from "@ronradtke/react-native-markdown-display";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { Header } from "@/components/shared/Header";
 import { Text } from "@/components/ui/Text";
-import { BackButton } from "@/components/ui/BackButton";
 import { useThemeStore } from "@/stores/themeStore";
 
 export function LegalDocumentViewer({ content, title }: { content: string; title?: string }) {
-  const router = useRouter();
   const isDark = useThemeStore((s) => s.isDark);
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffsetRef = useRef(0);
@@ -429,17 +428,13 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      {/* Header with back button, title, and metadata */}
-      <View className="px-4 pt-3 pb-2 border-b border-neutral-100 dark:border-neutral-800">
-        <View className="flex-row items-center gap-3">
-          <BackButton fallbackRoute="/" />
-          <Text
-            numberOfLines={1}
-            className="flex-1 text-center text-xl font-bold text-neutral-900 dark:text-neutral-50"
-          >
-            {title ?? "Document"}
-          </Text>
-          {(version || lastUpdate) && (
+      <Header
+        title={title ?? "Document"}
+        showBackButton
+        backToLanding
+        titleClassName="flex-1 text-center text-xl font-bold text-neutral-900 dark:text-neutral-50"
+        rightSlot={
+          (version || lastUpdate) && (
             <View className="flex-row items-center gap-1.5">
               {lastUpdate && (
                 <Text className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
@@ -455,9 +450,9 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
                 </Text>
               )}
             </View>
-          )}
-        </View>
-      </View>
+          )
+        }
+      />
 
       <ScrollView
         ref={scrollRef}

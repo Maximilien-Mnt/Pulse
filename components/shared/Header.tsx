@@ -5,6 +5,10 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import { SearchBar } from "./SearchBar";
 import { BackButton } from "../ui/BackButton";
+import { Icon } from "../ui/Icon";
+import { useThemeStore } from "@/stores/themeStore";
+import { useLanguageStore } from "@/stores/languageStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Props = {
   title: string;
@@ -13,6 +17,8 @@ type Props = {
   showBackButton?: boolean;
   /** Route to fall back to when there is no navigation history. */
   backFallbackRoute?: string;
+  /** When true, the back button falls back to `/` when there is no history. */
+  backToLanding?: boolean;
   searchValue?: string;
   onSearchChange?: (t: string) => void;
   onSearchClear?: () => void;
@@ -25,8 +31,14 @@ type Props = {
   showAvatar?: boolean;
   avatarUrl?: string | null;
   rightSlot?: ReactNode;
+  /** Show the theme (light/dark) toggle button. */
+  showThemeToggle?: boolean;
+  /** Show the language (fr/en) toggle button. */
+  showLanguageToggle?: boolean;
   /** Called when the header's root view layout changes. */
   onLayout?: (e: LayoutChangeEvent) => void;
+  /** Additional className for the root header view */
+  className?: string;
 };
 
 export function Header({
@@ -34,6 +46,7 @@ export function Header({
   titleClassName,
   showBackButton = false,
   backFallbackRoute,
+  backToLanding,
   searchValue,
   onSearchChange,
   onSearchClear,
@@ -45,14 +58,20 @@ export function Header({
   showAvatar,
   avatarUrl,
   rightSlot,
+  showThemeToggle = true,
+  showLanguageToggle = true,
   onLayout,
+  className,
 }: Props) {
   const router = useRouter();
+  const { t, language } = useTranslation();
+  const isDark = useThemeStore((s) => s.isDark);
+  const fallbackRoute = backFallbackRoute ?? (backToLanding ? "/" : undefined);
 
   return (
-    <View className="px-4 pt-2 pb-3 bg-neutral-50 dark:bg-[#0A0F1E]" onLayout={onLayout}>
+    <View className={cn("px-4 pt-2 pb-3 bg-neutral-50 dark:bg-[#0A0F1E]", className)} onLayout={onLayout}>
       <View className="flex-row items-center gap-3">
-        {showBackButton ? <BackButton fallbackRoute={backFallbackRoute} /> : null}
+        {showBackButton ? <BackButton fallbackRoute={fallbackRoute} /> : null}
 
         {onTitlePress ? (
           <Pressable onPress={onTitlePress} hitSlop={8}>
@@ -77,6 +96,32 @@ export function Header({
         ) : null}
 
         {rightSlot}
+
+        {showThemeToggle ? (
+          <Pressable
+            onPress={() => useThemeStore.getState().toggle()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={isDark ? t("theme.light") : t("theme.dark")}
+            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+          >
+            <Icon name={isDark ? "Sun" : "Moon"} size={24} color="primary" />
+          </Pressable>
+        ) : null}
+
+        {showLanguageToggle ? (
+          <Pressable
+            onPress={() => useLanguageStore.getState().toggle()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("lang.toggle")}
+            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+          >
+            <Text className="text-xs font-bold text-primary dark:text-primary-dark">
+              {language.toUpperCase()}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {showAvatar ? (
           <Pressable onPress={() => router.push("/(tabs)/profile")} hitSlop={8}>

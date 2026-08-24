@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
+import { Header } from "@/components/shared/Header";
 import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep2Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -51,8 +52,8 @@ export default function SignupStep2() {
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <Stack.Screen options={{ title: "Étape 2/5" }} />
-        <ScrollView contentContainerClassName="px-6 pt-4 pb-4" keyboardShouldPersistTaps="handled">
+        <Header title="Étape 2/5" showBackButton backToLanding className="mb-2" />
+        <ScrollView contentContainerClassName="px-6 py-4 pb-4" keyboardShouldPersistTaps="handled">
           <Text className="text-sm text-neutral-500 mb-2">Date de naissance</Text>
           {showDate ? (
             <DateTimePicker

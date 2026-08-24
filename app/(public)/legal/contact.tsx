@@ -45,7 +45,7 @@ export default function PublicContactScreen() {
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <View className="px-4 pt-3 pb-2 border-b border-neutral-100 dark:border-neutral-800">
         <View className="flex-row items-center gap-3">
-          <BackButton fallbackRoute="/(tabs)/explore" />
+          <BackButton fallbackRoute="/" />
           <Text className="flex-1 text-center text-lg font-bold text-neutral-900 dark:text-neutral-50">
             Aide et contact
           </Text>

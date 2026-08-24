@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { Header } from "@/components/shared/Header";
 import { Input } from "@/components/ui/Input";
 import { OBJECTIVES, SPORTS } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep4Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
@@ -48,7 +49,7 @@ export default function SignupStep4() {
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Stack.Screen options={{ title: "Étape 4/5" }} />
+      <Header title="Étape 4/5" showBackButton backToLanding className="mb-2" />
       <ScrollView contentContainerClassName="px-4 py-4 pb-24">
         <Text className="text-base font-semibold mb-2">Sports intéressés (optionnel)</Text>
         <View className="flex-row flex-wrap mb-4">

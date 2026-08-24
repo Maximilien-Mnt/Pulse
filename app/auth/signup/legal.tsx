@@ -19,7 +19,7 @@ export default function SignupLegalScreen() {
           <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
             Document introuvable
           </Text>
-          <BackButton fallbackRoute="/(tabs)/explore" />
+          <BackButton fallbackRoute="/" />
         </View>
       </SafeScreen>
     );

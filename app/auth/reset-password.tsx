@@ -46,33 +46,36 @@ export default function ResetPasswordScreen() {
       setError(null);
 
       // Attempt to exchange the deep-link code for a session.
-      // Supabase may return the session directly in the response,
-      // but it may not yet be persisted in getSession() immediately
-      // (especially on web), so we capture it here and use it as
-      // a primary source, with a getSession() fallback + retry.
       let exchangeError: { message: string } | null = null;
       let exchangedSession: { user: { id: string } } | null = null;
       if (code) {
         try {
           const result = await supabase.auth.exchangeCodeForSession(code);
+          console.log("[ResetPassword] exchangeCodeForSession result:", JSON.stringify({
+            hasError: !!result.error,
+            errorMessage: result.error?.message,
+            hasSession: !!result.data?.session,
+            sessionUser: result.data?.session?.user?.id,
+          }));
           if (result.error) {
             exchangeError = result.error;
           } else {
             exchangedSession = result.data.session ?? null;
           }
-        } catch {
+        } catch (err) {
+          console.log("[ResetPassword] exchangeCodeForSession exception:", err);
           exchangeError = { message: "Unexpected error" };
         }
       }
 
       // If exchange succeeded and returned a session directly, use it.
       if (exchangedSession) {
+        console.log("[ResetPassword] using exchangedSession directly");
         if (alive) setReady(true);
         return;
       }
 
       // Fallback: getSession may return the session a moment later
-      // after it’s been persisted internally.
       let session: { user: { id: string } } | null = null;
       const maxAttempts = 3;
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -80,9 +83,13 @@ export default function ResetPasswordScreen() {
         try {
           const { data } = await supabase.auth.getSession();
           session = data.session ?? null;
+          console.log(`[ResetPassword] getSession attempt ${attempt + 1}:`, JSON.stringify({
+            hasSession: !!session,
+            sessionUser: session?.user?.id,
+          }));
           if (session) break;
-        } catch {
-          // continue retrying
+        } catch (err) {
+          console.log(`[ResetPassword] getSession attempt ${attempt + 1} error:`, err);
         }
         if (!session && attempt < maxAttempts - 1) {
           await new Promise((resolve) => setTimeout(resolve, 250));
@@ -90,6 +97,13 @@ export default function ResetPasswordScreen() {
       }
 
       if (!alive) return;
+
+      console.log("[ResetPassword] final state:", JSON.stringify({
+        hasExchangedSession: !!exchangedSession,
+        hasSession: !!session,
+        hasExchangeError: !!exchangeError,
+        hasCode: !!code,
+      }));
 
       if (session) {
         setReady(true);

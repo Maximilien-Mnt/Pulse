@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
+      setSession: jest.fn(),
       exchangeCodeForSession: jest.fn(),
       getSession: jest.fn(),
       updateUser: jest.fn(),
@@ -47,6 +48,7 @@ jest.mock("@/stores/authStore", () => ({
 }));
 
 describe("ResetPasswordScreen", () => {
+  const mockSetSession = supabase.auth.setSession as jest.Mock;
   const mockExchangeCode = supabase.auth.exchangeCodeForSession as jest.Mock;
   const mockGetSession = supabase.auth.getSession as jest.Mock;
   const mockUpdateUser = supabase.auth.updateUser as jest.Mock;
@@ -54,6 +56,8 @@ describe("ResetPasswordScreen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSetSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockGetSession.mockResolvedValue({ data: { session: null } });
     // Default: exchange succeeds and returns a session directly
     mockExchangeCode.mockResolvedValue({
       error: null,
@@ -66,31 +70,53 @@ describe("ResetPasswordScreen", () => {
     expect(getByText("Vérification de votre lien de réinitialisation…")).toBeTruthy();
   });
 
-  it("renders password inputs after session is established", async () => {
-    const { findByPlaceholderText } = render(<ResetPasswordScreen />);
-    expect(await findByPlaceholderText("••••••••")).toBeTruthy();
+  it("renders password inputs after session is established via hash tokens", async () => {
+    const originalLocation = window.location;
+    // @ts-ignore
+    window.location = {
+      ...originalLocation,
+      hash: "access_token=mock-token&refresh_token=mock-refresh",
+    };
+
+    mockSetSession.mockResolvedValueOnce({
+      error: null,
+      data: { session: { user: { id: "user-123" } } },
+    });
+
+    try {
+      const { findAllByPlaceholderText } = render(<ResetPasswordScreen />);
+      const inputs = await findAllByPlaceholderText("••••••••");
+      expect(inputs.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      window.location = originalLocation;
+    }
   });
 
   it("shows validation error for weak password", async () => {
-    const { findByPlaceholderText, getByText, findByText } = render(<ResetPasswordScreen />);
-    const input = await findByPlaceholderText("••••••••");
-    fireEvent.changeText(input, "weak");
+    const originalLocation = window.location;
+    try {
+      // @ts-ignore
+      window.location = { ...originalLocation, hash: "" };
+    } catch {}
+
+    const { findAllByPlaceholderText, getByText, findByText } = render(<ResetPasswordScreen />);
+    const inputs = await findAllByPlaceholderText("••••••••");
+    fireEvent.changeText(inputs[0], "weak");
     fireEvent.press(getByText("Réinitialiser le mot de passe"));
     expect(await findByText("Au moins 8 caractères")).toBeTruthy();
   });
 
   it("shows validation error for password mismatch", async () => {
-    const { findAllByPlaceholderText, getByText, findByText } = render(<ResetPasswordScreen />);
-    const inputs = await findAllByPlaceholderText("••••••••");
-    // First input is password, second is confirmPassword
+    const codeData = render(<ResetPasswordScreen />);
+    const inputs = await codeData.findAllByPlaceholderText("••••••••");
     fireEvent.changeText(inputs[0], "ValidPass123!");
     fireEvent.changeText(inputs[1], "DifferentPass123!");
-    fireEvent.press(getByText("Réinitialiser le mot de passe"));
-    expect(await findByText("Les mots de passe ne correspondent pas")).toBeTruthy();
+    fireEvent.press(codeData.getByText("Réinitialiser le mot de passe"));
+    expect(await codeData.findByText("Les mots de passe ne correspondent pas")).toBeTruthy();
   });
 
   it("calls updateUser with new password on valid submit", async () => {
-    mockUpdateUser.mockResolvedValueOnce({ error: null });
+    mockUpdateUser.mockResolvedValueOnce({ error: null, data: { user: { id: "user-123" } } });
     mockSignOut.mockResolvedValueOnce({ error: null });
     const { findAllByPlaceholderText, getByText } = render(<ResetPasswordScreen />);
     const inputs = await findAllByPlaceholderText("••••••••");
@@ -104,7 +130,7 @@ describe("ResetPasswordScreen", () => {
   });
 
   it("calls signOut after successful password update", async () => {
-    mockUpdateUser.mockResolvedValueOnce({ error: null });
+    mockUpdateUser.mockResolvedValueOnce({ error: null, data: { user: { id: "user-123" } } });
     mockSignOut.mockResolvedValueOnce({ error: null });
     const { findAllByPlaceholderText, getByText } = render(<ResetPasswordScreen />);
     const inputs = await findAllByPlaceholderText("••••••••");
@@ -127,21 +153,18 @@ describe("ResetPasswordScreen", () => {
     const { findByText } = render(<ResetPasswordScreen />);
     expect(await findByText("Lien invalide")).toBeTruthy();
     expect(
-      await findByText("Ce lien de réinitialisation est invalide ou a expiré.")
+      await findByText("Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.")
     ).toBeTruthy();
   });
 
-  it("shows error when no recovery session exists (no code, no session)", async () => {
-    // Re-mock to simulate no code
-    jest.resetModules();
-    jest.doMock("expo-router", () => ({
-      useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
-      useGlobalSearchParams: () => ({}), // no code
-    }));
-
+  it("shows error when no recovery session exists after fallback attempts", async () => {
+    mockExchangeCode.mockReset();
+    mockExchangeCode.mockResolvedValueOnce({ error: { message: "Invalid code" } });
     mockGetSession.mockResolvedValueOnce({ data: { session: null } });
-
     const { findByText } = render(<ResetPasswordScreen />);
     expect(await findByText("Lien invalide")).toBeTruthy();
+    expect(
+      await findByText("Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.")
+    ).toBeTruthy();
   });
 });

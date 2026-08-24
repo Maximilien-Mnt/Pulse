@@ -35,15 +35,44 @@ export default function ResetPasswordScreen() {
   });
 
   // On mount: establish the recovery session from the deep-link code.
-  // If detectSessionInUrl is false (as in this project), we must manually
-  // exchange the code for a session. If the code is missing and no recovery
-  // session exists, we show an error and offer to request a new link.
   useEffect(() => {
     let alive = true;
+
+    function parseHashTokens(): { access_token?: string; refresh_token?: string } | null {
+      if (typeof window === "undefined") return null;
+      const hash = window.location.hash;
+      if (!hash || hash.length <= 1) return null;
+      const params = new URLSearchParams(hash.slice(1));
+      const access_token = params.get("access_token") || undefined;
+      const refresh_token = params.get("refresh_token") || undefined;
+      if (access_token || refresh_token) return { access_token, refresh_token };
+      return null;
+    }
 
     async function establishRecoverySession() {
       setLoading(true);
       setError(null);
+
+      // On web, Supabase often puts recovery tokens in the URL hash
+      // instead of a ?code= query param. If so, establish the session
+      // directly from those tokens.
+      const hashTokens = parseHashTokens();
+
+      if (hashTokens?.access_token && hashTokens?.refresh_token) {
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: hashTokens.access_token,
+            refresh_token: hashTokens.refresh_token,
+          });
+          if (data.session) {
+            setLoading(false);
+            if (alive) setReady(true);
+            return;
+          }
+        } catch {
+          // setSession threw, fall through to code-based flow
+        }
+      }
 
       // Attempt to exchange the deep-link code for a session.
       let exchangeError: { message: string } | null = null;
@@ -51,26 +80,19 @@ export default function ResetPasswordScreen() {
       if (code) {
         try {
           const result = await supabase.auth.exchangeCodeForSession(code);
-          console.log("[ResetPassword] exchangeCodeForSession result:", JSON.stringify({
-            hasError: !!result.error,
-            errorMessage: result.error?.message,
-            hasSession: !!result.data?.session,
-            sessionUser: result.data?.session?.user?.id,
-          }));
           if (result.error) {
             exchangeError = result.error;
           } else {
             exchangedSession = result.data.session ?? null;
           }
-        } catch (err) {
-          console.log("[ResetPassword] exchangeCodeForSession exception:", err);
+        } catch {
           exchangeError = { message: "Unexpected error" };
         }
       }
 
       // If exchange succeeded and returned a session directly, use it.
       if (exchangedSession) {
-        console.log("[ResetPassword] using exchangedSession directly");
+        setLoading(false);
         if (alive) setReady(true);
         return;
       }
@@ -83,13 +105,9 @@ export default function ResetPasswordScreen() {
         try {
           const { data } = await supabase.auth.getSession();
           session = data.session ?? null;
-          console.log(`[ResetPassword] getSession attempt ${attempt + 1}:`, JSON.stringify({
-            hasSession: !!session,
-            sessionUser: session?.user?.id,
-          }));
           if (session) break;
-        } catch (err) {
-          console.log(`[ResetPassword] getSession attempt ${attempt + 1} error:`, err);
+        } catch {
+          // continue retrying
         }
         if (!session && attempt < maxAttempts - 1) {
           await new Promise((resolve) => setTimeout(resolve, 250));
@@ -98,14 +116,8 @@ export default function ResetPasswordScreen() {
 
       if (!alive) return;
 
-      console.log("[ResetPassword] final state:", JSON.stringify({
-        hasExchangedSession: !!exchangedSession,
-        hasSession: !!session,
-        hasExchangeError: !!exchangeError,
-        hasCode: !!code,
-      }));
-
       if (session) {
+        setLoading(false);
         setReady(true);
       } else if (code && exchangeError) {
         setError(

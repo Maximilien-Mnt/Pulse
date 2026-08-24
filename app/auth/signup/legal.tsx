@@ -1,12 +1,12 @@
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { LegalDocumentViewer } from "@/components/legal/LegalDocumentViewer";
 import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function SignupLegalScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ document?: string }>();
 
   const slug = params.document as LegalSlug | undefined;
@@ -19,12 +19,7 @@ export default function SignupLegalScreen() {
           <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
             Document introuvable
           </Text>
-          <Pressable
-            onPress={() => router.back()}
-            className="px-4 py-2 bg-primary rounded-lg"
-          >
-            <Text className="text-white font-semibold">Retour</Text>
-          </Pressable>
+          <BackButton fallbackRoute="/(tabs)/explore" />
         </View>
       </SafeScreen>
     );

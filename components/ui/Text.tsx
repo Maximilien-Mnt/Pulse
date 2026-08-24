@@ -26,6 +26,12 @@ export interface TextProps extends Omit<RNTextProps, "style"> {
   variant?: TextVariant;
   /** Additional Tailwind / NativeWind class names (merged after variant). */
   className?: string;
+  /**
+   * Optional inline style — applied AFTER className by React Native, so it
+   * deterministically overrides class-based colors even when a theme-driven
+   * utility loses the Tailwind cascade (e.g. a bg-overridden Button label).
+   */
+  style?: RNTextProps["style"];
 }
 
 // ---------------------------------------------------------------------------

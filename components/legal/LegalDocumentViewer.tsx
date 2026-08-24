@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useRef, useEffect } from "react";
-import { Pressable, ScrollView, View, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+import { ScrollView, View, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { useRouter } from "expo-router";
 import Markdown from "@ronradtke/react-native-markdown-display";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
-import { Icon } from "@/components/ui/Icon";
+import { BackButton } from "@/components/ui/BackButton";
 import { useThemeStore } from "@/stores/themeStore";
 
 export function LegalDocumentViewer({ content, title }: { content: string; title?: string }) {
@@ -47,7 +47,14 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     return match?.[1]?.trim();
   }, []);
 
+  // Extract last update date from legal content
+  const extractLastUpdate = useCallback((text: string): string | undefined => {
+    const match = text.match(/\*\*Dernière mise à jour\s*:\*\*\s*([^\n]+)/);
+    return match?.[1]?.trim();
+  }, []);
+
   const version = useMemo(() => extractVersion(content), [content, extractVersion]);
+  const lastUpdate = useMemo(() => extractLastUpdate(content), [content, extractLastUpdate]);
 
   // Intercept anchor links and handle them in-page with React Native scrolling
   const onLinkPress = useCallback(
@@ -82,14 +89,6 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       headingYMap.current.delete(slug);
     }
   }, []);
-
-  const handleBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/");
-    }
-  }, [router]);
 
   // Color palette driven by theme
   const colors = isDark
@@ -212,57 +211,66 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     // --- Body / paragraphs ---
     body: {
       color: colors.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: 18,
+      lineHeight: 30,
       fontFamily: "Outfit_400Regular",
     },
     paragraph: {
       marginTop: 0,
       marginBottom: 16,
       color: colors.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: 18,
+      lineHeight: 30,
       fontFamily: "Outfit_400Regular",
     },
 
     // --- Headings ---
     heading1: {
       color: colors.heading,
-      fontSize: 30,
-      lineHeight: 38,
+      fontSize: 34,
+      lineHeight: 42,
       fontWeight: "700",
       fontFamily: "Outfit_700Bold",
-      marginTop: 32,
-      marginBottom: 16,
+      marginTop: 36,
+      marginBottom: 18,
     },
     heading2: {
       color: colors.heading,
-      fontSize: 26,
-      lineHeight: 34,
+      fontSize: 28,
+      lineHeight: 36,
+      fontWeight: "600",
+      fontFamily: "Outfit_600SemiBold",
+      marginTop: 32,
+      marginBottom: 16,
+    },
+    heading3: {
+      color: colors.heading,
+      fontSize: 24,
+      lineHeight: 32,
       fontWeight: "600",
       fontFamily: "Outfit_600SemiBold",
       marginTop: 28,
       marginBottom: 14,
     },
-    heading3: {
+    heading4: {
       color: colors.heading,
-      fontSize: 22,
-      lineHeight: 30,
-      fontWeight: "600",
-      fontFamily: "Outfit_600SemiBold",
+      fontSize: 21,
+      lineHeight: 28,
+      fontWeight: "500",
+      fontFamily: "Outfit_500Medium",
       marginTop: 24,
       marginBottom: 12,
     },
-    heading4: {
+    heading5: {
       color: colors.heading,
       fontSize: 19,
-      lineHeight: 27,
+      lineHeight: 26,
       fontWeight: "500",
       fontFamily: "Outfit_500Medium",
       marginTop: 20,
       marginBottom: 10,
     },
-    heading5: {
+    heading6: {
       color: colors.heading,
       fontSize: 17,
       lineHeight: 24,
@@ -270,15 +278,6 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       fontFamily: "Outfit_500Medium",
       marginTop: 18,
       marginBottom: 8,
-    },
-    heading6: {
-      color: colors.heading,
-      fontSize: 15,
-      lineHeight: 22,
-      fontWeight: "500",
-      fontFamily: "Outfit_500Medium",
-      marginTop: 16,
-      marginBottom: 6,
     },
 
     // --- Inline formatting ---
@@ -296,8 +295,8 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     },
     text: {
       color: colors.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: 18,
+      lineHeight: 30,
       fontFamily: "Outfit_400Regular",
     },
     link: {
@@ -318,8 +317,8 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     },
     blockquoteText: {
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: 18,
+      lineHeight: 30,
       fontFamily: "Outfit_400Regular",
       fontStyle: "italic",
     },
@@ -349,22 +348,22 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     },
     bulletListIcon: {
       color: colors.accent,
-      fontSize: 16,
-      marginRight: 10,
+      fontSize: 18,
+      marginRight: 12,
       marginTop: 4,
     },
     orderedListIcon: {
       color: colors.accent,
-      fontSize: 16,
-      marginRight: 10,
+      fontSize: 18,
+      marginRight: 12,
       marginTop: 4,
       fontFamily: "Outfit_500Medium",
     },
     listItem: {
       flexShrink: 1,
       color: colors.body,
-      fontSize: 16,
-      lineHeight: 26,
+      fontSize: 18,
+      lineHeight: 30,
       fontFamily: "Outfit_400Regular",
     },
     l1: {
@@ -376,31 +375,26 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
 
     // --- Tables ---
     table: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 12,
+      borderRadius: 16,
       overflow: "hidden",
-      marginTop: 14,
-      marginBottom: 18,
+      marginTop: 20,
+      marginBottom: 24,
+      backgroundColor: colors.card,
     },
     tableHeader: {
       backgroundColor: colors.tableHeaderBg,
     },
     tableHeaderCell: {
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
       borderBottomWidth: 2,
       borderBottomColor: colors.accent,
-      borderRightWidth: 1,
-      borderRightColor: colors.border,
       backgroundColor: colors.tableHeaderBg,
     },
     tableCell: {
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRightWidth: 1,
-      borderRightColor: colors.border,
-      borderBottomWidth: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 0.5,
       borderBottomColor: colors.divider,
     },
     tableRow: {
@@ -409,56 +403,19 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     tableRowLast: {
       borderBottomWidth: 0,
     },
-    tableCellLast: {
-      borderRightWidth: 0,
-    },
-    tableHeaderCellLast: {
-      borderRightWidth: 0,
-    },
     textHeader: {
       color: colors.heading,
       fontWeight: "700",
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 15,
+      lineHeight: 22,
       fontFamily: "Outfit_600SemiBold",
     },
     textCell: {
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: 16,
+      lineHeight: 24,
       fontFamily: "Outfit_400Regular",
       padding: 0,
-    },
-
-    // --- Code ---
-    code_inline: {
-      fontFamily: "monospace",
-      fontSize: 14,
-      color: isDark ? "#E2E8F0" : "#1E293B",
-      backgroundColor: colors.codeBg,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
-    codeBlock: {
-      fontFamily: "monospace",
-      fontSize: 14,
-      color: isDark ? "#E2E8F0" : "#1E293B",
-      backgroundColor: colors.codeBg,
-      padding: 16,
-      borderRadius: 10,
-      marginTop: 12,
-      marginBottom: 16,
-    },
-    fence: {
-      fontFamily: "monospace",
-      fontSize: 14,
-      color: isDark ? "#E2E8F0" : "#1E293B",
-      backgroundColor: colors.codeBg,
-      padding: 16,
-      borderRadius: 10,
-      marginTop: 12,
-      marginBottom: 16,
     },
 
     // --- Horizontal rule ---
@@ -472,31 +429,34 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      {/* Header with back button, title, and version */}
-      <View className="flex-row items-center justify-between px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
-        <Pressable
-          onPress={handleBack}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1"
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <Icon name="ChevronLeft" size={20} color="text-primary" />
-          <Text className="text-sm font-semibold text-primary">Retour</Text>
-        </Pressable>
-        <Text
-          numberOfLines={1}
-          className="flex-1 text-center text-base font-semibold text-neutral-900 dark:text-neutral-50 px-2"
-        >
-          {title ?? "Document"}
-        </Text>
-        {version ? (
-          <Text className="text-xs font-medium text-neutral-500 dark:text-neutral-400 px-2">
-            v{version}
+      {/* Header with back button, title, and metadata */}
+      <View className="px-4 pt-3 pb-2 border-b border-neutral-100 dark:border-neutral-800">
+        <View className="flex-row items-center gap-3">
+          <BackButton fallbackRoute="/" />
+          <Text
+            numberOfLines={1}
+            className="flex-1 text-center text-xl font-bold text-neutral-900 dark:text-neutral-50"
+          >
+            {title ?? "Document"}
           </Text>
-        ) : (
-          <View className="w-8" />
-        )}
+          {(version || lastUpdate) && (
+            <View className="flex-row items-center gap-1.5">
+              {lastUpdate && (
+                <Text className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  {lastUpdate}
+                </Text>
+              )}
+              {version && lastUpdate && (
+                <Text className="text-xs text-neutral-400">•</Text>
+              )}
+              {version && (
+                <Text className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  v{version}
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
       <ScrollView

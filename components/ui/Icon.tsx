@@ -55,7 +55,9 @@ import {
   List,
   X,
   Send,
+  Sun,
   Lock,
+  Moon,
   Globe,
   type LucideIcon,
 } from "lucide-react-native";
@@ -102,7 +104,9 @@ export const ICON_MAP = {
   List,
   X,
   Send,
+  Sun,
   Lock,
+  Moon,
   Globe,
 } as const satisfies Record<string, LucideIcon>;
 

@@ -7,7 +7,8 @@ import { LegalDocumentViewer } from "@/components/legal/LegalDocumentViewer";
 import { LEGAL_DOCUMENTS } from "@/lib/legalDocuments";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function LegalScreen() {
   const params = useLocalSearchParams<{ filePath?: string; title?: string }>();
@@ -32,12 +33,7 @@ export default function LegalScreen() {
           <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
             Document non disponible
           </Text>
-          <Pressable
-            onPress={() => (globalThis?.history?.length ? (globalThis.history as any).back() : null)}
-            className="px-4 py-2 bg-primary rounded-lg"
-          >
-            <Text className="text-white font-semibold">Retour</Text>
-          </Pressable>
+          <BackButton fallbackRoute="/(tabs)/explore" />
         </View>
       </SafeScreen>
     );

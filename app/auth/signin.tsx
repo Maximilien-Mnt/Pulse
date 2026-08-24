@@ -63,6 +63,7 @@ export default function SignInScreen() {
             title={t("auth.signin.title")}
             showBackButton
             backToLanding
+            centerTitle
             titleClassName="text-lg font-bold text-neutral-900 dark:text-neutral-50"
             className="mb-6"
           />

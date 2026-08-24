@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
-import { BackButton } from "@/components/ui/BackButton";
+import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep1Schema } from "@/utils/validation";
@@ -80,13 +80,12 @@ export default function SignupStep1() {
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
-          <View className="flex-row items-center justify-between mb-6">
-            <BackButton fallbackRoute="/" />
-            <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-              {t("signup.step1.title")}
-            </Text>
-            <View className="w-11" />
-          </View>
+          <Header
+            title={t("signup.step1.title")}
+            showBackButton
+            backToLanding
+            className="mb-6"
+          />
 
           <Text className="text-sm text-neutral-500 mb-2">{t("common.language")}</Text>
           <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">

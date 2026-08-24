@@ -15,6 +15,8 @@ type Props = {
   titleClassName?: string;
   /** Show the canonical back button at the top-left of the header. */
   showBackButton?: boolean;
+  /** Center the title text (takes remaining space). */
+  centerTitle?: boolean;
   /** Route to fall back to when there is no navigation history. */
   backFallbackRoute?: string;
   /** When true, the back button falls back to `/` when there is no history. */
@@ -44,6 +46,7 @@ type Props = {
 export function Header({
   title,
   titleClassName,
+  centerTitle = false,
   showBackButton = false,
   backFallbackRoute,
   backToLanding,
@@ -75,10 +78,10 @@ export function Header({
 
         {onTitlePress ? (
           <Pressable onPress={onTitlePress} hitSlop={8}>
-            <Text className={cn("text-2xl font-bold text-primary dark:text-primary-dark flex-shrink", titleClassName)}>{title}</Text>
+            <Text className={cn("flex-1 text-center text-2xl font-bold flex-shrink", centerTitle && "", titleClassName)}>{title}</Text>
           </Pressable>
         ) : (
-          <Text className={cn("text-2xl font-bold text-primary dark:text-primary-dark flex-shrink", titleClassName)}>{title}</Text>
+          <Text className={cn("flex-1 text-center text-2xl font-bold flex-shrink", centerTitle && "", titleClassName)}>{title}</Text>
         )}
 
         {onSearchChange ? (

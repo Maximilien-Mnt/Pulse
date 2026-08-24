@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef } from "react";
-import { Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
+import React, { useCallback, useMemo, useRef, useEffect } from "react";
+import { Pressable, ScrollView, View, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { useRouter } from "expo-router";
 import Markdown from "@ronradtke/react-native-markdown-display";
 
@@ -12,7 +12,20 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
   const router = useRouter();
   const isDark = useThemeStore((s) => s.isDark);
   const scrollRef = useRef<ScrollView>(null);
-  const cardTopRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+  const headingYMap = useRef<Map<string, number>>(new Map());
+  const headingRefMap = useRef<Map<string, View>>(new Map());
+
+  // Clear heading data when content changes
+  useEffect(() => {
+    headingRefMap.current = new Map();
+    headingYMap.current = new Map();
+  }, [content]);
+
+  // Track current scroll offset for anchor link calculation
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+  }, []);
 
   // Helper to convert heading text to slug
   const slugify = (text: string): string => {
@@ -28,35 +41,55 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       .replace(/\s+/g, '-');
   };
 
-  const onCardLayout = useCallback((e: LayoutChangeEvent) => {
-    cardTopRef.current = e.nativeEvent.layout.y;
+  // Extract version from legal content
+  const extractVersion = useCallback((text: string): string | undefined => {
+    const match = text.match(/\*\*Version du document\s*:\*\*\s*([^\n]+)/);
+    return match?.[1]?.trim();
   }, []);
 
-  // Intercept anchor links and handle them in-page instead of opening new tab.
+  const version = useMemo(() => extractVersion(content), [content, extractVersion]);
+
+  // Intercept anchor links and handle them in-page with React Native scrolling
   const onLinkPress = useCallback(
     (url: string): boolean => {
-      // Check if this is an anchor link
       if (url.startsWith('#')) {
         const slug = url.slice(1);
+        const headingY = headingYMap.current.get(slug);
         
-        // Use native browser scrolling for anchor links
-        if (typeof window !== 'undefined') {
-          const headingElement = document.getElementById(slug);
-          if (headingElement) {
-            // Use native scrollIntoView for smooth in-page scrolling
-            headingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+        if (headingY !== undefined && scrollRef.current) {
+          scrollRef.current.scrollTo({ y: headingY, animated: true });
         }
         
-        // Return false to prevent Linking.openURL from being called
         return false;
       }
       
-      // Return true to let external links open normally
       return true;
     },
     []
   );
+
+  // Store heading refs and Y positions for anchor navigation
+  const setHeadingRef = useCallback((slug: string) => (ref: View | null) => {
+    if (ref) {
+      headingRefMap.current.set(slug, ref);
+      if (ref.measure) {
+        ref.measure((_x, y, _w, _h, _pageX, _pageY) => {
+          headingYMap.current.set(slug, y);
+        });
+      }
+    } else {
+      headingRefMap.current.delete(slug);
+      headingYMap.current.delete(slug);
+    }
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/");
+    }
+  }, [router]);
 
   // Color palette driven by theme
   const colors = isDark
@@ -87,13 +120,18 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
         codeBg: "#F4F4F5",
       };
 
-  // Custom render rules to add IDs to headings
+  // Custom render rules to add refs to headings
   const rules = useMemo(() => ({
     heading1: (node: any, children: any) => {
       const text = node.children?.map((c: any) => c.content || '').join('') || '';
       const id = slugify(text);
       return (
-        <View key={node.key} id={id} collapsable={false}>
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
           {children}
         </View>
       );
@@ -102,7 +140,12 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       const text = node.children?.map((c: any) => c.content || '').join('') || '';
       const id = slugify(text);
       return (
-        <View key={node.key} id={id} collapsable={false}>
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
           {children}
         </View>
       );
@@ -111,92 +154,131 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       const text = node.children?.map((c: any) => c.content || '').join('') || '';
       const id = slugify(text);
       return (
-        <View key={node.key} id={id} collapsable={false}>
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
           {children}
         </View>
       );
     },
-  }), []);
-
-  const handleBack = useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/");
-    }
-  }, [router]);
+    heading4: (node: any, children: any) => {
+      const text = node.children?.map((c: any) => c.content || '').join('') || '';
+      const id = slugify(text);
+      return (
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
+          {children}
+        </View>
+      );
+    },
+    heading5: (node: any, children: any) => {
+      const text = node.children?.map((c: any) => c.content || '').join('') || '';
+      const id = slugify(text);
+      return (
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
+          {children}
+        </View>
+      );
+    },
+    heading6: (node: any, children: any) => {
+      const text = node.children?.map((c: any) => c.content || '').join('') || '';
+      const id = slugify(text);
+      return (
+        <View 
+          key={node.key} 
+          id={id} 
+          collapsable={false}
+          ref={setHeadingRef(id)}
+        >
+          {children}
+        </View>
+      );
+    },
+  }), [setHeadingRef]);
 
   const markdownStyles = {
     // --- Body / paragraphs ---
     body: {
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: 16,
+      lineHeight: 26,
       fontFamily: "Outfit_400Regular",
     },
     paragraph: {
       marginTop: 0,
-      marginBottom: 12,
+      marginBottom: 16,
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: 16,
+      lineHeight: 26,
       fontFamily: "Outfit_400Regular",
     },
 
     // --- Headings ---
     heading1: {
       color: colors.heading,
-      fontSize: 26,
-      lineHeight: 34,
+      fontSize: 30,
+      lineHeight: 38,
       fontWeight: "700",
       fontFamily: "Outfit_700Bold",
-      marginTop: 24,
-      marginBottom: 12,
+      marginTop: 32,
+      marginBottom: 16,
     },
     heading2: {
+      color: colors.heading,
+      fontSize: 26,
+      lineHeight: 34,
+      fontWeight: "600",
+      fontFamily: "Outfit_600SemiBold",
+      marginTop: 28,
+      marginBottom: 14,
+    },
+    heading3: {
       color: colors.heading,
       fontSize: 22,
       lineHeight: 30,
       fontWeight: "600",
       fontFamily: "Outfit_600SemiBold",
-      marginTop: 22,
-      marginBottom: 10,
-    },
-    heading3: {
-      color: colors.heading,
-      fontSize: 18,
-      lineHeight: 26,
-      fontWeight: "600",
-      fontFamily: "Outfit_600SemiBold",
-      marginTop: 18,
-      marginBottom: 8,
+      marginTop: 24,
+      marginBottom: 12,
     },
     heading4: {
       color: colors.heading,
-      fontSize: 16,
-      lineHeight: 24,
-      fontWeight: "600",
-      fontFamily: "Outfit_600SemiBold",
-      marginTop: 16,
-      marginBottom: 6,
+      fontSize: 19,
+      lineHeight: 27,
+      fontWeight: "500",
+      fontFamily: "Outfit_500Medium",
+      marginTop: 20,
+      marginBottom: 10,
     },
     heading5: {
       color: colors.heading,
-      fontSize: 15,
-      lineHeight: 22,
-      fontWeight: "600",
-      fontFamily: "Outfit_600SemiBold",
-      marginTop: 14,
-      marginBottom: 6,
+      fontSize: 17,
+      lineHeight: 24,
+      fontWeight: "500",
+      fontFamily: "Outfit_500Medium",
+      marginTop: 18,
+      marginBottom: 8,
     },
     heading6: {
       color: colors.heading,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "600",
-      fontFamily: "Outfit_600SemiBold",
-      marginTop: 12,
-      marginBottom: 4,
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: "500",
+      fontFamily: "Outfit_500Medium",
+      marginTop: 16,
+      marginBottom: 6,
     },
 
     // --- Inline formatting ---
@@ -214,8 +296,8 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     },
     text: {
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: 16,
+      lineHeight: 26,
       fontFamily: "Outfit_400Regular",
     },
     link: {
@@ -228,16 +310,16 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
       backgroundColor: isDark ? "#16162A" : "#F4F6FB",
       borderLeftWidth: 4,
       borderLeftColor: colors.accent,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      marginTop: 8,
-      marginBottom: 12,
-      borderRadius: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginTop: 10,
+      marginBottom: 16,
+      borderRadius: 8,
     },
     blockquoteText: {
       color: colors.body,
-      fontSize: 14,
-      lineHeight: 22,
+      fontSize: 15,
+      lineHeight: 24,
       fontFamily: "Outfit_400Regular",
       fontStyle: "italic",
     },
@@ -250,76 +332,83 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
 
     // --- Lists ---
     bulletList: {
-      marginBottom: 12,
+      marginBottom: 16,
     },
     orderedList: {
-      marginBottom: 12,
+      marginBottom: 16,
     },
     bulletListItem: {
       flexDirection: "row",
       alignItems: "flex-start",
-      marginBottom: 6,
+      marginBottom: 8,
     },
     orderedListItem: {
       flexDirection: "row",
       alignItems: "flex-start",
-      marginBottom: 6,
+      marginBottom: 8,
     },
     bulletListIcon: {
       color: colors.accent,
-      fontSize: 14,
-      marginRight: 8,
+      fontSize: 16,
+      marginRight: 10,
       marginTop: 4,
     },
     orderedListIcon: {
       color: colors.accent,
-      fontSize: 14,
-      marginRight: 8,
+      fontSize: 16,
+      marginRight: 10,
       marginTop: 4,
       fontFamily: "Outfit_500Medium",
     },
     listItem: {
       flexShrink: 1,
       color: colors.body,
-      fontSize: 15,
-      lineHeight: 24,
+      fontSize: 16,
+      lineHeight: 26,
       fontFamily: "Outfit_400Regular",
     },
     l1: {
       marginLeft: 0,
     },
     l2: {
-      marginLeft: 20,
+      marginLeft: 24,
     },
 
     // --- Tables ---
     table: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 10,
+      borderRadius: 12,
       overflow: "hidden",
-      marginTop: 10,
-      marginBottom: 14,
+      marginTop: 14,
+      marginBottom: 18,
     },
     tableHeader: {
       backgroundColor: colors.tableHeaderBg,
     },
     tableHeaderCell: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.accent,
       borderRightWidth: 1,
       borderRightColor: colors.border,
+      backgroundColor: colors.tableHeaderBg,
     },
     tableCell: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       borderRightWidth: 1,
       borderRightColor: colors.border,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
     },
-    tableRow: {},
-    tableRowLast: {},
+    tableRow: {
+      backgroundColor: colors.card,
+    },
+    tableRowLast: {
+      borderBottomWidth: 0,
+    },
     tableCellLast: {
       borderRightWidth: 0,
     },
@@ -335,8 +424,8 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     },
     textCell: {
       color: colors.body,
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 15,
+      lineHeight: 22,
       fontFamily: "Outfit_400Regular",
       padding: 0,
     },
@@ -344,46 +433,47 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
     // --- Code ---
     code_inline: {
       fontFamily: "monospace",
-      fontSize: 13,
+      fontSize: 14,
       color: isDark ? "#E2E8F0" : "#1E293B",
       backgroundColor: colors.codeBg,
-      paddingHorizontal: 4,
-      borderRadius: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
     },
     codeBlock: {
       fontFamily: "monospace",
-      fontSize: 13,
+      fontSize: 14,
       color: isDark ? "#E2E8F0" : "#1E293B",
       backgroundColor: colors.codeBg,
-      padding: 12,
-      borderRadius: 8,
-      marginTop: 8,
-      marginBottom: 12,
+      padding: 16,
+      borderRadius: 10,
+      marginTop: 12,
+      marginBottom: 16,
     },
     fence: {
       fontFamily: "monospace",
-      fontSize: 13,
+      fontSize: 14,
       color: isDark ? "#E2E8F0" : "#1E293B",
       backgroundColor: colors.codeBg,
-      padding: 12,
-      borderRadius: 8,
-      marginTop: 8,
-      marginBottom: 12,
+      padding: 16,
+      borderRadius: 10,
+      marginTop: 12,
+      marginBottom: 16,
     },
 
     // --- Horizontal rule ---
     hr: {
       backgroundColor: colors.divider,
       height: 1,
-      marginTop: 16,
-      marginBottom: 16,
+      marginTop: 20,
+      marginBottom: 20,
     },
   } as const;
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      {/* Header with back button */}
-      <View className="flex-row items-center justify-between px-2 py-2 border-b border-neutral-100 dark:border-neutral-800">
+      {/* Header with back button, title, and version */}
+      <View className="flex-row items-center justify-between px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <Pressable
           onPress={handleBack}
           hitSlop={8}
@@ -400,18 +490,24 @@ export function LegalDocumentViewer({ content, title }: { content: string; title
         >
           {title ?? "Document"}
         </Text>
-        {/* Balanced spacer to keep the title centered */}
-        <View className="w-[72px]" />
+        {version ? (
+          <Text className="text-xs font-medium text-neutral-500 dark:text-neutral-400 px-2">
+            v{version}
+          </Text>
+        ) : (
+          <View className="w-8" />
+        )}
       </View>
 
       <ScrollView
         ref={scrollRef}
-        contentContainerClassName="p-4 pb-24"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerClassName="p-4"
         showsVerticalScrollIndicator={false}
       >
         <View
-          onLayout={onCardLayout}
-          className="bg-white dark:bg-neutral-800 rounded-xl p-4 border border-neutral-100 dark:border-neutral-700"
+          className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-neutral-100 dark:border-neutral-700"
           style={{
             backgroundColor: colors.card,
             borderColor: colors.border,

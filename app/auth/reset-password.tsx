@@ -45,31 +45,37 @@ export default function ResetPasswordScreen() {
       setLoading(true);
       setError(null);
 
-      // If we have a code from the deep link, exchange it for a session
+      // Attempt to exchange the deep-link code for a session.
+      // If this fails (e.g. token already consumed / expired), we still
+      // check getSession() below because a recovery session may already
+      // be present in storage (e.g. re-opened link, partial exchange).
+      let exchangeFailed = false;
       if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          if (alive) {
-            setError(
-              "Ce lien de réinitialisation est invalide ou a expiré. " +
-                "Veuillez demander un nouveau lien."
-            );
+        try {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            exchangeFailed = true;
           }
-          return;
+        } catch {
+          exchangeFailed = true;
         }
       }
 
-      // Check if we now have a valid session (recovery session)
       const { data } = await supabase.auth.getSession();
-      if (alive) {
-        if (data.session) {
-          setReady(true);
-        } else {
-          setError(
-            "Aucune session de récupération valide. " +
-              "Veuillez demander un nouveau lien de réinitialisation."
-          );
-        }
+      if (!alive) return;
+
+      if (data.session) {
+        setReady(true);
+      } else if (code && exchangeFailed) {
+        setError(
+          "Ce lien de réinitialisation est invalide ou a expiré. " +
+            "Veuillez demander un nouveau lien."
+        );
+      } else {
+        setError(
+          "Aucune session de récupération valide. " +
+            "Veuillez demander un nouveau lien de réinitialisation."
+        );
       }
     }
 

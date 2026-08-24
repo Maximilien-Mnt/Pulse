@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
+import { Icon } from "@/components/ui/Icon";
+import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
 import { setStoredPassword } from "@/lib/passwordStorage";
 import { resetPasswordSchema } from "@/utils/validation";
@@ -12,18 +14,22 @@ import { usePostHog } from "posthog-react-native";
 import Toast from "react-native-toast-message";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Form = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const posthog = usePostHog();
+  const { t } = useTranslation();
   const params = useGlobalSearchParams();
   const code = typeof params.code === "string" ? params.code : undefined;
 
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     control,
@@ -181,8 +187,12 @@ export default function ResetPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
-          <Text className="text-3xl font-bold text-primary mb-2">Pulse</Text>
-          <View className="items-center mt-12 mb-8">
+          <Header
+            title="Pulse"
+            showCancelButton
+            className="mb-6"
+          />
+          <View className="items-center mt-6 mb-8">
             <View className="w-20 h-20 rounded-full bg-error/10 items-center justify-center mb-6">
               <Text className="text-4xl">⚠️</Text>
             </View>
@@ -193,18 +203,18 @@ export default function ResetPasswordScreen() {
               {error}
             </Text>
           </View>
-          <View className="mt-8">
+          <View className="mt-4">
             <Button
               title="Demander un nouveau lien"
               onPress={() => router.replace("/auth/forgot-password")}
               variant="secondary"
+              className="mb-3"
             />
-          </View>
-          <View className="flex-row justify-center mt-4">
-            <Text className="text-neutral-600 dark:text-neutral-300">Déjà un compte ? </Text>
-            <Pressable onPress={() => router.replace("/auth/signin")}>
-              <Text className="text-primary font-semibold">Se connecter</Text>
-            </Pressable>
+            <Button
+              title="Se connecter"
+              variant="secondary"
+              onPress={() => router.replace("/auth/signin")}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -221,9 +231,13 @@ export default function ResetPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
-          <Text className="text-3xl font-bold text-primary mb-2">Pulse</Text>
+          <Header
+            title="Pulse"
+            showCancelButton
+            className="mb-6"
+          />
           <View className="items-center mt-12 mb-8">
-            <Text className="text-neutral-600 dark:text-neutral-300">
+            <Text className="text-base text-neutral-600 dark:text-neutral-300">
               Vérification de votre lien de réinitialisation…
             </Text>
           </View>
@@ -240,24 +254,44 @@ export default function ResetPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerClassName="px-6 pt-4 pb-10" keyboardShouldPersistTaps="handled">
-        <Text className="text-3xl font-bold text-primary mb-2">Pulse</Text>
-        <Text className="text-neutral-600 dark:text-neutral-300 mb-8">
-          Nouveau mot de passe
+        <Header
+          title="Pulse"
+          showCancelButton
+          className="mb-6"
+        />
+        <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 mb-2">
+          {t("auth.resetPassword.title")}
         </Text>
-        <Text className="text-neutral-600 dark:text-neutral-300 mb-6">
-          Choisissez un nouveau mot de passe pour votre compte.
+        <Text className="text-base text-neutral-600 dark:text-neutral-300 mb-6">
+          {t("auth.resetPassword.description")}
         </Text>
         <Controller
           control={control}
           name="password"
           render={({ field: { value, onChange } }) => (
             <Input
-              label="Nouveau mot de passe"
+              label={t("auth.resetPassword.newPassword")}
               value={value}
               onChangeText={onChange}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               placeholder="••••••••"
               error={errors.password?.message}
+              rightElement={
+                <Pressable
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  className="p-1 active:opacity-70"
+                >
+                  <Icon
+                    name={showPassword ? "EyeOff" : "Eye"}
+                    size={20}
+                    color="text-secondary"
+                  />
+                </Pressable>
+              }
+              className="mb-4"
             />
           )}
         />
@@ -266,22 +300,37 @@ export default function ResetPasswordScreen() {
           name="confirmPassword"
           render={({ field: { value, onChange } }) => (
             <Input
-              label="Confirmer le mot de passe"
+              label={t("auth.resetPassword.confirmPassword")}
               value={value}
               onChangeText={onChange}
-              secureTextEntry
+              secureTextEntry={!showConfirmPassword}
               placeholder="••••••••"
               error={errors.confirmPassword?.message}
+              rightElement={
+                <Pressable
+                  onPress={() => setShowConfirmPassword((prev) => !prev)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  className="p-1 active:opacity-70"
+                >
+                  <Icon
+                    name={showConfirmPassword ? "EyeOff" : "Eye"}
+                    size={20}
+                    color="text-secondary"
+                  />
+                </Pressable>
+              }
+              className="mb-4"
             />
           )}
         />
-        <Button title="Réinitialiser le mot de passe" onPress={onSubmit} loading={isSubmitting} />
-        <View className="flex-row justify-center mt-8">
-          <Text className="text-neutral-600 dark:text-neutral-300">Retour à la connexion ? </Text>
-          <Pressable onPress={() => router.replace("/auth/signin")}>
-            <Text className="text-primary font-semibold">Se connecter</Text>
-          </Pressable>
-        </View>
+        <Button title={t("auth.resetPassword.submit")} onPress={onSubmit} loading={isSubmitting} className="mb-3" />
+        <Button
+          title={t("auth.resetPassword.backToSignin")}
+          variant="secondary"
+          onPress={() => router.replace("/auth/signin")}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
     </SafeScreen>

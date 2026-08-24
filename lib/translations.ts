@@ -59,6 +59,13 @@ export const translations = {
     "auth.forgotPassword.sent.title": "Email envoyé",
     "auth.forgotPassword.sent.description":
       "Si ce compte existe, un email de réinitialisation vient d'être envoyé. Cliquez sur le lien dans l'email pour choisir un nouveau mot de passe.",
+    "auth.resetPassword.title": "Nouveau mot de passe",
+    "auth.resetPassword.description":
+      "Choisissez un nouveau mot de passe pour votre compte.",
+    "auth.resetPassword.newPassword": "Nouveau mot de passe",
+    "auth.resetPassword.confirmPassword": "Confirmer le mot de passe",
+    "auth.resetPassword.submit": "Réinitialiser le mot de passe",
+    "auth.resetPassword.backToSignin": "Retour à la connexion",
     "signup.step1.title": "Créer un compte",
     "signup.step1.fullName": "Nom complet",
     "signup.step1.username": "Nom d'utilisateur",
@@ -119,6 +126,13 @@ export const translations = {
     "auth.forgotPassword.sent.title": "Email sent",
     "auth.forgotPassword.sent.description":
       "If this account exists, a password reset email has been sent. Click the link in the email to choose a new password.",
+    "auth.resetPassword.title": "New password",
+    "auth.resetPassword.description":
+      "Choose a new password for your account.",
+    "auth.resetPassword.newPassword": "New password",
+    "auth.resetPassword.confirmPassword": "Confirm password",
+    "auth.resetPassword.submit": "Reset password",
+    "auth.resetPassword.backToSignin": "Back to sign in",
     "signup.step1.title": "Create account",
     "common.yes": "Yes",
     "common.no": "No",

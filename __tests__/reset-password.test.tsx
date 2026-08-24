@@ -38,6 +38,26 @@ jest.mock("react-native-toast-message", () => ({
   show: jest.fn(),
 }));
 
+// Mock useTranslation
+const tMock = (key: string) => {
+  const map: Record<string, string> = {
+    "auth.resetPassword.title": "Nouveau mot de passe",
+    "auth.resetPassword.description": "Choisissez un nouveau mot de passe pour votre compte.",
+    "auth.resetPassword.newPassword": "Nouveau mot de passe",
+    "auth.resetPassword.confirmPassword": "Confirmer le mot de passe",
+    "auth.resetPassword.submit": "Réinitialiser le mot de passe",
+    "auth.resetPassword.backToSignin": "Se connecter",
+  };
+  return map[key] ?? key;
+};
+
+jest.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: tMock,
+    language: "fr",
+  }),
+}));
+
 // Mock authStore
 jest.mock("@/stores/authStore", () => ({
   useAuthStore: {

@@ -15,11 +15,8 @@ type Props = {
   titleClassName?: string;
   /** Show the canonical back button at the top-left of the header. */
   showBackButton?: boolean;
-  /** Center the title text (takes remaining space). */
   centerTitle?: boolean;
-  /** Route to fall back to when there is no navigation history. */
   backFallbackRoute?: string;
-  /** When true, the back button falls back to `/` when there is no history. */
   backToLanding?: boolean;
   searchValue?: string;
   onSearchChange?: (t: string) => void;
@@ -28,19 +25,18 @@ type Props = {
   searchPlaceholder?: string;
   searchExpanded?: boolean;
   onSearchPress?: () => void;
-  /** Called when the title text is tapped. */
   onTitlePress?: () => void;
   showAvatar?: boolean;
   avatarUrl?: string | null;
   rightSlot?: ReactNode;
-  /** Show the theme (light/dark) toggle button. */
   showThemeToggle?: boolean;
-  /** Show the language (fr/en) toggle button. */
   showLanguageToggle?: boolean;
-  /** Called when the header's root view layout changes. */
   onLayout?: (e: LayoutChangeEvent) => void;
-  /** Additional className for the root header view */
   className?: string;
+  /** Show a cancel button instead of the back button at the top-left of the header. */
+  showCancelButton?: boolean;
+  /** Called when the cancel button is pressed. */
+  onCancel?: () => void;
 };
 
 export function Header({
@@ -65,6 +61,8 @@ export function Header({
   showLanguageToggle = true,
   onLayout,
   className,
+  showCancelButton = false,
+  onCancel,
 }: Props) {
   const router = useRouter();
   const { t, language } = useTranslation();
@@ -74,7 +72,19 @@ export function Header({
   return (
     <View className={cn("px-4 pt-2 pb-3 bg-neutral-50 dark:bg-[#0A0F1E]", className)} onLayout={onLayout}>
       <View className="flex-row items-center gap-3">
-        {showBackButton ? <BackButton fallbackRoute={fallbackRoute} /> : null}
+        {showCancelButton ? (
+          <Pressable
+            onPress={onCancel ?? (() => router.replace("/"))}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Annuler"
+            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+          >
+            <Icon name="X" size={24} color="primary" />
+          </Pressable>
+        ) : showBackButton ? (
+          <BackButton fallbackRoute={fallbackRoute} />
+        ) : null}
 
         {onTitlePress ? (
           <Pressable onPress={onTitlePress} hitSlop={8}>

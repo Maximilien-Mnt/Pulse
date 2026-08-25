@@ -17,6 +17,7 @@
 - Keyboard dismissal buttons (Done, Return, etc.) must be implemented for all text input fields to allow users to dismiss the keyboard easily.
 - The keyboard must never cover any content that is meant to be interacted with by the user, particularly text input areas in creation forms.
 -Always make sure that everything added or changed is working fine, clear and respects the best UI/UX for light mode as well as dark mode
+-Use simple, clear and consise messages in the commit messages
 
 # Visual Identity & Design System — mandatory for all UI work
 

@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Header } from "@/components/shared/Header";
+import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { Input } from "@/components/ui/Input";
 import { supabase } from "@/lib/supabase";
 import { DISCOVERY_SOURCES } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep5Schema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
@@ -19,27 +21,13 @@ import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-nati
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
+import { useTranslation } from "@/hooks/useTranslation";
 import { savePendingSignup } from "@/utils/signup";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
-/** The Other chip value that reveals a free-text details field. */
-const OTHER_OPTION = "Autre";
-
-/**
- * Resolve the value persisted as discovery_source:
- *  - a preset option -> the option itself
- *  - Other           -> the user's free-text details (falls back to Other
- *                        when no details were provided)
- */
-function resolveDiscovery(values: Form): string | null {
-  if (!values.discovery) return null;
-  if (values.discovery === OTHER_OPTION) {
-    const details = values.discoveryDetails?.trim();
-    return details ? details : OTHER_OPTION;
-  }
-  return values.discovery || null;
-}
+/** Discovery option key that reveals a free-text details field. */
+const OTHER_KEY = "other";
 
 function base64ToArrayBuffer(base64: string) {
   const binary = globalThis.atob(base64);
@@ -66,6 +54,7 @@ async function uploadAvatarToSupabase(uri: string, path: string) {
 export default function SignupStep5() {
   const router = useRouter();
   const posthog = usePostHog();
+  const { t, language } = useTranslation();
   const resetSignup = useSignupStore((s) => s.reset);
   const step1 = useSignupStore((s) => s.step1);
   const step2 = useSignupStore((s) => s.step2);
@@ -96,7 +85,7 @@ export default function SignupStep5() {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Toast.show({ type: "error", text1: "Permission photos refusée" });
+      Toast.show({ type: "error", text1: t("error.permissionPhotos") });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true, aspect: [1, 1] });
@@ -108,11 +97,20 @@ export default function SignupStep5() {
 
   const onSubmit = handleSubmit(async (values) => {
     if (!step1 || !step2 || !step3.length || !step4) {
-      Toast.show({ type: "error", text1: "Données d'inscription incomplètes" });
+      Toast.show({ type: "error", text1: t("error.incompleteSignup") });
       return;
     }
 
-    const discoverySource = resolveDiscovery(values);
+    let discoverySource: string | null = null;
+    if (values.discovery) {
+      if (values.discovery === OTHER_KEY) {
+        const details = values.discoveryDetails?.trim();
+        discoverySource = details ? details : t("signup.discovery.other");
+      } else {
+        const src = DISCOVERY_SOURCES.find((s) => s.key === values.discovery);
+        discoverySource = src ? t(src.labelKey as never) : values.discovery;
+      }
+    }
 
     setSubmitting(true);
 
@@ -154,7 +152,7 @@ export default function SignupStep5() {
           sports: step3,
           objectives: step4.objectives,
         });
-        Toast.show({ type: "info", text1: "Vérifie ta boîte mail pour confirmer ton compte" });
+        Toast.show({ type: "info", text1: t("toast.confirmEmail") });
         router.replace("/auth/signin");
         return;
       }
@@ -215,10 +213,10 @@ export default function SignupStep5() {
       });
 
       resetSignup();
-      Toast.show({ type: "success", text1: "Compte créé !" });
+      Toast.show({ type: "success", text1: t("toast.accountCreated") });
       router.replace("/(tabs)/feed");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Erreur";
+      const msg = e instanceof Error ? e.message : t("error.generic");
       Toast.show({ type: "error", text1: msg });
     } finally {
       setSubmitting(false);
@@ -227,19 +225,27 @@ export default function SignupStep5() {
 
   return (
     <SafeScreen edges={["top"]} className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Header title="Étape 5/5" showBackButton backToLanding className="mb-2" />
-      <ScrollView contentContainerClassName="px-4 py-4 pb-24">
-        <Text className="text-sm text-neutral-500 mb-1">Biographie (optionnel, max 300)</Text>
+      <Header
+        title={t("signup.step5.title")}
+        showBackButton
+        backToLanding
+        titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
+        className="px-4 pt-2 pb-3 mb-0"
+      />
+      <SignupStepProgress step={5} />
+      <ScrollView contentContainerClassName="px-6 py-4 pb-10" keyboardShouldPersistTaps="handled">
         <Controller
           control={control}
           name="bio"
           render={({ field: { value, onChange } }) => (
             <View className="mb-2">
+              <Text className="text-sm text-neutral-500 mb-1">{t("signup.step5.bio")} {t("signup.optional")} (max 300)</Text>
               <TextInput
                 multiline
                 maxLength={300}
                 className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-base text-neutral-900 dark:text-neutral-50 min-h-[100px]"
-                placeholder="Quelques mots sur toi…"
+                placeholder={t("signup.step5.bioPlaceholder")}
+                placeholderTextColor="#9CA3AF"
                 value={value}
                 onChangeText={onChange}
               />
@@ -247,88 +253,97 @@ export default function SignupStep5() {
             </View>
           )}
         />
-        <Pressable onPress={pickImage} className="mb-4 items-center">
+
+        <Pressable onPress={pickImage} accessibilityRole="button" className="mb-3 items-center">
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={{ width: 112, height: 112, borderRadius: 56 }} contentFit="cover" />
           ) : (
             <View className="w-28 h-28 rounded-full bg-neutral-200 dark:bg-neutral-800 items-center justify-center">
-              <Text className="text-primary font-semibold">Photo</Text>
+              <Text className="text-primary dark:text-primary-dark font-semibold">{t("signup.step5.photo")}</Text>
             </View>
           )}
         </Pressable>
-        <Text className="text-xs text-neutral-500 text-center mb-4">Optionnel - Tu pourras ajouter une photo plus tard</Text>
-        <Text className="text-sm text-neutral-500 mb-2">Comment as-tu découvert Pulse ? (optionnel)</Text>
+        <Text className="text-xs text-neutral-500 text-center mb-4">{t("signup.step5.photoHint")}</Text>
+
+        <Text className="text-sm text-neutral-500 mb-2">{t("signup.step5.discovery")}</Text>
         <Controller
           control={control}
           name="discovery"
           render={({ field: { value, onChange } }) => (
             <View className="flex-row flex-wrap mb-4">
-              {DISCOVERY_SOURCES.map((o) => (
-                <Pressable
-                  key={o}
-                  onPress={() => onChange(value === o ? "" : o)}
-                  className={
-                    value === o
-                      ? "px-3 py-2 rounded-full mr-2 mb-2 bg-primary"
-                      : "px-3 py-2 rounded-full mr-2 mb-2 bg-neutral-200 dark:bg-neutral-800"
-                  }
-                >
-                  <Text className={value === o ? "text-white text-xs" : "text-xs text-neutral-800 dark:text-neutral-100"}>{o}</Text>
-                </Pressable>
-              ))}
+              {DISCOVERY_SOURCES.map((o) => {
+                const label = t(o.labelKey as never);
+                const selected = value === o.key;
+                return (
+                  <Pressable
+                    key={o.key}
+                    onPress={() => onChange(selected ? "" : o.key)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    className={selected ? "px-3 py-2 rounded-full mr-2 mb-2 bg-primary" : "px-3 py-2 rounded-full mr-2 mb-2 bg-neutral-200 dark:bg-neutral-800"}
+                  >
+                    <Text className={selected ? "text-white text-xs" : "text-xs text-neutral-800 dark:text-neutral-100"}>{label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
         />
-        {watch("discovery") === OTHER_OPTION ? (
+        {watch("discovery") === OTHER_KEY ? (
           <Controller
             control={control}
             name="discoveryDetails"
             render={({ field: { value, onChange } }) => (
               <Input
-                label="Précisez (optionnel)"
+                label={t("signup.step5.discoveryDetailsLabel")}
                 value={value ?? ""}
                 onChangeText={onChange}
-                placeholder="Racontez-nous comment vous avez trouvé Pulse..."
+                placeholder={t("signup.step5.discoveryDetailsPlaceholder")}
                 multiline
               />
             )}
           />
         ) : null}
+
         <Pressable
           onPress={() => router.push("/auth/signup/legal?document=terms")}
+          accessibilityRole="button"
           className="flex-row items-center justify-between py-3"
         >
-          <Text className="flex-1 text-primary underline dark:text-primary pr-4">J'accepte les CGU</Text>
+          <Text className="flex-1 text-primary dark:text-primary-dark underline pr-4">{t("signup.step5.acceptTerms")}</Text>
           <Controller
             control={control}
             name="acceptTerms"
             render={({ field: { value, onChange } }) => (
-              <Pressable onPress={() => onChange(!value)} hitSlop={8}>
-                <Switch value={value} onValueChange={onChange} />
-              </Pressable>
+              <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptTerms")} />
             )}
           />
         </Pressable>
-        {errors.acceptTerms ? <Text className="text-error text-sm mb-2">{String(errors.acceptTerms.message)}</Text> : null}
+        {errors.acceptTerms ? (
+          <Text className="text-error text-sm mb-2">{localizeError(errors.acceptTerms.message, language)}</Text>
+        ) : null}
+
         <Pressable
           onPress={() => router.push("/auth/signup/legal?document=privacy")}
+          accessibilityRole="button"
           className="flex-row items-center justify-between py-3"
         >
-          <Text className="flex-1 text-primary underline dark:text-primary pr-4">Politique de confidentialité</Text>
+          <Text className="flex-1 text-primary underline dark:text-primary pr-4">{t("signup.step5.acceptPrivacy")}</Text>
           <Controller
             control={control}
             name="acceptPrivacy"
             render={({ field: { value, onChange } }) => (
-              <Pressable onPress={() => onChange(!value)} hitSlop={8}>
-                <Switch value={value} onValueChange={onChange} />
-              </Pressable>
+              <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptPrivacy")} />
             )}
           />
         </Pressable>
-        {errors.acceptPrivacy ? <Text className="text-error text-sm mb-2">{String(errors.acceptPrivacy.message)}</Text> : null}
+        {errors.acceptPrivacy ? (
+          <Text className="text-error text-sm mb-2">{localizeError(errors.acceptPrivacy.message, language)}</Text>
+        ) : null}
+
         <View className="flex-row gap-3 mt-4">
-          <Button title="Précédent" variant="secondary" onPress={() => router.back()} />
-          <Button title="Créer mon compte" onPress={onSubmit} loading={submitting} className="flex-1" />
+          <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} />
+          <Button title={t("signup.step5.createAccount")} onPress={onSubmit} loading={submitting} className="flex-1" />
         </View>
       </ScrollView>
     </SafeScreen>

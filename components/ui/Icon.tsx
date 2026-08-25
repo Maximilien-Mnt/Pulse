@@ -61,6 +61,7 @@ import {
   Globe,
   Eye,
   EyeOff,
+  Mail,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -112,6 +113,7 @@ export const ICON_MAP = {
   Globe,
   Eye,
   EyeOff,
+  Mail,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON_MAP;

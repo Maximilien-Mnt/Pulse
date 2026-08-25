@@ -98,7 +98,7 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
       isFocused && !error && focusedInput,
       error && errorInput,
       multiline && textareaExtra,
-      rightElement && "pr-11",
+      !!rightElement && "pr-11",
       inputClassName
     );
 

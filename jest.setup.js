@@ -54,6 +54,13 @@ jest.mock('expo-font', () => ({
   isLoaded: jest.fn(() => true),
 }));
 
+// Mock expo-image (native-manager component not available in jsdom)
+jest.mock('expo-image', () => {
+  const MockImage = (props) => null;
+  MockImage.displayName = 'MockExpoImage';
+  return { Image: MockImage, ImageBackground: MockImage };
+});
+
 // Mock themeStore (used by useDesignTokens)
 jest.mock('@/stores/themeStore', () => ({
   useThemeStore: (selector) => selector({ isDark: false }),

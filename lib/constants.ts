@@ -122,17 +122,23 @@ export const OBJECTIVES = [
  * Discovery sources shown on signup step 5 to answer
  * "Comment avez-vous découvert Pulse ?"
  *
- * The last entry ("Autre") is special: when selected by the user, a
- * free-text Input is revealed so they can provide additional details.
+ * `key` is a stable, language-independent identifier persisted as
+ * `discovery_source`. `labelKey` maps to a translation key holding the
+ * localized, human-readable label shown to the user.
+ *
+ * The special "other" entry reveals a free-text input for extra details.
  */
-export const DISCOVERY_SOURCES = [
-  "IA / Assistant de conversation",
-  "Publicité / Annonce",
-  "Navigateur web / moteur de recherche",
-  "Réseaux sociaux",
-  "Ami / Recommandation",
-  "Application similaire",
-  "Autre",
+export const DISCOVERY_SOURCES: {
+  key: string;
+  labelKey: string;
+}[] = [
+  { key: "ai", labelKey: "signup.discovery.ai" },
+  { key: "ads", labelKey: "signup.discovery.ads" },
+  { key: "search", labelKey: "signup.discovery.search" },
+  { key: "social", labelKey: "signup.discovery.social" },
+  { key: "friend", labelKey: "signup.discovery.friend" },
+  { key: "similar", labelKey: "signup.discovery.similar" },
+  { key: "other", labelKey: "signup.discovery.other" },
 ] as const;
 
 export const PUBLIC_SPORT_STATUSES = [

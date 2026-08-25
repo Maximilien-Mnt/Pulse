@@ -3,11 +3,13 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { Header } from "@/components/shared/Header";
+import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep1Schema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -84,8 +86,10 @@ export default function SignupStep1() {
             title={t("signup.step1.title")}
             showBackButton
             backToLanding
-            className="mb-6"
+            titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
+            className="mb-2 px-0"
           />
+          <SignupStepProgress step={1} />
 
           <Text className="text-sm text-neutral-500 mb-2">{t("common.language")}</Text>
           <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
@@ -99,7 +103,9 @@ export default function SignupStep1() {
                 label={t("signup.step1.fullName")}
                 value={value}
                 onChangeText={onChange}
-                error={errors.fullName?.message}
+                textContentType="name"
+                autoComplete="name"
+                error={localizeError(errors.fullName?.message, language)}
                 className="mb-4"
               />
             )}
@@ -114,7 +120,10 @@ export default function SignupStep1() {
                   value={value}
                   onChangeText={onChange}
                   autoCapitalize="none"
-                  error={errors.username?.message}
+                  autoCorrect={false}
+                  textContentType="username"
+                  autoComplete="username"
+                  error={localizeError(errors.username?.message, language)}
                 />
                 {usernameOk === true ? (
                   <Text className="text-success text-sm mt-1">{t("signup.step1.usernameAvailable")}</Text>
@@ -135,7 +144,10 @@ export default function SignupStep1() {
                 onChangeText={onChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                error={errors.email?.message}
+                autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
+                error={localizeError(errors.email?.message, language)}
                 className="mb-4"
               />
             )}
@@ -149,13 +161,15 @@ export default function SignupStep1() {
                 value={value}
                 onChangeText={onChange}
                 secureTextEntry={!showPassword}
-                error={errors.password?.message}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                error={localizeError(errors.password?.message, language)}
                 rightElement={
                   <Pressable
                     onPress={() => setShowPassword((prev) => !prev)}
                     hitSlop={8}
                     accessibilityRole="button"
-                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                    accessibilityLabel={showPassword ? t("signup.hidePassword") : t("signup.showPassword")}
                     className="p-1 active:opacity-70"
                   >
                     <Icon
@@ -178,13 +192,15 @@ export default function SignupStep1() {
                 value={value}
                 onChangeText={onChange}
                 secureTextEntry={!showConfirmPassword}
-                error={errors.confirmPassword?.message}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                error={localizeError(errors.confirmPassword?.message, language)}
                 rightElement={
                   <Pressable
                     onPress={() => setShowConfirmPassword((prev) => !prev)}
                     hitSlop={8}
                     accessibilityRole="button"
-                    accessibilityLabel={showConfirmPassword ? "Hide password" : "Show password"}
+                    accessibilityLabel={showConfirmPassword ? t("signup.hidePassword") : t("signup.showPassword")}
                     className="p-1 active:opacity-70"
                   >
                     <Icon

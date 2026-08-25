@@ -108,6 +108,7 @@ describe("ResetPasswordScreen", () => {
       const inputs = await findAllByPlaceholderText("••••••••");
       expect(inputs.length).toBeGreaterThanOrEqual(1);
     } finally {
+      // @ts-ignore
       window.location = originalLocation;
     }
   });

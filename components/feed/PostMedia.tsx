@@ -223,8 +223,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
         webScrollRef.current = roleList;
         return roleList;
       }
-      const divs = wrapper.querySelectorAll("div");
-      for (const div of divs) {
+      for (const div of Array.from(wrapper.querySelectorAll("div"))) {
         const d = div as HTMLDivElement;
         if (d.scrollWidth > d.clientWidth + 1) {
           webScrollRef.current = d;

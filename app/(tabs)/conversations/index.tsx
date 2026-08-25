@@ -114,6 +114,11 @@ export default function ConversationsScreen() {
           router.push(`/(tabs)/conversations/${item.conversation.id}` as any)
         }
         onLongPress={() => setMenuItem(item)}
+        onAvatarPress={
+          item.other?.id
+            ? () => router.push(`/profile/${item.other.id}`)
+            : undefined
+        }
       />
     ),
     [router]

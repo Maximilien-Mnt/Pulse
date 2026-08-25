@@ -35,11 +35,12 @@
 | `sportId` | string (SportId) | ✅ | Match the user with relevant clubs, events, and content; show appropriate sports in their feed |
 | `level` | string | ✅ | Present clubs/events suited to the user's skill level (beginner, intermediate, advanced, etc.) |
 | `practice` | string | ✅ | Distinguish recreational vs competitive users to personalize club/event recommendations |
-| `weekdays[]` | number (0–6) | ✅ | Schedule matching — show clubs/events on days the user is typically available |
-| `startHour` | number (6–21) | ✅ | Hourly availability window start — used to match event/club times with the user's schedule |
-| `endHour` | number (7–23) | ✅ | Hourly availability window end — used to match event/club times with the user's schedule |
+| `timeSlots` | array of `{ weekday, startHour, endHour }` | ✅ | New JSONB representation for multiple availability windows per day per sport |
+
 
 > **Previously collected:** `timesPerWeek` (a frequency number). This was **removed** in favor of explicit time-window availability (`startHour`/`endHour`) + weekday selection, which is more useful for scheduling matching.
+> 
+> **Updated in step 3 (time slots):** The old flat `weekdays[]` + `startHour` + `endHour` schema has been replaced by an array of time slots (`timeSlots`), where each slot carries its own `weekday`, `startHour`, and `endHour`. This allows users to specify multiple windows (e.g., Monday 08:00-20:00 **and** Tuesday 18:00-23:00).
 
 ---
 

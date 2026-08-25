@@ -73,36 +73,47 @@ export const signupStep3Schema = z
           sportId: z.string(),
           level: z.string().min(1, "Niveau requis"),
           practice: z.string().min(1, "Type de pratique requis"),
-          weekdays: z.array(z.number()).min(1, "Au moins un jour"),
-          startHour: z
-            .number({ invalid_type_error: "Heure de début requise" })
-            .int()
-            .min(6, "Heure de début invalide")
-            .max(21, "Heure de début invalide"),
-          endHour: z
-            .number({ invalid_type_error: "Heure de fin requise" })
-            .int()
-            .min(7, "Heure de fin invalide")
-            .max(23, "Heure de fin invalide"),
+          levelOther: z.string().optional(),
+          practiceOther: z.string().optional(),
+          timeSlots: z
+            .array(
+              z.object({
+                weekday: z.number().int().min(0).max(6),
+                startHour: z
+                  .number({ invalid_type_error: "Heure de début requise" })
+                  .int()
+                  .min(6, "Heure de début invalide")
+                  .max(21, "Heure de début invalide"),
+                endHour: z
+                  .number({ invalid_type_error: "Heure de fin requise" })
+                  .int()
+                  .min(7, "Heure de fin invalide")
+                  .max(23, "Heure de fin invalide"),
+              })
+            )
+            .min(1, "Au moins un créneau requis"),
         })
       )
-      .min(1, "Sélectionne au moins un sport"),
+      .min(0),
   })
   .superRefine((d, ctx) => {
     d.entries.forEach((entry, i) => {
-      if (entry.endHour <= entry.startHour) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "L'heure de fin doit être après l'heure de début",
-          path: ["entries", i, "endHour"],
-        });
-      }
+      entry.timeSlots.forEach((slot, j) => {
+        if (slot.endHour <= slot.startHour) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "L'heure de fin doit être après l'heure de début",
+            path: ["entries", i, "timeSlots", j, "endHour"],
+          });
+        }
+      });
     });
   });
 
 export const signupStep4Schema = z.object({
   interestedSports: z.array(z.string()).default([]),
   objectives: z.array(z.string()).default([]),
+  objectivesDetails: z.string().optional(),
   heightCm: z.string().optional(),
   weightKg: z.string().optional(),
 });

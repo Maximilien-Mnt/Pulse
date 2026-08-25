@@ -29,6 +29,7 @@ interface ConversationItemProps {
   };
   onPress: () => void;
   onLongPress?: () => void;
+  onAvatarPress?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,6 +40,7 @@ export function ConversationItem({
   conversation,
   onPress,
   onLongPress,
+  onAvatarPress,
 }: ConversationItemProps) {
   const unread = conversation.unread ?? false;
   const pinned = conversation.pinned ?? false;
@@ -49,7 +51,12 @@ export function ConversationItem({
       onLongPress={onLongPress}
       className="flex-row items-center gap-3 px-4 py-3 active:bg-primary-tint"
     >
-      <Avatar size={48} uri={conversation.avatar_url} />
+      <Pressable
+        onPress={onAvatarPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Avatar size={48} uri={conversation.avatar_url} />
+      </Pressable>
 
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
@@ -70,7 +77,7 @@ export function ConversationItem({
 
         <Text
           variant="body"
-          className={unread ? "text-text-primary font-['Inter_600SemiBold']" : "text-text-secondary"}
+          className={unread ? "text-text-primary font_['Inter_600SemiBold']" : "text-text-secondary"}
           numberOfLines={1}
         >
           {conversation.last_message ?? "Nouvelle conversation"}

@@ -28,6 +28,8 @@ function logSupabase(label: string, args: any[]) {
 
 const storage = secureStorage;
 
+export const signupEdgeFunctionUrl = `${supabaseUrl}/functions/v1/signup`;
+
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,

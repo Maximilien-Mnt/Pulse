@@ -5,6 +5,32 @@ import { uploadImageToStorage } from "@/lib/imageUpload";
 
 const PENDING_SIGNUP_KEY = "pulse:pending-signup";
 
+const MIN_AGE = 16;
+
+function isValidDate(dateStr: string): boolean {
+  const d = new Date(dateStr + "T00:00:00Z");
+  if (isNaN(d.getTime())) return false;
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return false;
+  const y = parseInt(parts[0]!, 10);
+  const m = parseInt(parts[1]!, 10);
+  const day = parseInt(parts[2]!, 10);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) return false;
+  if (m < 1 || m > 12) return false;
+  const daysInMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+  if (day < 1 || day > daysInMonth) return false;
+  return true;
+}
+
+function calculateAge(birthDateStr: string): number {
+  const bd = new Date(birthDateStr + "T00:00:00Z");
+  const now = new Date();
+  let age = now.getUTCFullYear() - bd.getUTCFullYear();
+  const m = now.getUTCMonth() - bd.getUTCMonth();
+  if (m < 0 || (m === 0 && now.getUTCDate() < bd.getUTCDate())) age -= 1;
+  return age;
+}
+
 export type PendingSignupData = {
   profile: {
     id: string;
@@ -55,6 +81,15 @@ export async function loadPendingSignup(): Promise<PendingSignupData | null> {
 export async function completeSignup(data: PendingSignupData): Promise<void> {
   const { profile, sports, objectives } = data;
 
+  if (!isValidDate(profile.birth_date)) {
+    throw new Error("INVALID_DATE");
+  }
+
+  const age = calculateAge(profile.birth_date);
+  if (age < MIN_AGE) {
+    throw new Error("UNDERAGE");
+  }
+
   let avatarUrl = profile.avatar_url;
   if (!avatarUrl && profile.avatarLocalUri) {
     try {
@@ -98,9 +133,11 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
         sport_id: s.sportId,
         level: s.level,
         practice: s.practice,
-        weekdays: s.weekdays,
-        start_hour: s.startHour,
-        end_hour: s.endHour,
+        time_slots: s.timeSlots.map((slot) => ({
+          weekday: slot.weekday,
+          startHour: slot.startHour,
+          endHour: slot.endHour,
+        })),
       },
       { onConflict: "id", ignoreDuplicates: true }
     );

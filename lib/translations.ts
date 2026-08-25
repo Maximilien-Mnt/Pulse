@@ -106,6 +106,10 @@ export const translations = {
     "signup.step3.hourStartTitle": "Heure de début",
     "signup.step3.hourEndTitle": "Heure de fin",
     "signup.step3.selectMode": "Choisir",
+    "signup.step3.noSport": "Aucun sport",
+    "signup.step3.other": "Autre",
+    "signup.step3.otherDetails": "Précise (optionnel)",
+    "signup.step3.addTimeSlot": "Ajouter un créneau",
     "signup.weekday.0": "Lundi",
     "signup.weekday.1": "Mardi",
     "signup.weekday.2": "Mercredi",
@@ -125,6 +129,16 @@ export const translations = {
     "signup.sport.badminton": "Badminton",
     "signup.sport.fitness": "Fitness",
     "signup.sport.rugby": "Rugby",
+    "signup.sport.squash": "Squash",
+    "signup.sport.table_tennis": "Tennis de table",
+    "signup.sport.martial_arts": "Arts martiaux",
+    "signup.sport.yoga": "Yoga",
+    "signup.sport.pilates": "Pilates",
+    "signup.sport.boxing": "Boxe",
+    "signup.sport.climbing": "Escalade",
+    "signup.sport.golf": "Golf",
+    "signup.sport.dance": "Danse",
+    "signup.sport.surfing": "Surf",
     // Signup — Step 4
     "signup.step4.title": "Créer un compte",
     "signup.step4.interested": "Sports intéressés",
@@ -141,6 +155,9 @@ export const translations = {
     "signup.objective.flexibility": "Améliorer ma souplesse",
     "signup.objective.goal": "Préparer un objectif (course, triathlon…)",
     "signup.objective.discover": "Découvrir un nouveau sport",
+    "signup.objective.other": "Autre",
+    "signup.step4.objectivesDetailsLabel": "Précisez (optionnel)",
+    "signup.step4.objectivesDetailsPlaceholder": "Vos objectifs spécifiques…",
     // Signup — Step 5
     "signup.step5.title": "Créer un compte",
     "signup.step5.photo": "Photo",
@@ -155,6 +172,7 @@ export const translations = {
     "signup.step5.acceptTerms": "J'accepte les CGU",
     "signup.step5.acceptPrivacy": "Politique de confidentialité",
     "signup.step5.createAccount": "Créer mon compte",
+    "signup.step5.legalTitle": "Accords légaux",
     // Signup — Discovery sources
     "signup.discovery.ai": "IA / Assistant de conversation",
     "signup.discovery.ads": "Publicité / Annonce",
@@ -168,6 +186,11 @@ export const translations = {
     "signup.checkEmail.description":
       "Un email de confirmation vient d'être envoyé. Cliquez sur le lien pour activer votre compte.",
     "signup.checkEmail.backToSignin": "Retour à la connexion",
+    // Signup — underage
+    "signup.underage.title": "Compte impossible",
+    "signup.underage.message":
+      "PULSE est actuellement disponible uniquement pour les utilisateurs âgés de 16 ans ou plus. Sur la base de la date de naissance fournie, vous ne pouvez pas créer de compte pour le moment.",
+    "signup.underage.backToSignin": "Retour à la connexion",
     // Errors & toasts
     "error.permissionPhotos": "Permission photos refusée",
     "error.incompleteSignup": "Données d'inscription incomplètes",
@@ -282,6 +305,10 @@ export const translations = {
     "signup.step3.hourStartTitle": "Start time",
     "signup.step3.hourEndTitle": "End time",
     "signup.step3.selectMode": "Choose",
+    "signup.step3.noSport": "No sport",
+    "signup.step3.other": "Other",
+    "signup.step3.otherDetails": "Details (optional)",
+    "signup.step3.addTimeSlot": "Add time slot",
     "signup.weekday.0": "Monday",
     "signup.weekday.1": "Tuesday",
     "signup.weekday.2": "Wednesday",
@@ -301,6 +328,16 @@ export const translations = {
     "signup.sport.badminton": "Badminton",
     "signup.sport.fitness": "Fitness",
     "signup.sport.rugby": "Rugby",
+    "signup.sport.squash": "Squash",
+    "signup.sport.table_tennis": "Table tennis",
+    "signup.sport.martial_arts": "Martial arts",
+    "signup.sport.yoga": "Yoga",
+    "signup.sport.pilates": "Pilates",
+    "signup.sport.boxing": "Boxing",
+    "signup.sport.climbing": "Climbing",
+    "signup.sport.golf": "Golf",
+    "signup.sport.dance": "Dance",
+    "signup.sport.surfing": "Surfing",
     // Signup — Step 4
     "signup.step4.title": "Create account",
     "signup.step4.interested": "Interested sports",
@@ -317,6 +354,9 @@ export const translations = {
     "signup.objective.flexibility": "Improve my flexibility",
     "signup.objective.goal": "Prepare for a goal (race, triathlon…)",
     "signup.objective.discover": "Try a new sport",
+    "signup.objective.other": "Other",
+    "signup.step4.objectivesDetailsLabel": "Tell us more (optional)",
+    "signup.step4.objectivesDetailsPlaceholder": "Your specific goals…",
     // Signup — Step 5
     "signup.step5.title": "Create account",
     "signup.step5.photo": "Photo",
@@ -331,6 +371,7 @@ export const translations = {
     "signup.step5.acceptTerms": "I accept the Terms",
     "signup.step5.acceptPrivacy": "Privacy policy",
     "signup.step5.createAccount": "Create my account",
+    "signup.step5.legalTitle": "Legal agreements",
     // Signup — Discovery sources
     "signup.discovery.ai": "AI / Conversational assistant",
     "signup.discovery.ads": "Advertisement / Ad",
@@ -344,6 +385,11 @@ export const translations = {
     "signup.checkEmail.description":
       "A confirmation email has just been sent. Click the link to activate your account.",
     "signup.checkEmail.backToSignin": "Back to sign in",
+    // Signup — underage
+    "signup.underage.title": "Account creation not possible",
+    "signup.underage.message":
+      "PULSE is currently available only to users aged 16 or older. Based on the date of birth provided, you cannot create an account yet.",
+    "signup.underage.backToSignin": "Back to sign in",
     // Errors & toasts
     "error.permissionPhotos": "Photos permission denied",
     "error.incompleteSignup": "Incomplete signup data",

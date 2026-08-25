@@ -9,26 +9,16 @@ export function useTranslation() {
   const t = (key: TranslationKey, variables?: Record<string, string | number>) => {
     const lang = language;
     const cached = cache.get(`${lang}:${key}`);
-    if (cached) {
-      if (variables) {
-        return variables
-          ? Object.entries(variables).reduce(
-              (str, [k, v]) => str.replaceAll(`{${k}}`, String(v)),
-              cached
-            )
-          : cached;
-      }
-      return cached;
-    }
+    const template = cached ?? translations[lang][key] ?? key;
+    if (!cached) cache.set(`${lang}:${key}`, template);
 
-    let template = translations[lang][key] ?? key;
     if (variables) {
-      template = Object.entries(variables).reduce(
+      return Object.entries(variables).reduce(
         (str, [k, v]) => str.replaceAll(`{${k}}`, String(v)),
         template
       );
     }
-    cache.set(`${lang}:${key}`, template);
+
     return template;
   };
 

@@ -3,13 +3,15 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Header } from "@/components/shared/Header";
 import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { Input } from "@/components/ui/Input";
+import { NativePicker } from "@/components/ui/NativePicker";
 import { OBJECTIVES, SPORTS } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep4Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -17,7 +19,6 @@ import type { TranslationKey } from "@/lib/translations";
 
 type Form = z.infer<typeof signupStep4Schema>;
 
-/** Maps the French OBJECTIVES constants to their translation keys. */
 const OBJECTIVE_KEYS: Record<string, TranslationKey> = {
   "Perdre du poids": "signup.objective.lose",
   "Prendre du muscle": "signup.objective.muscle",
@@ -29,6 +30,7 @@ const OBJECTIVE_KEYS: Record<string, TranslationKey> = {
   "Améliorer ma souplesse": "signup.objective.flexibility",
   "Préparer un objectif (course, triathlon…)": "signup.objective.goal",
   "Découvrir un nouveau sport": "signup.objective.discover",
+  "Autre": "signup.objective.other",
 };
 
 export default function SignupStep4() {
@@ -36,6 +38,9 @@ export default function SignupStep4() {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const setStep4 = useSignupStore((s) => s.setStep4);
+  const [heightOpen, setHeightOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [objectivesDetails, setObjectivesDetails] = useState("");
   const { control, handleSubmit, watch, setValue } = useForm<Form>({
     resolver: zodResolver(signupStep4Schema),
     defaultValues: { interestedSports: [], objectives: [], heightCm: "", weightKg: "" },
@@ -45,6 +50,12 @@ export default function SignupStep4() {
   const objectives = watch("objectives");
 
   const toggle = (field: "interestedSports" | "objectives", value: string) => {
+    if (field === "objectives" && value === "Autre") {
+      const on = watch("objectives").includes("Autre");
+      setValue("objectives", on ? [] : ["Autre"], { shouldValidate: true });
+      setObjectivesDetails("");
+      return;
+    }
     const cur = watch(field);
     if (cur.includes(value)) setValue(field, cur.filter((x) => x !== value), { shouldValidate: true });
     else setValue(field, [...cur, value], { shouldValidate: true });
@@ -54,6 +65,7 @@ export default function SignupStep4() {
     setStep4({
       interestedSports: values.interestedSports,
       objectives: values.objectives,
+      objectivesDetails: objectivesDetails || undefined,
       heightCm: values.heightCm,
       weightKg: values.weightKg,
     });
@@ -67,16 +79,20 @@ export default function SignupStep4() {
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Header
-        title={t("signup.step4.title")}
-        showBackButton
-        backToLanding
-        titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
-        className="px-4 pt-2 pb-3 mb-0"
-      />
-      <SignupStepProgress step={4} />
-      <ScrollView contentContainerClassName="px-6 py-4 pb-10">
-        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerClassName="px-6 py-4 pb-10" keyboardShouldPersistTaps="handled">
+          <Header
+            title={t("signup.step4.title")}
+            showBackButton
+            backToLanding
+            titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
+            className="mb-2 px-0"
+          />
+          <SignupStepProgress step={4} />
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
           {t("signup.step4.interested")} {t("signup.optional")}
         </Text>
         <View className="flex-row flex-wrap mb-4">
@@ -118,31 +134,76 @@ export default function SignupStep4() {
             );
           })}
         </View>
+        {objectives.includes("Autre") && (
+          <Controller
+            control={control}
+            name="objectivesDetails"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                label={t("signup.step4.objectivesDetailsLabel")}
+                value={value ?? ""}
+                onChangeText={(text) => { onChange(text); setObjectivesDetails(text); }}
+                placeholder={t("signup.step4.objectivesDetailsPlaceholder")}
+                multiline
+                numberOfLines={3}
+                className="mb-4"
+              />
+            )}
+          />
+        )}
         <View className="flex-row gap-3">
           <Controller
             control={control}
             name="heightCm"
             render={({ field: { value, onChange } }) => (
-              <Input
-                label={`${t("signup.step4.height")} ${t("signup.optional")}`}
-                value={value ?? ""}
-                onChangeText={onChange}
-                keyboardType="number-pad"
-                className="flex-1"
-              />
+              <View className="flex-1">
+                <Pressable
+                  onPress={() => setHeightOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("signup.step4.height")}
+                  className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
+                >
+                  <Text className="text-base text-text-primary">
+                    {value ? `${value} cm` : t("signup.step4.height") + " " + t("signup.optional")}
+                  </Text>
+                  <Text className="text-text-tertiary text-lg">›</Text>
+                </Pressable>
+                <NativePicker
+                  visible={heightOpen}
+                  title={t("signup.step4.height")}
+                  options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: `${100 + i} cm` }))}
+                  selectedValue={value ?? ""}
+                  onSelect={(v) => onChange(v as string)}
+                  onClose={() => setHeightOpen(false)}
+                />
+              </View>
             )}
           />
           <Controller
             control={control}
             name="weightKg"
             render={({ field: { value, onChange } }) => (
-              <Input
-                label={`${t("signup.step4.weight")} ${t("signup.optional")}`}
-                value={value ?? ""}
-                onChangeText={onChange}
-                keyboardType="numeric"
-                className="flex-1"
-              />
+              <View className="flex-1">
+                <Pressable
+                  onPress={() => setWeightOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("signup.step4.weight")}
+                  className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
+                >
+                  <Text className="text-base text-text-primary">
+                    {value ? `${value} kg` : t("signup.step4.weight") + " " + t("signup.optional")}
+                  </Text>
+                  <Text className="text-text-tertiary text-lg">›</Text>
+                </Pressable>
+                <NativePicker
+                  visible={weightOpen}
+                  title={t("signup.step4.weight")}
+                  options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: `${30 + i} kg` }))}
+                  selectedValue={value ?? ""}
+                  onSelect={(v) => onChange(v as string)}
+                  onClose={() => setWeightOpen(false)}
+                />
+              </View>
             )}
           />
         </View>
@@ -151,6 +212,7 @@ export default function SignupStep4() {
           <Button title={t("signup.continue")} onPress={onSubmit} className="flex-1" />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeScreen>
   );
 }

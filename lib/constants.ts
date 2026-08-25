@@ -38,7 +38,17 @@ export type SportId =
   | "padel"
   | "badminton"
   | "fitness"
-  | "rugby";
+  | "rugby"
+  | "squash"
+  | "table_tennis"
+  | "martial_arts"
+  | "yoga"
+  | "pilates"
+  | "boxing"
+  | "climbing"
+  | "golf"
+  | "dance"
+  | "surfing";
 
 export type SportDefinition = {
   id: SportId;
@@ -60,40 +70,75 @@ export const SPORTS: SportDefinition[] = [
   { id: "badminton", label: "Badminton", icon: "tennisball-outline", color: "#14B8A6" },
   { id: "fitness", label: "Fitness", icon: "barbell-outline", color: "#64748B" },
   { id: "rugby", label: "Rugby", icon: "american-football-outline", color: "#15803D" },
+  { id: "squash", label: "Squash", icon: "circle-outline", color: "#0891B2" },
+  { id: "table_tennis", label: "Tennis de table", icon: "disc-outline", color: "#BE185D" },
+  { id: "martial_arts", label: "Arts martiaux", icon: "shield-outline", color: "#B45309" },
+  { id: "yoga", label: "Yoga", icon: "body-outline", color: "#7C3AED" },
+  { id: "pilates", label: "Pilates", icon: "accessibility-outline", color: "#DB2777" },
+  { id: "boxing", label: "Boxe", icon: "flash-outline", color: "#991B1B" },
+  { id: "climbing", label: "Escalade", icon: "trending-up-outline", color: "#4F46E5" },
+  { id: "golf", label: "Golf", icon: "locate-outline", color: "#15803D" },
+  { id: "dance", label: "Danse", icon: "musical-notes-outline", color: "#C026D3" },
+  { id: "surfing", label: "Surf", icon: "water-outline", color: "#0EA5E9" },
 ];
 
 const defaultLevels = ["Débutant", "Intermédiaire", "Confirmé", "Compétition", "Élite"];
 const defaultPractices = ["Loisir", "Compétition", "Mixte", "Entraînement structuré"];
 
+function withOther<T>(arr: readonly T[]): T[] {
+  return [...arr, "Autre" as T];
+}
+
 export const SPORT_LEVELS: Record<SportId, string[]> = {
-  football: ["Débutant", "Loisir", "Régional", "National", "Semi-pro", "Pro"],
-  basketball: defaultLevels,
-  tennis: ["25", "30/1", "30", "15", "5", "1", "NC"],
-  running: ["Marche active", "5 km", "10 km", "Semi-marathon", "Marathon", "Ultra"],
-  cycling: ["Découverte", "Loisir", "Club", "Gran fondo", "Compétition UCI amateur"],
-  swimming: ["Apprentissage", "Loisir", "Maître", "Compétition régionale", "Compétition nationale"],
-  volleyball: defaultLevels,
-  handball: defaultLevels,
-  padel: ["Débutant", "Intermédiaire", "4e série", "3e série", "2e série", "1re série"],
-  badminton: ["Débutant", "P25", "P17", "P12", "P5", "Nationale"],
-  fitness: ["Remise en forme", "Hypertrophie", "Force", "Cross-training", "Préparation athlétique"],
-  rugby: ["École de rugby", "Loisir", "Fédérale 3", "Fédérale 2", "Fédérale 1", "Pro D2", "Top 14"],
+  football: withOther(["Débutant", "Loisir", "Régional", "National", "Semi-pro", "Pro"]),
+  basketball: withOther(defaultLevels),
+  tennis: withOther(["25", "30/1", "30", "15", "5", "1", "NC"]),
+  running: withOther(["Marche active", "5 km", "10 km", "Semi-marathon", "Marathon", "Ultra"]),
+  cycling: withOther(["Découverte", "Loisir", "Club", "Gran fondo", "Compétition UCI amateur"]),
+  swimming: withOther(["Apprentissage", "Loisir", "Maître", "Compétition régionale", "Compétition nationale"]),
+  volleyball: withOther(defaultLevels),
+  handball: withOther(defaultLevels),
+  padel: withOther(["Débutant", "Intermédiaire", "4e série", "3e série", "2e série", "1re série"]),
+  badminton: withOther(["Débutant", "P25", "P17", "P12", "P5", "Nationale"]),
+  fitness: withOther(["Remise en forme", "Hypertrophie", "Force", "Cross-training", "Préparation athlétique"]),
+  rugby: withOther(["École de rugby", "Loisir", "Fédérale 3", "Fédérale 2", "Fédérale 1", "Pro D2", "Top 14"]),
+  squash: withOther(["Débutant", "Intermédiaire", "Confirmé", "Compétition"]),
+  table_tennis: withOther(["Débutant", "Loisir", "Régional", "National"]),
+  martial_arts: withOther(["Débutant", "Intermédiaire", "Avancé", "Combat"]),
+  yoga: withOther(["Débutant", "Intermédiaire", "Avancé", "Vinyasa", "Yin"]),
+  pilates: withOther(["Débutant", "Intermédiaire", "Avancé", "Rééducation"]),
+  boxing: withOther(["Débutant", "Loisir", "Amateur", "Préparation"]),
+  climbing: withOther(["Débutant", "Intermédiaire", "Confirmé", "Compétition"]),
+  golf: withOther(["Débutant", "Intermédiaire", "Confirmé", "Compétition"]),
+  dance: withOther(["Débutant", "Intermédiaire", "Confirmé", "Compétition"]),
+  surfing: withOther(["Débutant", "Intermédiaire", "Confirmé", "Compétition"]),
 };
 
 export const SPORT_PRACTICES: Record<SportId, string[]> = {
-  football: ["Loisir", "Foot à 5/7", "Club amateur", "Compétition", "Entraînement technique"],
-  basketball: ["Street", "Club loisir", "Club compétition", "3x3", "Shooting / skills"],
-  tennis: ["Loisir", "Tournois", "Cours collectifs", "Padel en complément", "Compétition ITF"],
-  running: ["Tapis", "Route", "Trail", "Piste", "Fractionné"],
-  cycling: ["Route", "Gravel", "VTT", "Home trainer", "Piste"],
-  swimming: ["Bassin loisir", "Maîtres", "Eau libre", "Technique", "Prépa triathlon"],
-  volleyball: ["Beach", "Salle loisir", "Salle compétition", "Mixte entreprise"],
-  handball: ["Loisir", "Club amateur", "Compétition jeunes", "Compétition adultes"],
-  padel: ["Loisir", "Tournois", "Ligue", "Coaching"],
-  badminton: ["Loisir", "Double", "Simple", "Compétition"],
-  fitness: ["Musculation", "Cardio", "HIIT", "Yoga/Pilates", "Coaching perso"],
-  rugby: ["Touch", "Loisir", "XV", "VII", "Compétition"],
+  football: withOther(["Loisir", "Foot à 5/7", "Club amateur", "Compétition", "Entraînement technique"]),
+  basketball: withOther(["Street", "Club loisir", "Club compétition", "3x3", "Shooting / skills"]),
+  tennis: withOther(["Loisir", "Tournois", "Cours collectifs", "Padel en complément", "Compétition ITF"]),
+  running: withOther(["Tapis", "Route", "Trail", "Piste", "Fractionné"]),
+  cycling: withOther(["Route", "Gravel", "VTT", "Home trainer", "Piste"]),
+  swimming: withOther(["Bassin loisir", "Maîtres", "Eau libre", "Technique", "Prépa triathlon"]),
+  volleyball: withOther(["Beach", "Salle loisir", "Salle compétition", "Mixte entreprise"]),
+  handball: withOther(["Loisir", "Club amateur", "Compétition jeunes", "Compétition adultes"]),
+  padel: withOther(["Loisir", "Tournois", "Ligue", "Coaching"]),
+  badminton: withOther(["Loisir", "Double", "Simple", "Compétition"]),
+  fitness: withOther(["Musculation", "Cardio", "HIIT", "Yoga/Pilates", "Coaching perso"]),
+  rugby: withOther(["Touch", "Loisir", "XV", "VII", "Compétition"]),
+  squash: withOther(["Loisir", "Club", "Compétition"]),
+  table_tennis: withOther(["Loisir", "Club", "Compétition"]),
+  martial_arts: withOther(["Loisir", "Club", "Compétition", "Self-défense"]),
+  yoga: withOther(["Studio", "Maison", "Vinyasa", "Yin"]),
+  pilates: withOther(["Studio", "Maison", "Rééducation"]),
+  boxing: withOther(["Loisir", "Club", "Compétition", "Fitness"]),
+  climbing: withOther(["Salle", "Bloc", "Falaise", "Compétition"]),
+  golf: withOther(["Loisir", "Club", "Compétition", "Practice"]),
+  dance: withOther(["Loisir", "Club", "Compétition", "Spectacle"]),
+  surfing: withOther(["Loisir", "Club", "Compétition", "Bodyboard"]),
 };
+
 
 export const WEEKDAYS = [
   "Lundi",
@@ -116,6 +161,7 @@ export const OBJECTIVES = [
   "Améliorer ma souplesse",
   "Préparer un objectif (course, triathlon…)",
   "Découvrir un nouveau sport",
+  "Autre",
 ] as const;
 
 /**

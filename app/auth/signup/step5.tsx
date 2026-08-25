@@ -17,12 +17,12 @@ import * as FileSystem from "expo-file-system";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
-import { savePendingSignup } from "@/utils/signup";
+import { signupEdgeFunctionUrl } from "@/lib/supabase";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
@@ -115,93 +115,74 @@ export default function SignupStep5() {
     setSubmitting(true);
 
     try {
-      const emailRedirectTo = Linking.createURL("/auth/signin");
-
-      const { data, error } = await supabase.auth.signUp({
-        email: step1.email,
-        password: step1.password,
-        options: {
-          emailRedirectTo,
-        },
-      });
-
-      if (error) throw error;
-
-      const user = data.session?.user ?? data.user;
-
-      if (!user) {
-        // Email confirmation required: persist signup data for replay after confirmation
-        await savePendingSignup({
-          profile: {
-            id: crypto.randomUUID(),
-            email: step1.email,
-            full_name: step1.fullName,
-            username: step1.username,
-            avatar_url: null,
-            avatarLocalUri: avatarUri,
-            bio: values.bio || null,
-            birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
-            country: step2.country,
-            city: step2.city ?? null,
-            language: step1.language,
-            height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
-            weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
-            discovery_source: discoverySource,
-            interested_sports: step4.interestedSports,
-          },
-          sports: step3,
-          objectives: step4.objectives,
-        });
-        Toast.show({ type: "info", text1: t("toast.confirmEmail") });
-        router.replace("/auth/signin");
-        return;
-      }
-
       let avatar_url: string | null = null;
       if (avatarUri) {
-        avatar_url = await uploadAvatarToSupabase(avatarUri, `${user.id}/avatar.jpg`);
+        // Upload avatar before calling the edge function so we can pass the public URL
+        avatar_url = await uploadAvatarToSupabase(avatarUri, `pending-${Date.now()}.jpg`);
       }
 
-      const { error: pe } = await supabase.from("profiles").insert({
-        id: user.id,
+      const payload = {
         email: step1.email,
+        password: step1.password,
         full_name: step1.fullName,
         username: step1.username,
-        avatar_url,
-        bio: values.bio || null,
         birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
         country: step2.country,
         city: step2.city ?? null,
         language: step1.language,
         height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
         weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
+        bio: values.bio || null,
+        avatar_url,
         discovery_source: discoverySource,
         interested_sports: step4.interestedSports,
-      });
-      if (pe) throw pe;
-
-      for (const s of step3) {
-        const { error: se } = await supabase.from("user_sports").insert({
-          user_id: user.id,
-          sport_id: s.sportId,
+        sports: step3.map((s) => ({
+          sportId: s.sportId,
           level: s.level,
           practice: s.practice,
-          weekdays: s.weekdays,
-          start_hour: s.startHour,
-          end_hour: s.endHour,
-        });
-        if (se) throw se;
+          timeSlots: s.timeSlots,
+          levelOther: s.levelOther,
+          practiceOther: s.practiceOther,
+        })),
+        objectives: step4.objectives,
+        objectives_details: step4.objectivesDetails,
+      };
+
+      const res = await fetch(signupEdgeFunctionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = (await res.json()) as {
+        ok: boolean;
+        userId?: string;
+        error?: string;
+        needsConfirmation?: boolean;
+      };
+
+      if (!res.ok || !json.ok) {
+        if (json.error === "UNDERAGE") {
+          router.replace("/auth/signup/under16");
+          return;
+        }
+        throw new Error(json.error ?? "signup_failed");
       }
 
-      for (const o of step4.objectives) {
-        const { error: oe } = await supabase.from("user_objectives").insert({
-          user_id: user.id,
-          objective: o,
-        });
-        if (oe) throw oe;
+      if (json.needsConfirmation) {
+        Toast.show({ type: "info", text1: t("toast.confirmEmail") });
+        router.replace("/auth/signup/check-email");
+        return;
       }
 
-      posthog.identify(user.id, {
+      // Auto sign-in when no email confirmation is required
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: step1.email,
+        password: step1.password,
+      });
+      if (signInError) throw signInError;
+
+      posthog.identify(json.userId ?? step1.email, {
         $set: { username: step1.username, language: step1.language },
         $set_once: { signup_date: new Date().toISOString(), discovery_source: discoverySource },
       });
@@ -225,22 +206,28 @@ export default function SignupStep5() {
 
   return (
     <SafeScreen edges={["top"]} className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
-      <Header
-        title={t("signup.step5.title")}
-        showBackButton
-        backToLanding
-        titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
-        className="px-4 pt-2 pb-3 mb-0"
-      />
-      <SignupStepProgress step={5} />
-      <ScrollView contentContainerClassName="px-6 py-4 pb-10" keyboardShouldPersistTaps="handled">
-        <Controller
-          control={control}
-          name="bio"
-          render={({ field: { value, onChange } }) => (
-            <View className="mb-2">
-              <Text className="text-sm text-neutral-500 mb-1">{t("signup.step5.bio")} {t("signup.optional")} (max 300)</Text>
-              <TextInput
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerClassName="px-6 py-4 pb-10" keyboardShouldPersistTaps="handled">
+          <Header
+            title={t("signup.step5.title")}
+            showBackButton
+            backToLanding
+            titleClassName="text-2xl text-neutral-900 dark:text-neutral-50"
+            className="mb-2 px-0"
+          />
+          <SignupStepProgress step={5} />
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+            {t("signup.step5.bio")} {t("signup.optional")}
+          </Text>
+          <Controller
+            control={control}
+            name="bio"
+            render={({ field: { value, onChange } }) => (
+              <View className="mb-4">
+                <TextInput
                 multiline
                 maxLength={300}
                 className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-base text-neutral-900 dark:text-neutral-50 min-h-[100px]"
@@ -254,6 +241,9 @@ export default function SignupStep5() {
           )}
         />
 
+        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+          {t("signup.step5.photo")} {t("signup.optional")}
+        </Text>
         <Pressable onPress={pickImage} accessibilityRole="button" className="mb-3 items-center">
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={{ width: 112, height: 112, borderRadius: 56 }} contentFit="cover" />
@@ -265,7 +255,7 @@ export default function SignupStep5() {
         </Pressable>
         <Text className="text-xs text-neutral-500 text-center mb-4">{t("signup.step5.photoHint")}</Text>
 
-        <Text className="text-sm text-neutral-500 mb-2">{t("signup.step5.discovery")}</Text>
+        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">{t("signup.step5.discovery")}</Text>
         <Controller
           control={control}
           name="discovery"
@@ -305,47 +295,63 @@ export default function SignupStep5() {
           />
         ) : null}
 
-        <Pressable
-          onPress={() => router.push("/auth/signup/legal?document=terms")}
-          accessibilityRole="button"
-          className="flex-row items-center justify-between py-3"
-        >
-          <Text className="flex-1 text-primary dark:text-primary-dark underline pr-4">{t("signup.step5.acceptTerms")}</Text>
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-3">
+            {t("signup.step5.legalTitle")}
+          </Text>
           <Controller
             control={control}
             name="acceptTerms"
             render={({ field: { value, onChange } }) => (
-              <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptTerms")} />
+              <Pressable
+                onPress={() => router.push("/auth/signup/legal?document=terms")}
+                accessibilityRole="button"
+                className={`flex-row items-center justify-between border-2 rounded-xl px-4 py-3 mb-3 ${
+                  value
+                    ? "border-primary bg-primary/5 dark:bg-primary/10"
+                    : "border-neutral-200 dark:border-neutral-700 bg-surface dark:bg-surface-dark"
+                }`}
+              >
+                <Text className={`flex-1 text-base font-medium pr-4 ${
+                  value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
+                }`}>{t("signup.step5.acceptTerms")}</Text>
+                <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptTerms")} />
+              </Pressable>
             )}
           />
-        </Pressable>
-        {errors.acceptTerms ? (
-          <Text className="text-error text-sm mb-2">{localizeError(errors.acceptTerms.message, language)}</Text>
-        ) : null}
+          {errors.acceptTerms ? (
+            <Text className="text-error text-sm mb-2">{localizeError(errors.acceptTerms.message, language)}</Text>
+          ) : null}
 
-        <Pressable
-          onPress={() => router.push("/auth/signup/legal?document=privacy")}
-          accessibilityRole="button"
-          className="flex-row items-center justify-between py-3"
-        >
-          <Text className="flex-1 text-primary underline dark:text-primary pr-4">{t("signup.step5.acceptPrivacy")}</Text>
           <Controller
             control={control}
             name="acceptPrivacy"
             render={({ field: { value, onChange } }) => (
-              <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptPrivacy")} />
+              <Pressable
+                onPress={() => router.push("/auth/signup/legal?document=privacy")}
+                accessibilityRole="button"
+                className={`flex-row items-center justify-between border-2 rounded-xl px-4 py-3 mb-3 ${
+                  value
+                    ? "border-primary bg-primary/5 dark:bg-primary/10"
+                    : "border-neutral-200 dark:border-neutral-700 bg-surface dark:bg-surface-dark"
+                }`}
+              >
+                <Text className={`flex-1 text-base font-medium pr-4 ${
+                  value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
+                }`}>{t("signup.step5.acceptPrivacy")}</Text>
+                <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptPrivacy")} />
+              </Pressable>
             )}
           />
-        </Pressable>
-        {errors.acceptPrivacy ? (
-          <Text className="text-error text-sm mb-2">{localizeError(errors.acceptPrivacy.message, language)}</Text>
-        ) : null}
+          {errors.acceptPrivacy ? (
+            <Text className="text-error text-sm mb-2">{localizeError(errors.acceptPrivacy.message, language)}</Text>
+          ) : null}
 
-        <View className="flex-row gap-3 mt-4">
-          <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} />
-          <Button title={t("signup.step5.createAccount")} onPress={onSubmit} loading={submitting} className="flex-1" />
-        </View>
+          <View className="flex-row gap-3 mt-6">
+            <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} className="w-24" />
+            <Button title={t("signup.step5.createAccount")} onPress={onSubmit} loading={submitting} className="flex-1" />
+          </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeScreen>
   );
 }

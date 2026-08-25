@@ -18,6 +18,7 @@ export type SignupStep2 = {
 export type SignupStep4 = {
   interestedSports: string[];
   objectives: string[];
+  objectivesDetails?: string;
   heightCm?: string;
   weightKg?: string;
 };

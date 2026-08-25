@@ -241,6 +241,23 @@ function ClubForm({ onClose }: { onClose: () => void }) {
         hero_urls: coverUrl ? [coverUrl] : [],
       } as any);
       if (error) throw error;
+      const { data: followers, error: fError } = await supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", userId);
+      if (fError) throw fError;
+      const ids = (followers ?? []).map((f) => f.follower_id);
+      if (ids.length > 0) {
+        await supabase.from("notifications").insert(
+          ids.map((uid) => ({
+            user_id: uid,
+            type: "followed_user_new_club",
+            title: "Nouveau club",
+            body: "Un compte que tu suis a créé un nouveau club.",
+            data: { creator_id: userId },
+          }))
+        );
+      }
     },
     onSuccess: () => {
       posthog.capture("club_created");
@@ -358,6 +375,23 @@ function EventForm({ onClose }: { onClose: () => void }) {
         difficulty: 1,
       } as any);
       if (error) throw error;
+      const { data: evFollowers, error: efErr } = await supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", userId);
+      if (efErr) throw efErr;
+      const evIds = (evFollowers ?? []).map((f) => f.follower_id);
+      if (evIds.length > 0) {
+        await supabase.from("notifications").insert(
+          evIds.map((uid) => ({
+            user_id: uid,
+            type: "followed_user_new_event",
+            title: "Nouvel événement",
+            body: "Un compte que tu suis a créé un nouvel événement.",
+            data: { creator_id: userId },
+          }))
+        );
+      }
     },
     onSuccess: () => {
       posthog.capture("event_created");

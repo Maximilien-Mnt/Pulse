@@ -81,9 +81,11 @@ export type Database = {
           sport_id: string;
           level: string;
           practice: string;
-          weekdays: number[];
-          start_hour: number | null;
-          end_hour: number | null;
+          time_slots: {
+            weekday: number;
+            startHour: number;
+            endHour: number;
+          }[];
           created_at: string;
         };
         Insert: {
@@ -92,9 +94,11 @@ export type Database = {
           sport_id: string;
           level: string;
           practice: string;
-          weekdays?: number[];
-          start_hour?: number | null;
-          end_hour?: number | null;
+          time_slots?: {
+            weekday: number;
+            startHour: number;
+            endHour: number;
+          }[];
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["user_sports"]["Insert"]>;
@@ -850,9 +854,13 @@ export type SignupSportSelection = {
   sportId: SportId;
   level: string;
   practice: string;
-  weekdays: number[];
-  startHour: number;
-  endHour: number;
+  timeSlots: {
+    weekday: number;
+    startHour: number;
+    endHour: number;
+  }[];
+  levelOther?: string;
+  practiceOther?: string;
 };
 
 export type ConversationListItemDownload = {

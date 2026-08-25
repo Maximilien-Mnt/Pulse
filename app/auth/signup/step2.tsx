@@ -74,23 +74,45 @@ export default function SignupStep2() {
             name="birthDate"
             render={({ field: { value, onChange } }) => (
               <View className="mb-4">
-                {Platform.OS !== "web" ? (
-                  <DateTimePicker
-                    value={value}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    maximumDate={MAX_BIRTH_DATE}
-                    onChange={(_, d) => {
-                      if (d) onChange(d);
-                    }}
-                  />
-                ) : (
-                  <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-4 mb-2">
+                <Pressable
+                  onPress={() => {
+                    // On web, open picker on demand by clicking the field
+                    if (Platform.OS === "web") {
+                      const input = document.createElement("input");
+                      input.type = "date";
+                      input.max = dayjs(MAX_BIRTH_DATE).format("YYYY-MM-DD");
+                      input.value = dayjs(value).format("YYYY-MM-DD");
+                      input.addEventListener("change", (e) => {
+                        const target = e.target as HTMLInputElement;
+                        if (target.value) onChange(new Date(target.value));
+                      });
+                      input.showPicker?.();
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("signup.step2.birthDate")}
+                  className={
+                    Platform.OS === "web"
+                      ? "border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-4 mb-2 active:opacity-70"
+                      : undefined
+                  }
+                >
+                  {Platform.OS !== "web" ? (
+                    <DateTimePicker
+                      value={value}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      maximumDate={MAX_BIRTH_DATE}
+                      onChange={(_, d) => {
+                        if (d) onChange(d);
+                      }}
+                    />
+                  ) : (
                     <Text className="text-base text-neutral-900 dark:text-neutral-50">
                       {dayjs(value).format("DD/MM/YYYY")}
                     </Text>
-                  </View>
-                )}
+                  )}
+                </Pressable>
                 {errors.birthDate ? (
                   <Text className="text-error text-sm mt-2">{localizeError(errors.birthDate.message, language)}</Text>
                 ) : null}

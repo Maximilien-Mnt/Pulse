@@ -2,13 +2,20 @@ import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Header } from "@/components/shared/Header";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Icon } from "@/components/ui/Icon";
+import { useSignupStore } from "@/stores/signupStore";
 
 export default function CheckEmailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const resetSignup = useSignupStore((s) => s.reset);
+
+  useEffect(() => {
+    void resetSignup();
+  }, [resetSignup]);
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">

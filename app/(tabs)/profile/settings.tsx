@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { useSignupStore } from "@/stores/signupStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useThemeStore } from "@/stores/themeStore";
 
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
     setSigningOut(true);
     try {
       await supabase.auth.signOut();
+      await useSignupStore.getState().reset();
       router.replace("/auth/signin");
     } catch {
       setSigningOut(false);

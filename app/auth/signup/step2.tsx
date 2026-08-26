@@ -28,14 +28,15 @@ export default function SignupStep2() {
   const posthog = usePostHog();
   const { t, language } = useTranslation();
   const setStep2 = useSignupStore((s) => s.setStep2);
+  const step2 = useSignupStore((s) => s.step2);
   const [countryOpen, setCountryOpen] = useState(false);
 
   const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep2Schema),
     defaultValues: {
-      birthDate: MAX_BIRTH_DATE,
-      country: "FR",
-      city: "",
+      birthDate: step2?.birthDate ?? MAX_BIRTH_DATE,
+      country: step2?.country ?? "FR",
+      city: step2?.city ?? "",
     },
   });
 
@@ -173,7 +174,16 @@ export default function SignupStep2() {
           />
 
           <View className="flex-row gap-3 mt-6">
-            <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} />
+          <Button
+  title={t("signup.back")}
+  variant="secondary"
+  onPress={() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  }}
+  className="w-24"
+/>
+
             <Button title={t("signup.continue")} onPress={onSubmit} loading={isSubmitting} className="flex-1" />
           </View>
         </ScrollView>

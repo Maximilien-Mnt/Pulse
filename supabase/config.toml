@@ -1,0 +1,10 @@
+# Supabase CLI configuration
+project_id = "eqrhjmuaaaarjxuprjaj"
+
+# Edge function defaults
+# The signup function is called from the app with no Authorization header
+# (users must be able to create an account before they have a JWT), so it must
+# be deployed with JWT verification disabled. The function validates the
+# payload itself.
+[functions.signup]
+verify_jwt = false

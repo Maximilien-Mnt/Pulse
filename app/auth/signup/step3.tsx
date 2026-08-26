@@ -11,7 +11,7 @@ import { useSignupStore } from "@/stores/signupStore";
 import type { SignupSportSelection } from "@/types";
 import { signupStep3Schema } from "@/utils/validation";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { usePostHog } from "posthog-react-native";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -30,6 +30,9 @@ export default function SignupStep3() {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const setStep3 = useSignupStore((s) => s.setStep3);
+  const storeStep3 = useSignupStore((s) => s.step3);
+  const initialized = useRef(false);
+  const mounted = useRef(false);
   const [entries, setEntries] = useState<SignupSportSelection[]>([]);
   const [noSport, setNoSport] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -42,6 +45,21 @@ export default function SignupStep3() {
   const toggleCollapsed = (id: string) => {
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  useEffect(() => {
+    if (!initialized.current && storeStep3.length > 0) {
+      initialized.current = true;
+      setEntries(storeStep3);
+    }
+  }, [storeStep3]);
+
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    setStep3(entries);
+  }, [entries]);
 
   const toggleSport = (id: SportId) => {
     setNoSport(false);
@@ -408,8 +426,9 @@ export default function SignupStep3() {
             }
             onSelect={(h) => {
               if (hourPickerOpen) {
+                const numericHour = typeof h === 'string' ? Number(h) : h;
                 updateSlot(hourPickerOpen.sportId, hourPickerOpen.slotIndex, {
-                  [hourPickerOpen.field]: h,
+                  [hourPickerOpen.field]: numericHour,
                 });
               }
               setHourPickerOpen(null);
@@ -418,13 +437,16 @@ export default function SignupStep3() {
           />
 
           <View className="flex-row gap-3 mt-6">
-            <Button
-              title={t("signup.back")}
-              variant="secondary"
-              onPress={() => router.back()}
-              icon="ArrowLeft"
-              className="w-24"
-            />
+          <Button
+  title={t("signup.back")}
+  variant="secondary"
+  onPress={() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  }}
+  className="w-24"
+/>
+
             <Button
               title={t("signup.continue")}
               onPress={onContinue}

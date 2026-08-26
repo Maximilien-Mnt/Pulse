@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
 import { setStoredPassword } from "@/lib/passwordStorage";
+import { useSignupStore } from "@/stores/signupStore";
 import { resetPasswordSchema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useGlobalSearchParams } from "expo-router";
@@ -174,6 +175,7 @@ export default function ResetPasswordScreen() {
 
     // Sign out to clear the temporary recovery session, then redirect to sign-in
     await supabase.auth.signOut();
+    await useSignupStore.getState().reset();
 
     router.replace("/auth/signin");
   });

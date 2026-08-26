@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import * as FileSystem from "expo-file-system";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
@@ -60,9 +60,11 @@ export default function SignupStep5() {
   const step2 = useSignupStore((s) => s.step2);
   const step3 = useSignupStore((s) => s.step3);
   const step4 = useSignupStore((s) => s.step4);
+  const step5 = useSignupStore((s) => s.step5);
   const setStep5 = useSignupStore((s) => s.setStep5);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(step5?.avatarLocalUri ?? null);
   const [submitting, setSubmitting] = useState(false);
+  const mounted = useRef(false);
 
   const {
     control,
@@ -72,13 +74,30 @@ export default function SignupStep5() {
   } = useForm<Form>({
     resolver: zodResolver(signupStep5Schema),
     defaultValues: {
-      bio: "",
-      discovery: "",
-      discoveryDetails: "",
+      bio: step5?.bio ?? "",
+      discovery: step5?.discovery ?? "",
+      discoveryDetails: step5?.discoveryDetails ?? "",
       acceptTerms: false,
       acceptPrivacy: false,
     },
   });
+
+  const bio = watch("bio");
+  const discovery = watch("discovery");
+  const discoveryDetails = watch("discoveryDetails");
+
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    setStep5({
+      bio,
+      discovery,
+      discoveryDetails,
+      avatarLocalUri: avatarUri,
+    });
+  }, [bio, discovery, discoveryDetails, avatarUri]);
 
   const bioLen = watch("bio")?.length ?? 0;
 
@@ -91,7 +110,7 @@ export default function SignupStep5() {
     const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true, aspect: [1, 1] });
     if (!res.canceled && res.assets[0]) {
       setAvatarUri(res.assets[0].uri);
-      setStep5({ bio: watch("bio"), discovery: watch("discovery"), avatarLocalUri: res.assets[0].uri });
+      setStep5({ bio: watch("bio"), discovery: watch("discovery"), discoveryDetails: watch("discoveryDetails"), avatarLocalUri: res.assets[0].uri });
     }
   };
 
@@ -302,20 +321,24 @@ export default function SignupStep5() {
             control={control}
             name="acceptTerms"
             render={({ field: { value, onChange } }) => (
-              <Pressable
-                onPress={() => router.push("/auth/signup/legal?document=terms")}
-                accessibilityRole="button"
+              <View
                 className={`flex-row items-center justify-between border-2 rounded-xl px-4 py-3 mb-3 ${
                   value
                     ? "border-primary bg-primary/5 dark:bg-primary/10"
                     : "border-neutral-200 dark:border-neutral-700 bg-surface dark:bg-surface-dark"
                 }`}
               >
-                <Text className={`flex-1 text-base font-medium pr-4 ${
-                  value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
-                }`}>{t("signup.step5.acceptTerms")}</Text>
+                <Pressable
+                  onPress={() => router.push("/auth/signup/legal?document=terms")}
+                  accessibilityRole="button"
+                  className="flex-1 mr-4"
+                >
+                  <Text className={`text-base font-medium ${
+                    value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
+                  }`}>{t("signup.step5.acceptTerms")}</Text>
+                </Pressable>
                 <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptTerms")} />
-              </Pressable>
+              </View>
             )}
           />
           {errors.acceptTerms ? (
@@ -326,20 +349,24 @@ export default function SignupStep5() {
             control={control}
             name="acceptPrivacy"
             render={({ field: { value, onChange } }) => (
-              <Pressable
-                onPress={() => router.push("/auth/signup/legal?document=privacy")}
-                accessibilityRole="button"
+              <View
                 className={`flex-row items-center justify-between border-2 rounded-xl px-4 py-3 mb-3 ${
                   value
                     ? "border-primary bg-primary/5 dark:bg-primary/10"
                     : "border-neutral-200 dark:border-neutral-700 bg-surface dark:bg-surface-dark"
                 }`}
               >
-                <Text className={`flex-1 text-base font-medium pr-4 ${
-                  value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
-                }`}>{t("signup.step5.acceptPrivacy")}</Text>
+                <Pressable
+                  onPress={() => router.push("/auth/signup/legal?document=privacy")}
+                  accessibilityRole="button"
+                  className="flex-1 mr-4"
+                >
+                  <Text className={`text-base font-medium ${
+                    value ? "text-primary dark:text-primary-dark" : "text-neutral-900 dark:text-neutral-50"
+                  }`}>{t("signup.step5.acceptPrivacy")}</Text>
+                </Pressable>
                 <Switch value={value} onValueChange={onChange} accessibilityLabel={t("signup.step5.acceptPrivacy")} />
-              </Pressable>
+              </View>
             )}
           />
           {errors.acceptPrivacy ? (
@@ -347,7 +374,16 @@ export default function SignupStep5() {
           ) : null}
 
           <View className="flex-row gap-3 mt-6">
-            <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} className="w-24" />
+          <Button
+  title={t("signup.back")}
+  variant="secondary"
+  onPress={() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  }}
+  className="w-24"
+/>
+
             <Button title={t("signup.step5.createAccount")} onPress={onSubmit} loading={submitting} className="flex-1" />
           </View>
       </ScrollView>

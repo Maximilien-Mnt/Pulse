@@ -3,6 +3,17 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const MIN_AGE = 16;
 
+// CORS headers so the web + mobile app can call this function directly.
+// The signup endpoint is public (no Authorization header is sent) and the
+// browser triggers an OPTIONS preflight before cross-origin POSTs that use a
+// Content-Type of application/json.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -160,10 +171,15 @@ function calculateAge(birthDateStr: string): number {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests from the browser
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
@@ -173,7 +189,7 @@ Deno.serve(async (req) => {
     if (!validation.ok) {
       return new Response(
         JSON.stringify({ ok: false as const, error: validation.error }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -182,7 +198,7 @@ Deno.serve(async (req) => {
     if (!isValidDate(data.birth_date)) {
       return new Response(
         JSON.stringify({ ok: false as const, error: "INVALID_DATE" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -190,7 +206,7 @@ Deno.serve(async (req) => {
     if (age < MIN_AGE) {
       return new Response(
         JSON.stringify({ ok: false as const, error: "UNDERAGE" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -205,7 +221,7 @@ Deno.serve(async (req) => {
           ok: false as const,
           error: authError?.message ?? "Auth signup failed",
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -239,7 +255,7 @@ Deno.serve(async (req) => {
           ok: false as const,
           error: profileError.message,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -263,7 +279,7 @@ Deno.serve(async (req) => {
           ok: false as const,
           error: sportsError.message,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -283,7 +299,7 @@ Deno.serve(async (req) => {
           ok: false as const,
           error: objError.message,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -294,7 +310,7 @@ Deno.serve(async (req) => {
         email: data.email,
         needsConfirmation: !authData.session,
       }),
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (e) {
     return new Response(
@@ -302,7 +318,7 @@ Deno.serve(async (req) => {
         ok: false as const,
         error: e instanceof Error ? e.message : "Unknown error",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 });

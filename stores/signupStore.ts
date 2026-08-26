@@ -1,5 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SignupSportSelection } from "@/types";
 import { create } from "zustand";
+
+const SIGNUP_STORAGE_KEY = "pulse:signup";
 
 export type SignupStep1 = {
   language: string;
@@ -27,6 +30,7 @@ export type SignupStep5 = {
   bio?: string;
   avatarLocalUri?: string | null;
   discovery?: string;
+  discoveryDetails?: string;
 };
 
 type SignupState = {
@@ -40,7 +44,8 @@ type SignupState = {
   setStep3: (v: SignupSportSelection[]) => void;
   setStep4: (v: SignupStep4) => void;
   setStep5: (v: SignupStep5) => void;
-  reset: () => void;
+  reset: () => Promise<void>;
+  hydrate: () => Promise<void>;
 };
 
 const initial = {
@@ -51,12 +56,67 @@ const initial = {
   step5: null,
 };
 
-export const useSignupStore = create<SignupState>((set) => ({
+async function persistStore(state: SignupState) {
+  await AsyncStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(state));
+}
+
+function deserializeState(raw: string | null): SignupState | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    const state = parsed as SignupState;
+    // JSON turns dates into strings; revive birthDate so DatePicker still works.
+    if (state.step2?.birthDate && typeof state.step2.birthDate === "string") {
+      state.step2.birthDate = new Date(state.step2.birthDate);
+    }
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+export const useSignupStore = create<SignupState>((set, get) => ({
   ...initial,
-  setStep1: (step1) => set({ step1 }),
-  setStep2: (step2) => set({ step2 }),
-  setStep3: (step3) => set({ step3 }),
-  setStep4: (step4) => set({ step4 }),
-  setStep5: (step5) => set({ step5 }),
-  reset: () => set(initial),
+  setStep1: (step1) => {
+    const state = get();
+    const newState = { ...state, step1 };
+    set(newState);
+    void persistStore(newState);
+  },
+  setStep2: (step2) => {
+    const state = get();
+    const newState = { ...state, step2 };
+    set(newState);
+    void persistStore(newState);
+  },
+  setStep3: (step3) => {
+    const state = get();
+    const newState = { ...state, step3 };
+    set(newState);
+    void persistStore(newState);
+  },
+  setStep4: (step4) => {
+    const state = get();
+    const newState = { ...state, step4 };
+    set(newState);
+    void persistStore(newState);
+  },
+  setStep5: (step5) => {
+    const state = get();
+    const newState = { ...state, step5 };
+    set(newState);
+    void persistStore(newState);
+  },
+  reset: async () => {
+    set(initial);
+    await AsyncStorage.removeItem(SIGNUP_STORAGE_KEY);
+  },
+  hydrate: async () => {
+    const raw = await AsyncStorage.getItem(SIGNUP_STORAGE_KEY);
+    const stored = deserializeState(raw);
+    if (stored) {
+      set(stored);
+    }
+  },
 }));

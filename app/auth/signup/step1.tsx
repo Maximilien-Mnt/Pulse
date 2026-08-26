@@ -25,6 +25,7 @@ export default function SignupStep1() {
   const posthog = usePostHog();
   const { t, language } = useTranslation();
   const setStep1 = useSignupStore((s) => s.setStep1);
+  const step1 = useSignupStore((s) => s.step1);
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -33,10 +34,10 @@ export default function SignupStep1() {
     resolver: zodResolver(signupStep1Schema),
     defaultValues: {
       language: useLanguageStore.getState().language,
-      fullName: "",
-      username: "",
-      email: "",
-      password: "",
+      fullName: step1?.fullName ?? "",
+      username: step1?.username ?? "",
+      email: step1?.email ?? "",
+      password: step1?.password ?? "",
       confirmPassword: "",
     },
   });

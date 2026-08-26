@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 
 import { Picker } from "@react-native-picker/picker";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View, Platform } from "react-native";
 
 export type NativePickerOption<V extends string | number> = {
   value: V;
@@ -45,6 +45,22 @@ export function NativePicker<V extends string | number>({
   onClose,
   confirmLabel = "OK",
 }: NativePickerProps<V>) {
+  const isWeb = Platform.OS === 'web';
+
+  const handleChange = (value: string | number, _index: number): void => {
+    // Web picker returns strings via <select>, even for numeric options.
+    // Convert back to the option's expected type only if all options share that type.
+    let resolved: V = value as V;
+    if (isWeb && options.length > 0) {
+      const sample = options[0];
+      if (sample && typeof sample.value === 'number') {
+        const num = Number(value);
+        if (Number.isFinite(num)) resolved = num as V;
+      }
+    }
+    onSelect(resolved);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -87,7 +103,7 @@ export function NativePicker<V extends string | number>({
 
           <Picker
             selectedValue={selectedValue}
-            onValueChange={(value) => onSelect(value as V)}
+            onValueChange={(value, index) => handleChange(value as V, index)}
             style={{ height: 216 }}
           >
             {options.map((o) => (

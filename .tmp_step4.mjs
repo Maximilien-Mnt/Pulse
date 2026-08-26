@@ -1,4 +1,6 @@
-import { Button } from "@/components/ui/Button";
+import { writeFileSync } from 'fs';
+const path = 'c:/Users/maxim/Pulse/app/auth/signup/step4.tsx';
+const content = import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Header } from "@/components/shared/Header";
 import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
@@ -10,7 +12,7 @@ import { signupStep4Schema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
@@ -19,6 +21,7 @@ import type { TranslationKey } from "@/lib/translations";
 
 type Form = z.infer<typeof signupStep4Schema>;
 
+/** Maps the French OBJECTIVES constants to their translation keys. */
 const OBJECTIVE_KEYS: Record<string, TranslationKey> = {
   "Perdre du poids": "signup.objective.lose",
   "Prendre du muscle": "signup.objective.muscle",
@@ -38,44 +41,21 @@ export default function SignupStep4() {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const setStep4 = useSignupStore((s) => s.setStep4);
-  const step4 = useSignupStore((s) => s.step4);
   const [heightOpen, setHeightOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
-  const mounted = useRef(false);
-  const [objectivesDetails, setObjectivesDetails] = useState(step4?.objectivesDetails ?? "");
+  const [objectivesDetails, setObjectivesDetails] = useState("");
   const { control, handleSubmit, watch, setValue } = useForm<Form>({
     resolver: zodResolver(signupStep4Schema),
-    defaultValues: {
-      interestedSports: step4?.interestedSports ?? [],
-      objectives: step4?.objectives ?? [],
-      heightCm: step4?.heightCm ?? "",
-      weightKg: step4?.weightKg ?? "",
-    },
+    defaultValues: { interestedSports: [], objectives: [], heightCm: "", weightKg: "" },
   });
 
-  const mountedStep4 = useRef(false);
-  const interestedSports = watch("interestedSports");
+  const interested = watch("interestedSports");
   const objectives = watch("objectives");
-  const heightCm = watch("heightCm");
-  const weightKg = watch("weightKg");
-
-  useEffect(() => {
-    if (!mountedStep4.current) {
-      mountedStep4.current = true;
-      return;
-    }
-    setStep4({
-      interestedSports,
-      objectives,
-      objectivesDetails: objectivesDetails || undefined,
-      heightCm,
-      weightKg,
-    });
-  }, [interestedSports, objectives, objectivesDetails, heightCm, weightKg]);
 
   const toggle = (field: "interestedSports" | "objectives", value: string) => {
     if (field === "objectives" && value === "Autre") {
-      const on = watch("objectives").includes("Autre");
+      const cur = watch("objectives");
+      const on = cur.includes("Autre");
       setValue("objectives", on ? [] : ["Autre"], { shouldValidate: true });
       setObjectivesDetails("");
       return;
@@ -121,17 +101,17 @@ export default function SignupStep4() {
         </Text>
         <View className="flex-row flex-wrap mb-4">
           {SPORTS.map((s) => {
-            const on = interestedSports.includes(s.id);
+            const on = interested.includes(s.id);
             return (
               <Pressable
                 key={s.id}
                 onPress={() => toggle("interestedSports", s.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                className={`px-3 py-2 rounded-full mr-2 mb-2 ${on ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"}`}
+                className={px-3 py-2 rounded-full mr-2 mb-2 }
               >
                 <Text className={on ? "text-white" : "text-neutral-800 dark:text-neutral-100"}>
-                  {t(`signup.sport.${s.id}`)}
+                  {t(signup.sport.)}
                 </Text>
               </Pressable>
             );
@@ -151,7 +131,7 @@ export default function SignupStep4() {
                 onPress={() => toggle("objectives", label)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                className={`px-3 py-2 rounded-full mr-2 mb-2 ${on ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"}`}
+                className={px-3 py-2 rounded-full mr-2 mb-2 }
               >
                 <Text className={on ? "text-white text-xs" : "text-xs text-neutral-800 dark:text-neutral-100"}>{label}</Text>
               </Pressable>
@@ -188,14 +168,14 @@ export default function SignupStep4() {
                   className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
                 >
                   <Text className="text-base text-text-primary">
-                    {value ? `${value} cm` : t("signup.step4.height") + " " + t("signup.optional")}
+                    {value ? ${value} cm : t("signup.step4.height") + " " + t("signup.optional")}
                   </Text>
                   <Text className="text-text-tertiary text-lg">›</Text>
                 </Pressable>
                 <NativePicker
                   visible={heightOpen}
                   title={t("signup.step4.height")}
-                  options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: `${100 + i} cm` }))}
+                  options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: ${100 + i} cm }))}
                   selectedValue={value ?? ""}
                   onSelect={(v) => onChange(v as string)}
                   onClose={() => setHeightOpen(false)}
@@ -215,14 +195,14 @@ export default function SignupStep4() {
                   className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
                 >
                   <Text className="text-base text-text-primary">
-                    {value ? `${value} kg` : t("signup.step4.weight") + " " + t("signup.optional")}
+                    {value ? ${value} kg : t("signup.step4.weight") + " " + t("signup.optional")}
                   </Text>
                   <Text className="text-text-tertiary text-lg">›</Text>
                 </Pressable>
                 <NativePicker
                   visible={weightOpen}
                   title={t("signup.step4.weight")}
-                  options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: `${30 + i} kg` }))}
+                  options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: ${30 + i} kg }))}
                   selectedValue={value ?? ""}
                   onSelect={(v) => onChange(v as string)}
                   onClose={() => setWeightOpen(false)}
@@ -232,16 +212,7 @@ export default function SignupStep4() {
           />
         </View>
         <View className="flex-row gap-3 mt-6">
-        <Button
-  title={t("signup.back")}
-  variant="secondary"
-  onPress={() => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/");
-  }}
-  className="w-24"
-/>
-
+          <Button title={t("signup.back")} variant="secondary" onPress={() => router.back()} />
           <Button title={t("signup.continue")} onPress={onSubmit} className="flex-1" />
         </View>
       </ScrollView>
@@ -249,3 +220,6 @@ export default function SignupStep4() {
     </SafeScreen>
   );
 }
+;
+writeFileSync(path, content);
+console.log('OK step4.tsx');

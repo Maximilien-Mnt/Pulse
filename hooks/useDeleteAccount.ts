@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { useSignupStore } from "@/stores/signupStore";
 import { useMutation } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
 
@@ -25,6 +26,7 @@ export function useDeleteAccount() {
       // server-side, so a sign-out failure must not surface as a deletion
       // error.
       await supabase.auth.signOut().catch(() => {});
+      await useSignupStore.getState().reset();
     },
     onError: (error: Error) => {
       Toast.show({ type: "error", text1: error.message });

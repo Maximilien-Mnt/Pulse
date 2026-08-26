@@ -1,34 +1,35 @@
 // ---------------------------------------------------------------------------
-// PULSE PROFILE SCREEN
+// PULSE PROFILE SCREEN (Personal)
 //
-// Cover image (3:1), avatar 96px overlay, H1 name, body bio, sport chips,
-// stats row, public profile toggle, edit button, settings access.
+// Cover image (3:1), avatar 96px overlay, name, username, bio, then the same
+// clean, UI/UX-optimised sections as a public profile:
+//   - Stats grid (6 tiles when public, only clubs + events when private)
+//   - Sports & statuts, sports interested in, and objectives
+// Then the public/private info and the notifications / clubs / settings
+// subscreens access rows.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import React, { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
-import { useProfile } from "@/hooks/useProfile";
-import { useUserSports } from "@/hooks/useUserSports";
-import { useMyClubMemberships } from "@/hooks/useMyClubMemberships";
-import { supabase } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
-import { SPORTS } from "@/lib/constants";
+import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
-import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { GoPublicSheet } from "@/components/profile/GoPublicSheet";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import {
+  StatsGrid,
+  SportStatusCard,
+  InterestedSportsCard,
+  ObjectivesCard,
+} from "@/components/profile/ProfileSections";
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -52,84 +53,30 @@ function ProfileSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
-// Stats row
-// ---------------------------------------------------------------------------
-
-function StatsRow({
-  posts,
-  clubs,
-  followers,
-}: {
-  posts: number;
-  clubs: number;
-  followers: number;
-}) {
-  return (
-    <View className="flex-row py-4">
-      <View className="flex-1 items-center">
-        <Text variant="stat" className="text-text-primary tabular-nums">
-          {posts}
-        </Text>
-        <Text variant="caption" className="text-text-tertiary mt-1">
-          Posts
-        </Text>
-      </View>
-      <View className="flex-1 items-center">
-        <Text variant="stat" className="text-text-primary tabular-nums">
-          {clubs}
-        </Text>
-        <Text variant="caption" className="text-text-tertiary mt-1">
-          Clubs
-        </Text>
-      </View>
-      <View className="flex-1 items-center">
-        <Text variant="stat" className="text-text-primary tabular-nums">
-          {followers}
-        </Text>
-        <Text variant="caption" className="text-text-tertiary mt-1">
-          Abonnés
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
 
 export default function ProfileScreen() {
   const userId = useAuthStore((s) => s.userId);
   const router = useRouter();
-  const { data: profile, isLoading, isError, refetch } = useProfile(userId);
-  const { data: userSports } = useUserSports(userId, "practiced");
-  const { data: memberships } = useMyClubMemberships(userId);
+  const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(userId);
   const [goPublicOpen, setGoPublicOpen] = useState(false);
-
-  // Post count
-  const { data: postCount = 0 } = useQuery({
-    queryKey: ["post-count", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("posts")
-        .select("*", { count: "exact", head: true })
-        .eq("author_id", userId!);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  const isPublic = profile?.is_public_profile ?? false;
 
   if (isLoading) return <ProfileSkeleton />;
 
-  const coverUrl = profile?.avatar_url ?? null;
-  const name = profile?.full_name ?? "Utilisateur";
-  const bio = profile?.bio ?? "";
-  const sports: string[] = userSports ?? [];
-  const clubCount = memberships?.length ?? 0;
+  if (isError || !profile) {
+    return (
+      <SafeScreen edges={["top"]}>
+        <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
+      </SafeScreen>
+    );
+  }
 
+  const isPublic = profile.is_public_profile;
+  const coverUrl = profile.avatar_url ?? null;
+  const name = profile.full_name ?? "Utilisateur";
+  const bio = profile.bio ?? "";
+  const statusMap = parsePublicStatus(profile.public_status);
   return (
     <SafeScreen edges={["top"]}>
       <ScrollView bounces={false}>
@@ -149,23 +96,19 @@ export default function ProfileScreen() {
 
           {/* Avatar overlay */}
           <View className="absolute bottom-0 left-4 translate-y-1/2">
-            <Avatar
-              uri={coverUrl}
-              size={96}
-              className="border-[3px] border-surface"
-            />
+            <Avatar uri={coverUrl} size={96} className="border-[3px] border-surface" />
           </View>
         </View>
 
-        {/* Body */}
-        <View className="px-4 mt-14 gap-4">
+        {/* Header */}
+        <View className="px-4 mt-14">
           {/* Name */}
           <Text variant="h1" className="text-text-primary">
             {name}
           </Text>
 
           {/* Name tag (username) */}
-          {profile?.username ? (
+          {profile.username ? (
             <Text variant="caption" className="text-text-tertiary -mt-1">
               @{profile.username}
             </Text>
@@ -177,27 +120,24 @@ export default function ProfileScreen() {
               {bio}
             </Text>
           ) : null}
+        </View>
 
-          {/* Sport chips */}
-          {sports.length > 0 ? (
-            <View className="flex-row flex-wrap gap-2">
-              {sports.map((s) => (
-                <Tag key={s} variant="chip" active={false}>
-                  {SPORTS.find((sp) => sp.id === s)?.label ?? s}
-                </Tag>
-              ))}
-            </View>
-          ) : null}
+        {/* Content sections — same as a public profile */}
+        <View className="px-4">
+          {/* Stats grid (gated by visibility: 6 public / 2 private) */}
+          <StatsGrid stats={profile.stats ?? null} isPublic={isPublic} />
 
-          {/* Stats */}
-          <StatsRow
-            posts={postCount}
-            clubs={clubCount}
-            followers={0}
-          />
+          {/* Sports practiced */}
+          <SportStatusCard sports={profile.sports ?? []} statusMap={statusMap} />
+
+          {/* Sports interested in */}
+          <InterestedSportsCard sports={profile.interested_sports ?? []} />
+
+          {/* Objectives */}
+          <ObjectivesCard objectives={profile.objectives ?? []} />
 
           {/* Divider */}
-          <View className="border-t border-border" />
+          <View className="border-t border-border mt-4" />
 
           {/* Public profile activation button (only visible when profile is private) */}
           {!isPublic && (
@@ -234,8 +174,7 @@ export default function ProfileScreen() {
 
           {/* Divider */}
           <View className="border-t border-border" />
-
-          {/* Notifications access */}
+{/* Notifications access */}
           <Pressable
             onPress={() => router.push("/(tabs)/profile/notifications" as any)}
             className="flex-row items-center justify-between py-4"

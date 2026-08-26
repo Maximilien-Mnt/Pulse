@@ -9,7 +9,8 @@ export default function ProfileLayout() {
       <Stack.Screen name="events" />
       <Stack.Screen name="accepted-events" />
       <Stack.Screen name="user-posts" />
-      <Stack.Screen name="public" />
+            <Stack.Screen name="public" />
+      <Stack.Screen name="edit-profile" />
       <Stack.Screen name="clubs" />
       <Stack.Screen name="legal" />
     </Stack>

@@ -145,7 +145,7 @@ export default function ConversationScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Stack.Screen options={{ title }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-row items-center px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton fallbackRoute="/(tabs)/conversations" />
         <Pressable

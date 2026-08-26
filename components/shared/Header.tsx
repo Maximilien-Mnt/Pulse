@@ -131,7 +131,7 @@ export function Header({
             className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
           >
             <Text className="text-xs font-bold text-primary dark:text-primary-dark">
-              {language.toUpperCase()}
+              {language === "fr" ? "EN" : "FR"}
             </Text>
           </Pressable>
         ) : null}

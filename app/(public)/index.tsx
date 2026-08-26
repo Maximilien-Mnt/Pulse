@@ -93,7 +93,7 @@ export default function LandingScreen() {
               className="h-11 w-11 items-center justify-center rounded-full bg-white/70 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 active:opacity-70"
             >
               <Text className="text-xs font-bold text-neutral-700 dark:text-neutral-200">
-                {language.toUpperCase()}
+                {language === "fr" ? "EN" : "FR"}
               </Text>
             </Pressable>
 

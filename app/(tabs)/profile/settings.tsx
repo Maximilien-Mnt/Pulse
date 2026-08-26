@@ -19,7 +19,6 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { SafeScreen } from "@/components/shared/SafeScreen";
-import { EditProfileSheet } from "@/components/profile/EditProfileSheet";
 import { SecuritySection } from "@/components/profile/SecuritySection";
 import { DeleteAccountSheet } from "@/components/profile/DeleteAccountSheet";
 import { GoPublicSheet } from "@/components/profile/GoPublicSheet";
@@ -33,7 +32,6 @@ export default function SettingsScreen() {
   const isDark = useThemeStore((s) => s.isDark);
   const setDark = useThemeStore((s) => s.setDark);
 
-  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [goPublicOpen, setGoPublicOpen] = useState(false);
   const [bugReportOpen, setBugReportOpen] = useState(false);
@@ -68,7 +66,7 @@ export default function SettingsScreen() {
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
           <Pressable
-            onPress={() => setEditOpen(true)}
+            onPress={() => router.push("/(tabs)/profile/edit-profile" as any)}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
@@ -304,13 +302,6 @@ export default function SettingsScreen() {
         ) : null}
       </ScrollView>
 
-      {/* Edit profile sheet */}
-      <EditProfileSheet
-        visible={editOpen}
-        onClose={() => setEditOpen(false)}
-        profile={profile ?? null}
-      />
-
       {/* Go public confirmation sheet */}
       <GoPublicSheet visible={goPublicOpen} onClose={() => setGoPublicOpen(false)} />
 
@@ -322,3 +313,6 @@ export default function SettingsScreen() {
      </SafeScreen>
    );
  }
+
+
+

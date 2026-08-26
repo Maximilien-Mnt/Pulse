@@ -242,7 +242,9 @@ Deno.serve(async (req) => {
       weight_kg: data.weight_kg ?? null,
       discovery_source: data.discovery_source ?? null,
       interested_sports: data.interested_sports,
-      is_public_profile: true,
+      // New accounts are private by default; the user must explicitly opt in
+      // to a public profile via the confirmation flow (GoPublicSheet).
+      is_public_profile: false,
       public_status: {},
       public_photos: [],
       push_token: null,

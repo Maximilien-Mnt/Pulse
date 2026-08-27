@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import React from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -79,15 +79,24 @@ export function StatsGrid({
 export function SportStatusCard({
   sports,
   statusMap,
+  onEditPress,
 }: {
   sports: UserSport[];
   statusMap: PublicStatusMap;
+  onEditPress?: () => void;
 }) {
   if (sports.length === 0) return null;
 
   return (
     <Card className="mt-5 p-4">
-      <Text className="text-lg font-semibold mb-3">Sports & statuts</Text>
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-lg font-semibold">Sports & statuts</Text>
+        {onEditPress ? (
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier les sports pratiqués">
+            <Icon name="Pen" size={20} color="text-tertiary" />
+          </Pressable>
+        ) : null}
+      </View>
       <View className="gap-4">
         {sports.map((s) => {
           const sportDef = SPORTS.find((x) => x.id === s.sport_id);
@@ -147,17 +156,30 @@ export function SportStatusCard({
 // Sports qui m'intéressent
 // ---------------------------------------------------------------------------
 
-export function InterestedSportsCard({ sports }: { sports: string[] }) {
+export function InterestedSportsCard({
+  sports,
+  onEditPress,
+}: {
+  sports: string[];
+  onEditPress?: () => void;
+}) {
   const list = (sports ?? []).filter(Boolean);
   if (list.length === 0) return null;
 
   return (
     <Card className="mt-4 p-4">
-      <View className="flex-row items-center gap-2 mb-2">
-        <Icon name="Heart" size={20} color="accent" />
-        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-          Sports qui m’intéressent
-        </Text>
+      <View className="flex-row items-center justify-between mb-2">
+        <View className="flex-row items-center gap-2">
+          <Icon name="Heart" size={20} color="accent" />
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+            Sports qui m’intéressent
+          </Text>
+        </View>
+        {onEditPress ? (
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier les sports qui m'intéressent">
+            <Icon name="Pen" size={20} color="text-tertiary" />
+          </Pressable>
+        ) : null}
       </View>
       <View className="flex-row flex-wrap gap-2">
         {list.map((sid) => {
@@ -185,14 +207,27 @@ export function InterestedSportsCard({ sports }: { sports: string[] }) {
 // Mes objectifs
 // ---------------------------------------------------------------------------
 
-export function ObjectivesCard({ objectives }: { objectives: { id: string; objective: string }[] }) {
+export function ObjectivesCard({
+  objectives,
+  onEditPress,
+}: {
+  objectives: { id: string; objective: string }[];
+  onEditPress?: () => void;
+}) {
   if (!objectives || objectives.length === 0) return null;
 
   return (
     <Card className="mt-4 p-4">
-      <View className="flex-row items-center gap-2 mb-2">
-        <Icon name="CheckCircle2" size={20} color="success" />
-        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">Mes objectifs</Text>
+      <View className="flex-row items-center justify-between mb-2">
+        <View className="flex-row items-center gap-2">
+          <Icon name="CheckCircle2" size={20} color="success" />
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">Mes objectifs</Text>
+        </View>
+        {onEditPress ? (
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier mes objectifs">
+            <Icon name="Pen" size={20} color="text-tertiary" />
+          </Pressable>
+        ) : null}
       </View>
       <View className="flex-row flex-wrap gap-2">
         {(() => {

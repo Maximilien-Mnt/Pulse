@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  findNodeHandle,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -18,15 +20,22 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { BackButton } from "@/components/ui/BackButton";
 import { NativePicker } from "@/components/ui/NativePicker";
+import { Ionicons } from "@expo/vector-icons";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { uploadImageToStorage } from "@/lib/imageUpload";
-import { OBJECTIVES, SPORTS, COUNTRIES } from "@/lib/constants";
+import { OBJECTIVES, SPORTS, COUNTRIES, WEEKDAYS, SPORT_LEVELS, SPORT_PRACTICES } from "@/lib/constants";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
+
+// Hours available for selection (6 AM -> 11 PM)
+const HOURS = Array.from({ length: 24 - 6 }, (_, i) => 6 + i);
+
+const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
 
 async function uploadAvatar(uri: string, userId: string): Promise<string> {
   return uploadImageToStorage({
@@ -86,12 +95,100 @@ function SportPill({
   );
 }
 
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function PickerField({
+  label,
+  value,
+  options,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onSelect: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        className="h-10 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-3 flex-row items-center justify-between"
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <Text
+          className={`text-sm ${
+            value ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400"
+          }`}
+        >
+          {value || `Sélectionner ${label.toLowerCase()}`}
+        </Text>
+        <Text className="text-tertiary text-lg leading-none">›</Text>
+      </Pressable>
+      <NativePicker
+        visible={open}
+        title={label}
+        options={options}
+        selectedValue={value}
+        onSelect={(v) => {
+          onSelect(v);
+          setOpen(false);
+        }}
+        onClose={() => setOpen(false)}
+      />
+    </>
+  );
+}
+
 export default function EditProfileScreen() {
   const router = useRouter();
   const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
+  const { focusSection } = useLocalSearchParams<{ focusSection?: string }>();
   const keyboardHeight = useKeyboardHeight();
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const objectivesRef = useRef<View>(null);
+  const practicedRef = useRef<View>(null);
+  const interestedRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (!focusSection) return;
+
+    const targetRef =
+      focusSection === "objectives"
+        ? objectivesRef
+        : focusSection === "practiced"
+          ? practicedRef
+          : focusSection === "interested"
+            ? interestedRef
+            : null;
+
+    if (!targetRef?.current) return;
+
+    const timer = setTimeout(() => {
+      if (Platform.OS === "web") {
+        const el = targetRef.current as unknown as HTMLElement;
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        const node = findNodeHandle(targetRef.current);
+        if (!node) return;
+        const measureRN: any = require("react-native").measure;
+        measureRN(
+          node,
+          (_x: number, _y: number, _w: number, _h: number, pageX: number, pageY: number) => {
+            scrollViewRef.current?.scrollTo({ y: pageY - 12, animated: true });
+          }
+        );
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [focusSection]);
 
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -104,6 +201,11 @@ export default function EditProfileScreen() {
   const [interestedSports, setInterestedSports] = useState<string[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [practicedSportDetails, setPracticedSportDetails] = useState<Record<string, {
+    level: string;
+    practice: string;
+    timeSlots: { weekday: number; startHour: number; endHour: number }[];
+  }>>({});
 
   useEffect(() => {
     if (!profile) return;
@@ -121,18 +223,41 @@ export default function EditProfileScreen() {
     if (!profile?.id) return;
     void (supabase as any)
       .from("user_sports")
-      .select("sport_id, category")
+      .select("sport_id, category, level, practice, time_slots")
       .eq("user_id", profile.id)
       .then(({ data, error }: { data: any; error: any }) => {
         if (error || !data) return;
-        const rows = data as { sport_id: string; category: string }[];
-        setPracticedSports(
-          rows.filter((s) => s.category === "practiced").map((s) => s.sport_id)
-        );
-        const interested = rows
-          .filter((s) => s.category === "interested")
-          .map((s) => s.sport_id);
-        if (interested.length) setInterestedSports(interested);
+        const rows = data as {
+          sport_id: string;
+          category: string;
+          level?: string | null;
+          practice?: string | null;
+          time_slots?: any;
+        }[];
+        const practiced: string[] = [];
+        const interested: string[] = [];
+        const details: Record<string, {
+          level: string;
+          practice: string;
+          timeSlots: { weekday: number; startHour: number; endHour: number }[];
+        }> = {};
+        for (const row of rows) {
+          if (row.category === "practiced") {
+            practiced.push(row.sport_id);
+            details[row.sport_id] = {
+              level: row.level ?? "",
+              practice: row.practice ?? "",
+              timeSlots: Array.isArray(row.time_slots)
+                ? row.time_slots
+                : [],
+            };
+          } else if (row.category === "interested") {
+            interested.push(row.sport_id);
+          }
+        }
+        setPracticedSports(practiced);
+        setInterestedSports(interested);
+        setPracticedSportDetails(details);
       });
   }, [profile?.id]);
 
@@ -149,10 +274,26 @@ export default function EditProfileScreen() {
       });
   }, [profile?.id]);
 
-  const togglePracticed = (id: string) =>
-    setPracticedSports((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
+  const togglePracticed = (id: string) => {
+    setPracticedSports((prev) => {
+      const isSelected = prev.includes(id);
+      const next = isSelected ? prev.filter((s) => s !== id) : [...prev, id];
+      if (!isSelected) {
+        setPracticedSportDetails((d) => {
+          const nextDetails: typeof d = { ...d };
+          nextDetails[id] = { level: "", practice: "", timeSlots: [] };
+          return nextDetails;
+        });
+      } else {
+        setPracticedSportDetails((d) => {
+          const nextDetails: typeof d = { ...d };
+          delete nextDetails[id];
+          return nextDetails;
+        });
+      }
+      return next;
+    });
+  };
 
   const toggleInterested = (id: string) =>
     setInterestedSports((prev) =>
@@ -220,43 +361,31 @@ export default function EditProfileScreen() {
     },
   });
   async function syncSports(userId: string) {
-    const targetSet = new Set([
-      ...practicedSports.map((s) => `${s}-practiced`),
-      ...interestedSports.map((s) => `${s}-interested`),
-    ]);
-
-    const { data: existing, error: loadErr } = await (supabase as any)
+    const { error: delErr } = await (supabase as any)
       .from("user_sports")
-      .select("sport_id, category")
+      .delete()
       .eq("user_id", userId);
-    if (loadErr) throw loadErr;
-    const current = (existing ?? []) as { sport_id: string; category: string }[];
-    const currentSet = new Set(current.map((s) => `${s.sport_id}-${s.category}`));
+    if (delErr) throw delErr;
 
-    for (const s of current) {
-      const key = `${s.sport_id}-${s.category}`;
-      if (!targetSet.has(key)) {
-        const { error } = await (supabase as any)
-          .from("user_sports")
-          .delete()
-          .eq("user_id", userId)
-          .eq("sport_id", s.sport_id)
-          .eq("category", s.category);
-        if (error) throw error;
-      }
-    }
+    const toInsert: any[] = [
+      ...practicedSports.map((sport) => ({
+        user_id: userId,
+        sport_id: sport,
+        category: "practiced" as const,
+        level: practicedSportDetails[sport]?.level ?? "",
+        practice: practicedSportDetails[sport]?.practice ?? "",
+        time_slots: practicedSportDetails[sport]?.timeSlots ?? [],
+      })),
+      ...interestedSports.map((sport) => ({
+        user_id: userId,
+        sport_id: sport,
+        category: "interested" as const,
+        level: "",
+        practice: "",
+        time_slots: [],
+      })),
+    ];
 
-    const toInsert: { user_id: string; sport_id: string; category: "practiced" | "interested"; level: string; practice: string }[] = [];
-    for (const sport of practicedSports) {
-      if (!currentSet.has(`${sport}-practiced`)) {
-        toInsert.push({ user_id: userId, sport_id: sport, category: "practiced", level: "", practice: "" });
-      }
-    }
-    for (const sport of interestedSports) {
-      if (!currentSet.has(`${sport}-interested`)) {
-        toInsert.push({ user_id: userId, sport_id: sport, category: "interested", level: "", practice: "" });
-      }
-    }
     if (toInsert.length) {
       const { error } = await (supabase as any).from("user_sports").insert(toInsert);
       if (error) throw error;
@@ -287,6 +416,45 @@ export default function EditProfileScreen() {
       if (error) throw error;
     }
   }
+  const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
+  const [hourPickerOpen, setHourPickerOpen] = useState<{
+    sportId: string;
+    field: "startHour" | "endHour";
+    slotIndex: number;
+  } | null>(null);
+
+  const updateSlot = (sportId: string, slotIndex: number, patch: Partial<{ weekday: number; startHour: number; endHour: number }>) => {
+    setPracticedSportDetails((prev) => {
+      const sport = prev[sportId];
+      if (!sport) return prev;
+      const next: typeof prev = { ...prev };
+      const slots = [...sport.timeSlots];
+      slots[slotIndex] = { ...slots[slotIndex], ...patch } as { weekday: number; startHour: number; endHour: number };
+      next[sportId] = { ...sport, timeSlots: slots };
+      return next;
+    });
+  };
+
+  const addSlot = (sportId: string) => {
+    setPracticedSportDetails((prev) => {
+      const sport = prev[sportId];
+      if (!sport) return prev;
+      const next: typeof prev = { ...prev };
+      next[sportId] = { ...sport, timeSlots: [...sport.timeSlots, { weekday: 1, startHour: 8, endHour: 20 }] };
+      return next;
+    });
+  };
+
+  const removeSlot = (sportId: string, slotIndex: number) => {
+    setPracticedSportDetails((prev) => {
+      const sport = prev[sportId];
+      if (!sport) return prev;
+      const next: typeof prev = { ...prev };
+      next[sportId] = { ...sport, timeSlots: sport.timeSlots.filter((_, i) => i !== slotIndex) };
+      return next;
+    });
+  };
+
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
@@ -298,6 +466,7 @@ export default function EditProfileScreen() {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         contentContainerClassName="p-4"
         contentContainerStyle={{
           paddingBottom: keyboardHeight > 0 ? keyboardHeight + 24 : 24,
@@ -413,10 +582,11 @@ export default function EditProfileScreen() {
           </View>
         </Card>
 
-        <Card className="p-4 mb-4">
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Objectifs</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {OBJECTIVES.map((obj) => {
+        <View ref={objectivesRef}>
+          <Card className="p-4 mb-4">
+            <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Objectifs</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {OBJECTIVES.map((obj) => {
               const active = selectedObjectives.includes(obj);
               return (
                 <Pressable
@@ -444,20 +614,224 @@ export default function EditProfileScreen() {
             })}
           </View>
         </Card>
+        </View>
 
-        <Card className="p-4 mb-4">
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Sports pratiqués
-          </Text>
-          <SportPill selected={practicedSports} onToggle={togglePracticed} />
-        </Card>
+        <View ref={practicedRef}>
+          <Card className="p-4 mb-4">
+            <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+              Sports pratiqués
+            </Text>
+            <SportPill selected={practicedSports} onToggle={togglePracticed} />
+            {practicedSports.length > 0 && (
+              <View className="mt-4 gap-3">
+                {practicedSports.map((sid) => {
+                  const sportDef = SPORTS.find((x) => x.id === sid);
+                  const details = practicedSportDetails[sid] || {
+                    level: "",
+                    practice: "",
+                    timeSlots: [],
+                  };
+                  return (
+                    <View
+                      key={sid}
+                      className="border-t border-border dark:border-border-dark pt-3 first:border-t-0 first:pt-0"
+                    >
+                      <View className="flex-row items-center gap-2 mb-3">
+                        <View
+                          className="w-7 h-7 rounded-full items-center justify-center"
+                          style={{
+                            backgroundColor: `${sportDef?.color ?? "#3358FF"}20`,
+                          }}
+                        >
+                          <Ionicons
+                            name={(sportDef?.icon ?? "help-outline") as any}
+                            size={15}
+                            color={sportDef?.color ?? "#3358FF"}
+                          />
+                        </View>
+                        <Text className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+                          {sportDef?.label ?? sid}
+                        </Text>
+                      </View>
 
-        <Card className="p-4 mb-4">
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Sports qui m'intéressent
-          </Text>
-          <SportPill selected={interestedSports} onToggle={toggleInterested} />
-        </Card>
+                      {/* Level */}
+                      <View className="mb-3">
+                        <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                          Niveau
+                        </Text>
+                        <View className="flex-row flex-wrap">
+                          {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] || []).map((lvl) => {
+                            const active = details.level === lvl;
+                            return (
+                              <Pressable
+                                key={lvl}
+                                onPress={() => {
+                                  setPracticedSportDetails((d) => {
+                                    const next: typeof d = { ...d };
+                                    next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), level: lvl };
+                                    return next;
+                                  });
+                                }}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: active }}
+                                className={`px-3 py-2 rounded-lg mr-2 mb-2 ${active ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
+                              >
+                                <Text
+                                  className={
+                                    active
+                                      ? "text-white text-xs font-medium"
+                                      : "text-xs text-neutral-800 dark:text-neutral-100"
+                                  }
+                                >
+                                  {lvl}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+
+                      {/* Practice */}
+                      <View className="mb-3">
+                        <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                          Type de pratique
+                        </Text>
+                        <View className="flex-row flex-wrap">
+                          {(SPORT_PRACTICES[sid as keyof typeof SPORT_PRACTICES] || []).map((pr) => {
+                            const active = details.practice === pr;
+                            return (
+                              <Pressable
+                                key={pr}
+                                onPress={() => {
+                                  setPracticedSportDetails((d) => {
+                                    const next: typeof d = { ...d };
+                                    next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), practice: pr };
+                                    return next;
+                                  });
+                                }}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: active }}
+                                className={`px-3 py-2 rounded-lg mr-2 mb-2 ${active ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
+                              >
+                                <Text
+                                  className={
+                                    active
+                                      ? "text-white text-xs font-medium"
+                                      : "text-xs text-neutral-800 dark:text-neutral-100"
+                                  }
+                                >
+                                  {pr}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+
+                      {/* Time slots */}
+                      <View className="mt-4">
+                        <Text className="text-sm text-neutral-500 mb-1">Créneaux horaires</Text>
+                        {(details.timeSlots || []).map((slot, idx) => (
+                          <View
+                            key={idx}
+                            className="mb-3 p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800"
+                          >
+                            <View className="flex-row flex-wrap gap-2 mb-2">
+                              {WEEKDAY_INDEXES.map((dayIdx) => {
+                                const selected = slot.weekday === dayIdx;
+                                return (
+                                  <Pressable
+                                    key={dayIdx}
+                                    onPress={() => updateSlot(sid, idx, { weekday: dayIdx })}
+                                    accessibilityRole="button"
+                                    accessibilityState={{ selected }}
+                                    className={`px-2 py-1 rounded-lg ${selected ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-700"}`}
+                                  >
+                                    <Text
+                                      className={
+                                        selected
+                                          ? "text-white text-xs font-medium"
+                                          : "text-xs text-neutral-800 dark:text-neutral-100"
+                                      }
+                                    >
+                                      {WEEKDAYS[dayIdx].slice(0, 3)}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+
+                            <View className="flex-row gap-2 items-center">
+                              <Pressable
+                                onPress={() =>
+                                  setHourPickerOpen({
+                                    sportId: sid,
+                                    field: "startHour",
+                                    slotIndex: idx,
+                                  })
+                                }
+                                accessibilityRole="button"
+                                className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
+                              >
+                                <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                  {formatHour(slot.startHour)}
+                                </Text>
+                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Début</Text>
+                              </Pressable>
+                              <Text className="text-neutral-400 text-sm">→</Text>
+                              <Pressable
+                                onPress={() =>
+                                  setHourPickerOpen({
+                                    sportId: sid,
+                                    field: "endHour",
+                                    slotIndex: idx,
+                                  })
+                                }
+                                accessibilityRole="button"
+                                className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
+                              >
+                                <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                  {formatHour(slot.endHour)}
+                                </Text>
+                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Fin</Text>
+                              </Pressable>
+                              <Pressable
+                                onPress={() => removeSlot(sid, idx)}
+                                hitSlop={8}
+                                className="p-2"
+                              >
+                                <Icon name="Trash2" size={20} color="error-500" />
+                              </Pressable>
+                            </View>
+                          </View>
+                        ))}
+
+                        <Pressable
+                          onPress={() => addSlot(sid)}
+                          className="flex-row items-center gap-1 mt-1"
+                        >
+                          <Icon name="PlusCircle" size={20} color="primary" />
+                          <Text className="text-sm text-primary font-medium">
+                            Ajouter un créneau
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </Card>
+        </View>
+
+        <View ref={interestedRef}>
+          <Card className="p-4 mb-4">
+            <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+              Sports qui m'intéressent
+            </Text>
+            <SportPill selected={interestedSports} onToggle={toggleInterested} />
+          </Card>
+        </View>
 
         <Button
           title="Enregistrer"
@@ -468,6 +842,31 @@ export default function EditProfileScreen() {
         <View className="h-4" />
       </ScrollView>
 
+          <NativePicker
+            visible={!!hourPickerOpen}
+            title={
+              hourPickerOpen?.field === "startHour"
+                ? "Heure de début"
+                : "Heure de fin"
+            }
+            confirmLabel="OK"
+            options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
+            selectedValue={
+              hourPickerOpen
+                ? (details => details.timeSlots[hourPickerOpen.slotIndex]?.[hourPickerOpen.field] ?? 8)(practicedSportDetails[hourPickerOpen.sportId] || { timeSlots: [{ startHour: 8, endHour: 20 }] })
+                : 8
+            }
+            onSelect={(h) => {
+              if (hourPickerOpen) {
+                const numericHour = typeof h === 'string' ? Number(h) : h;
+                updateSlot(hourPickerOpen.sportId, hourPickerOpen.slotIndex, {
+                  [hourPickerOpen.field]: numericHour,
+                });
+              }
+              setHourPickerOpen(null);
+            }}
+            onClose={() => setHourPickerOpen(null)}
+          />
       <CountryPickerModal
         visible={countryOpen}
         selectedValue={country ?? "FR"}

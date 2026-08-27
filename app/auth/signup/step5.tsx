@@ -13,7 +13,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
-import * as FileSystem from "expo-file-system";
+// @ts-ignore - expo-file-system is not available on web
+import * as FileSystem from "expo-file-system/legacy";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";

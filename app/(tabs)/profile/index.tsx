@@ -128,13 +128,29 @@ export default function ProfileScreen() {
           <StatsGrid stats={profile.stats ?? null} isPublic={isPublic} />
 
           {/* Sports practiced */}
-          <SportStatusCard sports={profile.sports ?? []} statusMap={statusMap} />
+          <SportStatusCard
+            sports={profile.sports ?? []}
+            statusMap={statusMap}
+            onEditPress={() =>
+              router.push("/profile/edit-profile?focusSection=practiced" as any)
+            }
+          />
 
           {/* Sports interested in */}
-          <InterestedSportsCard sports={profile.interested_sports ?? []} />
+          <InterestedSportsCard
+            sports={profile.interested_sports ?? []}
+            onEditPress={() =>
+              router.push("/profile/edit-profile?focusSection=interested" as any)
+            }
+          />
 
           {/* Objectives */}
-          <ObjectivesCard objectives={profile.objectives ?? []} />
+          <ObjectivesCard
+            objectives={profile.objectives ?? []}
+            onEditPress={() =>
+              router.push("/profile/edit-profile?focusSection=objectives" as any)
+            }
+          />
 
           {/* Divider */}
           <View className="border-t border-border mt-4" />

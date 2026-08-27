@@ -23,6 +23,7 @@ import { MembersListSheet, type Member } from "@/components/shared/MembersListSh
 import { EditClubEventSheet } from "@/components/shared/EditClubEventSheet";
 import { useJoinRequestStatus } from "@/hooks/useJoinRequestStatus";
 import { useUpdateEvent } from "@/hooks/useUpdateEvent";
+import { EventMembersStrip } from "@/components/events/EventMembersStrip";
 import { supabase } from "@/lib/supabase";
 import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
@@ -412,45 +413,11 @@ export default function EventDetailScreen() {
             <PulseText variant="overline" className="text-neutral-400 mb-2">
               Participants ({event.accepted_count ?? 0})
             </PulseText>
-            <View className="flex-row items-center gap-3 p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="flex-1"
-                contentContainerStyle={{ alignItems: "center", gap: 16 }}
-              >
-                {allParticipants.slice(0, 6).map((p) => (
-                  <View key={p.user_id} className="items-center">
-                    <Avatar uri={p.avatar_url} size={40} />
-                    <PulseText
-                      variant="caption"
-                      numberOfLines={1}
-                      className="mt-1 text-neutral-700 dark:text-neutral-200 max-w-[64px]"
-                    >
-                      {p.full_name}
-                    </PulseText>
-                  </View>
-                ))}
-                {allParticipants.length > 6 ? (
-                  <View className="w-10 items-center justify-center">
-                    <View className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-700 items-center justify-center">
-                      <PulseText variant="caption" className="font-semibold text-neutral-500">
-                        +{allParticipants.length - 6}
-                      </PulseText>
-                    </View>
-                  </View>
-                ) : null}
-              </ScrollView>
-              <Pressable
-                onPress={() => setShowMembersList(true)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Voir tous les participants"
-                className="w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center"
-              >
-                <Icon name="ChevronRight" size={20} color="primary" />
-              </Pressable>
-            </View>
+            <EventMembersStrip
+              participants={allParticipants}
+              count={event.accepted_count}
+              onSeeAll={() => setShowMembersList(true)}
+            />
           </View>
         ) : null}
 

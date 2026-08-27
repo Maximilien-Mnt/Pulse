@@ -215,12 +215,27 @@ export default function SignupStep1() {
               />
             )}
           />
-          <Button
-            title={t("signup.step1.continue")}
-            onPress={onSubmit}
-            loading={isSubmitting}
-            disabled={usernameOk === false}
-          />
+          <View className="flex-row items-center justify-between gap-3 mt-6">
+            <Button
+              title={t("signup.back")}
+              variant="secondary"
+              size="lg"
+              icon="ChevronLeft"
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/");
+              }}
+            />
+
+            <Button
+              title={t("signup.continue")}
+              size="lg"
+              iconRight="ChevronRight"
+              onPress={onSubmit}
+              loading={isSubmitting}
+              disabled={usernameOk === false}
+            />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeScreen>

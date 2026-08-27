@@ -14,9 +14,11 @@
 //     button stays clearly visible on any background.
 //
 // Behavior:
-//   - Calls `router.back()` on press.
+//   - Default: calls `router.back()` on press.
 //   - If there is no navigation history to go back to, it falls back to
 //     `fallbackRoute` (default: "/(tabs)/explore").
+//   - If `alwaysUseFallbackRoute` is true, it always navigates to
+//     `fallbackRoute` instead of `router.back()`.
 // ---------------------------------------------------------------------------
 
 import { useRouter } from "expo-router";
@@ -29,13 +31,21 @@ type BackButtonProps = {
   fallbackRoute?: string;
   /** Extra tailwind className for the pressable. */
   className?: string;
+  /** When true, always navigate to `fallbackRoute` instead of `router.back()`. */
+  alwaysUseFallbackRoute?: boolean;
 };
 
-export function BackButton({ fallbackRoute = "/(tabs)/explore", className }: BackButtonProps) {
+export function BackButton({
+  fallbackRoute = "/(tabs)/explore",
+  className,
+  alwaysUseFallbackRoute = false,
+}: BackButtonProps) {
   const router = useRouter();
 
   const handlePress = () => {
-    if (router.canGoBack()) {
+    if (alwaysUseFallbackRoute) {
+      router.replace(fallbackRoute);
+    } else if (router.canGoBack()) {
       router.back();
     } else {
       router.replace(fallbackRoute);

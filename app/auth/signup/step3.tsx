@@ -436,23 +436,24 @@ export default function SignupStep3() {
             onClose={() => setHourPickerOpen(null)}
           />
 
-          <View className="flex-row gap-3 mt-6">
+          <View className="flex-row items-center justify-between gap-3 mt-6">
           <Button
   title={t("signup.back")}
   variant="secondary"
+  size="lg"
+  icon="ChevronLeft"
   onPress={() => {
     if (router.canGoBack()) router.back();
     else router.replace("/");
   }}
-  className="w-24"
 />
 
             <Button
               title={t("signup.continue")}
+              size="lg"
+              iconRight="ChevronRight"
               onPress={onContinue}
               disabled={!canContinue}
-              className="flex-1"
-              icon="ArrowRight"
             />
           </View>
         </ScrollView>

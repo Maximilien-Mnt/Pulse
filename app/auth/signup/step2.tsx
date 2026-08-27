@@ -173,18 +173,19 @@ export default function SignupStep2() {
             )}
           />
 
-          <View className="flex-row gap-3 mt-6">
+          <View className="flex-row items-center justify-between gap-3 mt-6">
           <Button
   title={t("signup.back")}
   variant="secondary"
+  size="lg"
+  icon="ChevronLeft"
   onPress={() => {
     if (router.canGoBack()) router.back();
     else router.replace("/");
   }}
-  className="w-24"
 />
 
-            <Button title={t("signup.continue")} onPress={onSubmit} loading={isSubmitting} className="flex-1" />
+          <Button title={t("signup.continue")} size="lg" iconRight="ChevronRight" onPress={onSubmit} loading={isSubmitting} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -33,6 +33,8 @@ export type ButtonVariant =
   | "destructive"
   | "energy";
 
+export type ButtonSize = "md" | "lg";
+
 export interface ButtonProps {
   children?: ReactNode;
   /** Legacy label prop — kept for backward compatibility with existing call sites. */
@@ -43,6 +45,10 @@ export interface ButtonProps {
   loading?: boolean;
   /** Icon name from the Pulse icon set placed before the label */
   icon?: IconName;
+  /** Icon name from the Pulse icon set placed after the label (e.g. a forward arrow) */
+  iconRight?: IconName;
+  /** Button size preset. "lg" renders a taller, slightly wider button. Defaults to "md". */
+  size?: ButtonSize;
   /** Additional Tailwind / NativeWind class names */
   className?: string;
 }
@@ -75,6 +81,12 @@ const variantText: Record<ButtonVariant, string> = {
   energy: "text-white dark:text-text-inverse",
 };
 
+/** Height + horizontal padding per size preset. */
+const sizeClasses: Record<ButtonSize, string> = {
+  md: "h-12 px-[22px]",
+  lg: "h-14 px-6",
+};
+
 /** Returns the icon / ActivityIndicator color for a given variant */
 function indicatorColor(variant: ButtonVariant): IconColor {
   return variant === "secondary" || variant === "ghost" ? "primary" : "text-inverse";
@@ -97,6 +109,8 @@ export const Button = React.forwardRef<View, ButtonProps>(
       disabled = false,
       loading = false,
       icon,
+      iconRight,
+      size = "md",
       className,
     },
     ref
@@ -123,7 +137,8 @@ export const Button = React.forwardRef<View, ButtonProps>(
     const isDisabled = disabled || loading;
 
     const containerClasses = cn(
-      "flex-row items-center justify-center gap-2 rounded-md h-12 px-[22px]",
+      "flex-row items-center justify-center gap-2 rounded-md",
+      sizeClasses[size],
       // Variant classes
       isDisabled ? disabledClasses : cn(variantBg[variant], variantBorder[variant]),
       // Active state (scale animation handles the press effect on native,
@@ -165,6 +180,7 @@ export const Button = React.forwardRef<View, ButtonProps>(
           ) : (
             children
           )}
+          {iconRight ? <Icon name={iconRight} size={20} color={iconColor} /> : null}
         </Pressable>
       </Animated.View>
     );

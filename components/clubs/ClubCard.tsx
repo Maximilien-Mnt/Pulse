@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 import { getCountryDisplay } from "@/utils/countries";
@@ -57,9 +58,7 @@ export function ClubCard({ club, compact, showDelete, onDelete }: Props) {
         </Text>
         <View className="flex-row flex-wrap gap-2 mt-1 items-center">
           <Badge>{club.sport}</Badge>
-          {club.is_external ? (
-            <Badge variant="warning">Externe</Badge>
-          ) : null}
+          <SourceBadge isExternal={club.is_external} variant="chip" className="self-center" />
         </View>
         <Text className="text-sm text-neutral-500 mt-1" numberOfLines={1}>
           {club.city}, {getCountryDisplay(club.country)} · {club.member_count} membres

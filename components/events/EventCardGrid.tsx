@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { formatPriceFromCents } from "@/utils/format";
 import type { EventRow } from "@/types";
 import { supabase } from "@/lib/supabase";
@@ -53,7 +54,10 @@ export function EventCardGrid({ event }: Props) {
           {event.name}
         </Text>
         <Badge>{event.sport}</Badge>
-        <Text className="text-xs text-neutral-500 mt-1">{formatDateLong(event.start_date)}</Text>
+        <View className="flex-row items-center justify-between mt-1">
+          <Text className="text-xs text-neutral-500">{formatDateLong(event.start_date)}</Text>
+          <SourceBadge isExternal={event.is_external} variant="chip" />
+        </View>
         <Text className="text-xs font-semibold text-primary mt-1">
           {formatPriceFromCents(event.price_cents, event.is_paid)}
         </Text>

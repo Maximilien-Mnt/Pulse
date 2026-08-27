@@ -22,40 +22,94 @@ import { BackButton } from "@/components/ui/BackButton";
 import Toast from "react-native-toast-message";
 
 export default function ConversationScreen() {
-  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
+  const { conversationId, otherName, otherAvatarUrl, otherId } = useLocalSearchParams<{
+    conversationId: string;
+    otherName?: string;
+    otherAvatarUrl?: string;
+    otherId?: string;
+  }>();
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const { data: other } = useQuery<{
+  // Use params from navigation as primary source, fallback to query if not available
+  const otherFromParams = useMemo(() => {
+    if (otherId && otherName) {
+      return {
+        id: otherId,
+        full_name: otherName,
+        avatar_url: otherAvatarUrl || null,
+      };
+    }
+    return null;
+  }, [otherId, otherName, otherAvatarUrl]);
+
+  const { data: otherFromQuery, error: otherError } = useQuery<{
     id: string;
     full_name: string | null;
     avatar_url: string | null;
   } | null>({
     queryKey: ["conv-other", conversationId, userId],
-    enabled: !!conversationId && !!userId,
+    enabled: !!conversationId && !!userId && !otherFromParams,
     queryFn: async () => {
-      const { data: parts } = await supabase
+      const { data: parts, error: partsError } = await supabase
         .from("conversation_participants")
         .select("user_id")
-        .eq("conversation_id", conversationId!)
-        .neq("user_id", userId!);
-      const oid = parts?.[0]?.user_id;
-      if (!oid) return null;
-      const { data: p } = await supabase
+        .eq("conversation_id", conversationId!);
+      
+      if (partsError) {
+        console.error("Error fetching participants:", partsError);
+        return null;
+      }
+      
+      const otherParticipants = parts?.filter((p: any) => p.user_id !== userId) || [];
+      const oid = otherParticipants[0]?.user_id;
+      
+      if (!oid) {
+        console.log("No other participant found in conversation:", conversationId);
+        return null;
+      }
+      
+      const { data: p, error: profileError } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
         .eq("id", oid)
         .single();
+      
+      if (profileError) {
+        console.error("Error fetching profile for user:", oid, profileError);
+        return null;
+      }
+      
       return p
         ? { id: p.id, full_name: p.full_name, avatar_url: p.avatar_url }
         : null;
     },
   });
 
-  const title = other?.full_name ?? "Messages";
+  if (otherError) {
+    console.error("Error fetching other user:", otherError);
+  }
+
+  // Use params first, fallback to query result
+  const other = otherFromParams || otherFromQuery;
+  const title = other?.full_name ?? otherName ?? "Messages";
+  const avatarUrl = other?.avatar_url ?? otherAvatarUrl ?? null;
+
+  // Debug logging (only in development)
+  if (__DEV__) {
+    console.log("Conversation Screen Debug:", {
+      conversationId,
+      userId,
+      otherFromParams: !!otherFromParams,
+      otherFromQuery: !!otherFromQuery,
+      other: !!other,
+      title,
+      hasAvatar: !!avatarUrl,
+    });
+  }
 
   const { data: pinned = false } = useQuery({
     queryKey: ["conv-pinned", conversationId, userId],
@@ -147,14 +201,14 @@ export default function ConversationScreen() {
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-row items-center px-3 py-2 border-b border-neutral-100 dark:border-neutral-800">
-        <BackButton fallbackRoute="/(tabs)/conversations" />
+        <BackButton fallbackRoute="/(tabs)/conversations" alwaysUseFallbackRoute />
         <Pressable
           className="flex-1 flex-row items-center gap-2 pl-1"
           onPress={() => {
             if (other?.id) router.push(`/profile/${other.id}`);
           }}
         >
-          <Avatar uri={other?.avatar_url} size={36} />
+          <Avatar uri={avatarUrl} size={36} />
           <Text
             className="text-base font-semibold text-neutral-900 dark:text-neutral-50"
             numberOfLines={1}

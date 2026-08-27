@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -28,6 +29,7 @@ interface ClubCardProps {
     logo_url?: string | null;
     hero_urls?: string[];
     member_count?: number;
+    is_external?: boolean;
     creator?: {
       id: string;
       full_name: string;
@@ -156,6 +158,7 @@ export function ClubCard({ club, isCompact = false, grid = false }: ClubCardProp
                 {sportLabel}
               </Tag>
             ) : null}
+            <SourceBadge isExternal={club.is_external} variant="chip" className="self-center" />
           </View>
 
           {status === "member" ? (
@@ -208,6 +211,7 @@ export function ClubCard({ club, isCompact = false, grid = false }: ClubCardProp
                   {sportLabel}
                 </Tag>
               ) : null}
+              <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 
             {status === "member" ? (
@@ -292,6 +296,7 @@ export function ClubCard({ club, isCompact = false, grid = false }: ClubCardProp
                   {sportLabel}
                 </Tag>
               ) : null}
+              <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 
             {status === "member" ? (

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import type { Club } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
@@ -50,9 +51,9 @@ export function ClubCardGrid({ club }: Props) {
         <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50" numberOfLines={2}>
           {club.name}
         </Text>
-        <View className="flex-row flex-wrap gap-1 mt-1">
+        <View className="flex-row flex-wrap gap-1 mt-1 items-center">
           <Badge>{club.sport}</Badge>
-          {club.is_external ? <Badge variant="warning">Ext.</Badge> : null}
+          <SourceBadge isExternal={club.is_external} variant="chip" />
         </View>
         <Text className="text-xs text-neutral-500 mt-1" numberOfLines={1}>
           {club.city}

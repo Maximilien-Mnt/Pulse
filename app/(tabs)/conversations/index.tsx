@@ -111,7 +111,15 @@ export default function ConversationsScreen() {
           pinned: item.pinned,
         }}
         onPress={() =>
-          router.push(`/(tabs)/conversations/${item.conversation.id}` as any)
+          router.push({
+            pathname: "/(tabs)/conversations/[conversationId]" as any,
+            params: {
+              conversationId: item.conversation.id,
+              otherName: item.other?.full_name ?? "Messages",
+              otherAvatarUrl: item.other?.avatar_url ?? "",
+              otherId: item.other?.id ?? "",
+            },
+          })
         }
         onLongPress={() => setMenuItem(item)}
         onAvatarPress={

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { InvitationButton } from "@/components/shared/InvitationButton";
 import { MembersListSheet, type Member } from "@/components/shared/MembersListSheet";
 import { EditClubEventSheet } from "@/components/shared/EditClubEventSheet";
@@ -173,7 +174,7 @@ export default function EventDetailScreen() {
         <Text className="text-2xl font-bold">{event.name}</Text>
         <View className="flex-row gap-2 mt-2">
           <Badge>{event.sport}</Badge>
-          {event.is_external ? <Badge variant="warning">Externe</Badge> : null}
+          <SourceBadge isExternal={event.is_external} />
         </View>
         {/* Creator profile */}
         {eventCreator ? (

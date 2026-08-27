@@ -21,6 +21,7 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Avatar } from "@/components/ui/Avatar";
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,7 @@ interface EventCardProps {
     hero_urls?: string[];
     participant_count?: number;
     difficulty?: number;
+    is_external?: boolean;
     creator?: {
       id: string;
       full_name: string;
@@ -183,6 +185,7 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
                 {sportLabel}
               </Tag>
             ) : null}
+              <SourceBadge isExternal={event.is_external} variant="chip" />
           </View>
 
           {/* Join button — 3 states with event-specific labels */}
@@ -236,6 +239,7 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
                   {sportLabel}
                 </Tag>
               ) : null}
+              <SourceBadge isExternal={event.is_external} variant="chip" />
             </View>
 
             {/* Join button — 3 states with event-specific labels */}
@@ -345,6 +349,7 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
                   {sportLabel}
                 </Tag>
               ) : null}
+              <SourceBadge isExternal={event.is_external} variant="chip" />
             </View>
 
             {/* Join button — 3 states with event-specific labels */}

@@ -66,6 +66,9 @@ import {
   Eye,
   EyeOff,
   Mail,
+  Smartphone,
+  Trophy,
+  MapPinned,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -117,11 +120,14 @@ export const ICON_MAP = {
   Eye,
   EyeOff,
   Mail,
+  Smartphone,
   Bug,
   PanelLeft,
   PanelBottom,
   LayoutGrid,
   List,
+  Trophy,
+  MapPinned,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON_MAP;
@@ -194,7 +200,7 @@ export const Icon = React.memo<IconProps>(
     // For React Native, we need to pass the color as a hex value
     const iconColorHex = typeof resolvedColor === 'string' ? resolvedColor : '#000000';
 
-    const LucideComponent = ICON_MAP[name];
+    const LucideComponent = ICON_MAP[name] ?? Info;
 
     return (
       <LucideComponent

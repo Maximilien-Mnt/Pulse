@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
 import { formatPriceFromCents } from "@/utils/format";
 import type { EventRow } from "@/types";
 import { supabase } from "@/lib/supabase";
@@ -61,7 +62,7 @@ export function EventCard({ event, compact }: Props) {
         </Text>
         <View className="flex-row flex-wrap gap-2 mt-1 items-center">
           <Badge>{event.sport}</Badge>
-          {event.is_external ? <Badge variant="warning">Externe</Badge> : null}
+          <SourceBadge isExternal={event.is_external} variant="chip" className="self-center" />
         </View>
         <Text className="text-sm text-neutral-500 mt-1">{formatDateLong(event.start_date)}</Text>
         <Text className="text-sm text-neutral-500">{event.city}</Text>

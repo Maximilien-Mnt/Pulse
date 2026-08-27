@@ -92,6 +92,15 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
         case "name_asc":
           q = q.order("name", { ascending: true });
           break;
+        case "name_desc":
+          q = q.order("name", { ascending: false });
+          break;
+        case "date_desc":
+          q = q.order("start_date", { ascending: false });
+          break;
+        case "newest":
+          q = q.order("created_at", { ascending: false });
+          break;
         case "price_asc":
           q = q.order("price_cents", { ascending: true });
           break;

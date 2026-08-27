@@ -123,6 +123,15 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
         case "oldest":
           q = q.order("created_at", { ascending: true });
           break;
+        case "founded_desc":
+          q = q.order("founded_date", { ascending: false });
+          break;
+        case "founded_asc":
+          q = q.order("founded_date", { ascending: true });
+          break;
+        case "sport_asc":
+          q = q.order("sport", { ascending: true });
+          break;
         default:
           q = q.order("member_count", { ascending: false });
       }

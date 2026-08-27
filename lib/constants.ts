@@ -238,17 +238,23 @@ export const CLUB_SORT_OPTIONS = [
   { value: "members_asc", label: "Moins de membres" },
   { value: "recent", label: "Récent" },
   { value: "oldest", label: "Ancien" },
+  { value: "founded_desc", label: "Fondés récemment" },
+  { value: "founded_asc", label: "Fondés plus anciens" },
+  { value: "sport_asc", label: "Sport (A → Z)" },
   { value: "nearby", label: "Proche de moi" },
 ] as const;
 
 export const EVENT_SORT_OPTIONS = [
   { value: "date_asc", label: "Date (prochain)" },
+  { value: "date_desc", label: "Date (récent)" },
   { value: "relevance", label: "Pertinence" },
   { value: "name_asc", label: "A → Z" },
+  { value: "name_desc", label: "Z → A" },
   { value: "price_asc", label: "Prix ↑" },
   { value: "price_desc", label: "Prix ↓" },
   { value: "difficulty_asc", label: "Difficulté ↑" },
   { value: "difficulty_desc", label: "Difficulté ↓" },
+  { value: "newest", label: "Nouveaux" },
   { value: "nearby", label: "Proche de moi" },
 ] as const;
 

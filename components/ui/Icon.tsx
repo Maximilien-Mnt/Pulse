@@ -69,6 +69,8 @@ import {
   Smartphone,
   Trophy,
   MapPinned,
+  ListFilter,
+  ArrowUpDown,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -128,6 +130,8 @@ export const ICON_MAP = {
   List,
   Trophy,
   MapPinned,
+  ListFilter,
+  ArrowUpDown,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON_MAP;

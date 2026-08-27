@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { EVENT_CATEGORIES, EVENT_SORT_OPTIONS, SPORTS } from "@/lib/constants";
+import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
 import type { EventListFilters } from "@/hooks/useEvents";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
@@ -28,12 +28,17 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
     }));
   };
 
-  const showRadius = draft.sort === "nearby" && isLocationEnabled;
-
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-white dark:bg-neutral-900 rounded-t-3xl max-h-[90%] px-4 pt-4 pb-8">
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View className="flex-1">
+        {/* Backdrop — tapping outside closes the modal */}
+        <Pressable
+          className="absolute inset-0 bg-black/40"
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Fermer"
+        />
+        <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-3xl max-h-[90%] px-4 pt-4 pb-8">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Filtres événements</Text>
             <Pressable onPress={onClose}>
@@ -155,47 +160,6 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 onValueChange={(favoritesOnly) => setDraft((d) => ({ ...d, favoritesOnly }))}
               />
             </View>
-            <Text className="text-sm font-medium mb-2">Tri</Text>
-            {EVENT_SORT_OPTIONS.map((o) => (
-              <Pressable
-                key={o.value}
-                onPress={() => setDraft((d) => ({ ...d, sort: o.value }))}
-                className={`py-3 border-b border-neutral-100 dark:border-neutral-800 ${draft.sort === o.value ? "bg-primary/5" : ""}`}
-              >
-                <View className="flex-row items-center">
-                  <Text className="text-base text-neutral-900 dark:text-neutral-50">{o.label}</Text>
-                  {o.value === "nearby" && !isLocationEnabled && (
-                    <Ionicons name="location-outline" size={16} color="#64748B" className="ml-2" />
-                  )}
-                </View>
-              </Pressable>
-            ))}
-            
-            {/* Radius slider - shown only when "nearby" is selected and location is enabled */}
-            {showRadius && (
-              <View className="mt-4 mb-4">
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Rayon de recherche</Text>
-                  <Text className="text-sm text-primary font-medium">{draft.radiusKm ?? 10} km</Text>
-                </View>
-                <Slider
-                  style={{ width: "100%", height: 40 }}
-                  minimumValue={1}
-                  maximumValue={100}
-                  step={1}
-                  value={draft.radiusKm ?? 10}
-                  onValueChange={(radiusKm) => setDraft((d) => ({ ...d, radiusKm }))}
-                  minimumTrackTintColor="#1E6BFF"
-                  maximumTrackTintColor="#E2E8F0"
-                  thumbTintColor="#1E6BFF"
-                />
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-neutral-500">1 km</Text>
-                  <Text className="text-xs text-neutral-500">100 km</Text>
-                </View>
-              </View>
-            )}
-            
             <View className="mt-6 gap-3">
               <Button
                 title="Appliquer"
@@ -214,14 +178,16 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                     dateFrom: null,
                     dateTo: null,
                     requiredLevel: "",
-                    difficultyMin: 1,
+                    difficultyMin: 0,
                     difficultyMax: 5,
                     category: "",
                     paidOnly: null,
                     internalOnly: false,
                     externalOnly: false,
                     favoritesOnly: false,
-                    sort: "date_asc",
+                    // Keep the order chosen from the order button (and its radius).
+                    sort: draft.sort,
+                    radiusKm: draft.radiusKm ?? 10,
                   };
                   setDraft(reset);
                   onApply(reset);

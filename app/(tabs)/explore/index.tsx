@@ -17,9 +17,11 @@ import {
 import { useRouter } from "expo-router";
 import { useClubs } from "@/hooks/useClubs";
 import { useEvents } from "@/hooks/useEvents";
+import type { ClubListFilters } from "@/hooks/useClubs";
+import type { EventListFilters } from "@/hooks/useEvents";
+import { useLocation } from "@/hooks/useLocation";
 import { useAuthStore } from "@/stores/authStore";
-import { SPORTS } from "@/lib/constants";
-import type { SportId } from "@/lib/constants";
+import { CLUB_SORT_OPTIONS, EVENT_SORT_OPTIONS } from "@/lib/constants";
 import { cn } from "@/utils/format";
 
 import { Text } from "@/components/ui/Text";
@@ -29,6 +31,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ClubCard } from "@/components/explore/ClubCard";
 import { EventCard } from "@/components/explore/EventCard";
+import { ClubFilters } from "@/components/clubs/ClubFilters";
+import { EventFilters } from "@/components/events/EventFilters";
+import { SortSheet } from "@/components/shared/SortSheet";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useFeedLayout } from "@/hooks/useFeedLayout";
 
@@ -40,22 +45,35 @@ type ExploreTab = "clubs" | "events";
 type ViewMode = "list" | "grid";
 
 // ---------------------------------------------------------------------------
-// Sport color map — light backgrounds with dark text per design spec
+// Default filters (mirror the current explore behavior)
 // ---------------------------------------------------------------------------
 
-const SPORT_CHIP_COLORS: Record<string, { bg: string; text: string }> = {
-  football:   { bg: "bg-green-50",   text: "text-green-700" },
-  basketball: { bg: "bg-primary-tint", text: "text-primary-active" },
-  tennis:     { bg: "bg-green-50",   text: "text-green-700" },
-  running:    { bg: "bg-primary-tint", text: "text-primary-active" },
-  cycling:    { bg: "bg-green-50",   text: "text-green-700" },
-  swimming:   { bg: "bg-primary-tint", text: "text-primary-active" },
-  volleyball: { bg: "bg-coral-50",   text: "text-coral-700" },
-  handball:   { bg: "bg-coral-50",   text: "text-coral-700" },
-  padel:      { bg: "bg-primary-tint", text: "text-primary-active" },
-  badminton:  { bg: "bg-green-50",   text: "text-green-700" },
-  fitness:    { bg: "bg-coral-50",   text: "text-coral-700" },
-  rugby:      { bg: "bg-green-50",   text: "text-green-700" },
+const defaultClubFilters: ClubListFilters = {
+  sports: [],
+  location: "",
+  requiredLevel: "",
+  internalOnly: false,
+  externalOnly: false,
+  favoritesOnly: false,
+  sort: "relevance",
+  radiusKm: 10,
+};
+
+const defaultEventFilters: EventListFilters = {
+  sports: [],
+  location: "",
+  dateFrom: null,
+  dateTo: null,
+  requiredLevel: "",
+  difficultyMin: 0,
+  difficultyMax: 5,
+  category: "",
+  paidOnly: null,
+  internalOnly: false,
+  externalOnly: false,
+  favoritesOnly: false,
+  sort: "relevance",
+  radiusKm: 10,
 };
 
 // ---------------------------------------------------------------------------
@@ -110,8 +128,95 @@ export default function ExploreScreen() {
 
   const [tab, setTab] = useState<ExploreTab>("clubs");
   const [search, setSearch] = useState("");
-  const [activeSport, setActiveSport] = useState<SportId | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Filter/sort modal state (per tab)
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [clubFilters, setClubFilters] = useState<ClubListFilters>(defaultClubFilters);
+  const [eventFilters, setEventFilters] = useState<EventListFilters>(defaultEventFilters);
+
+  const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
+
+  // Effective filters = modal filters overlaid with the quick-access controls
+  // (search bar). Location is attached when "nearby" is selected.
+  const clubQueryFilters = useMemo<ClubListFilters>(() => ({
+    ...clubFilters,
+    sports: clubFilters.sports,
+    location: tab === "clubs" && search ? search : clubFilters.location,
+    ...(clubFilters.sort === "nearby" && latitude !== null && longitude !== null
+      ? { userLat: latitude, userLon: longitude }
+      : {}),
+  }), [clubFilters, search, tab, latitude, longitude]);
+
+  const eventQueryFilters = useMemo<EventListFilters>(() => ({
+    ...eventFilters,
+    sports: eventFilters.sports,
+    location: tab === "events" && search ? search : eventFilters.location,
+    ...(eventFilters.sort === "nearby" && latitude !== null && longitude !== null
+      ? { userLat: latitude, userLon: longitude }
+      : {}),
+  }), [eventFilters, search, tab, latitude, longitude]);
+
+  // True when the modal filters for the active tab differ from their defaults
+  // (ignoring the quick-access sport chip, which has its own visual indicator).
+  const clubFiltersActive = useMemo(
+    () =>
+      clubFilters.location !== "" ||
+      clubFilters.requiredLevel !== "" ||
+      clubFilters.internalOnly ||
+      clubFilters.externalOnly ||
+      clubFilters.favoritesOnly ||
+      clubFilters.sports.length > 0,
+    [clubFilters]
+  );
+
+  const eventFiltersActive = useMemo(
+    () =>
+      eventFilters.location !== "" ||
+      eventFilters.dateFrom !== null ||
+      eventFilters.dateTo !== null ||
+      eventFilters.requiredLevel !== "" ||
+      eventFilters.difficultyMax !== 5 ||
+      eventFilters.difficultyMin !== 0 ||
+      eventFilters.category !== "" ||
+      eventFilters.paidOnly !== null ||
+      eventFilters.internalOnly ||
+      eventFilters.externalOnly ||
+      eventFilters.favoritesOnly ||
+      eventFilters.sports.length > 0,
+    [eventFilters]
+  );
+
+  const handleOpenFilters = useCallback(() => setFilterOpen(true), []);
+  const handleCloseFilters = useCallback(() => setFilterOpen(false), []);
+
+  const handleOpenSort = useCallback(() => setSortOpen(true), []);
+  const handleCloseSort = useCallback(() => setSortOpen(false), []);
+
+  // True when the selected sort for the active tab differs from its default.
+  const clubSortActive = clubFilters.sort !== defaultClubFilters.sort;
+  const eventSortActive = eventFilters.sort !== defaultEventFilters.sort;
+
+  // Keep the sort in sync with the active tab.
+  const handleSortSelect = useCallback(
+    (value: string) => {
+      if (tab === "clubs") {
+        setClubFilters((f) => ({ ...f, sort: value }));
+      } else {
+        setEventFilters((f) => ({ ...f, sort: value }));
+      }
+    },
+    [tab]
+  );
+
+  const handleRadiusChange = useCallback((km: number) => {
+    if (tab === "clubs") {
+      setClubFilters((f) => ({ ...f, radiusKm: km }));
+    } else {
+      setEventFilters((f) => ({ ...f, radiusKm: km }));
+    }
+  }, [tab]);
 
   // Fetch data based on active tab
   const {
@@ -122,18 +227,7 @@ export default function ExploreScreen() {
     fetchNextPage: fetchNextClubs,
     hasNextPage: hasNextClubs,
     isFetchingNextPage: fetchingNextClubs,
-  } = useClubs(
-    {
-      sports: activeSport ? [activeSport] : [],
-      location: tab === "clubs" ? search : "",
-      requiredLevel: "",
-      internalOnly: false,
-      externalOnly: false,
-      favoritesOnly: false,
-      sort: "relevance",
-    },
-    userId,
-  );
+  } = useClubs(clubQueryFilters, userId);
 
   const {
     data: eventsData,
@@ -143,24 +237,7 @@ export default function ExploreScreen() {
     fetchNextPage: fetchNextEvents,
     hasNextPage: hasNextEvents,
     isFetchingNextPage: fetchingNextEvents,
-  } = useEvents(
-    {
-      sports: activeSport ? [activeSport] : [],
-      location: tab === "events" ? search : "",
-      dateFrom: null,
-      dateTo: null,
-      requiredLevel: "",
-      difficultyMin: 0,
-      difficultyMax: 5,
-      category: "",
-      paidOnly: null,
-      internalOnly: false,
-      externalOnly: false,
-      favoritesOnly: false,
-      sort: "relevance",
-    },
-    userId,
-  );
+  } = useEvents(eventQueryFilters, userId);
 
   const isLoading = tab === "clubs" ? clubsLoading : eventsLoading;
   const isError = tab === "clubs" ? clubsError : eventsError;
@@ -184,13 +261,6 @@ export default function ExploreScreen() {
   const handleEndReached = useCallback(() => {
     if (hasNext) void fetchNext();
   }, [hasNext, fetchNext]);
-
-  const handleSportToggle = useCallback(
-    (sportId: SportId) => {
-      setActiveSport((prev) => (prev === sportId ? null : sportId));
-    },
-    []
-  );
 
   const handleToggleViewMode = useCallback(() => {
     setViewMode((prev) => (prev === "list" ? "grid" : "list"));
@@ -231,11 +301,13 @@ export default function ExploreScreen() {
           setTab={setTab}
           search={search}
           setSearch={setSearch}
-          activeSport={activeSport}
-          onSportToggle={handleSportToggle}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
           isGridAvailable={isGridAvailable}
+          onOpenFilterModal={handleOpenFilters}
+          filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
+          onOpenSort={handleOpenSort}
+          sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
         />
         <ExploreSkeleton />
       </SafeScreen>
@@ -253,11 +325,13 @@ export default function ExploreScreen() {
           setTab={setTab}
           search={search}
           setSearch={setSearch}
-          activeSport={activeSport}
-          onSportToggle={handleSportToggle}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
           isGridAvailable={isGridAvailable}
+          onOpenFilterModal={handleOpenFilters}
+          filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
+          onOpenSort={handleOpenSort}
+          sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
         />
         <View className="flex-1 items-center justify-center px-8">
           <Icon name="Search" size={32} color="text-tertiary" />
@@ -282,11 +356,13 @@ export default function ExploreScreen() {
         setTab={setTab}
         search={search}
         setSearch={setSearch}
-        activeSport={activeSport}
-        onSportToggle={handleSportToggle}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
         isGridAvailable={isGridAvailable}
+        onOpenFilterModal={handleOpenFilters}
+        filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
+        onOpenSort={handleOpenSort}
+        sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
       />
 
       {items.length === 0 ? (
@@ -365,12 +441,58 @@ export default function ExploreScreen() {
           }
         />
       )}
+
+      {/* Filter/sort modal — different options per tab */}
+      {tab === "clubs" ? (
+        <ClubFilters
+          visible={filterOpen}
+          onClose={handleCloseFilters}
+          value={clubFilters}
+          onApply={setClubFilters}
+          isLocationEnabled={isLocationEnabled}
+        />
+      ) : (
+        <EventFilters
+          visible={filterOpen}
+          onClose={handleCloseFilters}
+          value={eventFilters}
+          onApply={setEventFilters}
+          isLocationEnabled={isLocationEnabled}
+        />
+      )}
+
+      {/* Order button sheet — different options per tab */}
+      {tab === "clubs" ? (
+        <SortSheet
+          visible={sortOpen}
+          onClose={handleCloseSort}
+          options={CLUB_SORT_OPTIONS}
+          value={clubFilters.sort}
+          onSelect={handleSortSelect}
+          radiusKm={clubFilters.radiusKm ?? 10}
+          onRadiusKm={handleRadiusChange}
+          isLocationEnabled={isLocationEnabled}
+          onRequestLocation={requestPermission}
+        />
+      ) : (
+        <SortSheet
+          visible={sortOpen}
+          onClose={handleCloseSort}
+          options={EVENT_SORT_OPTIONS}
+          value={eventFilters.sort}
+          onSelect={handleSortSelect}
+          radiusKm={eventFilters.radiusKm ?? 10}
+          onRadiusKm={handleRadiusChange}
+          isLocationEnabled={isLocationEnabled}
+          onRequestLocation={requestPermission}
+        />
+      )}
     </SafeScreen>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Header sub-component (segment + search + sport chips + view toggle)
+// Header sub-component (segment + search + view toggle)
 // ---------------------------------------------------------------------------
 
 function ExploreHeader({
@@ -378,21 +500,25 @@ function ExploreHeader({
   setTab,
   search,
   setSearch,
-  activeSport,
-  onSportToggle,
   viewMode,
   onToggleViewMode,
   isGridAvailable,
+  onOpenFilterModal,
+  filterActive,
+  onOpenSort,
+  sortActive,
 }: {
   tab: ExploreTab;
   setTab: (t: ExploreTab) => void;
   search: string;
   setSearch: (s: string) => void;
-  activeSport: SportId | null;
-  onSportToggle: (sportId: SportId) => void;
   viewMode: ViewMode;
   onToggleViewMode: () => void;
   isGridAvailable: boolean;
+  onOpenFilterModal: () => void;
+  filterActive: boolean;
+  onOpenSort: () => void;
+  sortActive: boolean;
 }) {
   return (
     <View className="bg-bg dark:bg-bg-dark">
@@ -448,6 +574,40 @@ function ExploreHeader({
             />
           </View>
 
+          {/* Filter / sort */}
+          <Pressable
+            onPress={onOpenFilterModal}
+            accessibilityRole="button"
+            accessibilityLabel="Filtres et tri"
+            className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
+          >
+            <Icon
+              name="ListFilter"
+              size={20}
+              color={filterActive ? "primary" : "text-secondary"}
+            />
+            {filterActive ? (
+              <View className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+            ) : null}
+          </Pressable>
+
+          {/* Order / sort */}
+          <Pressable
+            onPress={onOpenSort}
+            accessibilityRole="button"
+            accessibilityLabel="Trier"
+            className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
+          >
+            <Icon
+              name="ArrowUpDown"
+              size={20}
+              color={sortActive ? "primary" : "text-secondary"}
+            />
+            {sortActive ? (
+              <View className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+            ) : null}
+          </Pressable>
+
           {/* View mode toggle */}
           {isGridAvailable ? (
             <Pressable
@@ -464,42 +624,6 @@ function ExploreHeader({
             </Pressable>
           ) : null}
         </View>
-      </View>
-
-      {/* Sport chips */}
-      <View className="pb-3">
-        <FlatList
-          horizontal
-          data={SPORTS}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          renderItem={({ item }) => {
-            const active = activeSport === item.id;
-            const colors = SPORT_CHIP_COLORS[item.id] ?? {
-              bg: "bg-neutral-50 dark:bg-neutral-800",
-              text: "text-neutral-600",
-            };
-
-            return (
-              <Pressable onPress={() => onSportToggle(item.id)}>
-                <View
-                  className={cn(
-                    "self-start rounded-full px-4 py-2",
-                    active ? colors.bg : "bg-neutral-50 dark:bg-neutral-800"
-                  )}
-                >
-                  <Text
-                    variant="caption"
-                    className={active ? colors.text : "text-text-secondary"}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          }}
-        />
       </View>
     </View>
   );

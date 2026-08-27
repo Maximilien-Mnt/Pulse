@@ -37,6 +37,7 @@ import { PostHogProvider } from "posthog-react-native";
 import { posthog } from "@/src/config/posthog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { markNavigatedInSession } from "@/lib/navigationSession";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -127,6 +128,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (previousPathname.current !== pathname) {
+      // The first committed pathname is the initial load (mount / refresh /
+      // deep link) — keep that as "not navigated in this session". Any
+      // subsequent change is a genuine in-app navigation.
+      if (previousPathname.current !== undefined) {
+        markNavigatedInSession();
+      }
       posthog.screen(pathname, {
         previous_screen: previousPathname.current ?? null,
         ...params,

@@ -25,6 +25,7 @@ import { useRouter } from "expo-router";
 import { Pressable } from "react-native";
 import { Icon } from "./Icon";
 import { cn } from "@/utils/format";
+import { hasNavigatedInSession } from "@/lib/navigationSession";
 
 type BackButtonProps = {
   /** Route to navigate to when there is no history to go back to. */
@@ -33,18 +34,36 @@ type BackButtonProps = {
   className?: string;
   /** When true, always navigate to `fallbackRoute` instead of `router.back()`. */
   alwaysUseFallbackRoute?: boolean;
+  /**
+   * When true, `router.back()` is only used if the user actually navigated to
+   * this screen within the current app session (not via a hard refresh or
+   * deep link). Otherwise it falls back to `fallbackRoute`. This avoids
+   * `router.canGoBack()` returning `true` on web after a reload due to stale
+   * browser history.
+   */
+  useInAppSession?: boolean;
 };
 
 export function BackButton({
   fallbackRoute = "/(tabs)/explore",
   className,
   alwaysUseFallbackRoute = false,
+  useInAppSession = false,
 }: BackButtonProps) {
   const router = useRouter();
 
   const handlePress = () => {
     if (alwaysUseFallbackRoute) {
       router.replace(fallbackRoute);
+    } else if (useInAppSession) {
+      // Only go back when the user navigated here within this app session.
+      // On a fresh load / refresh, `canGoBack()` can be misleading on web,
+      // so we gate it behind our in-app navigation flag.
+      if (hasNavigatedInSession() && router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace(fallbackRoute);
+      }
     } else if (router.canGoBack()) {
       router.back();
     } else {

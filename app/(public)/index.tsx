@@ -72,9 +72,9 @@ export default function LandingScreen() {
             <View className="flex-row items-center justify-center gap-3">
               <View className="w-20 h-20 rounded-2xl bg-primary items-center justify-center overflow-hidden">
                 <Image
-                  source={require("@/assets/logo/pulse-icon.png")}
-                  style={{ width: 56, height: 56 }}
-                  contentFit="contain"
+                  source={require("@/assets/logo/pulse-logo-10-v3-20260828.png")}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="cover"
                 />
               </View>
               <Text variant="h1" className="text-neutral-900 dark:text-neutral-50">

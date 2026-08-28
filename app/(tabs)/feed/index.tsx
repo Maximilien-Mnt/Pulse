@@ -598,9 +598,9 @@ function FeedTopBar({
       {/* Logo mark — Activity icon in rounded square */}
       <View className="w-10 h-10 rounded-xs bg-primary items-center justify-center overflow-hidden">
         <Image
-          source={require("@/assets/logo/pulse-icon.png")}
-          style={{ width: 40, height: 40 }}
-          contentFit="contain"
+          source={require("@/assets/logo/pulse-logo-10-v3-20260828.png")}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
         />
       </View>
 

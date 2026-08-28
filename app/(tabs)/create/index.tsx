@@ -38,6 +38,7 @@ import { Tag } from "@/components/ui/Tag";
 import { TagInput } from "@/components/feed/TagInput";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -320,7 +321,7 @@ function ClubForm({ onClose }: { onClose: () => void }) {
           loading={createMut.isPending}
           className="w-full"
         >
-          Créer le club
+          {t("create.club")}
         </Button>
       </View>
     </View>
@@ -460,7 +461,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
           loading={createMut.isPending}
           className="w-full"
         >
-          Créer l'événement
+          {t("create.event")}
         </Button>
       </View>
     </View>
@@ -472,6 +473,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 function ConversationForm({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const posthog = usePostHog();
@@ -509,7 +511,7 @@ function ConversationForm({ onClose }: { onClose: () => void }) {
   return (
     <View className="p-4">
       <Input
-        label="Recherche par pseudonyme"
+        label={t("common.searchByUsername")}
         value={query}
         onChangeText={(t) => { setQuery(t); void searchUsers(t); }}
         autoCapitalize="none"
@@ -541,6 +543,7 @@ export default function CreateScreen() {
   const params = useLocalSearchParams<{ mode?: string }>();
   const router = useRouter();
   const mode = params.mode ?? null;
+  const { t } = useTranslation();
 
   const handleClose = useCallback(() => {
     if (router.canDismiss()) router.dismiss();

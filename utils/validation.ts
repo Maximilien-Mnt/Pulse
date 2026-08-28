@@ -76,30 +76,27 @@ export const signupStep3Schema = z
           levelOther: z.string().optional(),
           practiceOther: z.string().optional(),
           timeSlots: z
-            .array(
-              z.object({
-                weekday: z.number().int().min(0).max(6),
-                startHour: z
-                  .number({ invalid_type_error: "Heure de début requise" })
-                  .int()
-                  .min(6, "Heure de début invalide")
-                  .max(21, "Heure de début invalide"),
-                endHour: z
-                  .number({ invalid_type_error: "Heure de fin requise" })
-                  .int()
-                  .min(7, "Heure de fin invalide")
-                  .max(23, "Heure de fin invalide"),
-              })
-            )
-            .min(1, "Au moins un créneau requis"),
+          .array(
+            z.object({
+              weekday: z.number().int().min(0).max(6).optional(),
+              startHour: z.number().int().min(6).max(21).optional(),
+              endHour: z.number().int().min(7).max(23).optional(),
+            })
+          )
+          .optional(),
+
         })
       )
       .min(0),
   })
   .superRefine((d, ctx) => {
     d.entries.forEach((entry, i) => {
-      entry.timeSlots.forEach((slot, j) => {
-        if (slot.endHour <= slot.startHour) {
+      (entry.timeSlots ?? []).forEach((slot, j) => {
+        if (
+          slot.startHour != null &&
+          slot.endHour != null &&
+          slot.endHour <= slot.startHour
+        ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "L'heure de fin doit être après l'heure de début",
@@ -109,6 +106,7 @@ export const signupStep3Schema = z
       });
     });
   });
+
 
 export const signupStep4Schema = z.object({
   interestedSports: z.array(z.string()).default([]),

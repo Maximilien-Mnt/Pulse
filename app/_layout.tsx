@@ -1,5 +1,6 @@
 import "../global.css";
 import { queryClient, restoreQueryCache, persistQueryCache } from "@/lib/queryClient";
+import { useLanguageStore } from "@/stores/languageStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavbarStore } from "@/stores/navbarStore";
@@ -33,6 +34,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { View } from "react-native";
+import { useColorScheme } from "nativewind";
 import { PostHogProvider } from "posthog-react-native";
 import { posthog } from "@/src/config/posthog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -61,6 +63,7 @@ function AuthGate() {
 
 export default function RootLayout() {
   const isDark = useThemeStore((s) => s.isDark);
+  const { setColorScheme } = useColorScheme();
   // The auth store's `initialized` flag flips to true once the Supabase
   // session has been resolved on startup. The offline cache restore waits
   // for it so the persisted-cache owner check can compare against the real
@@ -96,6 +99,7 @@ export default function RootLayout() {
   useEffect(() => {
     void useThemeStore.getState().hydrate();
     void useNavbarStore.getState().hydrate();
+    void useLanguageStore.getState().hydrate();
   }, []);
 
   // Web: apply the `dark` class + color-scheme to <html> so Tailwind's
@@ -112,6 +116,13 @@ export default function RootLayout() {
     }
     root.style.colorScheme = isDark ? "dark" : "light";
   }, [isDark]);
+
+  // Native: sync the Zustand theme with NativeWind's internal color scheme.
+  // This is required for `dark:` variants to resolve on native.
+  useEffect(() => {
+    if (Platform.OS === "web" || typeof document !== "undefined") return;
+    setColorScheme(isDark ? "dark" : "light");
+  }, [isDark, setColorScheme]);
 
   // Offline mode: restore cached data once the auth session has been
   // resolved (so the persisted-cache owner check can compare against the
@@ -158,7 +169,7 @@ export default function RootLayout() {
           >
             <AuthGate />
             <PushNotificationsGate>
-              <View className={`flex-1 bg-neutral-50 dark:bg-[#0A0F1E] ${isDark ? "dark" : ""}`}>
+              <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
                 <StatusBar style={isDark ? "light" : "dark"} />
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(public)" />

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TouchableWithoutFeedback, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -37,6 +38,7 @@ async function uploadAvatar(uri: string, userId: string): Promise<string> {
  * Full edit form with V1 fields: name, bio, city, height, weight, language, photo, objectives, sports.
  */
 export function EditProfileSheet({ visible, onClose, profile }: Props) {
+  const { t } = useTranslation();
   const posthog = usePostHog();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");

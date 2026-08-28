@@ -29,6 +29,8 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         required_level: data.required_level || "",
         league: isClub ? (data as Club).league || "" : "",
         founded_date: isClub ? (data as Club).founded_date || "" : "",
+        cover_url: isClub ? (data as Club).cover_url || "" : "",
+        logo_url: isClub ? (data as Club).logo_url || "" : "",
       });
     }
   }, [data, type]);
@@ -65,6 +67,14 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
       if (formData.founded_date !== club.founded_date) {
         updateData.founded_date = formData.founded_date || null;
         oldData.founded_date = club.founded_date;
+      }
+      if (formData.cover_url !== club.cover_url) {
+        updateData.cover_url = formData.cover_url || null;
+        oldData.cover_url = club.cover_url;
+      }
+      if (formData.logo_url !== club.logo_url) {
+        updateData.logo_url = formData.logo_url || null;
+        oldData.logo_url = club.logo_url;
       }
     } else {
       const event = data as EventRow;

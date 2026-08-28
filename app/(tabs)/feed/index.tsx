@@ -44,6 +44,7 @@ import { FeedGrid } from "@/components/feed/FeedGrid";
 import { CommentPanel } from "@/components/feed/CommentPanel";
 import { CommentCenteredModal } from "@/components/feed/CommentCenteredModal";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder
@@ -79,6 +80,7 @@ function FeedSkeleton() {
 
 function FeedEmpty({ isFollowing }: { isFollowing: boolean }) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
@@ -86,19 +88,19 @@ function FeedEmpty({ isFollowing }: { isFollowing: boolean }) {
         <Icon name="Activity" size={32} color="primary" />
       </View>
       <Text variant="subtitle" className="text-text-primary text-center mb-2">
-        {isFollowing ? "Aucun post de tes abonnements." : "Ton feed est calme."}
+        {isFollowing ? t("feed.emptyTitleFollowing") : t("feed.emptyTitleNoFollowing")}
       </Text>
       <Text variant="body" className="text-text-secondary text-center mb-6">
         {isFollowing
-          ? "Les profils que tu suis n'ont pas encore publié. Explore pour découvrir de nouveaux profils."
-          : "Rejoins un club pour voir plus d'activité."}
+          ? t("feed.emptySubtitleFollowing")
+          : t("feed.emptySubtitleNoFollowing")}
       </Text>
       <Button
         variant="primary"
         icon="Search"
         onPress={() => router.push("/(tabs)/explore" as any)}
       >
-        Explorer
+        {t("feed.emptyCta")}
       </Button>
     </View>
   );
@@ -109,18 +111,19 @@ function FeedEmpty({ isFollowing }: { isFollowing: boolean }) {
 // ---------------------------------------------------------------------------
 
 function SearchEmpty({ query }: { query: string }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
       <View className="w-20 h-20 rounded-full bg-primary-tint items-center justify-center mb-6">
         <Icon name="Search" size={32} color="primary" />
       </View>
       <Text variant="subtitle" className="text-text-primary text-center mb-2">
-        Aucun résultat
+        {t("feed.searchEmpty")}
       </Text>
       <Text variant="body" className="text-text-secondary text-center mb-6">
         {query.trim()
-          ? `Aucun post ne correspond à « ${query.trim()} ».`
-          : "Aucun post ne correspond à ces critères."}
+          ? t("feed.searchBodyQuery").replace("{query}", query.trim())
+          : t("feed.searchBodyGeneric")}
       </Text>
     </View>
   );
@@ -131,17 +134,18 @@ function SearchEmpty({ query }: { query: string }) {
 // ---------------------------------------------------------------------------
 
 function FeedError({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
       <Icon name="Activity" size={32} color="text-tertiary" />
       <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
-        Oups, quelque chose s'est mal passé
+        {t("feed.errorTitle")}
       </Text>
       <Text variant="body" className="text-text-secondary text-center mb-6">
-        Impossible de charger le feed. Vérifie ta connexion.
+        {t("feed.errorBody")}
       </Text>
       <Button variant="secondary" onPress={onRetry}>
-        Réessayer
+        {t("feed.errorCta")}
       </Button>
     </View>
   );
@@ -586,6 +590,7 @@ function FeedTopBar({
   isGridAvailable,
 }: FeedTopBarProps) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-bg dark:bg-bg-dark gap-3">
@@ -608,7 +613,7 @@ function FeedTopBar({
           onPress={onSearchPress}
           expanded={searchExpanded}
           onSubmitEditing={onSubmitSearch}
-          placeholder="Rechercher dans le feed…"
+          placeholder={t("feed.searchPlaceholder")}
         />
       </View>
 
@@ -618,7 +623,7 @@ function FeedTopBar({
           <Pressable
             onPress={onToggleViewMode}
             accessibilityRole="button"
-            accessibilityLabel={viewMode === "list" ? "Vue liste" : "Vue grille"}
+            accessibilityLabel={viewMode === "list" ? t("common.viewList") : t("common.viewGrid")}
             className="p-2 rounded-full bg-surface dark:bg-surface-dark"
           >
             <Icon
@@ -632,7 +637,7 @@ function FeedTopBar({
         <Pressable
           onPress={() => router.push("/(tabs)/profile/notifications" as any)}
           accessibilityRole="button"
-          accessibilityLabel={`Notifications${unreadCount > 0 ? `, ${unreadCount} non lues` : ""}`}
+          accessibilityLabel={t("common.notifications") + (unreadCount > 0 ? `, ${unreadCount} non lues` : "")}
           className="relative"
         >
           <Icon name="Bell" size={24} color="text-secondary" />

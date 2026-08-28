@@ -199,6 +199,7 @@ export type CountryCode = string;
 
 export const LANGUAGES = [
   { code: "fr", label: "Français" },
+  { code: "en", label: "English" },
 ] as const;
 
 /**

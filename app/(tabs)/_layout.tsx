@@ -1,9 +1,12 @@
 import { TabBar } from "@/components/shared/TabBar";
 import { SideRail, useIsWebWide } from "@/components/shared/SideRail";
 import { useNavbarStore } from "@/stores/navbarStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { useLanguageStore } from "@/stores/languageStore";
 import { Tabs } from "expo-router";
 import { View } from "react-native";
 import { AuthGuard } from "@/components/shared/AuthGuard";
+import { useEffect } from "react";
 
 /**
  * Responsive tabs layout:
@@ -39,6 +42,13 @@ function TabsContent({ showBottomBar }: { showBottomBar: boolean }) {
 export default function TabsLayout() {
   const isWebWide = useIsWebWide();
   const navbarPosition = useNavbarStore((s) => s.position);
+  const hydrateTheme = useThemeStore((s) => s.hydrate);
+  const hydrateLanguage = useLanguageStore((s) => s.hydrate);
+
+  useEffect(() => {
+    void hydrateTheme();
+    void hydrateLanguage();
+  }, [hydrateTheme, hydrateLanguage]);
 
   // Web: show the SideRail only when the user hasn't chosen the bottom layout.
   const showSideRail = isWebWide && navbarPosition === "left";

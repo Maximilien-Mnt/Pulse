@@ -11,6 +11,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { useResponsiveListGrid } from "@/hooks/useResponsiveListGrid";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
+import { useTranslation } from "@/hooks/useTranslation";
 import type { Club } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
@@ -31,6 +32,7 @@ const defaultFilters: ClubListFilters = {
 };
 
 export default function ClubsScreen() {
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
   const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
@@ -121,7 +123,7 @@ export default function ClubsScreen() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
-        ListEmptyComponent={<EmptyState icon="people-outline" title="Aucun club" subtitle="Essaie d'autres filtres." />}
+        ListEmptyComponent={<EmptyState icon="people-outline" title={t("common.noClub")} subtitle={t("common.tryOtherFilters")} />}
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 

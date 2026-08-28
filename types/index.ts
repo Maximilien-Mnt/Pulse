@@ -147,6 +147,7 @@ export type Database = {
           latitude: number | null;
           longitude: number | null;
           logo_url: string | null;
+          cover_url: string | null;
           hero_urls: string[];
           registration_url: string | null;
           is_external: boolean;
@@ -178,6 +179,7 @@ export type Database = {
           latitude?: number | null;
           longitude?: number | null;
           logo_url?: string | null;
+          cover_url?: string | null;
           hero_urls?: string[];
           registration_url?: string | null;
           is_external?: boolean;

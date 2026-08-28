@@ -7,9 +7,13 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPrivateSchema } from "@/utils/validation";
 import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
+import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -30,6 +34,65 @@ export default function CreatePrivateClubScreen() {
   const [searchHits, setSearchHits] = useState<
     { id: string; username: string; full_name: string; avatar_url: string | null }[]
   >([]);
+  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [heroUris, setHeroUris] = useState<string[]>([]);
+
+  async function uploadImage(uri: string, path: string) {
+    return uploadImageToStorage({ bucket: "clubs", path, uri });
+  }
+
+  const pickLogo = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
+    if (!res.canceled && first) {
+      setLogoUri(first.uri);
+    }
+  };
+
+  const pickCover = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
+    if (!res.canceled && first) {
+      setCoverUri(first.uri);
+    }
+  };
+
+  const pickHeroPhotos = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const remaining = 5 - heroUris.length;
+    if (remaining <= 0) {
+      Toast.show({ type: "info", text1: "Maximum 5 photos" });
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
+      quality: 0.8,
+    });
+    if (!res.canceled) {
+      const newUris = res.assets.map((a) => a.uri);
+      setHeroUris((prev) => [...prev, ...newUris].slice(0, 5));
+    }
+  };
+
+  const removeHero = (index: number) => {
+    setHeroUris((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -73,6 +136,25 @@ export default function CreatePrivateClubScreen() {
         throw new Error(validation.error.errors[0]?.message ?? "Validation error");
       }
 
+      // Upload logo
+      let logoUrl: string | null = null;
+      if (logoUri) {
+        logoUrl = await uploadImage(logoUri, `${userId}/${Date.now()}_logo.jpg`);
+      }
+
+      // Upload cover
+      let coverUrl: string | null = null;
+      if (coverUri) {
+        coverUrl = await uploadImage(coverUri, `${userId}/${Date.now()}_cover.jpg`);
+      }
+
+      // Upload hero photos
+      const heroUrls: string[] = [];
+      for (let i = 0; i < heroUris.length; i++) {
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
+        heroUrls.push(url);
+      }
+
       // Create club
       const { data: club, error: clubErr } = await supabase
         .from("clubs")
@@ -84,6 +166,9 @@ export default function CreatePrivateClubScreen() {
           country: profile?.country || "",
           city: profile?.city || "",
           created_by: userId,
+          logo_url: logoUrl,
+          cover_url: coverUrl,
+          hero_urls: heroUrls,
         } as any)
         .select("id")
         .single();
@@ -182,6 +267,116 @@ export default function CreatePrivateClubScreen() {
             multiline
             placeholder="Description optionnelle..."
           />
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Logo du club</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Ajoutez un logo pour votre club
+          </Text>
+          {logoUri ? (
+            <View className="items-center">
+              <View className="relative">
+                <Image
+                  source={{ uri: logoUri }}
+                  style={{ width: 120, height: 120, borderRadius: 24 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Pressable
+                  onPress={() => setLogoUri(null)}
+                  className="absolute -top-2 -right-2 bg-error rounded-full p-1.5"
+                >
+                  <Ionicons name="close" size={16} color="white" />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={pickLogo}
+              className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl p-6 items-center active:bg-neutral-50 dark:active:bg-neutral-700/50"
+            >
+              <Icon name="Plus" size={32} color="text-tertiary" />
+              <Text className="text-sm text-neutral-500 mt-2">
+                Ajouter un logo
+              </Text>
+            </Pressable>
+          )}
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Image de couverture</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Cette image apparaîtra en tête de la page du club
+          </Text>
+          {coverUri ? (
+            <View className="items-center">
+              <View className="relative">
+                <Image
+                  source={{ uri: coverUri }}
+                  style={{ width: "100%", height: 160, borderRadius: 16 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Pressable
+                  onPress={() => setCoverUri(null)}
+                  className="absolute top-2 right-2 bg-error rounded-full p-1.5"
+                >
+                  <Ionicons name="close" size={16} color="white" />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={pickCover}
+              className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl p-6 items-center active:bg-neutral-50 dark:active:bg-neutral-700/50"
+            >
+              <Icon name="Plus" size={32} color="text-tertiary" />
+              <Text className="text-sm text-neutral-500 mt-2">
+                Ajouter une image de couverture
+              </Text>
+            </Pressable>
+          )}
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Photos du club</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Ajoutez des photos pour illustrer votre club
+          </Text>
+          <Button
+            title="Ajouter des photos"
+            variant="secondary"
+            onPress={pickHeroPhotos}
+            disabled={heroUris.length >= 5}
+          />
+          {heroUris.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mt-3"
+            >
+              {heroUris.map((uri, i) => (
+                <View key={uri} className="mr-2 relative">
+                  <Image
+                    source={{ uri }}
+                    style={{ width: 80, height: 80, borderRadius: 12 }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                  <Pressable
+                    onPress={() => removeHero(i)}
+                    className="absolute -top-2 -right-2 bg-error rounded-full p-1"
+                  >
+                    <Ionicons name="close" size={12} color="white" />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          )}
         </Card>
 
         <Card className="p-4 mb-4">

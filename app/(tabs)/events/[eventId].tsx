@@ -28,11 +28,13 @@ import { supabase } from "@/lib/supabase";
 import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const router = useRouter();
   const posthog = usePostHog();
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
 
   const { data: event, isLoading: eventLoading } = useQuery({
@@ -63,8 +65,8 @@ export default function EventDetailScreen() {
       if (!data) return undefined;
       return {
         id: data.id,
-        full_name: data.full_name ?? "Utilisateur",
-        username: data.username ?? "utilisateur",
+        full_name: data.full_name ?? t("common.userNotFound"),
+        username: data.username ?? "user",
         avatar_url: data.avatar_url ?? null,
       };
     },
@@ -181,9 +183,9 @@ export default function EventDetailScreen() {
       <SafeScreen className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
         <Icon name="AlertCircle" size={32} color="text-tertiary" />
         <PulseText variant="body" className="mt-3 text-neutral-500">
-          Événement introuvable
+          {t("events.notFound")}
         </PulseText>
-        <Button title="Retour" variant="secondary" className="mt-4" onPress={() => router.back()} />
+        <Button title={t("common.back")} variant="secondary" className="mt-4" onPress={() => router.back()} />
       </SafeScreen>
     );
   }
@@ -197,19 +199,19 @@ export default function EventDetailScreen() {
   if (isExternalReg) {
     actionButton = (
       <Button
-        title="S'inscrire"
+        title={t("events.register")}
         icon="Globe"
         onPress={() => void WebBrowser.openBrowserAsync(event.registration_url!)}
       />
     );
   } else if (!isCreator) {
-    if (joinStatus?.isMember) actionButton = <Button title="Participant" variant="secondary" disabled />;
-    else if (joinStatus?.isPending) actionButton = <Button title="Demande envoyée" variant="secondary" disabled />;
-    else if (isFull) actionButton = <Button title="Complet" variant="secondary" disabled />;
+    if (joinStatus?.isMember) actionButton = <Button title={t("events.participant")} variant="secondary" disabled />;
+    else if (joinStatus?.isPending) actionButton = <Button title={t("events.requestSent")} variant="secondary" disabled />;
+    else if (isFull) actionButton = <Button title={t("events.full")} variant="secondary" disabled />;
     else {
       actionButton = (
         <Button
-          title={event.is_private ? "Demander à participer" : "Participer"}
+          title={event.is_private ? t("events.requestJoin") : t("events.join")}
           icon="CheckCircle2"
           onPress={() => joinMut.mutate()}
           loading={joinMut.isPending}
@@ -402,7 +404,7 @@ export default function EventDetailScreen() {
           )}
           {event.club_id ? (
             <Pressable onPress={() => router.push(`/(tabs)/clubs/${event.club_id}`)}>
-              <InfoRow icon="Trophy" label="Club organisateur" value={organisingClub ?? "Voir le club"} />
+              <InfoRow icon="Trophy" label={t("common.organizingClub")} value={organisingClub ?? t("common.viewClub")} />
             </Pressable>
           ) : null}
         </InfoSection>
@@ -411,7 +413,7 @@ export default function EventDetailScreen() {
         {(event.accepted_count ?? 0) > 0 ? (
           <View className="mx-4 mb-5">
             <PulseText variant="overline" className="text-neutral-400 mb-2">
-              Participants ({event.accepted_count ?? 0})
+              {t("events.participants")} ({event.accepted_count ?? 0})
             </PulseText>
             <EventMembersStrip
               participants={allParticipants}
@@ -432,7 +434,7 @@ export default function EventDetailScreen() {
           <View className="flex-row gap-3">
             <View className="flex-1">
               <Button
-                title="Partager"
+                title={t("events.share")}
                 variant="secondary"
                 icon="Share2"
                 onPress={() => void Share.share({ message: event.name })}
@@ -443,7 +445,7 @@ export default function EventDetailScreen() {
 
           {isFull ? (
             <PulseText variant="caption" className="mt-1 text-center text-error">
-              Plus de places disponibles pour cet événement.
+              {t("events.placesLeft")}
             </PulseText>
           ) : null}
 

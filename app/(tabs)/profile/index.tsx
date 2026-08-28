@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
+import { useTranslation } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -59,6 +60,7 @@ function ProfileSkeleton() {
 export default function ProfileScreen() {
   const userId = useAuthStore((s) => s.userId);
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(userId);
   const [goPublicOpen, setGoPublicOpen] = useState(false);
 
@@ -74,7 +76,7 @@ export default function ProfileScreen() {
 
   const isPublic = profile.is_public_profile;
   const coverUrl = profile.avatar_url ?? null;
-  const name = profile.full_name ?? "Utilisateur";
+  const name = profile.full_name ?? t("common.userNotFound");
   const bio = profile.bio ?? "";
   const statusMap = parsePublicStatus(profile.public_status);
   return (
@@ -159,11 +161,11 @@ export default function ProfileScreen() {
           {!isPublic && (
             <View className="py-4">
               <Text variant="subtitle" className="text-text-primary mb-2">
-                Profil public
+                {t("profile.section.public")}
               </Text>
               <Text variant="caption" className="text-text-tertiary mb-3">
-                Un profil public permet de créer des posts visibles par tous.
-                Cette action est irréversible.
+                {t("common.publicProfileInfo")}
+                {t("common.irreversible")}
               </Text>
               <Button
                 title="Activer le profil public"
@@ -198,7 +200,7 @@ export default function ProfileScreen() {
             <View className="flex-row items-center gap-3">
               <Icon name="Bell" size={20} color="text-secondary" />
               <Text variant="body" className="text-text-secondary">
-                Notifications
+                {t("profile.notificationsSection")}
               </Text>
             </View>
             <Icon name="Search" size={16} color="text-tertiary" />
@@ -215,7 +217,7 @@ export default function ProfileScreen() {
             <View className="flex-row items-center gap-3">
               <Icon name="Settings" size={20} color="text-secondary" />
               <Text variant="body" className="text-text-secondary">
-                Paramètres
+                {t("profile.settings")}
               </Text>
             </View>
             <Icon name="Search" size={16} color="text-tertiary" />
@@ -232,7 +234,7 @@ export default function ProfileScreen() {
             <View className="flex-row items-center gap-3">
               <Icon name="Users" size={20} color="text-secondary" />
               <Text variant="body" className="text-text-secondary">
-                Clubs
+                {t("profile.clubs")}
               </Text>
             </View>
             <Icon name="Search" size={16} color="text-tertiary" />
@@ -249,7 +251,7 @@ export default function ProfileScreen() {
             <View className="flex-row items-center gap-3">
               <Icon name="CheckCircle2" size={20} color="text-secondary" />
               <Text variant="body" className="text-text-secondary">
-                Événements acceptés
+                {t("profile.acceptedEvents")}
               </Text>
             </View>
             <Icon name="Search" size={16} color="text-tertiary" />
@@ -268,7 +270,7 @@ export default function ProfileScreen() {
                 <View className="flex-row items-center gap-3">
                   <Icon name="Image" size={20} color="text-secondary" />
                   <Text variant="body" className="text-text-secondary">
-                    Mes posts
+                    {t("profile.myPosts")}
                   </Text>
                 </View>
                 <Icon name="Search" size={16} color="text-tertiary" />

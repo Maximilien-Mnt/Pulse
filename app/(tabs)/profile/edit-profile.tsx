@@ -31,6 +31,7 @@ import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Hours available for selection (6 AM -> 11 PM)
 const HOURS = Array.from({ length: 24 - 6 }, (_, i) => 6 + i);
@@ -113,32 +114,35 @@ function PickerField({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        className="h-10 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-3 flex-row items-center justify-between"
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
-        <Text
-          className={`text-sm ${
-            value ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400"
-          }`}
+      {!open ? (
+        <Pressable
+          onPress={() => setOpen(true)}
+          className="h-10 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-3 flex-row items-center justify-between"
+          accessibilityRole="button"
+          accessibilityLabel={label}
         >
-          {value || `Sélectionner ${label.toLowerCase()}`}
-        </Text>
-        <Text className="text-tertiary text-lg leading-none">›</Text>
-      </Pressable>
-      <NativePicker
-        visible={open}
-        title={label}
-        options={options}
-        selectedValue={value}
-        onSelect={(v) => {
-          onSelect(v);
-          setOpen(false);
-        }}
-        onClose={() => setOpen(false)}
-      />
+          <Text
+            className={`text-sm ${
+              value ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400"
+            }`}
+          >
+            {value || `Sélectionner ${label.toLowerCase()}`}
+          </Text>
+          <Text className="text-tertiary text-lg leading-none">›</Text>
+        </Pressable>
+      ) : (
+        <NativePicker
+          visible={open}
+          title={label}
+          options={options}
+          selectedValue={value}
+          onSelect={(v) => {
+            onSelect(v);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -526,15 +530,34 @@ export default function EditProfileScreen() {
               <Text className="text-xs text-neutral-500 dark:text-neutral-400">
                 Pays
               </Text>
-              <Pressable
-                onPress={() => setCountryOpen(true)}
-                accessibilityRole="button"
-                className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4"
-              >
-                <Text className="text-base text-neutral-900 dark:text-neutral-50">
-                  {country ? getCountryDisplay(country) : "Sélectionner un pays"}
-                </Text>
-              </Pressable>
+              {!countryOpen ? (
+                <Pressable
+                  onPress={() => setCountryOpen(true)}
+                  accessibilityRole="button"
+                  className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between active:opacity-70"
+                >
+                  <Text className="text-base text-neutral-900 dark:text-neutral-50">
+                    {country ? getCountryDisplay(country) : "Sélectionner un pays"}
+                  </Text>
+                  <Text className="text-tertiary text-lg leading-none">›</Text>
+                </Pressable>
+              ) : (
+                <NativePicker
+                  visible={countryOpen}
+                  title="Pays"
+                  confirmLabel="OK"
+                  options={COUNTRIES.map((c) => ({
+                    value: c.code,
+                    label: (getCountryDisplay(c.code) ?? "") as string,
+                  }))}
+                  selectedValue={country ?? "FR"}
+                  onSelect={(v) => {
+                    setCountry(v || null);
+                    setCountryOpen(false);
+                  }}
+                  onClose={() => setCountryOpen(false)}
+                />
+              )}
             </View>
 
             <Input
@@ -834,7 +857,7 @@ export default function EditProfileScreen() {
         </View>
 
         <Button
-          title="Enregistrer"
+          title={t("editProfile.save")}
           onPress={() => saveMut.mutate()}
           loading={saveMut.isPending}
           className="w-full"
@@ -867,41 +890,6 @@ export default function EditProfileScreen() {
             }}
             onClose={() => setHourPickerOpen(null)}
           />
-      <CountryPickerModal
-        visible={countryOpen}
-        selectedValue={country ?? "FR"}
-        onSelect={(v) => setCountry(v)}
-        onClose={() => setCountryOpen(false)}
-      />
     </SafeScreen>
-  );
-}
-function CountryPickerModal({
-  visible,
-  selectedValue,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean;
-  selectedValue: string;
-  onSelect: (v: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <NativePicker
-      visible={visible}
-      title="Pays"
-      confirmLabel="OK"
-      options={COUNTRIES.map((c) => ({
-        value: c.code,
-        label: (getCountryDisplay(c.code) ?? "") as string,
-      }))}
-      selectedValue={selectedValue}
-      onSelect={(v) => {
-        onSelect(String(v));
-        onClose();
-      }}
-      onClose={onClose}
-    />
   );
 }

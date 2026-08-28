@@ -159,7 +159,7 @@ export default function CreatePublicEventScreen() {
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `events/${userId}/${Date.now()}_hero_${i}.jpg`);
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
         heroUrls.push(url);
       }
 

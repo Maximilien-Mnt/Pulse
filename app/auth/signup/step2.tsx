@@ -125,39 +125,43 @@ export default function SignupStep2() {
           />
 
           <Text className="text-sm text-neutral-500 mb-2">{t("signup.step2.country")}</Text>
-          <Pressable
-            onPress={() => setCountryOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={t("signup.step2.selectCountry")}
-            className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4 flex-row items-center justify-between active:opacity-70"
-          >
-            {country ? (
-              <Text className="text-base text-neutral-900 dark:text-neutral-50">
-                {flagEmoji(country)} {countryLabel}
-              </Text>
-            ) : (
-              <Text className="text-base text-neutral-400 dark:text-neutral-500">
-                {t("signup.step2.selectCountry")}
-              </Text>
-            )}
-            <Text className="text-primary dark:text-primary-dark text-lg">›</Text>
-          </Pressable>
-
-          <Controller
-            control={control}
-            name="country"
-            render={({ field: { value, onChange } }) => (
-              <NativePicker
-                visible={countryOpen}
-                title={t("signup.step2.pickerTitle")}
-                confirmLabel="OK"
-                options={COMMON_COUNTRIES.map((c) => ({ value: c.code, label: `${flagEmoji(c.code)} ${c.label}` }))}
-                selectedValue={value}
-                onSelect={(v) => onChange(v)}
-                onClose={() => setCountryOpen(false)}
-              />
-            )}
-          />
+          {!countryOpen ? (
+            <Pressable
+              onPress={() => setCountryOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("signup.step2.selectCountry")}
+              className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4 flex-row items-center justify-between active:opacity-70"
+            >
+              {country ? (
+                <Text className="text-base text-neutral-900 dark:text-neutral-50">
+                  {flagEmoji(country)} {countryLabel}
+                </Text>
+              ) : (
+                <Text className="text-base text-neutral-400 dark:text-neutral-500">
+                  {t("signup.step2.selectCountry")}
+                </Text>
+              )}
+              <Text className="text-primary dark:text-primary-dark text-lg">›</Text>
+            </Pressable>
+          ) : (
+            <Controller
+              control={control}
+              name="country"
+              render={({ field: { value, onChange } }) => (
+                <View className="mb-4">
+                  <NativePicker
+                    visible={countryOpen}
+                    title={t("signup.step2.pickerTitle")}
+                    confirmLabel="OK"
+                    options={COMMON_COUNTRIES.map((c) => ({ value: c.code, label: `${flagEmoji(c.code)} ${c.label}` }))}
+                    selectedValue={value}
+                    onSelect={(v) => onChange(v)}
+                    onClose={() => setCountryOpen(false)}
+                  />
+                </View>
+              )}
+            />
+          )}
 
           <Controller
             control={control}

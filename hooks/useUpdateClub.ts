@@ -14,6 +14,7 @@ type ClubUpdateData = {
   required_level?: string | null;
   league?: string | null;
   founded_date?: string | null;
+  cover_url?: string | null;
   logo_url?: string | null;
   hero_urls?: string[];
 };
@@ -59,6 +60,8 @@ export function useUpdateClub() {
         required_level: "Niveau requis",
         league: "Ligue/Division",
         founded_date: "Date de fondation",
+        cover_url: "Image de couverture",
+        logo_url: "Logo",
       };
 
       for (const [key, label] of Object.entries(fieldLabels)) {

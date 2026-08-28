@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { Header } from "@/components/shared/Header";
 import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
+import { NativePicker } from "@/components/ui/NativePicker";
 import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep1Schema } from "@/utils/validation";
@@ -29,8 +30,9 @@ export default function SignupStep1() {
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
 
-  const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<Form>({
+  const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep1Schema),
     defaultValues: {
       language: useLanguageStore.getState().language,
@@ -93,9 +95,30 @@ export default function SignupStep1() {
           <SignupStepProgress step={1} />
 
           <Text className="text-sm text-neutral-500 mb-2">{t("common.language")}</Text>
-          <View className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4">
+          <Pressable
+            onPress={() => setLanguageOpen(true)}
+            className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4 flex-row items-center justify-between active:opacity-70"
+            accessibilityRole="button"
+            accessibilityLabel={t("common.language")}
+          >
             <Text className="text-base text-neutral-900 dark:text-neutral-50">{languageLabel}</Text>
-          </View>
+            <Text className="text-text-tertiary text-lg">›</Text>
+          </Pressable>
+          <NativePicker
+            visible={languageOpen}
+            title={t("common.language")}
+            options={[
+              { value: "fr", label: t("common.french") },
+              { value: "en", label: t("common.english") },
+            ]}
+            selectedValue={language}
+            onSelect={(value) => {
+              setValue("language", value);
+              useLanguageStore.getState().setLanguage(value);
+              setLanguageOpen(false);
+            }}
+            onClose={() => setLanguageOpen(false)}
+          />
           <Controller
             control={control}
             name="fullName"

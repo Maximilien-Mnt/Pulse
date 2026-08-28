@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
+import { useTranslation } from "@/hooks/useTranslation";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
@@ -10,6 +11,7 @@ import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
 
 export default function PublicLegalDocumentScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ document?: string }>();
 
   const slug = params.document as LegalSlug | undefined;
@@ -20,14 +22,14 @@ export default function PublicLegalDocumentScreen() {
       <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
         <View className="flex-1 items-center justify-center gap-4 px-6">
           <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 text-center">
-            Document introuvable
+            {t("common.notFound")}
           </Text>
           <Pressable
             onPress={() => router.back()}
             className="flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl active:opacity-80"
           >
             <Icon name="ChevronLeft" size={20} color="text-inverse" />
-            <Text className="text-white font-semibold">Retour</Text>
+            <Text className="text-white font-semibold">{t("common.back")}</Text>
           </Pressable>
         </View>
       </SafeScreen>

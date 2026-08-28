@@ -1,6 +1,6 @@
 // PULSE SETTINGS SCREEN
 //
-// Profile editing, public profile, security, notifications, appearance,
+// Profile editing, public profile, security, notifications, preferences,
 // sign out, and account deletion.
 // ---------------------------------------------------------------------------
 
@@ -14,6 +14,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useSignupStore } from "@/stores/signupStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useThemeStore } from "@/stores/themeStore";
+import { useLanguageStore } from "@/stores/languageStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -31,6 +33,9 @@ export default function SettingsScreen() {
   const { data: profile } = useProfile(userId);
   const isDark = useThemeStore((s) => s.isDark);
   const setDark = useThemeStore((s) => s.setDark);
+  const language = useLanguageStore((s) => s.language);
+  const setLanguage = useLanguageStore((s) => s.setLanguage);
+  const { t } = useTranslation();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [goPublicOpen, setGoPublicOpen] = useState(false);
@@ -49,20 +54,22 @@ export default function SettingsScreen() {
     }
   };
 
+  const languageLabel = language === "fr" ? t("common.french") : t("common.english");
+
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Paramètres
+          {t("profile.settings")}
         </Text>
         <View className="w-11" />
       </View>
 
       <ScrollView contentContainerClassName="p-4 pb-24">
-        {/* Profil */}
+        {/* Profile */}
         <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
-          Profil
+          {t("settings.section.profile")}
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
           <Pressable
@@ -73,10 +80,10 @@ export default function SettingsScreen() {
               <Icon name="User" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Modifier le profil
+                  {t("settings.editProfile")}
                 </Text>
                 <Text className="text-xs text-neutral-500 mt-0.5">
-                  Nom, bio, ville, photo, objectifs…
+                  {t("settings.editProfileSub")}
                 </Text>
               </View>
             </View>
@@ -85,49 +92,31 @@ export default function SettingsScreen() {
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          {profile?.is_public_profile ? (
-            <View className="px-4 py-4">
-              <View className="flex-row items-center gap-3">
-                <Icon name="CheckCircle2" size={20} color="success" />
-                <View>
-                  <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                    Profil public
-                  </Text>
-                  <Text className="text-xs text-neutral-500 mt-0.5">
-                    Ton profil est visible par tous
-                  </Text>
-                </View>
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile/edit-public" as any)}
+            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Globe" size={20} color="text-secondary" />
+              <View>
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
+                  {t("settings.publicProfile")}
+                </Text>
+                <Text className="text-xs text-neutral-500 mt-0.5">
+                  {t("settings.publicProfileSub")}
+                </Text>
               </View>
             </View>
-          ) : (
-            <Pressable
-              onPress={() => setGoPublicOpen(true)}
-              className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-            >
-              <View className="flex-row items-center gap-3">
-                <Icon name="UserCircle" size={20} color="text-secondary" />
-                <View>
-                  <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                    Passer au profil public
-                  </Text>
-                  <Text className="text-xs text-neutral-500 mt-0.5">
-                    Rendre ton profil visible par tous
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-            </Pressable>
-          )}
-
-          <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
-
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          </Pressable>
         </View>
 
-        {/* Apparence */}
+        {/* Préférences */}
         <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
-          Apparence
+          Préférences
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
+          {/* Dark mode toggle */}
           <View className="flex-row items-center justify-between px-4 py-4">
             <View className="flex-row items-center gap-3">
               <Icon name="Settings" size={20} color="text-secondary" />
@@ -142,6 +131,31 @@ export default function SettingsScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+
+          <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
+
+          {/* Language toggle */}
+          <Pressable
+            onPress={() => setLanguage(language === "fr" ? "en" : "fr")}
+            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="Globe" size={20} color="text-secondary" />
+              <View>
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
+                  {language === "fr" ? t("common.french") : t("common.english")}
+                </Text>
+                <Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  {t("common.language")}
+                </Text>
+              </View>
+            </View>
+            <View className="bg-primary/10 rounded-full px-3 py-1">
+              <Text className="text-xs font-bold text-primary" style={{ textTransform: "uppercase" }}>
+                {language === "fr" ? "FR" : "EN"}
+              </Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* Sécurité */}
@@ -224,7 +238,27 @@ export default function SettingsScreen() {
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
           <Pressable
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "03-signaler-un-bug.md", title: "Comment signaler un problème" } })}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "03-politique-cookies.md", title: "Politique de cookies" } })}
+            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-3">
+              <Icon name="DocumentText" size={20} color="text-secondary" />
+              <View>
+                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
+                  Politique de cookies
+                </Text>
+                <Text className="text-xs text-neutral-500 mt-0.5">
+                  Gestion des cookies et traceurs
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          </Pressable>
+
+          <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
+
+          <Pressable
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: "Politique de modération" } })}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
@@ -310,9 +344,8 @@ export default function SettingsScreen() {
 
        {/* Bug report sheet */}
        <BugReportSheet visible={bugReportOpen} onClose={() => setBugReportOpen(false)} />
-     </SafeScreen>
-   );
- }
-
+    </SafeScreen>
+  );
+}
 
 

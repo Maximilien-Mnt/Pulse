@@ -2,6 +2,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Icon } from "@/components/ui/Icon";
 import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
 import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
@@ -70,7 +71,39 @@ export default function CreatePublicClubScreen() {
   const [league, setLeague] = useState("");
   const [foundedDate, setFoundedDate] = useState("");
   const [heroUris, setHeroUris] = useState<string[]>([]);
+  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const pickLogo = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
+    if (!res.canceled && first) {
+      const uri = first.uri;
+      setLogoUri(uri);
+    }
+  };
+
+  const pickCover = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
+    if (!res.canceled && first) {
+      const uri = first.uri;
+      setCoverUri(uri);
+    }
+  };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -125,10 +158,28 @@ export default function CreatePublicClubScreen() {
         throw new Error("Validation failed");
       }
 
+      // Upload logo
+      let logoUrl: string | null = null;
+      if (logoUri) {
+        logoUrl = await uploadImage(
+          logoUri,
+          `${userId}/${Date.now()}_logo.jpg`
+        );
+      }
+
+      // Upload cover
+      let coverUrl: string | null = null;
+      if (coverUri) {
+        coverUrl = await uploadImage(
+          coverUri,
+          `${userId}/${Date.now()}_cover.jpg`
+        );
+      }
+
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `clubs/${userId}/${Date.now()}_hero_${i}.jpg`);
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
         heroUrls.push(url);
       }
 
@@ -144,7 +195,8 @@ export default function CreatePublicClubScreen() {
           city,
           registration_url: registrationUrl || null,
           required_level: requiredLevel || null,
-          logo_url: null,
+          logo_url: logoUrl,
+          cover_url: coverUrl,
           hero_urls: heroUrls,
           address: address || null,
           contact_email: contactEmail || null,
@@ -321,6 +373,78 @@ export default function CreatePublicClubScreen() {
                 {!city && "• Ville"}
               </Text>
             </View>
+          )}
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Logo du club</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Ajoutez un logo pour votre club
+          </Text>
+          {logoUri ? (
+            <View className="items-center">
+              <View className="relative">
+                <Image
+                  source={{ uri: logoUri }}
+                  style={{ width: 120, height: 120, borderRadius: 24 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Pressable
+                  onPress={() => setLogoUri(null)}
+                  className="absolute -top-2 -right-2 bg-error rounded-full p-1.5"
+                >
+                  <Ionicons name="close" size={16} color="white" />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={pickLogo}
+              className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl p-6 items-center active:bg-neutral-50 dark:active:bg-neutral-700/50"
+            >
+              <Icon name="Plus" size={32} color="text-tertiary" />
+              <Text className="text-sm text-neutral-500 mt-2">
+                Ajouter un logo
+              </Text>
+            </Pressable>
+          )}
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Image de couverture</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Cette image apparaîtra en tête de la page du club
+          </Text>
+          {coverUri ? (
+            <View className="items-center">
+              <View className="relative">
+                <Image
+                  source={{ uri: coverUri }}
+                  style={{ width: '100%', height: 160, borderRadius: 16 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Pressable
+                  onPress={() => setCoverUri(null)}
+                  className="absolute top-2 right-2 bg-error rounded-full p-1.5"
+                >
+                  <Ionicons name="close" size={16} color="white" />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={pickCover}
+              className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl p-6 items-center active:bg-neutral-50 dark:active:bg-neutral-700/50"
+            >
+              <Icon name="Plus" size={32} color="text-tertiary" />
+              <Text className="text-sm text-neutral-500 mt-2">
+                Ajouter une image de couverture
+              </Text>
+            </Pressable>
           )}
         </Card>
 

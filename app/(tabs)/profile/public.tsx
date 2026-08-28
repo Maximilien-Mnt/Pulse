@@ -15,9 +15,11 @@ import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { BackButton } from "@/components/ui/BackButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function MyPublicProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(userId);
   const { postsQuery, clubsQuery, eventsQuery } = useUserPublicContent(userId);
@@ -45,8 +47,8 @@ export default function MyPublicProfileScreen() {
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center justify-between px-4 pt-2">
         <BackButton />
-        <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Mon profil public</Text>
-        <Button title="Modifier" variant="ghost" onPress={() => router.push("/(tabs)/profile/edit-public")} />
+        <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">{t("profile.publicProfile")}</Text>
+        <Button title={t("profile.edit")} variant="ghost" onPress={() => router.push("/(tabs)/profile/edit-public")} />
       </View>
 
       <ScrollView contentContainerClassName="px-4 pb-24 pt-4">

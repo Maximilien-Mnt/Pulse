@@ -17,10 +17,12 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
+import { useTranslation } from "@/hooks/useTranslation";
 import { BackButton } from "@/components/ui/BackButton";
 
 export default function EditPublicProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
@@ -133,7 +135,7 @@ export default function EditPublicProfileScreen() {
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Profil public
+          {t("profile.section.public")}
         </Text>
         <View className="w-11" />
       </View>
@@ -144,20 +146,22 @@ export default function EditPublicProfileScreen() {
       >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
-            Ce profil sera visible par tous les utilisateurs pour t'inviter à des clubs et événements.
+            {t("publicProfile.intro")}
           </Text>
 
           <Input
-            label="Bio"
+            label={t("publicProfile.bioLabel")}
             value={bio}
             onChangeText={setBio}
             multiline
-            placeholder="Présente-toi brièvement..."
+            placeholder={t("publicProfile.bioPlaceholder")}
           />
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Sports pratiqués</Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+            {t("editProfile.interestedSports")}
+          </Text>
           <View className="flex-row flex-wrap gap-2">
             {SPORTS.map((s) => (
               <Pressable
@@ -176,7 +180,9 @@ export default function EditPublicProfileScreen() {
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Sports qui m'intéressent</Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+            {t("publicProfile.interested")}
+          </Text>
           <View className="flex-row flex-wrap gap-2">
             {SPORTS.map((s) => (
               <Pressable
@@ -195,7 +201,7 @@ export default function EditPublicProfileScreen() {
         </Card>
 
         <Button
-          title="Enregistrer"
+          title={t("common.save")}
           onPress={() => saveMut.mutate()}
           loading={saveMut.isPending}
         />

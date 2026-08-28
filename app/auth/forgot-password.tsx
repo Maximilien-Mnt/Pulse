@@ -74,9 +74,6 @@ export default function ForgotPasswordScreen() {
               <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-6">
                 <Ionicons name="mail-outline" size={48} color="#1E6BFF" />
               </View>
-              <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 mb-2">
-                {t("auth.forgotPassword.sent.title")}
-              </Text>
               <Text className="text-neutral-600 dark:text-neutral-300 text-center">
                 {t("auth.forgotPassword.sent.description")}
               </Text>

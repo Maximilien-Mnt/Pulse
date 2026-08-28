@@ -242,7 +242,7 @@ export default function SettingsScreen() {
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
-              <Icon name="DocumentText" size={20} color="text-secondary" />
+              <Icon name="FileText" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
                   Politique de cookies

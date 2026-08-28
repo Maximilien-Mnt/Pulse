@@ -307,6 +307,7 @@ export const translations = {
     "feed.sortLikes": "Tri : likes",
     "feed.tagPlaceholder": "ex: running",
     "feed.publicBadge": "Public",
+    "feed.suggestionsForYou": "Suggestions pour toi",
 
     // ── Explore / Discover ────────────────────────────────────────────────
     "explore.title": "Explorer",
@@ -866,6 +867,7 @@ export const translations = {
     "feed.sortLikes": "Sort: likes",
     "feed.tagPlaceholder": "e.g. running",
     "feed.publicBadge": "Public",
+    "feed.suggestionsForYou": "Suggestions for you",
 
     // ── Explore / Discover ────────────────────────────────────────────────
     "explore.title": "Explore",

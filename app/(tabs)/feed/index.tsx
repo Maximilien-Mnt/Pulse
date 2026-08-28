@@ -157,6 +157,7 @@ function FeedError({ onRetry }: { onRetry: () => void }) {
 
 export default function FeedScreen() {
   const { width: screenWidth } = useWindowDimensions();
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const viewMode = useFeedStore((s) => s.viewMode);
   const setViewMode = useFeedStore((s) => s.setViewMode);
@@ -189,8 +190,8 @@ export default function FeedScreen() {
   }, [userSportsData]);
 
   const tagLabels: Record<string, string> = {
-    "pour-toi": "Pour toi",
-    "abonnements": "Abonnements",
+    "pour-toi": "For You",
+    "abonnements": "Following",
   };
 
   const isSearching = searchExpanded && !searchMinimized;
@@ -455,7 +456,7 @@ export default function FeedScreen() {
           {personalizedTags.length > 0 ? (
             <View className="pb-2">
               <Text className="px-4 text-xs font-semibold text-neutral-500 mb-1">
-                Suggestions pour toi
+                {t("feed.suggestionsForYou")}
               </Text>
               <FlatList
                 horizontal

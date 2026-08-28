@@ -59,6 +59,8 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
+  const { t: translateNs } = useTranslation();
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sport, setSport] = useState<SportId | null>(null);
@@ -210,6 +212,7 @@ function ClubForm({ onClose }: { onClose: () => void }) {
   const userId = useAuthStore((s) => s.userId);
   const posthog = usePostHog();
   const router = useRouter();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [sport, setSport] = useState<SportId | null>(null);
@@ -336,6 +339,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const userId = useAuthStore((s) => s.userId);
   const posthog = usePostHog();
   const router = useRouter();
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sport, setSport] = useState<SportId | null>(null);

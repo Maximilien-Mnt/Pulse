@@ -151,6 +151,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const posthog = usePostHog();
   const userId = useAuthStore((s) => s.userId);
+  const { t } = useTranslation();
   const { data: profile } = useProfile(userId);
   const { focusSection } = useLocalSearchParams<{ focusSection?: string }>();
   const keyboardHeight = useKeyboardHeight();

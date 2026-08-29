@@ -24,6 +24,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { t } from "@/hooks/useTranslation";
 
 export default function UserPostsScreen() {
   const router = useRouter();
@@ -125,8 +126,8 @@ export default function UserPostsScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
             icon="images-outline"
-            title="Aucun post"
-            subtitle=" Vos posts apparaîtront ici."
+            title={t("common.noPosts")}
+            subtitle={t("feed.empty")}
           />
         </View>
       ) : (
@@ -181,7 +182,7 @@ export default function UserPostsScreen() {
                 disabled={isDeleting}
               >
                 <Text className="text-center font-semibold text-white">
-                  {isDeleting ? "Suppression…" : "Supprimer"}
+                  {isDeleting ? t("common.deleting") : t("common.delete")}
                 </Text>
               </Pressable>
             </View>

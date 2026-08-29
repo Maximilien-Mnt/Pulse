@@ -38,7 +38,7 @@ import { Tag } from "@/components/ui/Tag";
 import { TagInput } from "@/components/feed/TagInput";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,7 +107,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       posthog.capture("post_published", { has_media: media.length > 0, media_count: media.length });
-      Toast.show({ type: "success", text1: "Post publié" });
+      Toast.show({ type: "success", text1: t("post.published") });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
       onClose();
       router.push("/(tabs)/feed");
@@ -123,7 +123,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
       <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled">
         {/* Title */}
         <Input
-          label="Titre"
+          label={t("post.title")}
           value={title}
           onChangeText={setTitle}
           placeholder=""
@@ -131,7 +131,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
 
         {/* Textarea */}
         <Input
-          label="Partage ta séance, ton résultat, ta motivation..."
+          label={t("post.body")}
           multiline
           value={body}
           onChangeText={setBody}
@@ -157,7 +157,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
         {/* Sport chips (optional, single-select) */}
         <View className="mt-4">
           <Text variant="caption" className="text-text-secondary mb-2">
-            Sport concerné (optionnel)
+            {t("create.post.sportOptional")}
           </Text>
           <View className="flex-row flex-wrap gap-2">
             {SPORTS.map((s) => (
@@ -256,8 +256,8 @@ function ClubForm({ onClose }: { onClose: () => void }) {
           ids.map((uid) => ({
             user_id: uid,
             type: "followed_user_new_club",
-            title: "Nouveau club",
-            body: "Un compte que tu suis a créé un nouveau club.",
+            title: t("create.newClub"),
+            body: t("create.club.notification"),
             data: { creator_id: userId },
           }))
         );
@@ -265,13 +265,13 @@ function ClubForm({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       posthog.capture("club_created");
-      Toast.show({ type: "success", text1: "Club créé" });
+      Toast.show({ type: "success", text1: t("create.club.success") });
       void queryClient.invalidateQueries({ queryKey: ["clubs"] });
       onClose();
       router.push("/(tabs)/explore");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Création impossible";
+      const message = err instanceof Error ? err.message : t("create.club.error");
       Toast.show({ type: "error", text1: message });
     },
   });
@@ -391,8 +391,8 @@ function EventForm({ onClose }: { onClose: () => void }) {
           evIds.map((uid) => ({
             user_id: uid,
             type: "followed_user_new_event",
-            title: "Nouvel événement",
-            body: "Un compte que tu suis a créé un nouvel événement.",
+            title: t("create.newEvent"),
+            body: t("create.event.notification"),
             data: { creator_id: userId },
           }))
         );
@@ -400,13 +400,13 @@ function EventForm({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       posthog.capture("event_created");
-      Toast.show({ type: "success", text1: "Événement créé" });
+      Toast.show({ type: "success", text1: t("create.event.success") });
       void queryClient.invalidateQueries({ queryKey: ["events"] });
       onClose();
       router.push("/(tabs)/explore");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Création impossible";
+      const message = err instanceof Error ? err.message : t("create.event.error");
       Toast.show({ type: "error", text1: message });
     },
   });
@@ -424,7 +424,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
         {/* Sport */}
         <View className="mt-4">
           <Text variant="caption" className="text-text-secondary mb-2">
-            Sport concerné
+            {t("create.post.sport")}
           </Text>
           <View className="flex-row flex-wrap gap-2">
             {SPORTS.map((s) => (
@@ -438,18 +438,18 @@ function EventForm({ onClose }: { onClose: () => void }) {
         </View>
 
         <View className="mt-4">
-          <Input label="Date et heure (AAAA-MM-JJ HH:MM)" value={startDate} onChangeText={setStartDate} />
+          <Input label={t("updateEvent.dateLabel")} value={startDate} onChangeText={setStartDate} />
         </View>
         <View className="mt-4">
-          <Input label="Lieu" value={location} onChangeText={setLocation} />
+          <Input label={t("events.venue")} value={location} onChangeText={setLocation} />
         </View>
         <View className="mt-4">
-          <Input label="Capacité max (optionnel)" value={capacity} onChangeText={setCapacity} keyboardType="numeric" />
+          <Input label={t("events.maxCapacityOptional")} value={capacity} onChangeText={setCapacity} keyboardType="numeric" />
         </View>
 
         <View className="mt-4">
           <Button variant="secondary" icon="Image" onPress={pickCover}>
-            {coverUri ? "Changer l'image de couverture" : "Ajouter une image de couverture"}
+            {coverUri ? t("create.changeCoverImage") : t("create.addCoverImage")}
           </Button>
           {coverUri ? (
             <Image source={{ uri: coverUri }} style={{ width: "100%", height: 160, borderRadius: 12, marginTop: 12 }} contentFit="cover" />

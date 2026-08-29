@@ -1,0 +1,63 @@
+app/create/club/public.tsx:371: • Description (50 caractères minimum)\n
+app/create/event/private.tsx:344: Créer l
+components/conversations/ConversationActionSheet.tsx:167: Conversation supprimée et utilisateur bloqué
+components/profile/DeleteClubSheet.tsx:30: Club supprimé
+components/profile/DeleteClubSheet.tsx:31: a été supprimé.
+components/profile/DeleteClubSheet.tsx:43: Impossible de supprimer le club. Veuillez réessayer.
+components/profile/DeleteClubSheet.tsx:76: Supprimer définitivement
+components/profile/GoPublicSheet.tsx:43: Profil public activé
+components/profile/GoPublicSheet.tsx:50: Erreur lors de la mise à jour
+components/profile/ProfileSections.tsx:42: Abonnés
+components/profile/ProfileSections.tsx:95: Modifier les sports pratiqués
+components/profile/PublicProfileGallery.tsx:104: Aucun événement
+components/shared/BugReportSheet.tsx:28: Système d
+components/shared/BugReportSheet.tsx:29: Version du système d
+components/shared/BugReportSheet.tsx:31: Modèle de l
+components/shared/BugReportSheet.tsx:32: Langue et région
+components/shared/BugReportSheet.tsx:33: Résolution de l
+components/shared/BugReportSheet.tsx:63: Signalement envoyé
+components/shared/CreateBottomSheet.tsx:35: Événement
+components/shared/CreateBottomSheet.tsx:53: Club privé
+components/shared/CreateBottomSheet.tsx:61: Visible par tous, nécessite un profil public
+components/shared/CreateBottomSheet.tsx:69: Événement privé
+components/shared/CreateBottomSheet.tsx:70: Accessible uniquement aux personnes invitées
+components/shared/CreateBottomSheet.tsx:76: Événement public
+components/shared/CreateBottomSheet.tsx:77: Visible par tous, nécessite un profil public
+components/shared/CreateBottomSheet.tsx:86: Nouvel événement
+components/shared/EditClubEventSheet.tsx:169: Ex: Intermédiaire
+components/shared/InvitationButton.tsx:33: Rejoins mon événement sur Pulse : ${link}
+components/shared/ReportSheet.tsx:51: Harcèlement
+components/shared/ReportSheet.tsx:52: Contenu inapproprié / Spam
+components/shared/ReportSheet.tsx:109: Signalement envoyé
+components/shared/ReportSheet.tsx:207: Décrivez le problème…
+components/shared/SideRail.tsx:118: Créer
+components/shared/SourceBadge.tsx:18: Créé dans l
+components/shared/TabBar.tsx:115: Créer
+components/shared/TabBar.tsx:168: Barre de navigation à gauche
+components/ui/ErrorState.tsx:17: Réessayer
+hooks/useBugReport.ts:40: Non connecté
+hooks/useDeleteClub.ts:46: a été supprimé par son créateur.
+hooks/useLocation.ts:135: Active la localisation dans les paramètres pour voir les clubs et événements près de toi.
+hooks/useNotifications.ts:162: Ta demande a été acceptée
+hooks/useNotifications.ts:163: Ta demande a été refusée
+hooks/useRemoveClubMember.ts:39: Retiré d
+hooks/useRemoveEventParticipant.ts:55: Retiré d
+hooks/useRemoveEventParticipant.ts:56: Tu as été retiré(e) de l
+hooks/useRemoveEventParticipant.ts:67: Participant retiré de l
+hooks/useUpdateEvent.ts:92: événement
+hooks/useUpdateEvent.ts:111: événement
+utils/localizeError.ts:34: heure de fin doit être après l
+utils/localizeError.ts:40: 0 caractères maximum
+utils/validation.ts:7: Au moins 8 caractères
+utils/validation.ts:10: Un caractère spécial parmi !@#$%^&
+utils/validation.ts:14: 3 caractères minimum
+utils/validation.ts:15: 30 caractères maximum
+utils/validation.ts:102: heure de fin doit être après l
+utils/validation.ts:123: 500 caractères maximum
+utils/validation.ts:129: Tu dois accepter la politique de confidentialité
+utils/validation.ts:144: Description minimum 50 caractères
+utils/validation.ts:165: Date de début requise
+utils/validation.ts:175: La date de fin doit être postérieure à la date de début
+utils/validation.ts:182: Date de début requise
+utils/validation.ts:184: Description minimum 50 caractères
+utils/validation.ts:204: La date de fin doit être postérieure à la date de début

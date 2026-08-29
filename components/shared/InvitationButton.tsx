@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { useCreateInvitation } from "@/hooks/useInvitations";
 import { Share } from "react-native";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   type: "club" | "event";
@@ -29,8 +30,8 @@ export function InvitationButton({ type, targetId, visible, className }: Props) 
             await Share.share({
               message:
                 type === "club"
-                  ? `Rejoins mon club sur Pulse : ${link}`
-                  : `Rejoins mon événement sur Pulse : ${link}`,
+                  ? t("invitations.clubText", { link })
+                  : t("invitations.eventText", { link }),
               url: link,
             });
           } catch {

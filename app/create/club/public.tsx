@@ -20,6 +20,7 @@ import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { BackButton } from "@/components/ui/BackButton";
+import { t } from "@/hooks/useTranslation";
 
 async function uploadImage(uri: string, path: string) {
   return uploadImageToStorage({ bucket: "clubs", path, uri });
@@ -43,7 +44,7 @@ export default function CreatePublicClubScreen() {
   if (profile && !profile.is_public_profile) {
     Toast.show({
       type: "info",
-      text1: "Active ton profil public pour créer un club public",
+      text1: t("create.club.activatePublicHint"),
     });
     router.replace("/(tabs)/profile");
     return null;
@@ -223,7 +224,7 @@ export default function CreatePublicClubScreen() {
       return club.id;
     },
     onSuccess: (clubId) => {
-      Toast.show({ type: "success", text1: "Club public publié !" });
+      Toast.show({ type: "success", text1: t("create.club.publicSuccess") });
       router.replace(`/(tabs)/clubs/${clubId}`);
     },
     onError: (err) => {
@@ -285,12 +286,12 @@ export default function CreatePublicClubScreen() {
           {errors.sport && <Text className="text-error text-sm mb-2">{errors.sport}</Text>}
 
           <Input
-            label="Description * (min 50 caractères)"
+            label={t("create.club.description")}
             value={description}
             onChangeText={setDescription}
             multiline
             error={errors.description}
-            placeholder="Décris ton club en détail..."
+            placeholder={t("create.club.descriptionPlaceholder")}
           />
           <Text className="text-xs text-neutral-500">
             {description.length < 50
@@ -338,7 +339,7 @@ export default function CreatePublicClubScreen() {
             autoCapitalize="none"
           />
 
-          <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} placeholder="Ex: Intermédiaire" />
+          <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} placeholder={t("create.club.levelExample")} />
 
           <Input label="Adresse exacte" value={address} onChangeText={setAddress} />
           <Input
@@ -368,7 +369,7 @@ export default function CreatePublicClubScreen() {
               <Text className="text-xs text-neutral-700 dark:text-neutral-300">
                 {name.trim().length === 0 && "• Nom du club\n"}
                 {sport.length === 0 && "• Sport\n"}
-                {description.length < 50 && "• Description (50 caractères minimum)\n"}
+                {description.length < 50 && `• ${t("create.club.descriptionMin")}\n`}
                 {!country && "• Pays\n"}
                 {!city && "• Ville"}
               </Text>

@@ -15,7 +15,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
   if (isError || !profile) {
     return (
       <SafeScreen edges={["top"]}>
-        <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
+        <ErrorState message={error?.message ?? t("common.error")} onRetry={() => void refetch()} />
       </SafeScreen>
     );
   }

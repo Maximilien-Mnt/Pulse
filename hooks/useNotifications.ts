@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/types";
+import { t } from "@/hooks/useTranslation";
 
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 
@@ -156,11 +157,11 @@ export function useJoinRequestAction() {
       // Notify the requester
       const notifType = type === "club" ? "club_join_request_response" : "event_join_request_response";
       const title = action === "accept"
-        ? `Demande acceptée`
-        : `Demande refusée`;
+        ? t("notifications.toast.accepted")
+        : t("notifications.toast.refused");
       const bodyText = action === "accept"
-        ? "Ta demande a été acceptée"
-        : "Ta demande a été refusée";
+        ? t("invitations.acceptedBody")
+        : t("invitations.refusedBody");
 
       // Build notification data - include owner_id for refused so user can contact them
       const notificationData: Record<string, string> = {

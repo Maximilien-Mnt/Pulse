@@ -11,10 +11,12 @@ import { useState } from "react";
 import { Pressable, FlatList, View, Text } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { DeleteClubSheet } from "@/components/profile/DeleteClubSheet";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type ClubsTab = "member" | "created";
 
 export default function ProfileClubsScreen() {
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
   
@@ -32,7 +34,7 @@ export default function ProfileClubsScreen() {
   if (isLoading) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Mes clubs" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("profile.myClubs")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 gap-3 mt-2">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
@@ -44,15 +46,15 @@ export default function ProfileClubsScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Mes clubs" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
-        <ErrorState message="Erreur de chargement" onRetry={() => {}} />
+        <Header title={t("profile.myClubs")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+        <ErrorState message={t("common.loading")} onRetry={() => {}} />
       </SafeScreen>
     );
   }
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Clubs" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("profile.myClubs")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
       
       {/* Tab Selector */}
       <View className="flex-row mx-4 mb-2 bg-neutral-200 dark:bg-neutral-800 rounded-xl p-1">
@@ -92,13 +94,13 @@ export default function ProfileClubsScreen() {
             icon="people-outline"
             title={
               activeTab === "member"
-                ? "Aucun club"
-                : "Aucun club créé"
+                ? t("common.noClub")
+                : t("profile.clubs.created")
             }
             subtitle={
               activeTab === "member"
-                ? "Rejoins des clubs depuis l'onglet Découvrir."
-                : "Crée ton premier club pour le voir ici."
+                ? t("clubs.emptyMember")
+                : t("profile.clubs.createdSubtitle")
             }
           />
         </View>

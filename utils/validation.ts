@@ -1,23 +1,24 @@
+import { t } from "@/hooks/useTranslation";
 import { z } from "zod";
 
-export const emailSchema = z.string().email("Email invalide");
+export const emailSchema = z.string().email(t("validation.invalidEmail"));
 
 export const passwordSchema = z
   .string()
-  .min(8, "Au moins 8 caractères")
-  .regex(/[A-Z]/, "Au moins une majuscule")
-  .regex(/[0-9]/, "Au moins un chiffre")
-  .regex(/[!@#$%^&]/, "Un caractère spécial parmi !@#$%^&");
+  .min(8, t("validation.minLength8"))
+  .regex(/[A-Z]/, t("validation.uppercase"))
+  .regex(/[0-9]/, t("validation.digit"))
+  .regex(/[!@#$%^&]/, t("validation.specialChar"));
 
 export const usernameSchema = z
   .string()
-  .min(3, "3 caractères minimum")
-  .max(30, "30 caractères maximum")
-  .regex(/^[a-zA-Z0-9_-]+$/, "Lettres, chiffres, _ et - uniquement");
+  .min(3, t("validation.minLength3"))
+  .max(30, t("validation.maxLength30"))
+  .regex(/^[a-zA-Z0-9_-]+$/, t("validation.usernameChars"));
 
 export const signInSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Mot de passe requis"),
+  password: z.string().min(1, t("validation.passwordRequired")),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -27,31 +28,31 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Confirmation requise"),
+    confirmPassword: z.string().min(1, t("validation.confirmRequired")),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: t("validation.passwordMismatch"),
     path: ["confirmPassword"],
   });
 
 export const signupStep1Schema = z
   .object({
     language: z.string().min(1),
-    fullName: z.string().min(1, "Nom requis"),
+    fullName: z.string().min(1, t("validation.fullNameRequired")),
     username: usernameSchema,
     email: emailSchema,
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Confirmation requise"),
+    confirmPassword: z.string().min(1, t("validation.confirmRequired")),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: t("validation.passwordMismatch"),
     path: ["confirmPassword"],
   });
 
 export const signupStep2Schema = z
   .object({
-    birthDate: z.date({ required_error: "Date de naissance requise" }),
-    country: z.string().min(1, "Pays requis"),
+    birthDate: z.date({ required_error: t("signup.birthdateRequired") }),
+    country: z.string().min(1, t("validation.countryRequired")),
     city: z.string().optional(),
   })
   .superRefine((d, ctx) => {
@@ -61,7 +62,7 @@ export const signupStep2Schema = z
     const m = now.getMonth() - bd.getMonth();
     if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age -= 1;
     if (age < 16) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Tu dois avoir au moins 16 ans", path: ["birthDate"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("signup.underageMessage"), path: ["birthDate"] });
     }
   });
 
@@ -71,8 +72,8 @@ export const signupStep3Schema = z
       .array(
         z.object({
           sportId: z.string(),
-          level: z.string().min(1, "Niveau requis"),
-          practice: z.string().min(1, "Type de pratique requis"),
+          level: z.string().min(1, t("validation.levelRequired")),
+          practice: z.string().min(1, t("validation.practiceRequired")),
           levelOther: z.string().optional(),
           practiceOther: z.string().optional(),
           timeSlots: z
@@ -99,7 +100,7 @@ export const signupStep3Schema = z
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "L'heure de fin doit être après l'heure de début",
+            message: t("validation.endBeforeStart"),
             path: ["entries", i, "timeSlots", j, "endHour"],
           });
         }
@@ -120,30 +121,30 @@ export const signupStep5Schema = z
   .object({
     bio: z.string().max(300).optional(),
     discovery: z.string().optional(),
-    discoveryDetails: z.string().max(500, "500 caractères maximum").optional(),
+    discoveryDetails: z.string().max(500, t("validation.max500")).optional(),
     acceptTerms: z.boolean(),
     acceptPrivacy: z.boolean(),
   })
-  .refine((d) => d.acceptTerms, { message: "Tu dois accepter les CGU", path: ["acceptTerms"] })
+  .refine((d) => d.acceptTerms, { message: t("validation.acceptTerms"), path: ["acceptTerms"] })
   .refine((d) => d.acceptPrivacy, {
-    message: "Tu dois accepter la politique de confidentialité",
+    message: t("validation.acceptPrivacy"),
     path: ["acceptPrivacy"],
   });
 
 // Club creation schemas
 export const clubPrivateSchema = z.object({
-  name: z.string().min(1, "Nom requis"),
-  sport: z.string().min(1, "Sport requis"),
+  name: z.string().min(1, t("validation.nameRequired")),
+  sport: z.string().min(1, t("validation.sportRequired")),
   description: z.string().optional(),
   invitees: z.array(z.string()).default([]),
 });
 
 export const clubPublicSchema = z.object({
-  name: z.string().min(1, "Nom requis"),
-  sport: z.string().min(1, "Sport requis"),
-  description: z.string().min(50, "Description minimum 50 caractères"),
-  country: z.string().min(1, "Pays requis"),
-  city: z.string().min(1, "Ville requise"),
+  name: z.string().min(1, t("validation.nameRequired")),
+  sport: z.string().min(1, t("validation.sportRequired")),
+  description: z.string().min(50, t("validation.descriptionMin")),
+  country: z.string().min(1, t("validation.countryRequired")),
+  city: z.string().min(1, t("validation.cityRequired")),
   registration_url: z.string().optional().or(z.literal("")),
   required_level: z.string().optional(),
   logo_url: z.string().optional(),
@@ -160,9 +161,9 @@ export const clubPublicSchema = z.object({
 
 // Event creation schemas
 export const eventPrivateSchema = z.object({
-  name: z.string().min(1, "Nom requis"),
-  sport: z.string().min(1, "Sport requis"),
-  start_date: z.string().datetime({ message: "Date de début requise" }),
+  name: z.string().min(1, t("validation.nameRequired")),
+  sport: z.string().min(1, t("validation.sportRequired")),
+  start_date: z.string().datetime({ message: t("validation.startDateRequired") }),
   end_date: z.string().datetime().optional(),
   description: z.string().optional(),
   venue: z.string().optional(),
@@ -172,18 +173,18 @@ export const eventPrivateSchema = z.object({
   if (!d.end_date) return true;
   return new Date(d.end_date) > new Date(d.start_date);
 }, {
-  message: "La date de fin doit être postérieure à la date de début",
+  message: t("validation.endAfterStart"),
   path: ["end_date"],
 });
 
 export const eventPublicSchema = z.object({
-  name: z.string().min(1, "Nom requis"),
-  sport: z.string().min(1, "Sport requis"),
-  start_date: z.string().datetime({ message: "Date de début requise" }),
+  name: z.string().min(1, t("validation.nameRequired")),
+  sport: z.string().min(1, t("validation.sportRequired")),
+  start_date: z.string().datetime({ message: t("validation.startDateRequired") }),
   end_date: z.string().datetime().optional(),
-  description: z.string().min(50, "Description minimum 50 caractères"),
-  country: z.string().min(1, "Pays requis"),
-  city: z.string().min(1, "Ville requise"),
+  description: z.string().min(50, t("validation.descriptionMin")),
+  country: z.string().min(1, t("validation.countryRequired")),
+  city: z.string().min(1, t("validation.cityRequired")),
   registration_url: z.string().optional().or(z.literal("")),
   venue_address: z.string().optional(),
   price_cents: z.number().min(0).optional(),
@@ -201,13 +202,13 @@ export const eventPublicSchema = z.object({
   if (!d.end_date) return true;
   return new Date(d.end_date) > new Date(d.start_date);
 }, {
-  message: "La date de fin doit être postérieure à la date de début",
+  message: t("validation.endAfterStart"),
   path: ["end_date"],
 });
 
 // Group conversation schema
 export const groupConversationSchema = z.object({
-  name: z.string().min(1, "Nom du groupe requis"),
-  memberIds: z.array(z.string()).min(1, "Ajoute au moins un membre"),
+  name: z.string().min(1, t("forms.groupNameRequired")),
+  memberIds: z.array(z.string()).min(1, t("forms.addOneMember")),
   photo_url: z.string().optional(),
 });

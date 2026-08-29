@@ -7,6 +7,7 @@ import * as WebBrowser from "expo-web-browser";
 import type { PostFormat } from "@/types";
 import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { t } from "@/hooks/useTranslation";
 
 const calculateImageHeight = (width: number) => Math.min(300, Math.max(200, width * 0.35));
 
@@ -99,7 +100,7 @@ function VideoPost({
 
       <View className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded">
         <Text className="text-white text-xs">
-          {videoDuration ? formatDuration(videoDuration) : "Vidéo"}
+          {videoDuration ? formatDuration(videoDuration) : t("media.video")}
         </Text>
       </View>
     </View>

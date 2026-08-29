@@ -9,6 +9,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { t } from "@/hooks/useTranslation";
 
 type Tab = "posts" | "clubs" | "events";
 
@@ -26,7 +27,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "posts", label: "Posts", count: posts.length },
     { key: "clubs", label: "Clubs", count: clubs.length },
-    { key: "events", label: "Événements", count: events.length },
+    { key: "events", label: t("profile.events"), count: events.length },
   ];
 
   if (loading) {
@@ -101,7 +102,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
 
       {tab === "events" && (
         events.length === 0 ? (
-          <EmptyState icon="calendar-outline" title="Aucun événement" />
+          <EmptyState icon="calendar-outline" title={t("profile.noEvents")} />
         ) : (
           <View className="gap-3">
             {events.map((e) => (

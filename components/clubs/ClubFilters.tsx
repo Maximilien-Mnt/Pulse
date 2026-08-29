@@ -5,6 +5,7 @@ import type { ClubListFilters } from "@/hooks/useClubs";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -98,7 +99,7 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
                 }}
               />
               <Button
-                title="Réinitialiser"
+                title={t("common.reset")}
                 variant="ghost"
                 onPress={() => {
                   const reset: ClubListFilters = {

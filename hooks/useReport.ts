@@ -11,6 +11,7 @@
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { t } from "@/hooks/useTranslation";
 
 /**
  * What kind of entity is being reported. Maps directly to the `target_type`
@@ -50,7 +51,7 @@ export function useReport() {
 
   return useMutation({
     mutationFn: async (payload: UseReportPayload) => {
-      if (!userId) throw new Error("Non connecté");
+      if (!userId) throw new Error(t("report.notConnected"));
 
       const { targetType, targetId, targetAuthorId, reason, message } = payload;
 

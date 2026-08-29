@@ -28,6 +28,7 @@ import { useUpdateClub } from '@/hooks/useUpdateClub';
 import { supabase } from '@/lib/supabase';
 import type { Club } from '@/types';
 import { useTranslation } from '@/hooks/useTranslation';
+import { t } from "@/hooks/useTranslation";
 
 export default function ClubDetailScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
@@ -368,7 +369,7 @@ export default function ClubDetailScreen() {
           </View>
         </View>
 
-        <InfoSection title='Détails' className='mx-4 mb-5'>
+        <InfoSection title={t("common.details")} className='mx-4 mb-5'>
           {club.founded_date ? (
             <InfoRow
               icon='Calendar'
@@ -382,7 +383,7 @@ export default function ClubDetailScreen() {
           {(club.age_min != null || club.age_max != null) && (
             <InfoRow
               icon='Users'
-              label="Tranche d'âge"
+              label={t("common.ageRange")}
               value={`${club.age_min ?? '—'} – ${club.age_max ?? '—'} ans`}
             />
           )}
@@ -418,7 +419,7 @@ export default function ClubDetailScreen() {
                           ? () =>
                               Toast.show({
                                 type: 'info',
-                                text1: 'Créateur',
+                                text1: t("members.creator"),
                               })
                           : undefined
                       }
@@ -434,7 +435,7 @@ export default function ClubDetailScreen() {
                               e.stopPropagation();
                               Toast.show({
                                 type: 'info',
-                                text1: 'Créateur',
+                                text1: t('members.creator'),
                               });
                             }}
                             hitSlop={4}
@@ -497,7 +498,7 @@ export default function ClubDetailScreen() {
                   />
                 ) : joinStatus?.isPending ? (
                   <Button
-                    title='Demande envoyée'
+                    title={t("clubJoin.requestSent")}
                     variant='secondary'
                     onPress={() => {}}
                     disabled
@@ -506,7 +507,7 @@ export default function ClubDetailScreen() {
                   <Button
                     title={
                       club.is_private
-                        ? 'Demander à rejoindre'
+                        ? t('clubs.joinRequest')
                         : 'Rejoindre le club'
                     }
                     onPress={() => joinMut.mutate()}

@@ -1,6 +1,7 @@
 import { Icon, type IconColor } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 import { View, Text } from "react-native";
+import { t } from "@/hooks/useTranslation";
 
 type SourceState = "inApp" | "external";
 
@@ -15,7 +16,7 @@ type Props = {
 const STATE: Record<SourceState, { icon: "Smartphone" | "Globe"; label: string; chip: string; text: string; color: IconColor }> = {
   inApp: {
     icon: "Smartphone",
-    label: "Créé dans l'app",
+    label: t("source.inApp"),
     chip: "bg-primary/10",
     text: "text-primary",
     color: "primary",

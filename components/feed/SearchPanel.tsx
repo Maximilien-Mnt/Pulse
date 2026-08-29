@@ -3,6 +3,7 @@ import type { FeedPost, PostFormat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SlideDownOverlay } from "@/components/ui/SlideDownOverlay";
+import { t } from "@/hooks/useTranslation";
 
 export type SearchScope = "profiles" | "title" | "description" | "tag";
 export type SearchSort = "relevance" | "date" | "likes" | "comments" | "shares";
@@ -40,7 +41,7 @@ const FORMAT_LABELS: { key: PostFormat; label: string }[] = [
   { key: "text", label: "Texte" },
   { key: "image", label: "Image" },
   { key: "gallery", label: "Galerie" },
-  { key: "video", label: "Vidéo" },
+  { key: "video", label: t("media.video") },
 ];
 
 function Chip({

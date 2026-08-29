@@ -10,6 +10,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useConversations } from "@/hooks/useConversations";
 import { useAuthStore } from "@/stores/authStore";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
 
 import { Text } from "@/components/ui/Text";
@@ -48,10 +49,10 @@ function ConvEmpty() {
     <View className="flex-1 items-center justify-center px-8 py-16">
       <Icon name="MessageCircle" size={32} color="text-tertiary" />
       <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
-        Aucune conversation
+        {t("conversations.empty")}
       </Text>
       <Text variant="body" className="text-text-secondary text-center">
-        Utilise le bouton + pour démarrer une nouvelle discussion.
+        {t("conversations.emptyHint")}
       </Text>
     </View>
   );
@@ -62,6 +63,7 @@ function ConvEmpty() {
 // ---------------------------------------------------------------------------
 
 export default function ConversationsScreen() {
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -147,7 +149,7 @@ export default function ConversationsScreen() {
     <SafeScreen edges={["top"]}>
       <ConvHeader search={search} setSearch={setSearch} />
 
-      <ConvFilterRow activeFilter={convFilter} onFilterChange={setConvFilter} />
+      <ConvFilterRow activeFilter={convFilter} onFilterChange={setConvFilter} t={t as (key: string, variables?: Record<string, string | number>) => string} />
 
       {filtered.length === 0 ? (
         <ConvEmpty />
@@ -192,7 +194,7 @@ function ConvHeader({
         <Icon name="Search" size={16} color="text-tertiary" />
         <TextInput
           className="flex-1 text-base text-text-primary font-inter"
-          placeholder="Rechercher une conversation"
+          placeholder={t("conv.search")}
           placeholderTextColor="#888D97"
           value={search}
           onChangeText={setSearch}
@@ -205,15 +207,17 @@ function ConvHeader({
 function ConvFilterRow({
   activeFilter,
   onFilterChange,
+  t,
 }: {
   activeFilter: "all" | "unread" | "pinned" | "public";
   onFilterChange: (f: "all" | "unread" | "pinned" | "public") => void;
+  t: (key: string, variables?: Record<string, string | number>) => string;
 }) {
   const filters: { key: typeof activeFilter; label: string }[] = [
-    { key: "all", label: "Toutes" },
-    { key: "unread", label: "Non lues" },
-    { key: "pinned", label: "Épinglées" },
-    { key: "public", label: "Publiques" },
+    { key: "all", label: t("conv.all") },
+    { key: "unread", label: t("conv.unread") },
+    { key: "pinned", label: t("conv.pinned") },
+    { key: "public", label: t("conv.public") },
   ];
 
   return (
@@ -235,3 +239,8 @@ function ConvFilterRow({
     </View>
   );
 }
+
+
+
+
+

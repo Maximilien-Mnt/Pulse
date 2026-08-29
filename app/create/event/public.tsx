@@ -21,6 +21,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
+import { t } from "@/hooks/useTranslation";
 
 async function uploadImage(uri: string, path: string) {
   return uploadImageToStorage({ bucket: "events", path, uri });
@@ -44,7 +45,7 @@ export default function CreatePublicEventScreen() {
   if (profile && !profile.is_public_profile) {
     Toast.show({
       type: "info",
-      text1: "Active ton profil public pour créer un événement public",
+      text1: t("create.event.activatePublicHint"),
     });
     router.replace("/(tabs)/profile");
     return null;
@@ -214,8 +215,8 @@ export default function CreatePublicEventScreen() {
             await supabase.rpc("notify_user", {
               p_user_id: member.user_id,
               p_type: "event_notification",
-              p_title: "Nouvel événement dans ton club",
-              p_body: `Un nouvel événement "${name}" a été créé dans un de tes clubs`,
+              p_title: t("create.event.newInClub"),
+              p_body: `{t("create.event.new")} "${name}" {t("create.event.createdInClub")}`,
               p_data: { event_id: event.id, club_id: clubId },
             });
           }
@@ -225,7 +226,7 @@ export default function CreatePublicEventScreen() {
       return event.id;
     },
     onSuccess: (eventId) => {
-      Toast.show({ type: "success", text1: "Événement public publié !" });
+      Toast.show({ type: "success", text1: t("create.event.publicSuccess") });
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
@@ -261,7 +262,7 @@ export default function CreatePublicEventScreen() {
             value={name}
             onChangeText={setName}
             error={errors.name}
-            placeholder="Ex: Compétition de tennis"
+            placeholder={t("create.event.example")}
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
@@ -314,7 +315,7 @@ export default function CreatePublicEventScreen() {
                   setStartDate(date);
                   if (endDate && date >= endDate) {
                     setEndDate(null);
-                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                    setEndDateError(t("events.endAfterStart"));
                   }
                 }
               }}
@@ -338,7 +339,7 @@ export default function CreatePublicEventScreen() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
-                : "Non définie"}
+                : t("updateEvent.dateLabel")}
             </Text>
           </Pressable>
           {showEndPicker && (
@@ -349,7 +350,7 @@ export default function CreatePublicEventScreen() {
                 setShowEndPicker(false);
                 if (date) {
                   if (date <= startDate) {
-                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                    setEndDateError(t("events.endAfterStart"));
                   } else {
                     setEndDateError("");
                     setEndDate(date);
@@ -363,12 +364,12 @@ export default function CreatePublicEventScreen() {
           ) : null}
 
           <Input
-            label="Description * (min 50 caractères)"
+            label={t("create.event.description")}
             value={description}
             onChangeText={setDescription}
             multiline
             error={errors.description}
-            placeholder="Décris ton événement en détail..."
+            placeholder={t("create.event.descriptionPlaceholder")}
           />
           <Text className="text-xs text-neutral-500">
             {description.length < 50
@@ -400,24 +401,24 @@ export default function CreatePublicEventScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
-              {!country && <Text className="text-error text-xs mt-1">Sélectionne un pays</Text>}
+              {!country && <Text className="text-error text-xs mt-1">{t("create.event.countryPlaceholder")}</Text>}
             </View>
           </View>
 
           {(errors.country || !country) && (
-            <Text className="text-error text-xs mt-1 mb-2">{errors.country || "Le pays est requis"}</Text>
+            <Text className="text-error text-xs mt-1 mb-2">{errors.country || t("create.event.countryRequired")}</Text>
           )}
-          <Input label="Ville *" value={city} onChangeText={setCity} error={errors.city} />
-          <Input label="Adresse exacte" value={venueAddress} onChangeText={setVenueAddress} />
+          <Input label={t("create.event.city")} value={city} onChangeText={setCity} error={errors.city} />
+          <Input label={t("create.event.venueAddress")} value={venueAddress} onChangeText={setVenueAddress} />
           <Input
-            label="Lien d'inscription"
+            label={t("create.event.registrationUrl")}
             value={registrationUrl}
             onChangeText={setRegistrationUrl}
             placeholder="https://"
             autoCapitalize="none"
           />
           <Input
-            label="Site web"
+            label={t("create.event.websiteUrl")}
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
             placeholder="https://"
@@ -425,17 +426,17 @@ export default function CreatePublicEventScreen() {
           />
 
           <Input
-            label="Prix (€) - 0 = gratuit"
+            label={t("create.event.priceCents")}
             value={priceInput}
             onChangeText={setPriceInput}
             keyboardType="decimal-pad"
             placeholder="0"
           />
 
-          <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} />
+          <Input label={t("create.event.requiredLevel")} value={requiredLevel} onChangeText={setRequiredLevel} />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Difficulté ({difficulty}/5)
+            {t("create.event.difficulty", { difficulty })}
           </Text>
           <View className="flex-row items-center gap-3 mb-4">
             <Slider
@@ -451,7 +452,9 @@ export default function CreatePublicEventScreen() {
             <Text className="w-8 text-right text-neutral-900 dark:text-neutral-50">{difficulty}</Text>
           </View>
 
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Catégorie</Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+            {t("create.event.category")}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {EVENT_CATEGORIES.map((cat) => (
               <Pressable
@@ -471,11 +474,11 @@ export default function CreatePublicEventScreen() {
           </ScrollView>
 
           <Input
-            label="Nombre de places"
+            label={t("create.event.totalSlots")}
             value={placesTotal}
             onChangeText={setPlacesTotal}
             keyboardType="numeric"
-            placeholder="Illimité si vide"
+            placeholder={t("events.unlimitedIfEmpty")}
           />
 
           {myClubs && myClubs.length > 0 && (
@@ -510,7 +513,7 @@ export default function CreatePublicEventScreen() {
               <Text className="text-xs text-neutral-700 dark:text-neutral-300">
                 {name.trim().length === 0 && "• Nom de l'événement\n"}
                 {sport.length === 0 && "• Sport\n"}
-                {description.length < 50 && "• Description (50 caractères minimum)\n"}
+                {description.length < 50 && `• ${t("create.event.descriptionMin")}\n`}
                 {!country && "• Pays\n"}
                 {!city && "• Ville"}
               </Text>

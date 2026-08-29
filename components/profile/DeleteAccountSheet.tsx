@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Modal, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -27,7 +28,7 @@ export function DeleteAccountSheet({ visible, onClose }: Props) {
     }
     deleteMut.mutate(password, {
       onSuccess: () => {
-        Toast.show({ type: "success", text1: "Compte supprimé" });
+        Toast.show({ type: "success", text1: t("settings.deleteAccount") });
         onClose();
         router.replace("/auth/signin");
       },
@@ -52,7 +53,7 @@ export function DeleteAccountSheet({ visible, onClose }: Props) {
           <View className="flex-row gap-2 mt-4">
             <Button title="Annuler" variant="ghost" onPress={onClose} />
             <Button
-              title="Supprimer définitivement"
+              title={t("common.delete")}
               variant="destructive"
               onPress={handleDelete}
               loading={deleteMut.isPending}

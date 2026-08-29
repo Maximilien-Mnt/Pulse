@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui/Text";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Props = {
   /** Current step (1-based). */

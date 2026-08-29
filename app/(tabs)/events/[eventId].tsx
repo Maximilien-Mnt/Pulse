@@ -28,7 +28,7 @@ import { supabase } from "@/lib/supabase";
 import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -72,7 +72,7 @@ export default function EventDetailScreen() {
     },
   });
 
-  // Organising club name (shown in the "Détails" section; keeps the existing nav)
+  // Organising club name (shown in the t("common.details") section; keeps the existing nav)
   const { data: organisingClub } = useQuery({
     queryKey: ["event-organising-club", event?.club_id],
     enabled: !!event?.club_id,
@@ -150,10 +150,10 @@ export default function EventDetailScreen() {
         is_paid: event?.is_paid ?? null,
         is_external: event?.is_external ?? null,
       });
-      Toast.show({ type: "success", text1: "Demande envoyée" });
+      Toast.show({ type: "success", text1: t("events.requestSent") });
       void queryClient.invalidateQueries({ queryKey: ["join-request-status", "event", eventId] });
     },
-    onError: () => Toast.show({ type: "error", text1: "Erreur" }),
+    onError: () => Toast.show({ type: "error", text1: t("common.error") }),
   });
 
   if (!event) {
@@ -345,7 +345,7 @@ export default function EventDetailScreen() {
               </View>
               <View className="px-2.5 py-1 rounded-full bg-primary/10">
                 <PulseText variant="overline" className="text-primary">
-                  Créateur
+                  t("members.creator")
                 </PulseText>
               </View>
             </Pressable>
@@ -375,17 +375,17 @@ export default function EventDetailScreen() {
         </View>
 
         {/* Details */}
-        <InfoSection title="Détails" className="mx-4 mb-5">
+        <InfoSection title={t("common.details")} className="mx-4 mb-5">
           <InfoRow
             icon="Calendar"
             label="Date"
-            value={`${formatDateLong(event.start_date)} à ${formatTime(event.start_date)}`}
+            value={`${t("events.dateTimeStart", { date: formatDateLong(event.start_date), time: formatTime(event.start_date) })}`}
           />
           {event.end_date ? (
             <InfoRow
               icon="Calendar"
               label="Fin"
-              value={`${formatDateLong(event.end_date)} à ${formatTime(event.end_date)}`}
+              value={`${t("events.dateTimeEnd", { date: formatDateLong(event.end_date), time: formatTime(event.end_date) })}`}
             />
           ) : null}
           <InfoRow
@@ -398,7 +398,7 @@ export default function EventDetailScreen() {
           {(event.age_min != null || event.age_max != null) && (
             <InfoRow
               icon="Users"
-              label="Tranche d'âge"
+              label={t("common.ageRange")}
               value={`${event.age_min ?? "—"} – ${event.age_max ?? "—"} ans`}
             />
           )}

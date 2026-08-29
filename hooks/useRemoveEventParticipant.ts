@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { t } from "@/hooks/useTranslation";
 
 export function useRemoveEventParticipant() {
   const qc = useQueryClient();
@@ -52,8 +53,8 @@ export function useRemoveEventParticipant() {
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: participantId,
         type: "event_participant_removed",
-        title: "Retiré d'un événement",
-        body: `Tu as été retiré(e) de l'événement "${event.name}" par le gestionnaire.`,
+        title: t("notifications.eventParticipantRemoved.title"),
+        body: t("notifications.eventParticipantRemoved.body", { eventName: event.name }),
         data: { event_id: eventId, event_name: event.name } as any,
         read_at: null,
       });
@@ -64,7 +65,7 @@ export function useRemoveEventParticipant() {
     },
     onSuccess: () => {
       posthog.capture("event_participant_removed", {});
-      Toast.show({ type: "success", text1: "Participant retiré de l'événement" });
+      Toast.show({ type: "success", text1: t("notifications.eventParticipantRemoved.toast") });
       void qc.invalidateQueries({ queryKey: ["event-participants"] });
       void qc.invalidateQueries({ queryKey: ["event", undefined] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -73,7 +74,7 @@ export function useRemoveEventParticipant() {
     onError: (error: any) => {
       Toast.show({
         type: "error",
-        text1: error.message === "unauthorized" ? "Non autorisé" : "Impossible de retirer le participant",
+        text1: error.message === "unauthorized" ? t("updateEvent.unauthorized") : "Impossible de retirer le participant",
       });
     },
   });

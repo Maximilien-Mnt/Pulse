@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import type { Club } from "@/types";
+import { t } from "@/hooks/useTranslation";
 
 /**
  * Deletes a club and notifies all members.
@@ -42,8 +43,8 @@ export function useDeleteClub() {
           supabase.rpc("notify_user", {
             p_user_id: memberId,
             p_type: "club_deleted",
-            p_title: "Club supprimé",
-            p_body: `Le club "${clubName}" a été supprimé par son créateur.`,
+            p_title: t("deleteClub.success"),
+            p_body: t("deleteClub.body", { clubName }),
             p_data: { club_id: clubId, club_name: clubName },
           })
         );

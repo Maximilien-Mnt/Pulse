@@ -15,7 +15,7 @@ import { usePostHog } from "posthog-react-native";
 import Toast from "react-native-toast-message";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Form = z.infer<typeof resetPasswordSchema>;
 
@@ -127,15 +127,9 @@ export default function ResetPasswordScreen() {
         setLoading(false);
         setReady(true);
       } else if (code && exchangeError) {
-        setError(
-          "Ce lien de réinitialisation est invalide ou a expiré. " +
-            "Veuillez demander un nouveau lien."
-        );
+        setError(t("auth.linkExpired") + " " + t("auth.requestNewLink"));
       } else {
-        setError(
-          "Aucune session de récupération valide. " +
-            "Veuillez demander un nouveau lien de réinitialisation."
-        );
+        setError(t("auth.noRecoverySession") + " " + t("auth.requestNewLink"));
       }
     }
 

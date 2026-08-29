@@ -44,7 +44,7 @@ import { FeedGrid } from "@/components/feed/FeedGrid";
 import { CommentPanel } from "@/components/feed/CommentPanel";
 import { CommentCenteredModal } from "@/components/feed/CommentCenteredModal";
 import { SafeScreen } from "@/components/shared/SafeScreen";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder

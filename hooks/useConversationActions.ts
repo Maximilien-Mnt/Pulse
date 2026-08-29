@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { t } from "@/hooks/useTranslation";
 
 /**
  * Mutations pour les actions de conversation : épingler, désépingler, supprimer.
@@ -12,7 +13,7 @@ export function usePinConversation() {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      if (!userId) throw new Error("Non connecté");
+      if (!userId) throw new Error(t("report.notConnected"));
       // Try with pinned_at first; fall back to just pinned if column doesn't exist
       const { error } = await supabase
         .from("conversation_participants")
@@ -44,7 +45,7 @@ export function useUnpinConversation() {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      if (!userId) throw new Error("Non connecté");
+      if (!userId) throw new Error(t("report.notConnected"));
       // Try with pinned_at first; fall back to just pinned if column doesn't exist
       const { error } = await supabase
         .from("conversation_participants")

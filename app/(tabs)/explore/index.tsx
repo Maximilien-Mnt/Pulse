@@ -36,6 +36,7 @@ import { EventFilters } from "@/components/events/EventFilters";
 import { SortSheet } from "@/components/shared/SortSheet";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useFeedLayout } from "@/hooks/useFeedLayout";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,12 +107,10 @@ function ExploreEmpty({ tab }: { tab: ExploreTab }) {
     <View className="flex-1 items-center justify-center px-8 py-16">
       <Icon name="Search" size={32} color="text-tertiary" />
       <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
-        Aucun résultat
+        {t("common.noResults")}
       </Text>
       <Text variant="body" className="text-text-secondary text-center">
-        {tab === "clubs"
-          ? "Aucun club ne correspond à ta recherche."
-          : "Aucun événement ne correspond à ta recherche."}
+        {tab === "clubs" ? t("explore.noClubs") : t("explore.noEvents")}
       </Text>
     </View>
   );
@@ -123,6 +122,7 @@ function ExploreEmpty({ tab }: { tab: ExploreTab }) {
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const userId = useAuthStore((s) => s.userId);
 
@@ -336,10 +336,10 @@ export default function ExploreScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Icon name="Search" size={32} color="text-tertiary" />
           <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
-            Erreur de chargement
+            {t("common.loadingError")}
           </Text>
           <Button variant="secondary" onPress={() => void refetch()}>
-            Réessayer
+            {t("common.retry")}
           </Button>
         </View>
       </SafeScreen>
@@ -550,7 +550,7 @@ function ExploreHeader({
               variant="buttonLabel"
               className={tab === "events" ? "text-white" : "text-text-secondary"}
             >
-              Événements
+              {t("common.events")}
             </Text>
           </Pressable>
         </View>
@@ -565,8 +565,8 @@ function ExploreHeader({
               className="flex-1 text-base text-text-primary font-inter"
               placeholder={
                 tab === "clubs"
-                  ? "Rechercher un club"
-                  : "Rechercher un événement"
+                  ? t("explore.searchClub")
+                  : t("events.searchPlaceholder")
               }
               placeholderTextColor={undefined}
               value={search}
@@ -578,7 +578,7 @@ function ExploreHeader({
           <Pressable
             onPress={onOpenFilterModal}
             accessibilityRole="button"
-            accessibilityLabel="Filtres et tri"
+            accessibilityLabel={t("explore.filtersSort")}
             className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
           >
             <Icon
@@ -595,7 +595,7 @@ function ExploreHeader({
           <Pressable
             onPress={onOpenSort}
             accessibilityRole="button"
-            accessibilityLabel="Trier"
+            accessibilityLabel={t("explore.sort")}
             className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
           >
             <Icon
@@ -613,7 +613,9 @@ function ExploreHeader({
             <Pressable
               onPress={onToggleViewMode}
               accessibilityRole="button"
-              accessibilityLabel={viewMode === "list" ? "Vue liste" : "Vue grille"}
+              accessibilityLabel={
+                viewMode === "list" ? t("common.viewList") : t("common.viewGrid")
+              }
               className="p-2 rounded-full bg-surface dark:bg-surface-dark"
             >
               <Icon

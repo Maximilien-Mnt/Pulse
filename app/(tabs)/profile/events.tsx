@@ -9,6 +9,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useState } from "react";
 import { Pressable, FlatList, View, Text } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { t } from "@/hooks/useTranslation";
 
 type EventTab = "upcoming" | "ongoing" | "past";
 
@@ -24,7 +25,7 @@ export default function ProfileEventsScreen() {
   if (isLoading) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Mes événements" showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("profile.myEvents")} showAvatar avatarUrl={profile?.avatar_url} />
         <View className="px-4 gap-3">
           <Skeleton height={80} />
           <Skeleton height={80} />
@@ -36,7 +37,7 @@ export default function ProfileEventsScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Mes événements" showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("profile.myEvents")} showAvatar avatarUrl={profile?.avatar_url} />
         <ErrorState message="Erreur de chargement" onRetry={() => {}} />
       </SafeScreen>
     );
@@ -44,7 +45,7 @@ export default function ProfileEventsScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Mes événements" showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("profile.myEvents")} showAvatar avatarUrl={profile?.avatar_url} />
       
       {/* Tab Selector */}
       <View className="flex-row mx-4 mb-2 bg-neutral-200 dark:bg-neutral-800 rounded-xl p-1">
@@ -61,7 +62,7 @@ export default function ProfileEventsScreen() {
                 activeTab === tab ? "text-primary" : "text-neutral-500"
               }`}
             >
-              {tab === "upcoming" ? "À venir" : tab === "ongoing" ? "En cours" : "Passés"}
+              {tab === "upcoming" ? t("events.upcoming") : tab === "ongoing" ? "En cours" : t("events.past")}
             </Text>
           </Pressable>
         ))}
@@ -73,12 +74,12 @@ export default function ProfileEventsScreen() {
             icon="calendar-outline"
             title={
               activeTab === "upcoming"
-                ? "Aucun événement à venir"
+                ? t("events.emptyUpcoming")
                 : activeTab === "ongoing"
-                ? "Aucun événement en cours"
-                : "Aucun événement passé"
+                ? t("events.emptyOngoing")
+                : t("events.emptyPast")
             }
-            subtitle="Inscris-toi à des événements depuis l'onglet Découvrir."
+            subtitle={t("events.joinHint")}
           />
         </View>
       ) : (

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Pressable, Text, View, Modal, TextInput, Alert, ActivityIndicator } from "react-native";
 import { useChangePassword } from "@/hooks/useChangePassword";
 import { usePassword } from "@/hooks/usePassword";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   email: string;
@@ -40,7 +41,7 @@ export function SecuritySection({ email }: Props) {
   const handleChangePassword = async () => {
     // Validate passwords
     if (newPassword.length < 6) {
-      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères");
+      Alert.alert(t("common.error"), t("security.minLength6"));
       return;
     }
 
@@ -79,7 +80,7 @@ export function SecuritySection({ email }: Props) {
       {/* Password Row */}
       <View className="flex-row items-center justify-between py-2 border-t border-neutral-100 dark:border-neutral-700 mt-2 pt-3">
         <View className="flex-1">
-          <Text className="text-sm text-neutral-500">Mot de passe</Text>
+          <Text className="text-sm text-neutral-500">{t("settings.password")}</Text>
           {isLoadingPassword ? (
             <ActivityIndicator size="small" className="mt-1" />
           ) : canShowPassword ? (

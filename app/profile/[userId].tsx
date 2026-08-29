@@ -24,6 +24,7 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import { BackButton } from "@/components/ui/BackButton";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 export default function UserPublicProfileScreen() {
   const { userId: targetUserId } = useLocalSearchParams<{ userId: string }>();
@@ -76,8 +77,8 @@ export default function UserPublicProfileScreen() {
 
   const handleBlock = () => {
     Alert.alert(
-      "Bloquer cet utilisateur ?",
-      "En bloquant cet utilisateur, il ne pourra plus te contacter ni démarrer de nouvelle conversation avec toi. Tu ne verras plus ses posts, clubs ou événements dans ton feed. Tu peux toujours le débloquer depuis tes paramètres.",
+      t("profile.block.confirmTitle"),
+      t("profile.block.confirmBody"),
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -88,7 +89,7 @@ export default function UserPublicProfileScreen() {
               { userId: targetUserId! },
               {
                 onSuccess: () => {
-                  Toast.show({ type: "success", text1: "Utilisateur bloqué" });
+                  Toast.show({ type: "success", text1: t("profile.block.done") });
                   router.back();
                 },
               }
@@ -106,13 +107,13 @@ export default function UserPublicProfileScreen() {
       <View className="flex-row items-center justify-between px-4 pt-2">
         <View className="flex-row items-center gap-2">
           <BackButton />
-          <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">Profil</Text>
+          <Text className="text-lg font-bold text-neutral-900 dark:text-neutral-50">{t("profile.title")}</Text>
         </View>
         {!isOwn ? (
           <Pressable
             onPress={() => setReportSheetVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel="Signaler ce profil"
+            accessibilityLabel={t("report.profile")}
             hitSlop={8}
           >
             <Icon name="Flag" size={20} color="text-tertiary" />
@@ -137,7 +138,7 @@ export default function UserPublicProfileScreen() {
           <View className="mt-4 gap-2.5">
             {isPublic && (
               <Button
-                title={isFollowing ? "Se désabonner" : "S'abonner"}
+                title={isFollowing ? t("profile.unfollow") : t("profile.follow")}
                 variant={isFollowing ? "secondary" : "primary"}
                 icon="User"
                 onPress={handleFollow}

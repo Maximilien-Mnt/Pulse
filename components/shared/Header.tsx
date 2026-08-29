@@ -8,7 +8,7 @@ import { BackButton } from "../ui/BackButton";
 import { Icon } from "../ui/Icon";
 import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Props = {
   title: string;

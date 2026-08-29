@@ -9,6 +9,8 @@ import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
 import { BackButton } from "@/components/ui/BackButton";
 
 
+import { useTranslation , t } from "@/hooks/useTranslation";
+
 const iconMap: Record<LegalSlug, IconName> = {
   terms: "FileText",
   privacy: "Shield",
@@ -19,12 +21,13 @@ const iconMap: Record<LegalSlug, IconName> = {
 
 export default function PublicContactScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const openMailto = () => {
     const address = "maximilien.montant@gmail.com";
-    const subject = encodeURIComponent("Contact Pulse");
+    const subject = encodeURIComponent(t("legal.contactSubject"));
     const body = encodeURIComponent(
-      "Bonjour,\n\nJe vous contacte à propos de l'application Pulse.\n\n"
+      `${t("legal.contactGreeting")}\n\n${t("legal.contactBody")}\n\n`
     );
     const url = `mailto:${address}?subject=${subject}&body=${body}`;
 
@@ -37,7 +40,7 @@ export default function PublicContactScreen() {
         return Linking.openURL(url);
       })
       .catch(() => {
-        Alert.alert("Erreur", "Impossible d'ouvrir votre application mail.");
+        Alert.alert(t("common.error"), t("legal.contact.mailError"));
       });
   };
 
@@ -61,16 +64,16 @@ export default function PublicContactScreen() {
 
         <View className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-neutral-100 dark:border-neutral-700 gap-2">
           <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-            Pourquoi me contacter ?
+            {t("legal.contactWhy")}
           </Text>
           <Text className="text-neutral-700 dark:text-neutral-300">
-            - Signalement de contenu ou d’un utilisateur
+            - {t("legal.contactContentOrUser")}
           </Text>
           <Text className="text-neutral-700 dark:text-neutral-300">
-            - Demande liée à vos données personnelles
+            - {t("legal.contactPersonalData")}
           </Text>
           <Text className="text-neutral-700 dark:text-neutral-300">
-            - Question sur le service ou un bug
+            - {t("legal.contactBugOrService")}
           </Text>
         </View>
 

@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { t } from "@/hooks/useTranslation";
 
 
 const defaultFilters: EventListFilters = {
@@ -61,7 +62,7 @@ export default function EventsScreen() {
   if (isLoading && !data) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
-        <Header title="Évènements" showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
         <View className="px-4 gap-3">
           <Skeleton height={80} />
           <Skeleton height={80} />
@@ -73,14 +74,14 @@ export default function EventsScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1">
-        <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
+        <ErrorState message={error?.message ?? t("common.error")} onRetry={() => void refetch()} />
       </SafeScreen>
     );
   }
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Évènements" showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
           <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />
@@ -113,7 +114,7 @@ export default function EventsScreen() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
-        ListEmptyComponent={<EmptyState icon="calendar-outline" title="Aucun événement" subtitle="Modifie les filtres." />}
+        ListEmptyComponent={<EmptyState icon="calendar-outline" title={t("common.noEvents")} subtitle={t("common.tryOtherFilters")} />}
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 

@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { setStoredPassword } from "@/lib/passwordStorage";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 /**
  * Hook to change the user's password.
@@ -14,7 +15,7 @@ export function useChangePassword() {
 
   const changePassword = async (newPassword: string): Promise<boolean> => {
     if (!userId) {
-      Toast.show({ type: "error", text1: "Vous devez être connecté" });
+      Toast.show({ type: "error", text1: t("auth.mustBeSignedIn") });
       return false;
     }
 
@@ -43,7 +44,7 @@ export function useChangePassword() {
         // Don't fail the operation if storage fails - password is still changed in Supabase
       }
 
-      Toast.show({ type: "success", text1: "Mot de passe modifié avec succès" });
+      Toast.show({ type: "success", text1: t("actions.changePassword.success") });
       setIsLoading(false);
       return true;
     } catch (error) {

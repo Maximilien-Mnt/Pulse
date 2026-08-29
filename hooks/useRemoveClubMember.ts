@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { t } from "@/hooks/useTranslation";
 
 export function useRemoveClubMember() {
   const qc = useQueryClient();
@@ -36,8 +37,8 @@ export function useRemoveClubMember() {
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: memberId,
         type: "club_member_removed",
-        title: "Retiré d'un club",
-        body: `Tu as été retiré(e) du club "${club.name}" par le gestionnaire.`,
+        title: t("notifications.clubMemberRemoved.title"),
+        body: `${t("notifications.clubMemberRemoved.body", { clubName: club.name })}`,
         data: { club_id: clubId, club_name: club.name } as any,
         read_at: null,
       });
@@ -48,7 +49,7 @@ export function useRemoveClubMember() {
     },
     onSuccess: () => {
       posthog.capture("club_member_removed", {});
-      Toast.show({ type: "success", text1: "Membre retiré du club" });
+      Toast.show({ type: "success", text1: t("actions.removeMember.success") });
       void qc.invalidateQueries({ queryKey: ["club-members"] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
       void qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
@@ -56,7 +57,7 @@ export function useRemoveClubMember() {
     onError: (error: any) => {
       Toast.show({
         type: "error",
-        text1: error.message === "unauthorized" ? "Non autorisé" : "Impossible de retirer le membre",
+        text1: error.message === "unauthorized" ? t("updateClub.unauthorized") : "Impossible de retirer le membre",
       });
     },
   });

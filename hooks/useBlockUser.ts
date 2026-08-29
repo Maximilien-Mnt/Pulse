@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import type { BlockedUser } from "@/types";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 type BlockUserParams = {
   userId: string;
@@ -86,7 +87,7 @@ export function useBlockUser() {
 
         Toast.show({
           type: "success",
-          text1: "Utilisateur bloqué",
+          text1: t("profile.block.done"),
         });
 
         onSuccess?.();

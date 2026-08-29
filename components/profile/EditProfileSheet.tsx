@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Keyboard, Modal, Platform, Pressable, ScrollView, Text, TouchableWithoutFeedback, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -114,11 +114,11 @@ export function EditProfileSheet({ visible, onClose, profile }: Props) {
       void queryClient.invalidateQueries({ queryKey: ["profile", profile?.id] });
       void queryClient.invalidateQueries({ queryKey: ["my-objectives", profile?.id] });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
-      Toast.show({ type: "success", text1: "Profil mis à jour" });
+      Toast.show({ type: "success", text1: t("profile.updated") });
       onClose();
     },
     onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Erreur de sauvegarde";
+      const message = err instanceof Error ? err.message : t("profile.updateError");
       Toast.show({ type: "error", text1: message });
     },
   });
@@ -139,23 +139,25 @@ export function EditProfileSheet({ visible, onClose, profile }: Props) {
   const content = (
     <View className="flex-1 bg-black/50 justify-end">
       <View className="bg-white dark:bg-neutral-900 rounded-t-3xl p-4 max-h-[90%]">
-        <Text className="text-xl font-bold mb-3 text-neutral-900 dark:text-neutral-50">Modifier le profil</Text>
+        <Text className="text-xl font-bold mb-3 text-neutral-900 dark:text-neutral-50">{t("profile.editProfile")}</Text>
         <ScrollView
           contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
           keyboardShouldPersistTaps="handled"
         >
           <Pressable onPress={pickImage} className="items-center mb-4">
             <Avatar uri={avatarUri ?? profile?.avatar_url ?? null} size={80} className="border-2 border-primary" />
-            <Text className="text-primary text-sm font-medium mt-1">Changer la photo</Text>
+            <Text className="text-primary text-sm font-medium mt-1">{t("profile.changePhoto")}</Text>
           </Pressable>
 
-          <Input label="Nom" value={name} onChangeText={setName} returnKeyType="next" />
-          <Input label="Bio" value={bio} onChangeText={setBio} multiline returnKeyType="done" />
-          <Input label="Ville" value={city} onChangeText={setCity} returnKeyType="next" />
-          <Input label="Taille (cm)" value={height} onChangeText={setHeight} keyboardType="numeric" returnKeyType="next" />
-          <Input label="Poids (kg)" value={weight} onChangeText={setWeight} keyboardType="numeric" returnKeyType="done" />
+          <Input label={t("forms.name")} value={name} onChangeText={setName} returnKeyType="next" />
+          <Input label={t("forms.bio")} value={bio} onChangeText={setBio} multiline returnKeyType="done" />
+          <Input label={t("forms.city")} value={city} onChangeText={setCity} returnKeyType="next" />
+          <Input label={t("forms.height")} value={height} onChangeText={setHeight} keyboardType="numeric" returnKeyType="next" />
+          <Input label={t("forms.weight")} value={weight} onChangeText={setWeight} keyboardType="numeric" returnKeyType="done" />
 
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mt-2 mb-1">Objectifs</Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mt-2 mb-1">
+            {t("profile.objectives")}
+          </Text>
           <View className="flex-row flex-wrap gap-2 mb-4">
             {OBJECTIVES.map((obj) => (
               <Pressable

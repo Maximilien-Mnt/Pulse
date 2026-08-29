@@ -22,7 +22,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, Te
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { signupEdgeFunctionUrl } from "@/lib/supabase";
 
 type Form = z.infer<typeof signupStep5Schema>;

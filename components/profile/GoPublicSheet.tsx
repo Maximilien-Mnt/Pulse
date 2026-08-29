@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Modal, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
@@ -40,14 +40,14 @@ export function GoPublicSheet({ visible, onClose }: Props) {
       
       Toast.show({
         type: "success",
-        text1: "Profil public activé",
+        text1: t("profile.goPublic.done"),
       });
       
       onClose();
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Erreur lors de la mise à jour",
+        text1: t("profile.goPublic.error"),
       });
     } finally {
       setLoading(false);

@@ -9,6 +9,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useState } from "react";
 import { Pressable, FlatList, View, Text } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { t } from "@/hooks/useTranslation";
 
 type EventTab = "upcoming" | "ongoing" | "past";
 
@@ -24,7 +25,7 @@ export default function ProfileAcceptedEventsScreen() {
   if (isLoading) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Événements acceptés" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("profile.acceptedEvents")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
         <View className="px-4 gap-3">
           <Skeleton className="h-20" />
           <Skeleton className="h-20" />
@@ -36,15 +37,15 @@ export default function ProfileAcceptedEventsScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-        <Header title="Événements acceptés" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
-        <ErrorState message="Erreur de chargement" onRetry={() => {}} />
+        <Header title={t("profile.acceptedEvents")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+        <ErrorState message={t("common.loadingError")} onRetry={() => {}} />
       </SafeScreen>
     );
   }
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Événements acceptés" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("profile.acceptedEvents")} showBackButton showAvatar avatarUrl={profile?.avatar_url} />
       
       {/* Tab Selector */}
       <View className="flex-row mx-4 mb-2 bg-neutral-200 dark:bg-neutral-800 rounded-xl p-1">
@@ -61,7 +62,7 @@ export default function ProfileAcceptedEventsScreen() {
                 activeTab === tab ? "text-primary" : "text-neutral-500"
               }`}
             >
-              {tab === "upcoming" ? "À venir" : tab === "ongoing" ? "En cours" : "Passés"}
+              {tab === "upcoming" ? t("events.upcoming") : tab === "ongoing" ? t("events.ongoing") : t("events.past")}
             </Text>
           </Pressable>
         ))}
@@ -73,12 +74,12 @@ export default function ProfileAcceptedEventsScreen() {
             icon="calendar-outline"
             title={
               activeTab === "upcoming"
-                ? "Aucun événement à venir"
+                ? t("events.emptyUpcoming")
                 : activeTab === "ongoing"
-                ? "Aucun événement en cours"
-                : "Aucun événement passé"
+                ? t("events.emptyOngoing")
+                : t("events.emptyPast")
             }
-            subtitle="Les événements où vous avez été accepté apparaîtront ici."
+            subtitle={t("events.emptyAccepted")}
           />
         </View>
       ) : (

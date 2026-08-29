@@ -21,6 +21,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { t } from "@/hooks/useTranslation";
 
 type DiscoverMode = "clubs" | "events";
 
@@ -112,7 +113,7 @@ export default function DiscoverScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Découvrir" showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("common.discover")} showAvatar avatarUrl={profile?.avatar_url} />
       
       {/* Mode Switcher */}
       <View className="flex-row mx-4 mb-2 bg-neutral-200 dark:bg-neutral-800 rounded-xl p-1">
@@ -129,7 +130,7 @@ export default function DiscoverScreen() {
                 mode === m ? "text-primary" : "text-neutral-500"
               }`}
             >
-              {m === "clubs" ? "Clubs" : "Événements"}
+              {m === "clubs" ? t("common.clubs") : t("common.events")}
             </Text>
           </Pressable>
         ))}
@@ -170,7 +171,7 @@ export default function DiscoverScreen() {
               <Skeleton height={80} />
             </View>
           ) : clubsListError ? (
-            <ErrorState message={clubsListError?.message ?? "Erreur"} onRetry={() => void refetchClubs()} />
+            <ErrorState message={clubsListError?.message ?? t("common.error")} onRetry={() => void refetchClubs()} />
           ) : (
             <FlashList
               key="clubs-list"
@@ -190,8 +191,8 @@ export default function DiscoverScreen() {
               ListEmptyComponent={
                 <EmptyState
                   icon="people-outline"
-                  title="Aucun club"
-                  subtitle="Essaie d'autres filtres."
+                  title={t("common.noClub")}
+                  subtitle={t("common.tryOtherFilters")}
                 />
               }
               contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
@@ -208,7 +209,7 @@ export default function DiscoverScreen() {
               <Skeleton height={80} />
             </View>
           ) : eventsListError ? (
-            <ErrorState message={eventsListError?.message ?? "Erreur"} onRetry={() => void refetchEvents()} />
+            <ErrorState message={eventsListError?.message ?? t("common.error")} onRetry={() => void refetchEvents()} />
           ) : (
             <FlashList
               key="events-list"
@@ -228,8 +229,8 @@ export default function DiscoverScreen() {
               ListEmptyComponent={
                 <EmptyState
                   icon="calendar-outline"
-                  title="Aucun événement"
-                  subtitle="Essaie d'autres filtres."
+                  title={t("common.noEvents")}
+                  subtitle={t("common.tryOtherFilters")}
                 />
               }
               contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}

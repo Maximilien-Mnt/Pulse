@@ -21,6 +21,7 @@ import { Text } from "@/components/ui/Text";
 import { SPORTS, WEEKDAYS } from "@/lib/constants";
 import type { UserStats, UserSport, PublicStatusMap } from "@/types";
 import { cn } from "@/utils/format";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 function formatHour(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
@@ -37,18 +38,19 @@ export function StatsGrid({
   stats: UserStats | null;
   isPublic: boolean;
 }) {
+  const { t } = useTranslation();
   const items = isPublic
     ? [
-        { label: "Abonnés", value: stats?.followers_count ?? 0, icon: "Users" as const },
-        { label: "Posts", value: stats?.posts_count ?? 0, icon: "FileText" as const },
-        { label: "Clubs", value: stats?.clubs_created_count ?? 0, icon: "Calendar" as const },
-        { label: "Events", value: stats?.events_created_count ?? 0, icon: "Calendar" as const },
-        { label: "Likes", value: stats?.total_likes_received ?? 0, icon: "Heart" as const },
-        { label: "Commentaires", value: stats?.total_comments_received ?? 0, icon: "MessageSquare" as const },
+        { label: t("profile.followers"), value: stats?.followers_count ?? 0, icon: "Users" as const },
+        { label: t("profile.posts"), value: stats?.posts_count ?? 0, icon: "FileText" as const },
+        { label: t("profile.clubs"), value: stats?.clubs_created_count ?? 0, icon: "Calendar" as const },
+        { label: t("profile.events"), value: stats?.events_created_count ?? 0, icon: "Calendar" as const },
+        { label: t("profile.likes"), value: stats?.total_likes_received ?? 0, icon: "Heart" as const },
+        { label: t("profile.comments"), value: stats?.total_comments_received ?? 0, icon: "MessageSquare" as const },
       ]
     : [
-        { label: "Clubs", value: stats?.clubs_created_count ?? 0, icon: "Calendar" as const },
-        { label: "Events", value: stats?.events_created_count ?? 0, icon: "Calendar" as const },
+        { label: t("profile.clubs"), value: stats?.clubs_created_count ?? 0, icon: "Calendar" as const },
+        { label: t("profile.events"), value: stats?.events_created_count ?? 0, icon: "Calendar" as const },
       ];
 
   return (
@@ -73,7 +75,7 @@ export function StatsGrid({
 }
 
 // ---------------------------------------------------------------------------
-// Sports & statuts (practiced sports with level / practice / availability)
+// REPLACED_SPORTS (practiced sports with level / practice / availability)
 // ---------------------------------------------------------------------------
 
 export function SportStatusCard({
@@ -85,14 +87,15 @@ export function SportStatusCard({
   statusMap: PublicStatusMap;
   onEditPress?: () => void;
 }) {
+  const { t } = useTranslation();
   if (sports.length === 0) return null;
 
   return (
     <Card className="mt-5 p-4">
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-lg font-semibold">Sports & statuts</Text>
+        <Text className="text-lg font-semibold">{t("profile.statusTitle")}</Text>
         {onEditPress ? (
-          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier les sports pratiqués">
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("profile.editSports")}>
             <Icon name="Pen" size={20} color="text-tertiary" />
           </Pressable>
         ) : null}
@@ -163,6 +166,7 @@ export function InterestedSportsCard({
   sports: string[];
   onEditPress?: () => void;
 }) {
+  const { t } = useTranslation();
   const list = (sports ?? []).filter(Boolean);
   if (list.length === 0) return null;
 
@@ -172,11 +176,11 @@ export function InterestedSportsCard({
         <View className="flex-row items-center gap-2">
           <Icon name="Heart" size={20} color="accent" />
           <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-            Sports qui m’intéressent
+            {t("profile.interestedTitle")}
           </Text>
         </View>
         {onEditPress ? (
-          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier les sports qui m'intéressent">
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("profile.editInterestedSports")}>
             <Icon name="Pen" size={20} color="text-tertiary" />
           </Pressable>
         ) : null}
@@ -214,6 +218,7 @@ export function ObjectivesCard({
   objectives: { id: string; objective: string }[];
   onEditPress?: () => void;
 }) {
+  const { t } = useTranslation();
   if (!objectives || objectives.length === 0) return null;
 
   return (
@@ -221,10 +226,10 @@ export function ObjectivesCard({
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center gap-2">
           <Icon name="CheckCircle2" size={20} color="success" />
-          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">Mes objectifs</Text>
+          <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50">{t("profile.objectivesTitle")}</Text>
         </View>
         {onEditPress ? (
-          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Modifier mes objectifs">
+          <Pressable onPress={onEditPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("profile.editObjectives")}>
             <Icon name="Pen" size={20} color="text-tertiary" />
           </Pressable>
         ) : null}

@@ -17,6 +17,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useNavbarStore } from "@/stores/navbarStore";
 import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
+import { t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -115,7 +116,7 @@ export function SideRail() {
         <Pressable
           onPress={handleCreatePress}
           accessibilityRole="button"
-          accessibilityLabel="Créer"
+          accessibilityLabel={t("common.create")}
           className={`bg-primary shadow-sm dark:shadow-none mt-2 ${
             expanded
               ? "flex-row items-center justify-center gap-2 px-4 py-2.5 rounded-full self-stretch"

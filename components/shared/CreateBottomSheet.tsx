@@ -5,7 +5,7 @@
 // options: Post, Club, Événement, Conversation.
 //
 // Club and Événement are two-step flows: tapping them switches the sheet to
-// a "Privé / Public" sub-step (with a back button) instead of opening a
+// a t("create.privateClub") sub-step (with a back button) instead of opening a
 // second Modal. Tapping a final choice navigates directly to the form screen
 // and then closes the sheet (navigate-then-close) — this avoids the nested
 // Modal + close-and-navigate race that caused white screens and the
@@ -17,6 +17,7 @@ import { Modal, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -30,10 +31,10 @@ interface CreateOption {
 }
 
 const CREATE_OPTIONS: CreateOption[] = [
-  { key: "post",     label: "Post",        icon: "PlusCircle",    route: "/(tabs)/create?mode=post" },
-  { key: "club",     label: "Club",        icon: "Users",         route: "" },
-  { key: "event",    label: "Événement",   icon: "Calendar",      route: "" },
-  { key: "conv",     label: "Conversation",icon: "MessageCircle", route: "/(tabs)/create?mode=conversation" },
+  { key: "post",     label: t("create.post"),     icon: "PlusCircle",    route: "/(tabs)/create?mode=post" },
+  { key: "club",     label: t("create.club"),     icon: "Users",         route: "" },
+  { key: "event",    label: t("create.event"),    icon: "Calendar",      route: "" },
+  { key: "conv",     label: t("create.conversation"), icon: "MessageCircle", route: "/(tabs)/create?mode=conversation" },
 ];
 
 type VisibilityStep = "club" | "event" | null;
@@ -50,15 +51,15 @@ const VISIBILITY_OPTIONS: Record<Exclude<VisibilityStep, null>, VisibilityOption
   club: [
     {
       key: "private",
-      label: "Club privé",
-      description: "Invite uniquement tes amis et contacts",
+      label: t("create.club.private"),
+      description: t("create.club.privateDesc"),
       icon: "Lock",
       route: "/create/club/private",
     },
     {
       key: "public",
-      label: "Club public",
-      description: "Visible par tous, nécessite un profil public",
+      label: t("create.club.public"),
+      description: t("create.club.publicHint"),
       icon: "Globe",
       route: "/create/club/public",
     },
@@ -66,15 +67,15 @@ const VISIBILITY_OPTIONS: Record<Exclude<VisibilityStep, null>, VisibilityOption
   event: [
     {
       key: "private",
-      label: "Événement privé",
-      description: "Accessible uniquement aux personnes invitées",
+      label: t("create.event.private"),
+      description: t("create.event.inviteOnlyHint"),
       icon: "Lock",
       route: "/create/event/private",
     },
     {
       key: "public",
-      label: "Événement public",
-      description: "Visible par tous, nécessite un profil public",
+      label: t("create.event.public"),
+      description: t("create.event.publicHint"),
       icon: "Globe",
       route: "/create/event/public",
     },
@@ -82,8 +83,8 @@ const VISIBILITY_OPTIONS: Record<Exclude<VisibilityStep, null>, VisibilityOption
 };
 
 const STEP_TITLES: Record<Exclude<VisibilityStep, null>, string> = {
-  club: "Nouveau club",
-  event: "Nouvel événement",
+  club: t("create.club.title"),
+  event: t("create.event.title"),
 };
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,7 @@ interface CreateBottomSheetProps {
 
 export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [step, setStep] = useState<VisibilityStep>(null);
 
   // Reset to the root step whenever the sheet reopens.
@@ -133,7 +135,7 @@ export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) 
     >
       <View className="flex-1 bg-black/50 justify-end">
         {/* Backdrop — tap to dismiss */}
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Fermer" />
+        <Pressable className="flex-1" onPress={onClose} accessibilityLabel={t("common.close")} />
 
         {/* Sheet */}
         <View className="bg-surface dark:bg-surface-dark rounded-t-xl px-6 pt-6 pb-10">
@@ -144,7 +146,7 @@ export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) 
             <>
               {/* Title */}
               <Text variant="subtitle" className="text-text-primary mb-6">
-                Créer
+                {t("create.title")}
               </Text>
 
               {/* Options */}

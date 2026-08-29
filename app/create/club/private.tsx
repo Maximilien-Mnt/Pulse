@@ -20,6 +20,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { BackButton } from "@/components/ui/BackButton";
+import { t } from "@/hooks/useTranslation";
 
 export default function CreatePrivateClubScreen() {
   const router = useRouter();
@@ -188,8 +189,8 @@ export default function CreatePrivateClubScreen() {
         await supabase.rpc("notify_user", {
           p_user_id: inviteeId,
           p_type: "club_invitation",
-          p_title: "Invitation à rejoindre un club",
-          p_body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à rejoindre "${name}"`,
+          p_title: t("clubs.invite"),
+          p_body: t("clubs.inviteBody", { name: profile?.full_name ?? "Someone", club: name }),
           p_data: { club_id: club.id, inviter_id: userId },
         });
       }
@@ -197,11 +198,11 @@ export default function CreatePrivateClubScreen() {
       return club.id;
     },
     onSuccess: (clubId) => {
-      Toast.show({ type: "success", text1: "Club privé créé !" });
+      Toast.show({ type: "success", text1: t("create.club.privateSuccess") });
       router.replace(`/(tabs)/clubs/${clubId}`);
     },
     onError: (err) => {
-      Toast.show({ type: "error", text1: err instanceof Error ? err.message : "Erreur" });
+      Toast.show({ type: "error", text1: err instanceof Error ? err.message : t("common.error") });
     },
   });
 
@@ -230,7 +231,7 @@ export default function CreatePrivateClubScreen() {
             label="Nom du club *"
             value={name}
             onChangeText={setName}
-            placeholder="Ex: Équipe de tennis du matin"
+            placeholder={t("create.club.example")}
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
@@ -380,9 +381,9 @@ export default function CreatePrivateClubScreen() {
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Inviter des membres</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.inviteMembers")}</Text>
           <Input
-            label="Rechercher par @username"
+            label={t("common.searchByUsername")}
             value={searchQ}
             onChangeText={(t) => {
               setSearchQ(t);
@@ -418,7 +419,7 @@ export default function CreatePrivateClubScreen() {
           {invitees.length > 0 && (
             <View className="mt-3">
               <Text className="text-sm text-neutral-500 mb-2">
-                {invitees.length} membre{invitees.length > 1 ? "s" : ""} invité{invitees.length > 1 ? "s" : ""}
+                {t("create.club.invitedCount", { count: invitees.length })}
               </Text>
               <View className="flex-row flex-wrap">
                 {selectedUsers.map((u) => (
@@ -439,7 +440,7 @@ export default function CreatePrivateClubScreen() {
         </Card>
 
         <Button
-          title="Créer le club"
+          title={t("create.club.create")}
           onPress={() => createMut.mutate()}
           loading={createMut.isPending}
           disabled={!isValid}

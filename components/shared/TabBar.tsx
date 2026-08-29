@@ -18,6 +18,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { useNavbarStore } from "@/stores/navbarStore";
 import { useIsWebWide } from "@/components/shared/SideRail";
 import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
+import { t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -26,15 +27,15 @@ import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
 interface TabItem {
   route: string;      // expo-router path
   icon: IconName;
-  label: string;
+  labelKey: string;   // translation key (tabs.*)
 }
 
 const MAIN_TABS: TabItem[] = [
-  { route: "feed",              icon: "Home",           label: "Feed" },
-  { route: "explore",           icon: "Search",         label: "Explorer" },
+  { route: "feed",              icon: "Home",           labelKey: "tabs.feed" },
+  { route: "explore",           icon: "Search",         labelKey: "tabs.explore" },
   // Create slot (handled separately as floating button)
-  { route: "conversations",     icon: "MessageCircle",  label: "Messages" },
-  { route: "profile",           icon: "UserCircle",     label: "Profil" },
+  { route: "conversations",     icon: "MessageCircle",  labelKey: "tabs.messages" },
+  { route: "profile",           icon: "UserCircle",     labelKey: "tabs.profile" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -112,7 +113,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         <Pressable
           onPress={handleCreatePress}
           accessibilityRole="button"
-          accessibilityLabel="Créer"
+          accessibilityLabel={t("common.create")}
           className="bg-primary rounded-full w-14 h-14 items-center justify-center shadow-sm dark:shadow-none"
           style={{
             // Elevate above the tab bar line
@@ -165,7 +166,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         <Pressable
           onPress={() => setNavbarPosition("left")}
           accessibilityRole="button"
-          accessibilityLabel="Barre de navigation à gauche"
+          accessibilityLabel={t("settings.barLeft")}
           className="px-2 items-center justify-center h-full"
         >
           <View className="items-center justify-center rounded-lg p-2">

@@ -14,6 +14,7 @@ import { Dimensions } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { t } from "@/hooks/useTranslation";
 
 export interface BugReportPayload {
   message: string;
@@ -37,7 +38,7 @@ export function useBugReport() {
     mutationFn: async (payload: BugReportPayload) => {
       if (!userId) {
         console.error("[BugReport] No user ID found in auth store");
-        throw new Error("Non connecté");
+        throw new Error(t("report.notConnected"));
       }
 
       console.log("[BugReport] Attempting to submit bug report for user:", userId);

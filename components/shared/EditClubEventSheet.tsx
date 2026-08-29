@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import type { Club, EventRow } from "@/types";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -102,7 +103,8 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
 
   if (!visible || !data) return null;
 
-  const title = type === "club" ? "Modifier le club" : "Modifier l'événement";
+  const title =
+    type === "club" ? t("clubs.edit") : t("events.edit");
 
   return (
     <View className="absolute inset-0 z-50">
@@ -122,30 +124,30 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         {/* Form */}
         <ScrollView className="p-4">
           <Input
-            label="Nom"
+            label={t("forms.name")}
             value={formData.name}
             onChangeText={(text) => setFormData({ ...formData, name: text })}
-            placeholder="Nom"
+            placeholder={t("forms.name")}
           />
 
           <Input
-            label="Description"
+            label={t("forms.description")}
             value={formData.description}
             onChangeText={(text) => setFormData({ ...formData, description: text })}
             multiline
             numberOfLines={4}
-            placeholder="Description"
+            placeholder={t("forms.description")}
           />
 
           <Input
-            label={type === "club" ? "Adresse" : "Adresse du lieu"}
+            label={type === "club" ? t("forms.address") : t("forms.venueAddress")}
             value={formData.address}
             onChangeText={(text) => setFormData({ ...formData, address: text })}
-            placeholder="Adresse"
+            placeholder={t("forms.address")}
           />
 
           <Input
-            label="Site web"
+            label={t("forms.website")}
             value={formData.website_url}
             onChangeText={(text) => setFormData({ ...formData, website_url: text })}
             placeholder="https://"
@@ -154,7 +156,7 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
 
           {type === "event" && (
             <Input
-              label="Lien d'inscription"
+              label={t("forms.registrationUrl")}
               value={formData.registration_url}
               onChangeText={(text) => setFormData({ ...formData, registration_url: text })}
               placeholder="https://"
@@ -163,22 +165,22 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
           )}
 
           <Input
-            label="Niveau requis"
+            label={t("forms.requiredLevel")}
             value={formData.required_level}
             onChangeText={(text) => setFormData({ ...formData, required_level: text })}
-            placeholder="Ex: Intermédiaire"
+            placeholder={t("forms.levelExample")}
           />
 
           {type === "club" && (
             <>
               <Input
-                label="Ligue/Division"
+                label={t("forms.league")}
                 value={formData.league}
                 onChangeText={(text) => setFormData({ ...formData, league: text })}
-                placeholder="Ligue/Division"
+                placeholder={t("forms.league")}
               />
               <Input
-                label="Date de fondation"
+                label={t("forms.foundedDate")}
                 value={formData.founded_date}
                 onChangeText={(text) => setFormData({ ...formData, founded_date: text })}
                 placeholder="YYYY-MM-DD"
@@ -187,7 +189,7 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
           )}
 
           <Button
-            title="Enregistrer"
+            title={t("common.save")}
             onPress={handleSave}
             loading={isLoading}
             className="mt-4 mb-6"

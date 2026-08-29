@@ -16,6 +16,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { BackButton } from "@/components/ui/BackButton";
+import { t } from "@/hooks/useTranslation";
 
 export default function CreatePrivateEventScreen() {
   const router = useRouter();
@@ -122,8 +123,8 @@ export default function CreatePrivateEventScreen() {
         await supabase.rpc("notify_user", {
           p_user_id: inviteeId,
           p_type: "event_invitation",
-          p_title: "Invitation à un événement",
-          p_body: `${profile?.full_name ?? "Quelqu'un"} t'a invité à "${name}"`,
+          p_title: t("events.create.invitation"),
+          p_body: t("events.inviteBody", { name: profile?.full_name ?? "Someone", event: name }),
           p_data: { event_id: event.id, inviter_id: userId },
         });
       }
@@ -131,7 +132,7 @@ export default function CreatePrivateEventScreen() {
       return event.id;
     },
     onSuccess: (eventId) => {
-      Toast.show({ type: "success", text1: "Événement privé créé !" });
+      Toast.show({ type: "success", text1: t("create.event.privateSuccess") });
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
@@ -165,7 +166,7 @@ export default function CreatePrivateEventScreen() {
             label="Nom de l'événement *"
             value={name}
             onChangeText={setName}
-            placeholder="Ex: Entraînement tennis du matin"
+            placeholder={t("create.event.example")}
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
@@ -217,7 +218,7 @@ export default function CreatePrivateEventScreen() {
                   setStartDate(date);
                   if (endDate && date >= endDate) {
                     setEndDate(null);
-                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                    setEndDateError(t("events.endAfterStart"));
                   }
                 }
               }}
@@ -241,7 +242,7 @@ export default function CreatePrivateEventScreen() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
-                : "Non définie"}
+                : t("updateEvent.dateLabel")}
             </Text>
           </Pressable>
           {showEndPicker && (
@@ -252,7 +253,7 @@ export default function CreatePrivateEventScreen() {
                 setShowEndPicker(false);
                 if (date) {
                   if (date <= startDate) {
-                    setEndDateError("La date de fin doit être postérieure à la date de début");
+                    setEndDateError(t("events.endAfterStart"));
                   } else {
                     setEndDateError("");
                     setEndDate(date);
@@ -320,7 +321,7 @@ export default function CreatePrivateEventScreen() {
           {invitees.length > 0 && (
             <View className="mt-3">
               <Text className="text-sm text-neutral-500 mb-2">
-                {invitees.length} participant{invitees.length > 1 ? "s" : ""} invité{invitees.length > 1 ? "s" : ""}
+                {t("create.event.invitedCount", { count: invitees.length })}
               </Text>
               <View className="flex-row flex-wrap">
                 {selectedUsers.map((u) => (
@@ -341,7 +342,7 @@ export default function CreatePrivateEventScreen() {
         </Card>
 
         <Button
-          title="Créer l'événement"
+          title={t("create.event.submit")}
           onPress={() => createMut.mutate()}
           loading={createMut.isPending}
           disabled={!isValid}

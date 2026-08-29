@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export function useIsFollowing(targetUserId: string | null | undefined) {
   const userId = useAuthStore((s) => s.userId);
@@ -23,6 +24,7 @@ export function useIsFollowing(targetUserId: string | null | undefined) {
 
 export function useFollow(targetUserId: string | null | undefined) {
   const userId = useAuthStore((s) => s.userId);
+  const { t } = useTranslation();
 
   const followMut = useMutation({
     mutationFn: async () => {
@@ -35,8 +37,8 @@ export function useFollow(targetUserId: string | null | undefined) {
       await supabase.from("notifications").insert({
         user_id: targetUserId,
         type: "new_follower",
-        title: "Nouvel abonné",
-        body: "Quelqu'un a commencé à te suivre.",
+        title: t("follow.newFollower"),
+        body: t("follow.newFollowerBody"),
         data: { follower_id: userId },
       });
     },

@@ -1,0 +1,11 @@
+{
+  "fr": {
+    "clubs.details.title": "Détails",
+    "events.creator": "Créateur",
+    "common.creator": "Créateur",
+    "clubs.requestSent": "Demande envoyée",
+    "events.requestSent": "Demande envoyée",
+    "clubs.joinRequest": "Demander à rejoindre",
+    "clubs.member": "Membre"
+  }
+}

@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { BackButton } from "@/components/ui/BackButton";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export default function MyPublicProfileScreen() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function MyPublicProfileScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1">
-        <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
+        <ErrorState message={error?.message ?? t("common.error")} onRetry={() => void refetch()} />
       </SafeScreen>
     );
   }

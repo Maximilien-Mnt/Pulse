@@ -7,6 +7,7 @@ import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -169,7 +170,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 }}
               />
               <Button
-                title="Réinitialiser"
+                title={t("common.reset")}
                 variant="ghost"
                 onPress={() => {
                   const reset: EventListFilters = {

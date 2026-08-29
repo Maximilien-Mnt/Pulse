@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Modal, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -27,8 +28,8 @@ export function DeleteClubSheet({ visible, onClose, clubId, clubName }: Props) {
       onSuccess: () => {
         Toast.show({
           type: "success",
-          text1: "Club supprimé",
-          text2: `Le club "${clubName}" a été supprimé.`,
+          text1: t("deleteClub.success"),
+          text2: t("deleteClub.body", { clubName }),
         });
         onClose();
         // Navigate back to profile if we're on the club page
@@ -39,8 +40,8 @@ export function DeleteClubSheet({ visible, onClose, clubId, clubName }: Props) {
       onError: (error) => {
         Toast.show({
           type: "error",
-          text1: "Erreur",
-          text2: "Impossible de supprimer le club. Veuillez réessayer.",
+          text1: t("common.error"),
+          text2: t("deleteClub.error"),
         });
         console.error("Delete club error:", error);
       },
@@ -73,7 +74,7 @@ export function DeleteClubSheet({ visible, onClose, clubId, clubName }: Props) {
               disabled={deleteMut.isPending}
             />
             <Button
-              title="Supprimer définitivement"
+              title={t("common.delete")}
               variant="destructive"
               onPress={handleDelete}
               loading={deleteMut.isPending}

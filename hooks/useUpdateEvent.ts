@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { t } from "@/hooks/useTranslation";
 
 type EventUpdateData = {
   name?: string;
@@ -62,11 +63,11 @@ export function useUpdateEvent() {
         website_url: "Site web",
         registration_url: "Lien d'inscription",
         required_level: "Niveau requis",
-        start_date: "Date de début",
+        start_date: t("updateEvent.dateLabel"),
         end_date: "Date de fin",
         price_cents: "Prix",
-        difficulty: "Difficulté",
-        category: "Catégorie",
+        difficulty: t("updateEvent.difficultyLabel"),
+        category: t("updateEvent.categoryLabel"),
         places_total: "Nombre de places",
       };
 
@@ -88,8 +89,8 @@ export function useUpdateEvent() {
           await supabase.rpc("notify_user", {
             p_user_id: participant.user_id,
             p_type: "event_updated",
-            p_title: "Événement modifié",
-            p_body: `L'événement "${event.name}" a été modifié : ${changes.join(", ")}.`,
+            p_title: t("updateEvent.modified"),
+            p_body: `L'événement "${event.name}" {t("updateEvent.modifiedBodyPrefix")} ${changes.join(", ")}.`,
             p_data: { event_id: eventId, changes },
           });
         }
@@ -99,7 +100,7 @@ export function useUpdateEvent() {
     },
     onSuccess: () => {
       posthog.capture("event_updated", {});
-      Toast.show({ type: "success", text1: "Événement mis à jour" });
+      Toast.show({ type: "success", text1: t("updateEvent.updated") });
       void qc.invalidateQueries({ queryKey: ["event"] });
       void qc.invalidateQueries({ queryKey: ["event-participants"] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -108,7 +109,7 @@ export function useUpdateEvent() {
     onError: (error: any) => {
       Toast.show({
         type: "error",
-        text1: error.message === "unauthorized" ? "Non autorisé" : "Impossible de mettre à jour l'événement",
+        text1: error.message === "unauthorized" ? t("updateEvent.unauthorized") : "Impossible de mettre à jour l'événement",
       });
     },
   });

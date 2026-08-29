@@ -8,9 +8,11 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export default function JoinEventScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { eventId, token } = useLocalSearchParams<{ eventId: string; token?: string }>();
   const userId = useAuthStore((s) => s.userId);
   const redeem = useRedeemInvitation();
@@ -34,7 +36,7 @@ export default function JoinEventScreen() {
 
   const handleJoin = () => {
     if (!userId) {
-      Toast.show({ type: "info", text1: "Connecte-toi pour rejoindre cet événement" });
+      Toast.show({ type: "info", text1: t("events.join.loginRequired") });
       router.replace("/auth/signin");
       return;
     }
@@ -47,7 +49,7 @@ export default function JoinEventScreen() {
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["events"] });
-          Toast.show({ type: "success", text1: "Tu participes à l'événement !" });
+          Toast.show({ type: "success", text1: t("events.join.success") });
           router.replace(`/(tabs)/events/${eventId}`);
         },
         onError: (e) => {
@@ -71,14 +73,14 @@ export default function JoinEventScreen() {
               Invitation à un événement
             </Text>
             <Text className="text-xl font-semibold text-primary text-center mt-2">
-              {event?.name ?? "Cet événement"}
+              {event?.name ?? t("events.defaultName")}
 
             </Text>
             {event?.sport ? (
               <Text className="text-neutral-500 text-center mt-1">{event.sport}</Text>
             ) : null}
             <Text className="text-neutral-600 dark:text-neutral-300 text-center mt-4 mb-8">
-              Tu as été invité(e) à participer à cet événement privé. Accepte l'invitation pour rejoindre.
+              {t("join.event.invited")}
             </Text>
             {userId && event?.created_by === userId ? null : (
               <Button

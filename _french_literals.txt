@@ -1,0 +1,223 @@
+app/(tabs)/clubs/[clubId].tsx:371: D├®tails
+app/(tabs)/clubs/[clubId].tsx:421: Cr├®ateur
+app/(tabs)/clubs/[clubId].tsx:437: Cr├®ateur
+app/(tabs)/clubs/[clubId].tsx:500: Demande envoy├®e
+app/(tabs)/clubs/[clubId].tsx:509: Demander ├á rejoindre
+app/(tabs)/conversations/index.tsx:215: ├ëpingl├®es
+app/(tabs)/create/index.tsx:110: Post publi├®
+app/(tabs)/create/index.tsx:134: Partage ta s├®ance, ton r├®sultat, ta motivation...
+app/(tabs)/create/index.tsx:260: Un compte que tu suis a cr├®├® un nouveau club.
+app/(tabs)/create/index.tsx:268: Club cr├®├®
+app/(tabs)/create/index.tsx:274: Cr├®ation impossible
+app/(tabs)/create/index.tsx:394: Nouvel ├®v├®nement
+app/(tabs)/create/index.tsx:395: Un compte que tu suis a cr├®├® un nouvel ├®v├®nement.
+app/(tabs)/create/index.tsx:403: ├ëv├®nement cr├®├®
+app/(tabs)/create/index.tsx:409: Cr├®ation impossible
+app/(tabs)/discover/index.tsx:115: D├®couvrir
+app/(tabs)/discover/index.tsx:132: ├ëv├®nements
+app/(tabs)/discover/index.tsx:231: Aucun ├®v├®nement
+app/(tabs)/events/index.tsx:64: ├ëv├¿nements
+app/(tabs)/events/index.tsx:83: ├ëv├¿nements
+app/(tabs)/events/index.tsx:116: Aucun ├®v├®nement
+app/(tabs)/events/[eventId].tsx:75: D├®tails
+app/(tabs)/events/[eventId].tsx:153: Demande envoy├®e
+app/(tabs)/events/[eventId].tsx:378: D├®tails
+app/(tabs)/explore/index.tsx:113: Aucun club ne correspond ├á ta recherche.
+app/(tabs)/explore/index.tsx:114: Aucun ├®v├®nement ne correspond ├á ta recherche.
+app/(tabs)/explore/index.tsx:569: Rechercher un ├®v├®nement
+app/(tabs)/profile/accepted-events.tsx:27: ├ëv├®nements accept├®s
+app/(tabs)/profile/accepted-events.tsx:39: ├ëv├®nements accept├®s
+app/(tabs)/profile/accepted-events.tsx:47: ├ëv├®nements accept├®s
+app/(tabs)/profile/accepted-events.tsx:64: ├Ç venir
+app/(tabs)/profile/accepted-events.tsx:64: Pass├®s
+app/(tabs)/profile/accepted-events.tsx:76: Aucun ├®v├®nement ├á venir
+app/(tabs)/profile/accepted-events.tsx:78: Aucun ├®v├®nement en cours
+app/(tabs)/profile/accepted-events.tsx:79: Aucun ├®v├®nement pass├®
+app/(tabs)/profile/accepted-events.tsx:81: Les ├®v├®nements o├╣ vous avez ├®t├® accept├® appara├«tront ici.
+app/(tabs)/profile/clubs.tsx:96: Aucun club cr├®├®
+app/(tabs)/profile/clubs.tsx:101: Cr├®e ton premier club pour le voir ici.
+app/(tabs)/profile/edit-profile.tsx:360: Profil mis ├á jour
+app/(tabs)/profile/edit-profile.tsx:523: Non renseign├®e
+app/(tabs)/profile/edit-profile.tsx:541: S├®lectionner un pays
+app/(tabs)/profile/edit-profile.tsx:576: Pr├®sente-toi bri├¿vement...
+app/(tabs)/profile/edit-profile.tsx:873: Heure de d├®but
+app/(tabs)/profile/edit-public.tsx:124: Profil public mis ├á jour
+app/(tabs)/profile/events.tsx:27: Mes ├®v├®nements
+app/(tabs)/profile/events.tsx:39: Mes ├®v├®nements
+app/(tabs)/profile/events.tsx:47: Mes ├®v├®nements
+app/(tabs)/profile/events.tsx:64: ├Ç venir
+app/(tabs)/profile/events.tsx:64: Pass├®s
+app/(tabs)/profile/events.tsx:76: Aucun ├®v├®nement ├á venir
+app/(tabs)/profile/events.tsx:78: Aucun ├®v├®nement en cours
+app/(tabs)/profile/events.tsx:79: Aucun ├®v├®nement pass├®
+app/(tabs)/profile/events.tsx:81: Inscris-toi ├á des ├®v├®nements depuis l
+app/(tabs)/profile/notifications.tsx:20: Trait├®s
+app/(tabs)/profile/notifications.tsx:26: ├Ç l
+app/(tabs)/profile/notifications.tsx:42: Demande accept├®e
+app/(tabs)/profile/notifications.tsx:44: Invitation accept├®e
+app/(tabs)/profile/notifications.tsx:46: Demande refus├®e
+app/(tabs)/profile/notifications.tsx:48: Invitation refus├®e
+app/(tabs)/profile/notifications.tsx:50: Conversation supprim├®e
+app/(tabs)/profile/notifications.tsx:109: Demande accept├®e
+app/(tabs)/profile/notifications.tsx:109: Demande refus├®e
+app/(tabs)/profile/notifications.tsx:134: Impossible de d├®marrer la conversation
+app/(tabs)/profile/settings.tsx:221: Politique de confidentialit├®
+app/(tabs)/profile/settings.tsx:261: Politique de mod├®ration
+app/(tabs)/profile/settings.tsx:281: Politique de mod├®ration
+app/(tabs)/profile/settings.tsx:301: Mentions l├®gales
+app/(tabs)/profile/user-posts.tsx:129: Vos posts appara├«tront ici.
+app/auth/forgot-password.tsx:47: Veuillez r├®essayer plus tard.
+app/auth/reset-password.tsx:131: Ce lien de r├®initialisation est invalide ou a expir├®.
+app/auth/reset-password.tsx:136: Aucune session de r├®cup├®ration valide.
+app/auth/reset-password.tsx:137: Veuillez demander un nouveau lien de r├®initialisation.
+app/auth/signup/step4.tsx:25: Am├®liorer mon endurance
+app/auth/signup/step4.tsx:28: Participer ├á des comp├®titions
+app/auth/signup/step4.tsx:29: R├®duire le stress
+app/auth/signup/step4.tsx:30: Am├®liorer ma souplesse
+app/auth/signup/step4.tsx:32: D├®couvrir un nouveau sport
+app/create/club/private.tsx:191: Invitation ├á rejoindre un club
+app/create/club/private.tsx:200: Club priv├® cr├®├® !
+app/create/club/private.tsx:233: Ex: ├ëquipe de tennis du matin
+app/create/club/private.tsx:442: Cr├®er le club
+app/create/club/public.tsx:46: Active ton profil public pour cr├®er un club public
+app/create/club/public.tsx:226: Club public publi├® !
+app/create/club/public.tsx:293: D├®cris ton club en d├®tail...
+app/create/club/public.tsx:341: Ex: Interm├®diaire
+app/create/event/private.tsx:125: Invitation ├á un ├®v├®nement
+app/create/event/private.tsx:134: ├ëv├®nement priv├® cr├®├® !
+app/create/event/private.tsx:168: Ex: Entra├«nement tennis du matin
+app/create/event/private.tsx:220: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but
+app/create/event/private.tsx:244: Non d├®finie
+app/create/event/private.tsx:255: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but
+app/create/event/private.tsx:344: Cr├®er l
+app/create/event/public.tsx:47: Active ton profil public pour cr├®er un ├®v├®nement public
+app/create/event/public.tsx:217: Nouvel ├®v├®nement dans ton club
+app/create/event/public.tsx:218: Un nouvel ├®v├®nement
+app/create/event/public.tsx:218: a ├®t├® cr├®├® dans un de tes clubs
+app/create/event/public.tsx:228: ├ëv├®nement public publi├® !
+app/create/event/public.tsx:264: Ex: Comp├®tition de tennis
+app/create/event/public.tsx:317: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but
+app/create/event/public.tsx:341: Non d├®finie
+app/create/event/public.tsx:352: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but
+app/create/event/public.tsx:371: D├®cris ton ├®v├®nement en d├®tail...
+app/create/event/public.tsx:478: Illimit├® si vide
+app/join/event/[eventId].tsx:37: Connecte-toi pour rejoindre cet ├®v├®nement
+app/join/event/[eventId].tsx:50: Tu participes ├á l
+app/join/event/[eventId].tsx:74: Cet ├®v├®nement
+app/profile/[userId].tsx:80: En bloquant cet utilisateur, il ne pourra plus te contacter ni d├®marrer de nouvelle conversation avec toi. Tu ne verras plus ses posts, clubs ou ├®v├®nements dans ton feed. Tu peux toujours le d├®bloquer depuis tes param├¿tres.
+app/profile/[userId].tsx:91: Utilisateur bloqu├®
+app/profile/[userId].tsx:140: Se d├®sabonner
+components/clubs/ClubFilters.tsx:101: R├®initialiser
+components/conversations/ConversationActionSheet.tsx:117: D├®s├®pingler
+components/conversations/ConversationActionSheet.tsx:117: ├ëpingler
+components/conversations/ConversationActionSheet.tsx:167: Conversation supprim├®e et utilisateur bloqu├®
+components/events/EventFilters.tsx:172: R├®initialiser
+components/feed/PostMedia.tsx:102: Vid├®o
+components/feed/SearchPanel.tsx:43: Vid├®o
+components/profile/DeleteAccountSheet.tsx:30: Compte supprim├®
+components/profile/DeleteAccountSheet.tsx:55: Supprimer d├®finitivement
+components/profile/DeleteClubSheet.tsx:30: Club supprim├®
+components/profile/DeleteClubSheet.tsx:31: a ├®t├® supprim├®.
+components/profile/DeleteClubSheet.tsx:43: Impossible de supprimer le club. Veuillez r├®essayer.
+components/profile/DeleteClubSheet.tsx:76: Supprimer d├®finitivement
+components/profile/EditProfileSheet.tsx:117: Profil mis ├á jour
+components/profile/GoPublicSheet.tsx:43: Profil public activ├®
+components/profile/GoPublicSheet.tsx:50: Erreur lors de la mise ├á jour
+components/profile/ProfileSections.tsx:42: Abonn├®s
+components/profile/ProfileSections.tsx:95: Modifier les sports pratiqu├®s
+components/profile/PublicProfileActivationModal.tsx:78: Profil public activ├® !
+components/profile/PublicProfileActivationModal.tsx:125: Publier des posts visibles par la communaut├®
+components/profile/PublicProfileActivationModal.tsx:126: Cr├®er des clubs et ├®v├®nements publics
+components/profile/PublicProfileActivationModal.tsx:127: ├ètre suivi par d
+components/profile/PublicProfileGallery.tsx:29: ├ëv├®nements
+components/profile/PublicProfileGallery.tsx:104: Aucun ├®v├®nement
+components/profile/SecuritySection.tsx:43: Le mot de passe doit contenir au moins 6 caract├¿res
+components/shared/BugReportSheet.tsx:28: Syst├¿me d
+components/shared/BugReportSheet.tsx:29: Version du syst├¿me d
+components/shared/BugReportSheet.tsx:31: Mod├¿le de l
+components/shared/BugReportSheet.tsx:32: Langue et r├®gion
+components/shared/BugReportSheet.tsx:33: R├®solution de l
+components/shared/BugReportSheet.tsx:63: Signalement envoy├®
+components/shared/BugReportSheet.tsx:122: Masquer les d├®tails
+components/shared/BugReportSheet.tsx:122: Voir les donn├®es collect├®es
+components/shared/CreateBottomSheet.tsx:35: ├ëv├®nement
+components/shared/CreateBottomSheet.tsx:53: Club priv├®
+components/shared/CreateBottomSheet.tsx:61: Visible par tous, n├®cessite un profil public
+components/shared/CreateBottomSheet.tsx:69: ├ëv├®nement priv├®
+components/shared/CreateBottomSheet.tsx:70: Accessible uniquement aux personnes invit├®es
+components/shared/CreateBottomSheet.tsx:76: ├ëv├®nement public
+components/shared/CreateBottomSheet.tsx:77: Visible par tous, n├®cessite un profil public
+components/shared/CreateBottomSheet.tsx:86: Nouvel ├®v├®nement
+components/shared/EditClubEventSheet.tsx:169: Ex: Interm├®diaire
+components/shared/ReportSheet.tsx:51: Harc├¿lement
+components/shared/ReportSheet.tsx:109: Signalement envoy├®
+components/shared/SideRail.tsx:118: Cr├®er
+components/shared/SourceBadge.tsx:18: Cr├®├® dans l
+components/shared/TabBar.tsx:115: Cr├®er
+components/shared/TabBar.tsx:168: Barre de navigation ├á gauche
+components/ui/ErrorState.tsx:17: R├®essayer
+hooks/useBlockUser.ts:89: Utilisateur bloqu├®
+hooks/useBugReport.ts:40: Non connect├®
+hooks/useChangePassword.ts:17: Vous devez ├¬tre connect├®
+hooks/useChangePassword.ts:46: Mot de passe modifi├® avec succ├¿s
+hooks/useConversationActions.ts:15: Non connect├®
+hooks/useConversationActions.ts:47: Non connect├®
+hooks/useDeleteClub.ts:45: Club supprim├®
+hooks/useDeleteClub.ts:46: a ├®t├® supprim├® par son cr├®ateur.
+hooks/useFeedTagSuggestions.ts:7: derri├¿re
+hooks/useFeedTagSuggestions.ts:8: apr├¿s
+hooks/useFeedTagSuggestions.ts:8: tr├¿s
+hooks/useFeedTagSuggestions.ts:9: d├®j├á
+hooks/useFeedTagSuggestions.ts:14: m├¬me
+hooks/useFeedTagSuggestions.ts:16: conna├«tre
+hooks/useFollow.ts:38: Nouvel abonn├®
+hooks/useInvitations.ts:43: Non authentifi├®
+hooks/useInvitations.ts:83: Non authentifi├®
+hooks/useInvitations.ts:96: Ce lien a expir├®.
+hooks/useLocation.ts:134: Localisation d├®sactiv├®e
+hooks/useLocation.ts:135: Active la localisation dans les param├¿tres pour voir les clubs et ├®v├®nements pr├¿s de toi.
+hooks/useNotifications.ts:159: Demande accept├®e
+hooks/useNotifications.ts:160: Demande refus├®e
+hooks/useNotifications.ts:162: Ta demande a ├®t├® accept├®e
+hooks/useNotifications.ts:163: Ta demande a ├®t├® refus├®e
+hooks/useRemoveClubMember.ts:39: Retir├® d
+hooks/useRemoveClubMember.ts:51: Membre retir├® du club
+hooks/useRemoveClubMember.ts:59: Non autoris├®
+hooks/useRemoveEventParticipant.ts:55: Retir├® d
+hooks/useRemoveEventParticipant.ts:67: Participant retir├® de l
+hooks/useRemoveEventParticipant.ts:76: Non autoris├®
+hooks/useReport.ts:53: Non connect├®
+hooks/useUpdateClub.ts:85: Club modifi├®
+hooks/useUpdateClub.ts:96: Club mis ├á jour
+hooks/useUpdateClub.ts:105: Non autoris├®
+hooks/useUpdateClub.ts:105: Impossible de mettre ├á jour le club
+hooks/useUpdateEvent.ts:65: Date de d├®but
+hooks/useUpdateEvent.ts:68: Difficult├®
+hooks/useUpdateEvent.ts:69: Cat├®gorie
+hooks/useUpdateEvent.ts:91: ├ëv├®nement modifi├®
+hooks/useUpdateEvent.ts:92: ├®v├®nement
+hooks/useUpdateEvent.ts:102: ├ëv├®nement mis ├á jour
+hooks/useUpdateEvent.ts:111: Non autoris├®
+hooks/useUpdateEvent.ts:111: Impossible de mettre ├á jour l
+utils/localizeError.ts:16: Au moins 8 caract├¿res
+utils/localizeError.ts:20: 3 caract├¿res minimum
+utils/localizeError.ts:21: 30 caract├¿res maximum
+utils/localizeError.ts:28: S├®lectionne au moins un sport
+utils/localizeError.ts:32: Heure de d├®but requise
+utils/localizeError.ts:34: heure de fin doit ├¬tre apr├¿s l
+utils/localizeError.ts:35: Heure de d├®but invalide
+utils/localizeError.ts:38: Tu dois accepter la politique de confidentialit├®
+utils/localizeError.ts:39: 500 caract├¿res maximum
+utils/localizeError.ts:40: 0 caract├¿res maximum
+utils/validation.ts:7: Au moins 8 caract├¿res
+utils/validation.ts:14: 3 caract├¿res minimum
+utils/validation.ts:15: 30 caract├¿res maximum
+utils/validation.ts:102: heure de fin doit ├¬tre apr├¿s l
+utils/validation.ts:123: 500 caract├¿res maximum
+utils/validation.ts:129: Tu dois accepter la politique de confidentialit├®
+utils/validation.ts:144: Description minimum 50 caract├¿res
+utils/validation.ts:165: Date de d├®but requise
+utils/validation.ts:175: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but
+utils/validation.ts:182: Date de d├®but requise
+utils/validation.ts:184: Description minimum 50 caract├¿res
+utils/validation.ts:204: La date de fin doit ├¬tre post├®rieure ├á la date de d├®but

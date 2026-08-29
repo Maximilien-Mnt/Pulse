@@ -11,7 +11,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { useResponsiveListGrid } from "@/hooks/useResponsiveListGrid";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import type { Club } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
@@ -65,7 +65,7 @@ export default function ClubsScreen() {
   if (isLoading && !data) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
-        <Header title="Clubs" showAvatar avatarUrl={profile?.avatar_url} />
+        <Header title={t("common.clubs")} showAvatar avatarUrl={profile?.avatar_url} />
         <View className="px-4 gap-3">
           <Skeleton height={80} />
           <Skeleton height={80} />
@@ -77,14 +77,14 @@ export default function ClubsScreen() {
   if (isError) {
     return (
       <SafeScreen className="flex-1">
-        <ErrorState message={error?.message ?? "Erreur"} onRetry={() => void refetch()} />
+        <ErrorState message={error?.message ?? t("common.error")} onRetry={() => void refetch()} />
       </SafeScreen>
     );
   }
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header title="Clubs" showAvatar avatarUrl={profile?.avatar_url} />
+      <Header title={t("common.clubs")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between items-center py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
           <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />

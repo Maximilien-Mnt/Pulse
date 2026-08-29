@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 export type LocationStatus = "idle" | "requesting" | "granted" | "denied" | "restricted" | "unsupported";
 
@@ -131,8 +132,8 @@ export function useLocation() {
         setState({ status: "denied", location: null, error: "Permission denied" });
         Toast.show({
           type: "info",
-          text1: "Localisation désactivée",
-          text2: "Active la localisation dans les paramètres pour voir les clubs et événements près de toi.",
+          text1: t("location.disabled"),
+          text2: t("location.enableHint"),
         });
         return false;
       } else {

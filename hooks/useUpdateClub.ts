@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { t } from "@/hooks/useTranslation";
 
 type ClubUpdateData = {
   name?: string;
@@ -82,8 +83,8 @@ export function useUpdateClub() {
           await supabase.rpc("notify_user", {
             p_user_id: member.user_id,
             p_type: "club_updated",
-            p_title: "Club modifié",
-            p_body: `Le club "${club.name}" a été modifié : ${changes.join(", ")}.`,
+            p_title: t("updateClub.modified"),
+            p_body: `Le club "${club.name}" {t("updateClub.modifiedBodyPrefix")} ${changes.join(", ")}.`,
             p_data: { club_id: clubId, changes },
           });
         }
@@ -93,7 +94,7 @@ export function useUpdateClub() {
     },
     onSuccess: () => {
       posthog.capture("club_updated", {});
-      Toast.show({ type: "success", text1: "Club mis à jour" });
+      Toast.show({ type: "success", text1: t("updateClub.updated") });
       void qc.invalidateQueries({ queryKey: ["club"] });
       void qc.invalidateQueries({ queryKey: ["club-members"] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -102,7 +103,7 @@ export function useUpdateClub() {
     onError: (error: any) => {
       Toast.show({
         type: "error",
-        text1: error.message === "unauthorized" ? "Non autorisé" : "Impossible de mettre à jour le club",
+        text1: error.message === "unauthorized" ? t("updateClub.unauthorized") : t("updateClub.updateError"),
       });
     },
   });

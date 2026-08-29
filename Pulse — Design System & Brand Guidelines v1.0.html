@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<!-- saved from url=(0105)file:///C:/Users/maxim/Downloads/Pulse%20%E2%80%94%20Design%20System%20&%20Brand%20Guidelines%20v1.0.html -->
+<html lang="fr" data-theme="light"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Design System &amp; Brand Guidelines v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./Pulse — Design System &amp; Brand Guidelines v1.0_files/css2" rel="stylesheet">
+<style>
+:root{
+  --blue-50:#EEF2FF;--blue-100:#DCE6FF;--blue-200:#B9CDFF;--blue-300:#8FACFF;--blue-400:#5C82FF;--blue-500:#3358FF;--blue-600:#2542DB;--blue-700:#1B32AD;--blue-800:#142480;--blue-900:#0D1852;
+  --coral-50:#FFF1EC;--coral-100:#FFDED2;--coral-200:#FFBBA3;--coral-300:#FF9670;--coral-400:#FF7850;--coral-500:#FF5A36;--coral-600:#E14A26;--coral-700:#B83A1B;--coral-800:#8C2C14;--coral-900:#5E1D0C;
+  --green-50:#E7FAF1;--green-100:#C9F4DF;--green-200:#93E8C0;--green-300:#5CDBA1;--green-400:#2ED191;--green-500:#17C982;--green-600:#0FA36A;--green-700:#0E7A54;--green-800:#0A5B3F;--green-900:#073E2B;
+  --error-50:#FDECED;--error-500:#E5484D;--error-600:#C7222D;--warning-50:#FFF6E5;--warning-500:#F5A524;--warning-700:#8A5A0A;
+  --n-0:#FFFFFF;--n-25:#FAFAFB;--n-50:#F4F5F7;--n-100:#E8EAED;--n-200:#D3D6DC;--n-300:#B0B4BD;--n-400:#888D97;--n-500:#666B76;--n-600:#4A4F59;--n-700:#33373F;--n-800:#23262C;--n-900:#14161A;
+
+  --bg:var(--n-25);--bg-alt:var(--n-50);--surface:var(--n-0);--border:var(--n-100);--border-strong:var(--n-200);
+  --text-1:var(--n-900);--text-2:var(--n-600);--text-3:var(--n-400);--on-primary:#fff;
+  --primary:var(--blue-500);--primary-hover:var(--blue-600);--primary-active:var(--blue-700);--primary-tint:var(--blue-50);
+  --font-display:'Space Grotesk',sans-serif;--font-body:'Inter',sans-serif;
+  --r-xs:6px;--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:24px;--r-full:999px;
+  --shadow-card:0 1px 2px rgba(20,22,26,.04),0 2px 8px rgba(20,22,26,.04);
+}
+html[data-theme="dark"]{
+  --bg:#0E1015;--bg-alt:#14171D;--surface:#171A20;--border:#262A32;--border-strong:#333842;
+  --text-1:#F5F6F8;--text-2:#A7ACB5;--text-3:#767C87;
+  --primary:var(--blue-400);--primary-hover:var(--blue-300);--primary-active:#7A9CFF;--primary-tint:#182240;
+  --shadow-card:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-1);font-family:var(--font-body);line-height:1.5;transition:background .2s,color .2s}
+h1,h2,h3,.display{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;margin:0}
+.tag{font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+a{color:var(--primary)}
+code{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;background:var(--bg-alt);padding:2px 6px;border-radius:6px;color:var(--text-2)}
+
+.layout{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 20px;border-right:1px solid var(--border);background:var(--bg-alt)}
+nav.toc a{display:block;color:var(--text-2);text-decoration:none;font-size:13.5px;font-weight:500;padding:7px 10px;border-radius:8px;margin-bottom:2px}
+nav.toc a:hover{background:var(--border);color:var(--text-1)}
+nav.toc .brandmini{display:flex;align-items:center;gap:8px;margin-bottom:24px}
+nav.toc .brandmini span{font-family:var(--font-display);font-weight:700;font-size:15px}
+main{padding:0 64px 120px;max-width:1040px}
+section{padding-top:72px;border-top:1px solid var(--border)}
+section:first-of-type{border-top:none}
+.eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow svg{width:16px;height:16px;stroke:var(--primary)}
+.lede{font-size:17px;color:var(--text-2);max-width:640px;margin:14px 0 36px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.toc{display:none}main{padding:0 20px 100px}.g4,.g3{grid-template-columns:repeat(2,1fr)}}
+
+/* HERO */
+.hero{padding:80px 0 60px;position:relative;border:none}
+.hero-bg{position:absolute;inset:-40px -64px auto -64px;height:340px;background:linear-gradient(120deg,var(--blue-500) 0%,var(--blue-400) 35%,var(--coral-400) 100%);opacity:.08;z-index:0;border-radius:0 0 40px 40px}
+.hero-inner{position:relative;z-index:1}
+.mark{width:64px;height:64px}
+.hero h1{font-size:56px;line-height:1;margin:20px 0 8px}
+.hero .tagline{font-size:19px;color:var(--text-2);max-width:560px}
+.theme-toggle{position:absolute;top:24px;right:0;display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-full);padding:4px}
+.theme-toggle button{border:none;background:transparent;padding:6px 14px;border-radius:var(--r-full);font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;font-family:var(--font-body)}
+.theme-toggle button.active{background:var(--primary);color:#fff}
+
+/* SWATCHES */
+.swatch{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border)}
+.swatch .fill{height:64px}
+.swatch .meta{padding:8px 10px;background:var(--surface)}
+.swatch .meta b{display:block;font-size:12.5px}
+.swatch .meta code{padding:0;background:none;font-size:11px}
+.role-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;box-shadow:var(--shadow-card)}
+.role-card .chip-sw{width:36px;height:36px;border-radius:var(--r-sm);margin-bottom:12px}
+.role-card h3{font-size:15px;margin-bottom:4px}
+.role-card p{font-size:13.5px;color:var(--text-2);margin:0}
+
+/* TYPE */
+.type-row{display:flex;align-items:baseline;gap:24px;padding:18px 0;border-bottom:1px solid var(--border)}
+.type-row:last-child{border-bottom:none}
+.type-row .label{width:150px;flex-shrink:0}
+.type-row .label b{display:block;font-size:12.5px}
+.type-row .label span{font-size:11.5px;color:var(--text-3)}
+.type-row .sample{color:var(--text-1)}
+
+/* SPACING */
+.space-row{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+.space-row .bar{background:var(--primary);height:16px;border-radius:4px}
+.space-row .lbl{width:90px;font-size:12.5px;color:var(--text-2);font-family:'SF Mono',monospace}
+
+/* BUTTONS */
+.btn{font-family:var(--font-body);font-weight:600;font-size:15px;border-radius:var(--r-md);padding:12px 22px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-ghost{background:transparent;color:var(--primary)}
+.btn-destructive{background:var(--error-600);color:#fff}
+.btn-energy{background:var(--coral-600);color:#fff}
+.btn-disabled{background:var(--n-200);color:var(--n-400)}
+.btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.state-lbl{font-size:11.5px;color:var(--text-3);width:100px}
+
+/* CHIPS */
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:var(--r-full);font-size:12.5px;font-weight:600;gap:6px}
+.chip-filter{height:36px;padding:0 16px;font-size:14px;background:var(--bg-alt);color:var(--text-2)}
+.chip-filter.active{background:var(--primary);color:#fff}
+
+/* CARD MOCKS */
+.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-card);max-width:380px}
+.post-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.avatar{width:40px;height:40px;border-radius:var(--r-full);background:linear-gradient(135deg,var(--blue-400),var(--blue-600));flex-shrink:0}
+.post-head .name{font-weight:600;font-size:14px}
+.post-head .meta{font-size:12px;color:var(--text-3)}
+.post-media{background:var(--bg-alt);border-radius:var(--r-md);height:180px;margin:10px 0;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px}
+.post-actions{display:flex;gap:20px;margin-top:10px;color:var(--text-2);font-size:13px;align-items:center}
+.post-actions .act{display:flex;align-items:center;gap:6px}
+
+/* PHONE MOCK */
+.phone{width:280px;border-radius:36px;border:8px solid var(--n-900);background:var(--bg);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.15)}
+.phone .screen{height:560px;overflow:hidden;position:relative;background:var(--bg)}
+.phone .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
+.phone .tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.tab-ico{width:22px;height:22px;border-radius:6px;background:var(--n-300)}
+.tab-ico.active{background:var(--primary)}
+.fab{width:52px;height:52px;border-radius:var(--r-full);background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;margin-top:-30px;box-shadow:0 8px 20px rgba(51,88,255,.35)}
+
+/* PULSE SIGNATURE */
+.pulse-demo{display:flex;align-items:center;gap:40px;flex-wrap:wrap}
+.pulse-dot-wrap{position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center}
+.pulse-dot{width:12px;height:12px;border-radius:50%;background:var(--coral-500);z-index:2}
+.pulse-ring{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid var(--coral-500);animation:pulseRing 1.8s ease-out infinite}
+@keyframes pulseRing{0%{width:12px;height:12px;opacity:.9}100%{width:52px;height:52px;opacity:0}}
+.heart-demo{width:32px;height:32px;cursor:pointer;stroke:var(--n-400);fill:none;stroke-width:2}
+.heart-demo.liked{stroke:var(--primary);fill:var(--primary)}
+
+/* ICON GRID */
+.icon-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 10px;text-align:center}
+.icon-tile svg{width:24px;height:24px;stroke:var(--text-1);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;margin-bottom:8px}
+.icon-tile span{font-size:11.5px;color:var(--text-3)}
+
+/* SCREEN DOC TABLE */
+.screen-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;margin-bottom:20px}
+.screen-block h3{font-size:18px;margin-bottom:10px}
+.screen-block ul{margin:0;padding-left:18px;font-size:14px;color:var(--text-2)}
+.screen-block li{margin-bottom:6px}
+
+/* DO/DONT */
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.dd-col{border-radius:var(--r-lg);padding:18px 20px}
+.dd-do{background:var(--green-50);border:1px solid var(--green-200)}
+.dd-dont{background:var(--error-50);border:1px solid #F5C6C8}
+.dd-col h4{font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.04em}
+.dd-do h4{color:var(--green-700)}
+.dd-dont h4{color:var(--error-600)}
+.dd-col ul{margin:0;padding-left:18px;font-size:13.5px}
+.dd-do li{color:var(--green-800)}
+.dd-dont li{color:var(--error-600)}
+@media(max-width:700px){.dd{grid-template-columns:1fr}}
+
+.divider-pulse{width:100%;height:20px;margin:48px 0;opacity:.5}
+table.spec{width:100%;border-collapse:collapse;font-size:13.5px}
+table.spec th{text-align:left;color:var(--text-3);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--border-strong)}
+table.spec td{padding:10px;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <div class="brandmini">
+    <svg width="24" height="24" viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="#3358FF"></rect><path d="M6 21h5l3-9 5 17 3-11 2 3h10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span>Pulse · Design System</span>
+  </div>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#principes">Principes de marque</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#couleurs">Couleurs</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#typo">Typographie</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#grille">Grille &amp; espacement</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#composants">Composants</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#icones">Iconographie</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#illustration">Illustration &amp; imagerie</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#motion">Motion</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#ecrans">Écrans clés</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#voix">Voix &amp; UX writing</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#access">Accessibilité</a>
+  <a href="file:///C:/Users/maxim/Downloads/pulse-design-system_1.html#gouvernance">Gouvernance</a>
+</nav>
+<main>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div class="theme-toggle">
+      <button class="active" onclick="setTheme(&#39;light&#39;,this)">Clair</button>
+      <button onclick="setTheme(&#39;dark&#39;,this)">Sombre</button>
+    </div>
+    <svg class="mark" viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="#3358FF"></rect><path d="M6 21h5l3-9 5 17 3-11 2 3h10" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <h1>Pulse</h1>
+    <p class="tagline">Ton rythme. Ta communauté. — Identité visuelle &amp; design system v1.0, pour mobile (React Native) et web (Next.js).</p>
+  </div>
+</section>
+
+<section id="principes">
+  <div class="eyebrow"><span class="tag">Fondations</span></div>
+  <h2 style="font-size:30px">Principes de marque</h2>
+  <p class="lede">Pulse s'adresse à des sportifs de 15 à 35 ans, tous niveaux, tous sports. Le nom porte déjà l'idée directrice&nbsp;: le pouls comme rythme cardiaque de l'effort, et comme pouls d'une communauté vivante en temps réel. Cette double lecture (biologique / sociale) est le fil conducteur de toute l'identité — elle apparaît littéralement dans l'UI via un motif signature&nbsp;: l'anneau qui pulse (voir section Composants).</p>
+  <div class="grid g3">
+    <div class="role-card"><h3>Vivant, jamais criard</h3><p>De l'énergie dans les accents et le mouvement, pas dans le bruit visuel. Une seule couleur vive attire l'œil à la fois.</p></div>
+    <div class="role-card"><h3>Sérieux sans être froid</h3><p>Ni corporate/fitness-app-B2B, ni ludique/enfantin. Le ton est celui d'un coach respecté&nbsp;: direct, encourageant, jamais infantilisant.</p></div>
+    <div class="role-card"><h3>Un système, pas un skin</h3><p>Chaque décision (couleur, typo, radius) est un token réutilisable. Le MVP pose la structure que la V2 étendra sans tout refondre.</p></div>
+  </div>
+</section>
+
+<section id="couleurs">
+  <div class="eyebrow"><span class="tag">01 — Couleurs</span></div>
+  <h2 style="font-size:30px">Palette</h2>
+  <p class="lede">Trois couleurs de marque à rôles distincts + une échelle de neutres chauds. Architecture à deux niveaux&nbsp;: tokens primitifs (échelles ci-dessous) → tokens sémantiques (<code>--primary</code>, <code>--surface</code>, <code>--text-1</code>…) qui changent de valeur entre thème clair et sombre. Ne jamais coder un hex en dur dans un composant&nbsp;: toujours passer par le token sémantique.</p>
+
+  <h3 style="font-size:16px;margin-bottom:12px">Primaire — Pulse Blue <span style="color:var(--text-3);font-weight:400;font-size:13px">· navigation, actions principales, liens, marque</span></h3>
+  <div class="grid g4" style="margin-bottom:28px">
+    <div class="swatch"><div class="fill" style="background:#EEF2FF"></div><div class="meta"><b>blue-50</b><code>#EEF2FF</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#8FACFF"></div><div class="meta"><b>blue-300</b><code>#8FACFF</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#3358FF"></div><div class="meta"><b>blue-500 · primary</b><code>#3358FF</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#1B32AD"></div><div class="meta"><b>blue-700</b><code>#1B32AD</code></div></div>
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:12px">Secondaire — Ignite Coral <span style="color:var(--text-3);font-weight:400;font-size:13px">· énergie, gamification, live, CTA rares</span></h3>
+  <div class="grid g4" style="margin-bottom:28px">
+    <div class="swatch"><div class="fill" style="background:#FFF1EC"></div><div class="meta"><b>coral-50</b><code>#FFF1EC</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#FF9670"></div><div class="meta"><b>coral-300</b><code>#FF9670</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#FF5A36"></div><div class="meta"><b>coral-500 · accent</b><code>#FF5A36</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#E14A26"></div><div class="meta"><b>coral-600 · texte/bouton</b><code>#E14A26</code></div></div>
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:12px">Tertiaire — Thrive Green <span style="color:var(--text-3);font-weight:400;font-size:13px">· succès, statut « membre », en ligne</span></h3>
+  <div class="grid g4" style="margin-bottom:28px">
+    <div class="swatch"><div class="fill" style="background:#E7FAF1"></div><div class="meta"><b>green-50</b><code>#E7FAF1</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#5CDBA1"></div><div class="meta"><b>green-300</b><code>#5CDBA1</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#17C982"></div><div class="meta"><b>green-500</b><code>#17C982</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#0E7A54"></div><div class="meta"><b>green-700 · texte</b><code>#0E7A54</code></div></div>
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:12px">Neutres chauds <span style="color:var(--text-3);font-weight:400;font-size:13px">· fonds, textes, bordures</span></h3>
+  <div class="grid g4" style="margin-bottom:28px">
+    <div class="swatch"><div class="fill" style="background:#FAFAFB;border-bottom:1px solid #eee"></div><div class="meta"><b>neutral-25</b><code>#FAFAFB</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#E8EAED"></div><div class="meta"><b>neutral-100</b><code>#E8EAED</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#888D97"></div><div class="meta"><b>neutral-400</b><code>#888D97</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#14161A"></div><div class="meta"><b>neutral-900</b><code>#14161A</code></div></div>
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:12px">États sémantiques</h3>
+  <div class="grid g4" style="margin-bottom:8px">
+    <div class="swatch"><div class="fill" style="background:#E5484D"></div><div class="meta"><b>error-500</b><code>#E5484D</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#C7222D"></div><div class="meta"><b>error-600 · texte/bouton</b><code>#C7222D</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#F5A524"></div><div class="meta"><b>warning-500</b><code>#F5A524</code></div></div>
+    <div class="swatch"><div class="fill" style="background:#3358FF"></div><div class="meta"><b>info · = primary</b><code>#3358FF</code></div></div>
+  </div>
+
+  <table class="spec" style="margin-top:20px">
+    <tbody><tr><th>Règle</th><th>Détail</th></tr>
+    <tr><td>Un seul accent vif par écran</td><td>Le corail est réservé aux moments d'énergie (live, streak, badge) — jamais utilisé comme couleur de bouton par défaut, qui reste bleue.</td></tr>
+    <tr><td>Texte sur couleur</td><td>Corail-500 et Green-500 n'ont pas un contraste suffisant pour du texte blanc en petite taille (≈3:1) — utiliser corail-600/green-700 pour tout label, ou une variante « teinte + texte foncé » (chip).</td></tr>
+    <tr><td>Couleur ≠ seul signal</td><td>Un statut (membre / en attente / erreur) est toujours accompagné d'une icône ou d'un mot, jamais de la couleur seule (accessibilité daltonisme).</td></tr>
+    <tr><td>Mode sombre</td><td>Le bleu et le corail « s'éclaircissent » d'un cran (500→400) en mode sombre pour rester lisibles sur fond foncé — jamais la même valeur qu'en clair.</td></tr>
+  </tbody></table>
+
+  <h3 style="font-size:16px;margin:32px 0 12px">Palette « tags sport » <span style="color:var(--text-3);font-weight:400;font-size:13px">· teintes pastel dérivées, cohérentes entre elles</span></h3>
+  <div style="display:flex;flex-wrap:wrap;gap:10px">
+    <span class="chip" style="background:#E3F6EA;color:#1E7A46">Football</span>
+    <span class="chip" style="background:#FFE9E1;color:#C2431B">Musculation</span>
+    <span class="chip" style="background:#FFF1D9;color:#9A5B0A">Basketball</span>
+    <span class="chip" style="background:#EEF2FF;color:#1B32AD">Course à pied</span>
+    <span class="chip" style="background:#F3F8D9;color:#5C6B12">Tennis</span>
+    <span class="chip" style="background:#DFF6F7;color:#0E6E74">Natation</span>
+    <span class="chip" style="background:#F0E9FC;color:#5B3B94">Cyclisme</span>
+    <span class="chip" style="background:#FDEAF1;color:#9C2F5C">Yoga / bien-être</span>
+  </div>
+</section>
+
+<section id="typo">
+  <div class="eyebrow"><span class="tag">02 — Typographie</span></div>
+  <h2 style="font-size:30px">Système typographique</h2>
+  <p class="lede"><b>Space Grotesk</b> (titres, chiffres) + <b>Inter</b> (corps, UI) — une géométrique légèrement technique posée sur une humaniste très lisible. Ni Poppins (trop « startup jouet »), ni un serif éditorial (trop institutionnel). Les deux polices sont nativement supportées par <code>next/font/google</code> côté web et par <code>expo-google-fonts</code> côté React Native&nbsp;: zéro friction cross-platform.</p>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:8px 24px">
+    <div class="type-row"><div class="label"><b>Display</b><span>Space Grotesk 700 · 34/40 · -2%</span></div><div class="sample" style="font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:-.02em">Trouve ton rythme</div></div>
+    <div class="type-row"><div class="label"><b>H1</b><span>Space Grotesk 700 · 26/32</span></div><div class="sample" style="font-family:var(--font-display);font-size:26px;font-weight:700">Clubs près de toi</div></div>
+    <div class="type-row"><div class="label"><b>H2</b><span>Space Grotesk 500 · 20/26</span></div><div class="sample" style="font-family:var(--font-display);font-size:20px;font-weight:500">Créer un événement</div></div>
+    <div class="type-row"><div class="label"><b>Subtitle</b><span>Inter 600 · 17/22</span></div><div class="sample" style="font-family:var(--font-body);font-size:17px;font-weight:600">Marathon de Luxembourg</div></div>
+    <div class="type-row"><div class="label"><b>Body large</b><span>Inter 400 · 16/24</span></div><div class="sample" style="font-size:16px">Séance jambes terminée, 3 records personnels battus 💪</div></div>
+    <div class="type-row"><div class="label"><b>Body</b><span>Inter 400 · 14/20</span></div><div class="sample" style="font-size:14px">On se retrouve samedi 9h au terrain municipal.</div></div>
+    <div class="type-row"><div class="label"><b>Caption</b><span>Inter 500 · 12/16</span></div><div class="sample" style="font-size:12px;color:var(--text-2)">Il y a 3 h · Kirchberg</div></div>
+    <div class="type-row"><div class="label"><b>Overline</b><span>Inter 600 · 11/14 · +6% CAPS</span></div><div class="sample" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)">Événements à venir</div></div>
+    <div class="type-row"><div class="label"><b>Stat / chiffre</b><span>Space Grotesk 500 · tabular-nums</span></div><div class="sample" style="font-family:var(--font-display);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums">1 284 <span style="font-size:13px;color:var(--text-3);font-family:var(--font-body)">followers</span></div></div>
+  </div>
+  <table class="spec" style="margin-top:20px">
+    <tbody><tr><th>Règle</th><th>Détail</th></tr>
+    <tr><td>Chiffres</td><td>Toujours en <code>tabular-nums</code> (compteurs, stats, chronos) pour éviter que les colonnes « sautent » — détail qui renforce la lecture « data sportive ».</td></tr>
+    <tr><td>Une seule display par écran</td><td>Space Grotesk Bold n'apparaît qu'une fois par écran (le titre principal) — jamais en cascade sur plusieurs niveaux de hiérarchie.</td></tr>
+    <tr><td>Taille min.</td><td>12px plancher absolu (légal/captions) ; le corps de lecture ne descend jamais sous 14px.</td></tr>
+  </tbody></table>
+</section>
+
+<section id="grille">
+  <div class="eyebrow"><span class="tag">03 — Grille &amp; espacement</span></div>
+  <h2 style="font-size:30px">Grille, espacement, layout</h2>
+  <p class="lede">Base 8px (avec demi-pas 4px pour les ajustements fins). Sous-ensemble volontairement restreint pour garder de la cohérence — s'appuie directement sur l'échelle par défaut de Tailwind (4px par unité), sans valeurs arbitraires.</p>
+  <div style="margin-bottom:28px">
+    <div class="space-row"><span class="lbl">4 · 0.5</span><div class="bar" style="width:4px"></div></div>
+    <div class="space-row"><span class="lbl">8 · 1</span><div class="bar" style="width:8px"></div></div>
+    <div class="space-row"><span class="lbl">12 · 1.5</span><div class="bar" style="width:12px"></div></div>
+    <div class="space-row"><span class="lbl">16 · 2</span><div class="bar" style="width:16px"></div></div>
+    <div class="space-row"><span class="lbl">24 · 3</span><div class="bar" style="width:24px"></div></div>
+    <div class="space-row"><span class="lbl">32 · 4</span><div class="bar" style="width:32px"></div></div>
+    <div class="space-row"><span class="lbl">48 · 6</span><div class="bar" style="width:48px"></div></div>
+    <div class="space-row"><span class="lbl">64 · 8</span><div class="bar" style="width:64px"></div></div>
+  </div>
+  <div class="grid g2" style="margin-bottom:20px">
+    <div class="role-card"><h3>Radius</h3><p><code>sm 8</code> inputs · <code>md 12</code> boutons/chips · <code>lg 16</code> cards · <code>xl 24</code> sheets/modales · <code>full</code> avatars/pills.</p></div>
+    <div class="role-card"><h3>Touch targets</h3><p>44px min. iOS, 48px min. Android/web — zone tactile toujours ≥ à la taille visuelle de l'icône (padding invisible si besoin).</p></div>
+  </div>
+  <table class="spec">
+    <tbody><tr><th>Breakpoint</th><th>Layout</th></tr>
+    <tr><td><code>base</code> &lt;640px</td><td>Mobile — colonne unique, tab bar basse à 5 entrées.</td></tr>
+    <tr><td><code>md</code> ≥768px</td><td>Tablette / web — la tab bar devient un rail latéral gauche icône seule (72px).</td></tr>
+    <tr><td><code>lg</code> ≥1024px</td><td>Desktop — rail étendu avec labels (240px), colonne de contenu centrée max 640px.</td></tr>
+    <tr><td><code>xl</code> ≥1280px</td><td>Conteneur global plafonné à 1120–1200px ; espace réservé pour un futur panneau latéral droit (suggestions, tendances).</td></tr>
+  </tbody></table>
+</section>
+
+<section id="composants">
+  <div class="eyebrow"><span class="tag">04 — Composants</span></div>
+  <h2 style="font-size:30px">Composants clés</h2>
+
+  <h3 style="font-size:16px;margin-bottom:14px">Boutons</h3>
+  <div class="btn-row"><span class="state-lbl">Primaire</span><button class="btn btn-primary">Rejoindre</button><button class="btn btn-primary" style="opacity:.5">Hover/Active ↓ blue-600/700</button></div>
+  <div class="btn-row"><span class="state-lbl">Secondaire</span><button class="btn btn-secondary">Annuler</button></div>
+  <div class="btn-row"><span class="state-lbl">Ghost</span><button class="btn btn-ghost">Voir plus</button></div>
+  <div class="btn-row"><span class="state-lbl">Destructif</span><button class="btn btn-destructive">Supprimer mon compte</button></div>
+  <div class="btn-row"><span class="state-lbl">Énergie</span><button class="btn btn-energy">Débloquer le badge</button></div>
+  <div class="btn-row"><span class="state-lbl">Désactivé</span><button class="btn btn-disabled" disabled="">Rejoindre</button></div>
+  <p style="font-size:13.5px;color:var(--text-2);max-width:640px">Hauteur 48px mobile / 44px web · radius 12 · label Inter SemiBold 15px · pression = échelle 0.98 + assombrissement. Le corail « énergie » n'apparaît au maximum qu'une fois par écran.</p>
+
+  <h3 style="font-size:16px;margin:32px 0 14px">Chips filtres</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+    <span class="chip chip-filter active">Pour toi</span>
+    <span class="chip chip-filter">Abonnements</span>
+    <span class="chip chip-filter">🏀 Basket</span>
+    <span class="chip chip-filter">🏃 Course</span>
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:14px">Post card</h3>
+  <div class="post-card">
+    <div class="post-head">
+      <div class="avatar"></div>
+      <div><div class="name">Lena Weber <span class="chip" style="background:#EEF2FF;color:#1B32AD;height:20px;font-size:11px;padding:0 8px;margin-left:4px">Course</span></div><div class="meta">Il y a 3 h · Kirchberg</div></div>
+    </div>
+    <div style="font-size:14px">10km ce matin avant le boulot, nouveau record perso 🎉</div>
+    <div class="post-media">image / vidéo</div>
+    <div class="post-actions">
+      <span class="act"><svg width="18" height="18" viewBox="0 0 24 24" stroke="var(--primary)" fill="var(--primary)" stroke-width="1.75"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0112 5.5 5.5 5.5 0 0121.5 12c-2.5 4.5-9.5 9-9.5 9z"></path></svg>128</span>
+      <span class="act"><svg width="18" height="18" viewBox="0 0 24 24" stroke="var(--text-2)" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-8.9 8.4 8.5 8.5 0 01-4-1L3 21l2-5.4a8.4 8.4 0 01-1-4A8.38 8.38 0 0112.4 3a8.5 8.5 0 018.5 8.4z"></path></svg>14</span>
+      <span class="act"><svg width="18" height="18" viewBox="0 0 24 24" stroke="var(--text-2)" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>Partager</span>
+    </div>
+  </div>
+  <p style="font-size:13.5px;color:var(--text-2);max-width:640px;margin-top:14px">Radius 16 · padding 16 · bordure 1px neutral-100 (le mode sombre remplace l'ombre par une bordure neutral-800, les ombres portées sont peu lisibles sur fond foncé).</p>
+
+  <h3 style="font-size:16px;margin:32px 0 14px">Signature — l'anneau qui pulse</h3>
+  <div class="pulse-demo">
+    <div><div class="pulse-dot-wrap"><div class="pulse-ring"></div><div class="pulse-dot"></div></div><p style="font-size:12.5px;color:var(--text-2);max-width:160px">Indicateur « live » — événement en cours, notification en temps réel.</p></div>
+    <div><svg class="heart-demo" viewBox="0 0 24 24" onclick="this.classList.toggle(&#39;liked&#39;)"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0112 5.5 5.5 5.5 0 0121.5 12c-2.5 4.5-9.5 9-9.5 9z"></path></svg><p style="font-size:12.5px;color:var(--text-2);max-width:160px">Tap = le cœur se remplit en bleu (pas rouge) + micro-onde qui se propage puis s'efface (~700ms).</p></div>
+  </div>
+
+  <h3 style="font-size:16px;margin:32px 0 14px">Navigation — mobile vs web</h3>
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+    <div class="phone">
+      <div class="screen">
+        <div class="topbar"><svg width="20" height="20" viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="#3358FF"></rect><path d="M6 21h5l3-9 5 17 3-11 2 3h10" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><div style="display:flex;gap:10px"><div class="tab-ico" style="width:18px;height:18px;border-radius:50%"></div></div></div>
+        <div style="padding:0 16px"><div class="post-card" style="max-width:none;transform:scale(.92);transform-origin:top left"></div></div>
+        <div class="tabbar">
+          <div class="tab-ico active"></div><div class="tab-ico"></div>
+          <div class="fab">+</div>
+          <div class="tab-ico"></div><div class="tab-ico"></div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:13.5px;color:var(--text-2);max-width:340px">
+      <b style="color:var(--text-1);display:block;margin-bottom:8px">Tab bar mobile (5 entrées)</b>
+      Feed · Explorer (Clubs/Événements) · <b>Créer</b> (bouton surélevé bleu, 56px) · Messages · Profil.<br><br>
+      <b style="color:var(--text-1);display:block;margin:12px 0 8px">≥768px</b>
+      La même IA devient un rail latéral gauche (icône+label dès 1024px), le bouton Créer reste circulaire mais posé dans le rail plutôt que flottant.<br><br>
+      <i>Alternative équivalente (option B)&nbsp;: tab bar plate à 5 icônes de même poids, sans surélévation du bouton Créer — plus sobre, moins orientée « incitation à publier ». Les deux options sont valides ; l'option A (surélevée) est recommandée pour l'objectif d'engagement du MVP.</i>
+    </div>
+  </div>
+</section>
+
+<section id="icones">
+  <div class="eyebrow"><span class="tag">05 — Iconographie</span></div>
+  <h2 style="font-size:30px">Style d'icônes</h2>
+  <p class="lede">Trait fin uniforme, 1.75px à la grille 24px, angles arrondis. Bibliothèque recommandée&nbsp;: <b>Lucide</b> (MIT, <code>lucide-react-native</code> + <code>lucide-react</code>) — un seul set pour les deux plateformes. État actif = version remplie/duotone du même glyphe, jamais un glyphe différent.</p>
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"></path><path d="M5 10v10h14V10"></path></svg><span>Feed</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><span>Explorer</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg><span>Créer</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-8.9 8.4 8.5 8.5 0 01-4-1L3 21l2-5.4a8.4 8.4 0 01-1-4A8.4 8.4 0 0112.4 3a8.5 8.5 0 018.5 8.4z"></path></svg><span>Messages</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"></path></svg><span>Profil</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0112 5.5 5.5 5.5 0 0121.5 12c-2.5 4.5-9.5 9-9.5 9z"></path></svg><span>Like</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg><span>Membre</span></div>
+    <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg><span>Événement</span></div>
+  </div>
+  <table class="spec">
+    <tbody><tr><th>Taille</th><th>Usage</th></tr>
+    <tr><td>16px</td><td>Icônes inline dans le texte, badges denses</td></tr>
+    <tr><td>20px</td><td>Boutons, inputs, listes</td></tr>
+    <tr><td>24px</td><td>Tab bar, navigation principale</td></tr>
+    <tr><td>32px</td><td>États vides, mise en avant d'une fonctionnalité</td></tr>
+  </tbody></table>
+</section>
+
+<section id="illustration">
+  <div class="eyebrow"><span class="tag">06 — Illustration &amp; imagerie</span></div>
+  <h2 style="font-size:30px">Photo &amp; illustration</h2>
+  <div class="dd">
+    <div class="dd-col dd-do"><h4>À faire</h4><ul>
+      <li>Photos/vidéos utilisateurs affichées en couleur naturelle, sans filtre imposé par l'app.</li>
+      <li>Illustrations système (onboarding, états vides) en duotone plat bleu+corail (ou bleu+vert pour le positif), trait identique aux icônes.</li>
+      <li>Un léger grain (4-6% opacité) sur les illustrations pour éviter l'effet « vecteur corporate ».</li>
+      <li>Le dégradé bleu→corail est réservé au hero d'onboarding uniquement.</li>
+    </ul></div>
+    <div class="dd-col dd-dont"><h4>À éviter</h4><ul>
+      <li>Mascottes ou personnages cartoon (trop enfantin pour la cible).</li>
+      <li>Photos stock de sportifs souriants génériques.</li>
+      <li>Icônes 3D à ombres portées lourdes.</li>
+      <li>Dégradés décoratifs multiples sur un même écran.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="motion">
+  <div class="eyebrow"><span class="tag">07 — Motion</span></div>
+  <h2 style="font-size:30px">Principes de mouvement</h2>
+  <p class="lede">« Vif et posé » — la confiance d'un athlète, pas le rebond d'un dessin animé. Pas d'overshoot/spring bondissant.</p>
+  <table class="spec">
+    <tbody><tr><th>Contexte</th><th>Durée</th><th>Easing</th></tr>
+    <tr><td>Micro-interaction (tap, toggle)</td><td>120–180ms</td><td>ease-out</td></tr>
+    <tr><td>Transition d'écran / sheet</td><td>250–320ms</td><td>ease-out (entrée), ease-in (sortie)</td></tr>
+    <tr><td>Anneau qui pulse (signature)</td><td>600–900ms, une fois</td><td>ease-out, expand+fade</td></tr>
+    <tr><td>Indicateur « live » en boucle</td><td>1.8s loop, faible amplitude</td><td>linear/ease-out doux</td></tr>
+  </tbody></table>
+  <p style="font-size:13.5px;color:var(--text-2)">Toujours respecter <code>prefers-reduced-motion</code>&nbsp;: désactiver les boucles et micro-ondulations, ne garder que des fondus d'opacité.</p>
+</section>
+
+<section id="ecrans">
+  <div class="eyebrow"><span class="tag">08 — Écrans clés</span></div>
+  <h2 style="font-size:30px">Écrans clés</h2>
+
+  <div class="screen-block"><h3>Onboarding</h3><ul>
+    <li>Écran 1 — Hero plein écran, fond dégradé bleu→corail à 8% d'opacité, mark + wordmark, headline Display, tagline, CTA primaire « Commencer ».</li>
+    <li>Écran 2 — Sélection des sports pratiqués&nbsp;: grille de chips (icône+label) multi-sélection, pas de limite arbitraire, CTA activé dès 1 sport choisi.</li>
+    <li>Écran 3 — Création de compte (email/social), champ profil public/privé expliqué en une phrase (« Public = tes posts sont visibles par tous, tu peux changer à tout moment »).</li>
+  </ul></div>
+
+  <div class="screen-block"><h3>Feed</h3><ul>
+    <li>Top bar&nbsp;: mark 24px à gauche, cloche de notification (badge corail si non lu) à droite.</li>
+    <li>Rangée de chips filtres horizontale scrollable (Pour toi / Abonnements / sport), sticky au scroll.</li>
+    <li>Liste de post cards (spec ci-dessus), skeleton shimmer neutral-100 pendant le chargement.</li>
+    <li>État vide (aucun post)&nbsp;: illustration duotone + « Ton feed est calme. Rejoins un club pour voir plus d'activité. » + CTA vers Explorer.</li>
+  </ul></div>
+
+  <div class="screen-block"><h3>Explorer (Clubs &amp; Événements)</h3><ul>
+    <li>Toggle segmenté en haut&nbsp;: « Clubs » / « Événements ».</li>
+    <li>Barre de recherche pill + rangée de chips sport en filtre.</li>
+    <li>Club card&nbsp;: cover 16:9, titre H3, nombre de membres, tag sport, bouton d'adhésion à 3 états&nbsp;: <span class="chip" style="background:var(--blue-500);color:#fff">Rejoindre</span> → <span class="chip" style="background:var(--n-100);color:var(--text-2)">Demande envoyée</span> → <span class="chip" style="background:var(--green-50);color:var(--green-700)">✓ Membre</span>.</li>
+    <li>Event card&nbsp;: identique + badge date (coin haut-gauche, jour en gros + mois en majuscule caption).</li>
+  </ul></div>
+
+  <div class="screen-block"><h3>Créer</h3><ul>
+    <li>Tap sur le bouton central ouvre une bottom sheet (radius top 24) à 4 choix&nbsp;: Post / Club / Événement / Conversation — chaque ligne = icône 24px + label + chevron.</li>
+    <li>Formulaire de création&nbsp;: champs texte spec inputs, sélection sport via chips, aperçu média, CTA primaire en bas fixe « Publier » / « Créer le club » / « Créer l'événement ».</li>
+  </ul></div>
+
+  <div class="screen-block"><h3>Messages</h3><ul>
+    <li>Liste de conversations&nbsp;: avatar 48px, nom (Inter SemiBold, gras si non lu), dernier message tronqué à 1 ligne (regular si lu, semibold si non lu), timestamp caption à droite, petit point bleu si non lu.</li>
+    <li>Barre de recherche pill en haut pour filtrer les conversations.</li>
+  </ul></div>
+
+  <div class="screen-block"><h3>Profil</h3><ul>
+    <li>Cover + avatar 96px en superposition, nom (H1), bio (body), tags sport pratiqués.</li>
+    <li>Rangée de stats en chiffres tabular-nums (Posts / Clubs / Abonnés).</li>
+    <li>Switch « Profil public » bien visible avec micro-explication, toggle vert quand actif.</li>
+    <li>Bouton « Modifier le profil » (secondaire), accès paramètres (icône engrenage) → suppression de compte en bouton destructif + modale de confirmation à double validation.</li>
+  </ul></div>
+
+  <div class="screen-block" style="opacity:.85"><h3>Bonus — Défis (post-MVP)</h3><ul>
+    <li>Non présent dans le MVP mais le système est prêt à l'accueillir&nbsp;: un « défi » réutilise post card + chip sport + le corail (badge/streak) + l'anneau qui pulse comme indicateur de progression en temps réel. Aucun nouveau token à créer.</li>
+  </ul></div>
+</section>
+
+<section id="voix">
+  <div class="eyebrow"><span class="tag">09 — Voix &amp; UX writing</span></div>
+  <h2 style="font-size:30px">Ton &amp; rédaction</h2>
+  <div class="grid g2">
+    <div class="role-card"><h3>Tutoiement</h3><p>« Tu » partout — cible 15-35 ans, registre social et direct, jamais infantilisant.</p></div>
+    <div class="role-card"><h3>Verbes d'action</h3><p>Les boutons sont des verbes à l'infinitif (« Rejoindre », « Publier ») — le mot du bouton doit être celui du message de confirmation qui suit.</p></div>
+    <div class="role-card"><h3>Erreurs factuelles</h3><p>On dit ce qui s'est passé et comment le corriger, sans « Oups ! » ni excuse superflue.</p></div>
+    <div class="role-card"><h3>États vides = invitation</h3><p>Un écran vide propose toujours une action concrète, jamais juste un constat.</p></div>
+  </div>
+</section>
+
+<section id="access">
+  <div class="eyebrow"><span class="tag">10 — Accessibilité</span></div>
+  <h2 style="font-size:30px">Checklist accessibilité</h2>
+  <table class="spec">
+    <tbody><tr><th>Critère</th><th>Cible</th></tr>
+    <tr><td>Contraste texte</td><td>AA (4.5:1 texte normal, 3:1 texte large/UI) — vérifier chaque nouvelle couleur avec un outil de contraste avant intégration.</td></tr>
+    <tr><td>Zones tactiles</td><td>44px iOS / 48px Android-web minimum.</td></tr>
+    <tr><td>Focus clavier (web)</td><td>Anneau de focus visible (2px, blue-300) sur tout élément interactif.</td></tr>
+    <tr><td>Couleur seule</td><td>Jamais l'unique porteur d'information (statuts, erreurs toujours + icône/texte).</td></tr>
+    <tr><td>Reduced motion</td><td>Respecté partout, animations non essentielles désactivées.</td></tr>
+    <tr><td>Dynamic type</td><td>Layout ne casse pas jusqu'à +200% de taille de texte (RN &amp; web).</td></tr>
+  </tbody></table>
+</section>
+
+<section id="gouvernance">
+  <div class="eyebrow"><span class="tag">11 — Gouvernance</span></div>
+  <h2 style="font-size:30px">Faire vivre le système</h2>
+  <p class="lede">v1.0 — MVP. Centraliser tous les tokens dans un seul package/dossier source de vérité (ex. <code>packages/design-tokens</code> ou <code>src/theme</code>), consommé à la fois par <code>tailwind.config.js</code> (web) et par un thème React Native. Quand l'équipe grandit, migrer vers un outil de gestion de tokens type Style Dictionary ou Tokens Studio pour synchroniser Figma ↔ code automatiquement.</p>
+</section>
+
+</main>
+</div>
+<script>
+function setTheme(t,btn){
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('.theme-toggle button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+
+
+</body></html>

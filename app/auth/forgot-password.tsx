@@ -14,7 +14,7 @@ import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Form = z.infer<typeof forgotPasswordSchema>;
 
@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen() {
       Toast.show({
         type: "error",
         text1: "Une erreur est survenue",
-        text2: "Veuillez réessayer plus tard.",
+        text2: t("auth.retryLater"),
       });
       posthog.capture("password_reset_requested", { success: false, error: error.message });
       return;

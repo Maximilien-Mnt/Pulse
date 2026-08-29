@@ -23,6 +23,7 @@ import { Text } from "@/components/ui/Text";
 import { useReport, type UseReportPayload } from "@/hooks/useReport";
 import { cn } from "@/utils/format";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -47,11 +48,11 @@ export interface ReportSheetProps {
 const MAX_MESSAGE_LENGTH = 500;
 
 const REPORT_REASONS = [
-  { key: "impersonation", label: "Usurpation d'identité" },
-  { key: "harassment", label: "Harcèlement" },
-  { key: "inappropriate", label: "Contenu inapproprié / Spam" },
-  { key: "hate_speech", label: "Discours haineux / discriminatoire" },
-  { key: "other", label: "Autre" },
+  { key: "impersonation", label: t("report.identityTheft") },
+  { key: "harassment", label: t("report.harassment") },
+  { key: "inappropriate", label: t("report.inappropriate") },
+  { key: "hate_speech", label: t("report.hateSpeech") },
+  { key: "other", label: t("report.other") },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -86,10 +87,10 @@ export function ReportSheet({
 
   const title =
     targetType === "profile"
-      ? "Signaler ce profil"
+      ? t("report.profile")
       : targetType === "conversation"
-        ? "Signaler cette conversation"
-        : "Signaler ce post";
+        ? t("report.conversation")
+        : t("report.post");
 
   // Submission requires at least a reason or a message (both optional fields,
   // but an empty report is meaningless).
@@ -204,7 +205,7 @@ export function ReportSheet({
             {/* Message field */}
             <Input
               label="Message (optionnel)"
-              placeholder="Décrivez le problème…"
+              placeholder={t("report.placeholder")}
               value={message}
               onChangeText={setMessage}
               multiline

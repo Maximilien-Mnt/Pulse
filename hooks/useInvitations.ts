@@ -1,32 +1,27 @@
-import { supabase } from "@/lib/supabase";
-import { useAuthStore } from "@/stores/authStore";
-import { useMutation } from "@tanstack/react-query";
-import * as Linking from "expo-linking";
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { useMutation } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
+import { useTranslation } from '@/hooks/useTranslation';
 
-// The generated Supabase types don't yet include the V3 tables
-// (invitation_tokens). Use an untyped client for those queries.
 const db = supabase as unknown as {
   from: (table: string) => any;
 };
 
-type InviteType = "club" | "event";
-
+type InviteType = 'club' | 'event';
 
 function generateToken(): string {
-  // 24-char url-safe random token.
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let out = "";
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let out = '';
   for (let i = 0; i < 24; i++) {
     out += chars[Math.floor(Math.random() * chars.length)];
   }
   return out;
 }
 
-/**
- * Create an invitation token for a private club/event and return the deep link.
- */
 export function useCreateInvitation() {
   const userId = useAuthStore((s) => s.userId);
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -40,11 +35,11 @@ export function useCreateInvitation() {
       maxUses?: number;
       expiresInDays?: number;
     }) => {
-      if (!userId) throw new Error("Non authentifié");
+      if (!userId) throw new Error(t('auth.notAuthenticated'));
       const token = generateToken();
       const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error } = await db.from("invitation_tokens").insert({
+      const { error } = await db.from('invitation_tokens').insert({
         token,
         type,
         target_id: targetId,
@@ -54,8 +49,6 @@ export function useCreateInvitation() {
       });
       if (error) throw error;
 
-
-      // pulse://join/club/{id}?token=... (works as deep link + store fallback)
       const link = Linking.createURL(`join/${type}/${targetId}`, {
         queryParams: { token },
       });
@@ -64,11 +57,9 @@ export function useCreateInvitation() {
   });
 }
 
-/**
- * Redeem an invitation token: validates it and joins the club/event.
- */
 export function useRedeemInvitation() {
   const userId = useAuthStore((s) => s.userId);
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -80,41 +71,37 @@ export function useRedeemInvitation() {
       targetId: string;
       token: string;
     }) => {
-      if (!userId) throw new Error("Non authentifié");
+      if (!userId) throw new Error(t('auth.notAuthenticated'));
 
-      // Validate token.
       const { data: invite, error: inviteErr } = await db
-        .from("invitation_tokens")
-        .select("*")
-        .eq("token", token)
-        .eq("type", type)
-        .eq("target_id", targetId)
+        .from('invitation_tokens')
+        .select('*')
+        .eq('token', token)
+        .eq('type', type)
+        .eq('target_id', targetId)
         .maybeSingle();
 
       if (inviteErr) throw inviteErr;
-      if (!invite) throw new Error("Lien d'invitation invalide.");
-      if (new Date(invite.expires_at) < new Date()) throw new Error("Ce lien a expiré.");
-      if (invite.uses_count >= invite.max_uses) throw new Error("Ce lien a atteint sa limite d'utilisation.");
+      if (!invite) throw new Error(t('invitations.invalidLink'));
+      if (new Date(invite.expires_at) < new Date()) throw new Error(t('auth.linkExpired'));
+      if (invite.uses_count >= invite.max_uses) throw new Error(t('invitations.maxUsesReached'));
 
-      // Join the club/event via the membership table.
-      if (type === "club") {
+      if (type === 'club') {
         const { error } = await supabase
-          .from("club_members")
-          .upsert({ club_id: targetId, user_id: userId }, { onConflict: "club_id,user_id" });
+          .from('club_members')
+          .upsert({ club_id: targetId, user_id: userId }, { onConflict: 'club_id,user_id' });
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("event_participants")
-          .upsert({ event_id: targetId, user_id: userId }, { onConflict: "event_id,user_id" });
+          .from('event_participants')
+          .upsert({ event_id: targetId, user_id: userId }, { onConflict: 'event_id,user_id' });
         if (error) throw error;
       }
 
-      // Increment usage count.
       await db
-        .from("invitation_tokens")
+        .from('invitation_tokens')
         .update({ uses_count: invite.uses_count + 1 })
-        .eq("id", invite.id);
-
+        .eq('id', invite.id);
 
       return { type, targetId };
     },

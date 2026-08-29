@@ -15,7 +15,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export function LandingFooter() {
   const currentYear = new Date().getFullYear();

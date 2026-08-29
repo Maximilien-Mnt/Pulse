@@ -31,7 +31,7 @@ import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // Hours available for selection (6 AM -> 11 PM)
 const HOURS = Array.from({ length: 24 - 6 }, (_, i) => 6 + i);
@@ -126,7 +126,7 @@ function PickerField({
               value ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400"
             }`}
           >
-            {value || `Sélectionner ${label.toLowerCase()}`}
+            {value || `{t("profile.country.placeholder", { label })}`}
           </Text>
           <Text className="text-tertiary text-lg leading-none">›</Text>
         </Pressable>
@@ -357,7 +357,7 @@ export default function EditProfileScreen() {
       void queryClient.invalidateQueries({ queryKey: ["public-profile", profile?.id] });
       void queryClient.invalidateQueries({ queryKey: ["user-sports"] });
       void queryClient.invalidateQueries({ queryKey: ["my-objectives"] });
-      Toast.show({ type: "success", text1: "Profil mis à jour" });
+      Toast.show({ type: "success", text1: t("profile.edit.success") });
       router.back();
     },
     onError: (err: unknown) => {
@@ -465,7 +465,7 @@ export default function EditProfileScreen() {
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Modifier le profil
+          {t("profile.editProfile")}
         </Text>
         <View className="w-11" />
       </View>
@@ -480,13 +480,13 @@ export default function EditProfileScreen() {
       >
         <Card className="mb-4">
           <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-3">
-            Photo de profil
+            {t("profile.photoLabel")}
           </Text>
           <Pressable
             onPress={pickImage}
             className="items-center py-2 active:opacity-80"
             accessibilityRole="button"
-            accessibilityLabel="Changer la photo de profil"
+            accessibilityLabel={t("profile.changePhoto")}
           >
             <Avatar
               uri={avatarUri ?? profile?.avatar_url ?? null}
@@ -494,7 +494,7 @@ export default function EditProfileScreen() {
               className="border-2 border-primary"
             />
             <Text className="text-primary text-sm font-medium mt-2">
-              Changer la photo
+              {t("profile.changePhoto")}
             </Text>
           </Pressable>
         </Card>
@@ -520,7 +520,7 @@ export default function EditProfileScreen() {
               value={
                 profile?.birth_date
                   ? dayjs(profile.birth_date).format("DD/MM/YYYY")
-                  : "Non renseignée"
+                  : t("profile.country.unspecified")
               }
             />
             <Text className="text-xs text-neutral-400 dark:text-neutral-500 -mt-2">
@@ -538,7 +538,7 @@ export default function EditProfileScreen() {
                   className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between active:opacity-70"
                 >
                   <Text className="text-base text-neutral-900 dark:text-neutral-50">
-                    {country ? getCountryDisplay(country) : "Sélectionner un pays"}
+                    {country ? getCountryDisplay(country) : t("profile.country.placeholder")}
                   </Text>
                   <Text className="text-tertiary text-lg leading-none">›</Text>
                 </Pressable>
@@ -573,7 +573,7 @@ export default function EditProfileScreen() {
               value={bio}
               onChangeText={setBio}
               multiline
-              placeholder="Présente-toi brièvement..."
+              placeholder={t("profile.bio.placeholder")}
               returnKeyType="done"
             />
           </View>
@@ -643,7 +643,7 @@ export default function EditProfileScreen() {
         <View ref={practicedRef}>
           <Card className="p-4 mb-4">
             <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-              Sports pratiqués
+              {t("profile.practicedTitle")}
             </Text>
             <SportPill selected={practicedSports} onToggle={togglePracticed} />
             {practicedSports.length > 0 && (
@@ -754,7 +754,7 @@ export default function EditProfileScreen() {
 
                       {/* Time slots */}
                       <View className="mt-4">
-                        <Text className="text-sm text-neutral-500 mb-1">Créneaux horaires</Text>
+                        <Text className="text-sm text-neutral-500 mb-1">{t("profile.timeSlots")}</Text>
                         {(details.timeSlots || []).map((slot, idx) => (
                           <View
                             key={idx}
@@ -800,7 +800,9 @@ export default function EditProfileScreen() {
                                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
                                   {formatHour(slot.startHour)}
                                 </Text>
-                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Début</Text>
+                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">
+                                  {t("profile.from")}
+                                </Text>
                               </Pressable>
                               <Text className="text-neutral-400 text-sm">→</Text>
                               <Pressable
@@ -836,7 +838,7 @@ export default function EditProfileScreen() {
                         >
                           <Icon name="PlusCircle" size={20} color="primary" />
                           <Text className="text-sm text-primary font-medium">
-                            Ajouter un créneau
+                            {t("profile.addTimeSlot")}
                           </Text>
                         </Pressable>
                       </View>
@@ -851,7 +853,7 @@ export default function EditProfileScreen() {
         <View ref={interestedRef}>
           <Card className="p-4 mb-4">
             <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-              Sports qui m'intéressent
+              {t("profile.interestedTitle")}
             </Text>
             <SportPill selected={interestedSports} onToggle={toggleInterested} />
           </Card>
@@ -870,7 +872,7 @@ export default function EditProfileScreen() {
             visible={!!hourPickerOpen}
             title={
               hourPickerOpen?.field === "startHour"
-                ? "Heure de début"
+                ? t("updateEvent.dateLabel")
                 : "Heure de fin"
             }
             confirmLabel="OK"

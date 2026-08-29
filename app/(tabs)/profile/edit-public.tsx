@@ -17,7 +17,7 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { BackButton } from "@/components/ui/BackButton";
 
 export default function EditPublicProfileScreen() {
@@ -121,11 +121,11 @@ export default function EditPublicProfileScreen() {
       posthog.capture("public_profile_updated");
       void queryClient.invalidateQueries({ queryKey: ["user-sports", profile?.id] });
       void queryClient.invalidateQueries({ queryKey: ["profile", profile?.id] });
-      Toast.show({ type: "success", text1: "Profil public mis à jour" });
+      Toast.show({ type: "success", text1: t("profile.public.success") });
       router.back();
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Erreur de sauvegarde";
+      const message = err instanceof Error ? err.message : t("profile.updateError");
       Toast.show({ type: "error", text1: message });
     },
   });

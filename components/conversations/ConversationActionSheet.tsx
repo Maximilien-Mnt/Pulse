@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useConversationActions";
 import { useBlockUser } from "@/hooks/useBlockUser";
 import Toast from "react-native-toast-message";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,6 +58,7 @@ export function ConversationActionSheet({
   conversationId,
   targetAuthorId,
 }: Props) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [isPinned, setIsPinned] = useState(pinned);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
@@ -114,20 +116,20 @@ export function ConversationActionSheet({
   const options: Option[] = [
     {
       key: isPinned ? "unpin" : "pin",
-      label: isPinned ? "Désépingler" : "Épingler",
+      label: isPinned ? t("common.unpinned") : t("common.pinned"),
       icon: isPinned ? "PinOff" : "Pin",
       onPress: handleTogglePin,
     },
     {
       key: "delete",
-      label: "Supprimer",
+      label: t("common.delete"),
       icon: "Trash2",
       iconColor: "error-600",
       onPress: () => setConfirming(true),
     },
     {
       key: "delete-and-block",
-      label: "Supprimer et bloquer",
+      label: t("common.deleteAndBlock"),
       icon: "Shield",
       iconColor: "error-600",
       onPress: () => setConfirmingBlock(true),

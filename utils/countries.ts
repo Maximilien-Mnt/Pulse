@@ -1,3 +1,8 @@
+import { COUNTRIES_EN } from "@/utils/countries.en";
+import { useLanguageStore } from "@/stores/languageStore";
+
+export { COUNTRIES_EN };
+
 /**
  * Full ISO 3166-1 alpha-2 country list with French labels.
  * 249 entries.
@@ -240,16 +245,20 @@ export function flagEmoji(code: string): string {
 }
 
 /**
- * Returns the French label for an ISO country code, falling back to the
+ * Returns the localized label for an ISO country code, falling back to the
  * raw code itself when the code is unknown (e.g. externally-synced rows).
+ * French is the canonical source; English is served from COUNTRIES_EN when
+ * the interface language is English.
  */
 export function getCountryLabel(code: string | null | undefined): string {
   if (!code) return "";
+  const lang = useLanguageStore.getState().language;
+  if (lang === "en") return COUNTRIES_EN[code] ?? code;
   return COUNTRIES.find((c) => c.code === code)?.label ?? code;
 }
 
 /**
- * Returns a display string with the flag emoji + French label:
+ * Returns a display string with the flag emoji + localized label:
  * "FR" -> "🇫🇷 France". Falls back to the raw code if unknown.
  */
 export function getCountryDisplay(code: string | null | undefined): string {

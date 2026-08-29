@@ -13,48 +13,51 @@ import { useRouter } from "expo-router";
 import { useNotifications, useMarkAsRead, useJoinRequestAction } from "@/hooks/useNotifications";
 import { useStartConversationWith } from "@/hooks/useStartConversationWith";
 import Toast from "react-native-toast-message";
+import { useTranslation , t } from "@/hooks/useTranslation";
+import { TranslationKey } from "@/lib/translations";
 
 const FILTERS = [
-  { key: "all" as const, label: "Tout" },
-  { key: "pending" as const, label: "En attente" },
-  { key: "processed" as const, label: "Traités" },
+  { key: "all" as const, label: t("notifications.filter.all") },
+  { key: "pending" as const, label: t("notifications.filter.pending") },
+  { key: "processed" as const, label: t("notifications.filter.processed") },
 ];
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "À l'instant";
-  if (minutes < 60) return `Il y a ${minutes} min`;
+  if (minutes < 1) return t("time.justNow");
+  if (minutes < 60) return t("time.minutesAgo", { minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Il y a ${hours}h`;
+  if (hours < 24) return t("time.hoursAgo", { hours });
   const days = Math.floor(hours / 24);
-  return `Il y a ${days}j`;
+  return t("time.daysAgo", { days });
 }
 
-function formatNotificationTitle(n: any): string {
+function formatNotificationTitle(n: any, t: (key: TranslationKey, variables?: Record<string, string | number>) => string): string {
   if (n.title) return n.title;
   switch (n.type) {
     case "club_join_request":
-      return "Demande d'adhésion";
+      return t("notifications.type.clubJoinRequest");
     case "event_join_request":
-      return "Demande de participation";
+      return t("notifications.type.eventJoinRequest");
     case "club_join_request_response_accept":
-      return "Demande acceptée";
+      return t("notifications.type.clubJoinRequestResponseAccept");
     case "event_join_request_response_accept":
-      return "Invitation acceptée";
+      return t("notifications.type.eventJoinRequestResponseAccept");
     case "club_join_request_response_refuse":
-      return "Demande refusée";
+      return t("notifications.type.clubJoinRequestResponseRefuse");
     case "event_join_request_response_refuse":
-      return "Invitation refusée";
+      return t("notifications.type.eventJoinRequestResponseRefuse");
     case "conversation_deleted":
-      return "Conversation supprimée";
+      return t("notifications.type.conversationDeleted");
     default:
-      return "Notification";
+      return t("notifications.type.default");
   }
 }
 
 export default function ProfileNotificationsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<"all" | "pending" | "processed">("all");
   const [refreshing, setRefreshing] = useState(false);
   const { data: notifications = [], isLoading, refetch } = useNotifications({ status: filter, limit: 50 });
@@ -106,12 +109,12 @@ export default function ProfileNotificationsScreen() {
       });
       Toast.show({
         type: "success",
-        text1: action === "accept" ? "Demande acceptée" : "Demande refusée",
+        text1: action === "accept" ? t("notifications.toast.accepted") : t("notifications.toast.refused"),
       });
     } catch (e) {
       Toast.show({
         type: "error",
-        text1: "Impossible de traiter la demande",
+        text1: t("notifications.toast.error"),
       });
     }
   };
@@ -122,7 +125,7 @@ export default function ProfileNotificationsScreen() {
     if (!ownerId) {
       Toast.show({
         type: "error",
-        text1: "Impossible de contacter",
+        text1: t("common.cannotContact"),
       });
       return;
     }
@@ -131,7 +134,7 @@ export default function ProfileNotificationsScreen() {
     } catch (e) {
       Toast.show({
         type: "error",
-        text1: "Impossible de démarrer la conversation",
+        text1: t("conv.cannotStart"),
       });
     }
   };
@@ -158,7 +161,7 @@ export default function ProfileNotificationsScreen() {
                 }`}
               />
               <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                {formatNotificationTitle(item)}
+                {formatNotificationTitle(item, t)}
               </Text>
             </View>
             <Text className="text-sm text-neutral-600 dark:text-neutral-300 ml-4">
@@ -175,14 +178,14 @@ export default function ProfileNotificationsScreen() {
               onPress={() => handleAction("accept", item)}
               className="px-5 py-3 rounded-xl bg-primary active:opacity-80"
             >
-              <Text className="text-sm font-semibold text-white">Accepter</Text>
+              <Text className="text-sm font-semibold text-white">{t("common.accept")}</Text>
             </Pressable>
             <Pressable
               onPress={() => handleAction("refuse", item)}
               className="px-5 py-3 rounded-xl bg-neutral-200 dark:bg-neutral-700 active:opacity-80"
             >
               <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                Refuser
+                {t("common.refuse")}
               </Text>
             </Pressable>
           </View>
@@ -198,7 +201,7 @@ export default function ProfileNotificationsScreen() {
               {isContacting ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text className="text-sm font-semibold text-white">Contacter</Text>
+                <Text className="text-sm font-semibold text-white">{t("common.contact")}</Text>
               )}
             </Pressable>
           </View>
@@ -248,10 +251,10 @@ export default function ProfileNotificationsScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-neutral-400 text-center">
             {filter === "pending"
-              ? "Aucune demande en attente"
+              ? t("notifications.empty.pending")
               : filter === "processed"
-              ? "Aucun historique"
-              : "Aucune notification"}
+              ? t("notifications.empty.processed")
+              : t("notifications.empty.all")}
           </Text>
         </View>
       ) : (

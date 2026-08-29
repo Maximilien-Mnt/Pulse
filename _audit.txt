@@ -1,0 +1,1047 @@
+=== PARITY CHECK ===
+FR keys: 549 | EN keys: 549
+onlyFr: 0 | onlyEn: 0
+PARITY OK Ô£ô
+
+=== EXISTING KEYS BY NAMESPACE ===
+
+--- auth (26) ---
+  auth.forgotPassword.backToSignin
+  auth.forgotPassword.email
+  auth.forgotPassword.sent.description
+  auth.forgotPassword.sent.title
+  auth.forgotPassword.submit
+  auth.forgotPassword.subtitle
+  auth.forgotPassword.title
+  auth.hidePassword
+  auth.resetPassword.backToSignin
+  auth.resetPassword.checking
+  auth.resetPassword.confirmPassword
+  auth.resetPassword.description
+  auth.resetPassword.invalidMessage
+  auth.resetPassword.invalidTitle
+  auth.resetPassword.newPassword
+  auth.resetPassword.submit
+  auth.resetPassword.title
+  auth.showPassword
+  auth.signin.email
+  auth.signin.forgotPassword
+  auth.signin.noAccount
+  auth.signin.password
+  auth.signin.signup
+  auth.signin.submit
+  auth.signin.subtitle
+  auth.signin.title
+
+--- clubJoin (1) ---
+  clubJoin.requestSent
+
+--- clubs (24) ---
+  clubs.back
+  clubs.created
+  clubs.createdSuccess
+  clubs.createdTab
+  clubs.creator
+  clubs.deleteFailed
+  clubs.deleted
+  clubs.edit
+  clubs.editDisabled
+  clubs.emptyCreated
+  clubs.emptyMember
+  clubs.join
+  clubs.leave
+  clubs.member
+  clubs.memberTab
+  clubs.members
+  clubs.membershipInvite
+  clubs.myClubs
+  clubs.notFound
+  clubs.private
+  clubs.public
+  clubs.publicCreatedSuccess
+  clubs.requestSent
+  clubs.title
+
+--- comments (6) ---
+  comments.empty
+  comments.likes
+  comments.placeholder
+  comments.sortDate
+  comments.sortLikes
+  comments.title
+
+--- common (68) ---
+  common.back
+  common.block
+  common.blocked
+  common.cancel
+  common.close
+  common.club
+  common.comment
+  common.confirm
+  common.delete
+  common.deleteConversation
+  common.details
+  common.done
+  common.english
+  common.event
+  common.eventPlanned
+  common.filter
+  common.following
+  common.forYou
+  common.french
+  common.full
+  common.goPublic
+  common.hideDetails
+  common.irreversible
+  common.join
+  common.justNow
+  common.language
+  common.like
+  common.loadMore
+  common.loading
+  common.no
+  common.noClub
+  common.noResults
+  common.notFound
+  common.notifications
+  common.official
+  common.organizingClub
+  common.participants
+  common.pin
+  common.private
+  common.public
+  common.publicProfileActive
+  common.publicProfileActiveDesc
+  common.publicProfileInfo
+  common.register
+  common.reply
+  common.report
+  common.reportBug
+  common.retry
+  common.save
+  common.search
+  common.searchByUsername
+  common.session
+  common.share
+  common.signOut
+  common.signingOut
+  common.today
+  common.tryOtherFilters
+  common.unblock
+  common.unpin
+  common.unreadNotifications
+  common.updated
+  common.userNotFound
+  common.viewAll
+  common.viewClub
+  common.viewGrid
+  common.viewList
+  common.yes
+  common.yesterday
+
+--- conv (13) ---
+  conv.all
+  conv.blockedUser
+  conv.cannotStart
+  conv.deleted
+  conv.empty
+  conv.emptyHint
+  conv.messagePlaceholder
+  conv.pinned
+  conv.public
+  conv.search
+  conv.sendError
+  conv.title
+  conv.unread
+
+--- create (19) ---
+  create.back
+  create.close
+  create.club
+  create.conversation
+  create.event
+  create.needPublic
+  create.needPublicEvent
+  create.newClub
+  create.newEvent
+  create.post
+  create.privateClub
+  create.privateClubDesc
+  create.privateEvent
+  create.privateEventDesc
+  create.publicClub
+  create.publicClubDesc
+  create.publicEvent
+  create.publicEventDesc
+  create.title
+
+--- discover (2) ---
+  discover.moreFilters
+  discover.title
+
+--- editProfile (22) ---
+  editProfile.addPhoto
+  editProfile.addTimeSlot
+  editProfile.bio
+  editProfile.bioPlaceholder
+  editProfile.changePhoto
+  editProfile.city
+  editProfile.cityPlaceholder
+  editProfile.end
+  editProfile.hourEnd
+  editProfile.hourStart
+  editProfile.interestedSports
+  editProfile.name
+  editProfile.namePlaceholder
+  editProfile.photo
+  editProfile.publicSaved
+  editProfile.save
+  editProfile.saved
+  editProfile.selectMode
+  editProfile.start
+  editProfile.stringEnd
+  editProfile.stringStart
+  editProfile.title
+
+--- error (6) ---
+  error.clubJoin
+  error.generic
+  error.incompleteSignup
+  error.loading
+  error.permissionPhotos
+  error.sendMessage
+
+--- events (39) ---
+  events.acceptedInvite
+  events.ageRange
+  events.cancel
+  events.category
+  events.createdSuccess
+  events.date
+  events.deleted
+  events.difficulty
+  events.edit
+  events.emptyAccepted
+  events.emptyJoined
+  events.emptyOngoing
+  events.emptyPast
+  events.emptyUpcoming
+  events.full
+  events.join
+  events.myEvents
+  events.notConnected
+  events.notFound
+  events.ongoing
+  events.organizer
+  events.participant
+  events.participants
+  events.past
+  events.placesLeft
+  events.price
+  events.priceFree
+  events.private
+  events.public
+  events.publicCreatedSuccess
+  events.register
+  events.requestJoin
+  events.requestSent
+  events.requiredLevel
+  events.share
+  events.title
+  events.upcoming
+  events.venue
+  events.youParticipate
+
+--- explore (9) ---
+  explore.clubs
+  explore.emptyClubs
+  explore.emptyEvents
+  explore.events
+  explore.filtersSort
+  explore.searchClubPlaceholder
+  explore.searchEventPlaceholder
+  explore.sort
+  explore.title
+
+--- feed (21) ---
+  feed.commentPlaceholder
+  feed.comments
+  feed.emptyCta
+  feed.emptySubtitleFollowing
+  feed.emptySubtitleNoFollowing
+  feed.emptyTitleFollowing
+  feed.emptyTitleNoFollowing
+  feed.errorBody
+  feed.errorCta
+  feed.errorTitle
+  feed.firstComment
+  feed.noPosts
+  feed.publicBadge
+  feed.searchBodyGeneric
+  feed.searchBodyQuery
+  feed.searchEmpty
+  feed.searchPlaceholder
+  feed.sortDate
+  feed.sortLikes
+  feed.suggestionsForYou
+  feed.tagPlaceholder
+
+--- landing (25) ---
+  landing.cta.button
+  landing.cta.description
+  landing.cta.title
+  landing.features.clubs.description
+  landing.features.clubs.title
+  landing.features.events.description
+  landing.features.events.title
+  landing.features.geo.description
+  landing.features.geo.title
+  landing.features.messaging.description
+  landing.features.messaging.title
+  landing.features.posts.description
+  landing.features.posts.title
+  landing.features.profiles.description
+  landing.features.profiles.title
+  landing.features.title
+  landing.footer.copyright
+  landing.footer.editor
+  landing.footer.legalLabel
+  landing.footer.support
+  landing.hero.availability
+  landing.hero.cta.signin
+  landing.hero.cta.signup
+  landing.hero.subtitle
+  landing.hero.title
+
+--- lang (1) ---
+  lang.toggle
+
+--- legal (13) ---
+  legal.contact
+  legal.cookies.subtitle
+  legal.cookies.title
+  legal.document
+  legal.documents
+  legal.legalNotices.subtitle
+  legal.legalNotices.title
+  legal.moderation.subtitle
+  legal.moderation.title
+  legal.privacy.subtitle
+  legal.privacy.title
+  legal.terms.subtitle
+  legal.terms.title
+
+--- nav (3) ---
+  nav.moveToBottom
+  nav.moveToBottomAccessibility
+  nav.moveToLeft
+
+--- post (11) ---
+  post.addMedia
+  post.body
+  post.media
+  post.mediaPermission
+  post.photoSelected
+  post.publish
+  post.published
+  post.sport
+  post.tags
+  post.tagsPlaceholder
+  post.title
+
+--- profile (15) ---
+  profile.acceptedEvents
+  profile.activatePublic
+  profile.bioPlaceholder
+  profile.clubs
+  profile.edit
+  profile.followers
+  profile.following
+  profile.myPosts
+  profile.notificationsSection
+  profile.posts
+  profile.publicProfile
+  profile.section.profile
+  profile.section.public
+  profile.settings
+  profile.title
+
+--- publicProfile (9) ---
+  publicProfile.bioLabel
+  publicProfile.bioPlaceholder
+  publicProfile.editInterested
+  publicProfile.editSports
+  publicProfile.gallery
+  publicProfile.interested
+  publicProfile.intro
+  publicProfile.practiced
+  publicProfile.status
+
+--- security (13) ---
+  security.changePassword
+  security.confirmPassword
+  security.confirmPasswordPlaceholder
+  security.email
+  security.error
+  security.minLength
+  security.mismatch
+  security.newPassword
+  security.newPasswordPlaceholder
+  security.password
+  security.passwordUpdated
+  security.save
+  security.title
+
+--- settings (33) ---
+  settings.changePassword
+  settings.confirmPassword
+  settings.confirmPasswordPlaceholder
+  settings.darkMode
+  settings.deleteAccount
+  settings.editProfile
+  settings.editProfileSub
+  settings.email
+  settings.label
+  settings.language
+  settings.languageAndRegion
+  settings.legalNotices
+  settings.legalNoticesSub
+  settings.moderation
+  settings.moderationSub
+  settings.newPassword
+  settings.newPasswordPlaceholder
+  settings.password
+  settings.publicProfile
+  settings.publicProfileSub
+  settings.reportBug
+  settings.reportBugButton
+  settings.reportBugSub
+  settings.section.danger
+  settings.section.legal
+  settings.section.notifications
+  settings.section.preferences
+  settings.section.profile
+  settings.section.security
+  settings.section.session
+  settings.section.support
+  settings.securityChanged
+  settings.version
+
+--- signup (114) ---
+  signup.back
+  signup.checkEmail.backToSignin
+  signup.checkEmail.description
+  signup.checkEmail.title
+  signup.continue
+  signup.discovery.ads
+  signup.discovery.ai
+  signup.discovery.friend
+  signup.discovery.other
+  signup.discovery.search
+  signup.discovery.similar
+  signup.discovery.social
+  signup.hidePassword
+  signup.objective.compete
+  signup.objective.discover
+  signup.objective.endurance
+  signup.objective.flexibility
+  signup.objective.goal
+  signup.objective.lose
+  signup.objective.meet
+  signup.objective.muscle
+  signup.objective.other
+  signup.objective.resume
+  signup.objective.stress
+  signup.optional
+  signup.showPassword
+  signup.sport.badminton
+  signup.sport.basketball
+  signup.sport.boxing
+  signup.sport.climbing
+  signup.sport.cycling
+  signup.sport.dance
+  signup.sport.fitness
+  signup.sport.football
+  signup.sport.golf
+  signup.sport.handball
+  signup.sport.martial_arts
+  signup.sport.padel
+  signup.sport.pilates
+  signup.sport.rugby
+  signup.sport.running
+  signup.sport.squash
+  signup.sport.surfing
+  signup.sport.swimming
+  signup.sport.table_tennis
+  signup.sport.tennis
+  signup.sport.volleyball
+  signup.sport.yoga
+  signup.step1.confirmPassword
+  signup.step1.continue
+  signup.step1.email
+  signup.step1.fullName
+  signup.step1.password
+  signup.step1.title
+  signup.step1.username
+  signup.step1.usernameAvailable
+  signup.step1.usernameTaken
+  signup.step2.birthDate
+  signup.step2.birthDateHelper
+  signup.step2.birthDateInvalid
+  signup.step2.city
+  signup.step2.cityPlaceholder
+  signup.step2.country
+  signup.step2.pickerTitle
+  signup.step2.selectCountry
+  signup.step2.title
+  signup.step3.addTimeSlot
+  signup.step3.availability
+  signup.step3.availabilityHelper
+  signup.step3.days
+  signup.step3.end
+  signup.step3.hourEndTitle
+  signup.step3.hourStartTitle
+  signup.step3.level
+  signup.step3.noSport
+  signup.step3.other
+  signup.step3.otherDetails
+  signup.step3.practiceType
+  signup.step3.practiced
+  signup.step3.selectMode
+  signup.step3.start
+  signup.step3.title
+  signup.step4.height
+  signup.step4.interested
+  signup.step4.objectives
+  signup.step4.objectivesDetailsLabel
+  signup.step4.objectivesDetailsPlaceholder
+  signup.step4.title
+  signup.step4.weight
+  signup.step5.acceptPrivacy
+  signup.step5.acceptTerms
+  signup.step5.addPhoto
+  signup.step5.bio
+  signup.step5.bioPlaceholder
+  signup.step5.changePhoto
+  signup.step5.createAccount
+  signup.step5.discovery
+  signup.step5.discoveryDetailsLabel
+  signup.step5.discoveryDetailsPlaceholder
+  signup.step5.legalTitle
+  signup.step5.photo
+  signup.step5.photoHint
+  signup.step5.title
+  signup.stepCount
+  signup.underage.backToSignin
+  signup.underage.message
+  signup.underage.title
+  signup.weekday.0
+  signup.weekday.1
+  signup.weekday.2
+  signup.weekday.3
+  signup.weekday.4
+  signup.weekday.5
+  signup.weekday.6
+
+--- sort (18) ---
+  sort.date_asc
+  sort.date_desc
+  sort.difficulty_asc
+  sort.difficulty_desc
+  sort.founded_asc
+  sort.founded_desc
+  sort.members_asc
+  sort.members_desc
+  sort.name_asc
+  sort.name_desc
+  sort.nearby
+  sort.newest
+  sort.oldest
+  sort.price_asc
+  sort.price_desc
+  sort.recent
+  sort.relevance
+  sort.sport_asc
+
+--- sports (22) ---
+  sports.badminton
+  sports.basketball
+  sports.boxing
+  sports.climbing
+  sports.cycling
+  sports.dance
+  sports.fitness
+  sports.football
+  sports.golf
+  sports.handball
+  sports.martial_arts
+  sports.padel
+  sports.pilates
+  sports.rugby
+  sports.running
+  sports.squash
+  sports.surfing
+  sports.swimming
+  sports.table_tennis
+  sports.tennis
+  sports.volleyball
+  sports.yoga
+
+--- tabs (5) ---
+  tabs.create
+  tabs.explore
+  tabs.feed
+  tabs.messages
+  tabs.profile
+
+--- theme (2) ---
+  theme.dark
+  theme.light
+
+--- toast (2) ---
+  toast.accountCreated
+  toast.confirmEmail
+
+--- weekdays (7) ---
+  weekdays.0
+  weekdays.1
+  weekdays.2
+  weekdays.3
+  weekdays.4
+  weekdays.5
+  weekdays.6
+
+=== FRENCH LITERALS IN SOURCE ===
+app/(public)/legal/contact.tsx: 1 FR literals
+  "Bonjour,\n\nJe vous contacte ├á propos de l"
+app/(tabs)/clubs/[clubId].tsx: 5 FR literals
+  "D├®tails"
+  "├óge"
+  "Cr├®ateur"
+  "Demande envoy├®e"
+  "Demander ├á rejoindre"
+app/(tabs)/conversations/index.tsx: 1 FR literals
+  "├ëpingl├®es"
+app/(tabs)/create/index.tsx: 9 FR literals
+  "Post publi├®"
+  "Partage ta s├®ance, ton r├®sultat, ta motivation..."
+  "Un compte que tu suis a cr├®├® un nouveau club."
+  "Club cr├®├®"
+  "Cr├®ation impossible"
+  "Nouvel ├®v├®nement"
+  "Un compte que tu suis a cr├®├® un nouvel ├®v├®nement."
+  "├ëv├®nement cr├®├®"
+  "Capacit├® max (optionnel)"
+app/(tabs)/discover/index.tsx: 3 FR literals
+  "D├®couvrir"
+  "├ëv├®nements"
+  "Aucun ├®v├®nement"
+app/(tabs)/events/index.tsx: 2 FR literals
+  "├ëv├¿nements"
+  "Aucun ├®v├®nement"
+app/(tabs)/events/[eventId].tsx: 5 FR literals
+  "D├®tails"
+  "Demande envoy├®e"
+  "${formatDateLong(event.start_date)} ├á ${formatTime(event.start_date)}"
+  "${formatDateLong(event.end_date)} ├á ${formatTime(event.end_date)}"
+  "├óge"
+app/(tabs)/explore/index.tsx: 3 FR literals
+  "Aucun club ne correspond ├á ta recherche."
+  "Aucun ├®v├®nement ne correspond ├á ta recherche."
+  "Rechercher un ├®v├®nement"
+app/(tabs)/profile/accepted-events.tsx: 7 FR literals
+  "├ëv├®nements accept├®s"
+  "├Ç venir"
+  "Pass├®s"
+  "Aucun ├®v├®nement ├á venir"
+  "Aucun ├®v├®nement en cours"
+  "Aucun ├®v├®nement pass├®"
+  "Les ├®v├®nements o├╣ vous avez ├®t├® accept├® appara├«tront ici."
+app/(tabs)/profile/clubs.tsx: 3 FR literals
+  "Aucun club cr├®├®"
+  "onglet D├®couvrir."
+  "Cr├®e ton premier club pour le voir ici."
+app/(tabs)/profile/edit-profile.tsx: 6 FR literals
+  "S├®lectionner ${label.toLowerCase()}"
+  "Profil mis ├á jour"
+  "Non renseign├®e"
+  "S├®lectionner un pays"
+  "Pr├®sente-toi bri├¿vement..."
+  "Heure de d├®but"
+app/(tabs)/profile/edit-public.tsx: 1 FR literals
+  "Profil public mis ├á jour"
+app/(tabs)/profile/events.tsx: 7 FR literals
+  "Mes ├®v├®nements"
+  "├Ç venir"
+  "Pass├®s"
+  "Aucun ├®v├®nement ├á venir"
+  "Aucun ├®v├®nement en cours"
+  "Aucun ├®v├®nement pass├®"
+  "Inscris-toi ├á des ├®v├®nements depuis l"
+app/(tabs)/profile/notifications.tsx: 9 FR literals
+  "Trait├®s"
+  "├Ç l"
+  "adh├®sion"
+  "Demande accept├®e"
+  "Invitation accept├®e"
+  "Demande refus├®e"
+  "Invitation refus├®e"
+  "Conversation supprim├®e"
+  "Impossible de d├®marrer la conversation"
+app/(tabs)/profile/settings.tsx: 3 FR literals
+  "Politique de confidentialit├®"
+  "Politique de mod├®ration"
+  "Mentions l├®gales"
+app/(tabs)/profile/user-posts.tsx: 1 FR literals
+  " Vos posts appara├«tront ici."
+app/auth/forgot-password.tsx: 1 FR literals
+  "Veuillez r├®essayer plus tard."
+app/auth/reset-password.tsx: 3 FR literals
+  "Ce lien de r├®initialisation est invalide ou a expir├®. "
+  "Aucune session de r├®cup├®ration valide. "
+  "Veuillez demander un nouveau lien de r├®initialisation."
+app/auth/signup/step3.tsx: 1 FR literals
+  "${e.level} ┬À ${e.practice} ┬À ${e.timeSlots.length} cr├®neau${e.timeSlots.length > 1 ? "
+app/auth/signup/step4.tsx: 6 FR literals
+  "Am├®liorer mon endurance"
+  "Participer ├á des comp├®titions"
+  "R├®duire le stress"
+  "Am├®liorer ma souplesse"
+  "Pr├®parer un objectif (course, triathlonÔÇª)"
+  "D├®couvrir un nouveau sport"
+app/create/club/private.tsx: 6 FR literals
+  "Invitation ├á rejoindre un club"
+  "a invit├® ├á rejoindre "
+  "Club priv├® cr├®├® !"
+  "Ex: ├ëquipe de tennis du matin"
+  "} invit├®{invitees.length > 1 ? "
+  "Cr├®er le club"
+app/create/club/public.tsx: 7 FR literals
+  "Active ton profil public pour cr├®er un club public"
+  "Club public publi├® !"
+  "Description * (min 50 caract├¿res)"
+  "D├®cris ton club en d├®tail..."
+  "Encore ${50 - description.length} caract├¿res requis"
+  "Ex: Interm├®diaire"
+  "ÔÇó Description (50 caract├¿res minimum)\n"
+app/create/event/private.tsx: 9 FR literals
+  "Invitation ├á un ├®v├®nement"
+  "a invit├® ├á "
+  "├ëv├®nement priv├® cr├®├® !"
+  "├®v├®nement *"
+  "Ex: Entra├«nement tennis du matin"
+  "La date de fin doit ├¬tre post├®rieure ├á la date de d├®but"
+  "Non d├®finie"
+  "} invit├®{invitees.length > 1 ? "
+  "Cr├®er l"
+app/create/event/public.tsx: 16 FR literals
+  "Active ton profil public pour cr├®er un ├®v├®nement public"
+  "Nouvel ├®v├®nement dans ton club"
+  "Un nouvel ├®v├®nement "
+  " a ├®t├® cr├®├® dans un de tes clubs"
+  "├ëv├®nement public publi├® !"
+  "├®v├®nement *"
+  "Ex: Comp├®tition de tennis"
+  "La date de fin doit ├¬tre post├®rieure ├á la date de d├®but"
+  "Non d├®finie"
+  "Description * (min 50 caract├¿res)"
+  "D├®cris ton ├®v├®nement en d├®tail..."
+  "Encore ${50 - description.length} caract├¿res requis"
+  "Illimit├® si vide"
+  "├®v├®nement\n"
+  "ÔÇó Description (50 caract├¿res minimum)\n"
+  "├®v├®nement"
+app/join/event/[eventId].tsx: 3 FR literals
+  "Connecte-toi pour rejoindre cet ├®v├®nement"
+  "Tu participes ├á l"
+  "Cet ├®v├®nement"
+app/profile/[userId].tsx: 3 FR literals
+  "En bloquant cet utilisateur, il ne pourra plus te contacter ni d├®marrer de nouvelle conversation avec toi. Tu ne verras plus ses posts, clubs ou ├®v├®nements dans ton feed. Tu peux toujours le d├®bloquer depuis tes param├¿tres."
+  "Utilisateur bloqu├®"
+  "Se d├®sabonner"
+components/clubs/ClubFilters.tsx: 1 FR literals
+  "R├®initialiser"
+components/conversations/ConversationActionSheet.tsx: 3 FR literals
+  "D├®s├®pingler"
+  "├ëpingler"
+  "Conversation supprim├®e et utilisateur bloqu├®"
+components/events/EventFilters.tsx: 1 FR literals
+  "R├®initialiser"
+components/feed/PostMedia.tsx: 1 FR literals
+  "Vid├®o"
+components/feed/SearchPanel.tsx: 1 FR literals
+  "Vid├®o"
+components/profile/DeleteAccountSheet.tsx: 2 FR literals
+  "Compte supprim├®"
+  "Supprimer d├®finitivement"
+components/profile/DeleteClubSheet.tsx: 4 FR literals
+  "Club supprim├®"
+  " a ├®t├® supprim├®."
+  "Impossible de supprimer le club. Veuillez r├®essayer."
+  "Supprimer d├®finitivement"
+components/profile/EditProfileSheet.tsx: 1 FR literals
+  "Profil mis ├á jour"
+components/profile/GoPublicSheet.tsx: 2 FR literals
+  "Profil public activ├®"
+  "Erreur lors de la mise ├á jour"
+components/profile/ProfileSections.tsx: 3 FR literals
+  "Abonn├®s"
+  "Modifier les sports pratiqu├®s"
+  "int├®ressent"
+components/profile/PublicProfileActivationModal.tsx: 4 FR literals
+  "Profil public activ├® !"
+  "Publier des posts visibles par la communaut├®"
+  "Cr├®er des clubs et ├®v├®nements publics"
+  "├ètre suivi par d"
+components/profile/PublicProfileGallery.tsx: 2 FR literals
+  "├ëv├®nements"
+  "Aucun ├®v├®nement"
+components/profile/SecuritySection.tsx: 1 FR literals
+  "Le mot de passe doit contenir au moins 6 caract├¿res"
+components/shared/BugReportSheet.tsx: 10 FR literals
+  "Syst├¿me d"
+  "Version du syst├¿me d"
+  "Mod├¿le de l"
+  "Langue et r├®gion"
+  "R├®solution de l"
+  "Signalement envoy├®"
+  "est pass├® ?"
+  "${message.length}/${MAX_MESSAGE_LENGTH} caract├¿res"
+  "Masquer les d├®tails"
+  "Voir les donn├®es collect├®es"
+components/shared/CreateBottomSheet.tsx: 8 FR literals
+  "Priv├® / Public"
+  "├ëv├®nement"
+  "Club priv├®"
+  "Visible par tous, n├®cessite un profil public"
+  "├ëv├®nement priv├®"
+  "Accessible uniquement aux personnes invit├®es"
+  "├ëv├®nement public"
+  "Nouvel ├®v├®nement"
+components/shared/EditClubEventSheet.tsx: 2 FR literals
+  "├®v├®nement"
+  "Ex: Interm├®diaire"
+components/shared/InvitationButton.tsx: 2 FR literals
+  "Rejoins mon ├®v├®nement sur Pulse : ${link}"
+  "invitation g├®n├®r├®"
+components/shared/MembersListSheet.tsx: 1 FR literals
+  "cet ├®v├®nement"
+components/shared/ReportSheet.tsx: 6 FR literals
+  "identit├®"
+  "Harc├¿lement"
+  "Contenu inappropri├® / Spam"
+  "Signalement envoy├®"
+  "D├®crivez le probl├¿meÔÇª"
+  "${message.length}/${MAX_MESSAGE_LENGTH} caract├¿res"
+components/shared/SideRail.tsx: 1 FR literals
+  "Cr├®er"
+components/shared/SourceBadge.tsx: 1 FR literals
+  "Cr├®├® dans l"
+components/shared/TabBar.tsx: 2 FR literals
+  "Cr├®er"
+  "Barre de navigation ├á gauche"
+components/ui/ErrorState.tsx: 1 FR literals
+  "R├®essayer"
+hooks/useBlockUser.ts: 1 FR literals
+  "Utilisateur bloqu├®"
+hooks/useBugReport.ts: 1 FR literals
+  "Non connect├®"
+hooks/useChangePassword.ts: 2 FR literals
+  "Vous devez ├¬tre connect├®"
+  "Mot de passe modifi├® avec succ├¿s"
+hooks/useConversationActions.ts: 1 FR literals
+  "Non connect├®"
+hooks/useDeleteClub.ts: 2 FR literals
+  "Club supprim├®"
+  " a ├®t├® supprim├® par son cr├®ateur."
+hooks/useFeedTagSuggestions.ts: 7 FR literals
+  "derri├¿re"
+  "apr├¿s"
+  "tr├¿s"
+  "d├®j├á"
+  "o├╣"
+  "m├¬me"
+  "conna├«tre"
+hooks/useFollow.ts: 2 FR literals
+  "Nouvel abonn├®"
+  "un a commenc├® ├á te suivre."
+hooks/useInvitations.ts: 2 FR literals
+  "Non authentifi├®"
+  "Ce lien a expir├®."
+hooks/useLocation.ts: 2 FR literals
+  "Localisation d├®sactiv├®e"
+  "Active la localisation dans les param├¿tres pour voir les clubs et ├®v├®nements pr├¿s de toi."
+hooks/useNotifications.ts: 4 FR literals
+  "Demande accept├®e"
+  "Demande refus├®e"
+  "Ta demande a ├®t├® accept├®e"
+  "Ta demande a ├®t├® refus├®e"
+hooks/useRemoveClubMember.ts: 4 FR literals
+  "Retir├® d"
+  "Tu as ├®t├® retir├®(e) du club "
+  "Membre retir├® du club"
+  "Non autoris├®"
+hooks/useRemoveEventParticipant.ts: 4 FR literals
+  "Retir├® d"
+  "Tu as ├®t├® retir├®(e) de l"
+  "Participant retir├® de l"
+  "Non autoris├®"
+hooks/useReport.ts: 1 FR literals
+  "Non connect├®"
+hooks/useUpdateClub.ts: 5 FR literals
+  "Club modifi├®"
+  " a ├®t├® modifi├® : ${changes.join("
+  "Club mis ├á jour"
+  "Non autoris├®"
+  "Impossible de mettre ├á jour le club"
+hooks/useUpdateEvent.ts: 9 FR literals
+  "Date de d├®but"
+  "Difficult├®"
+  "Cat├®gorie"
+  "├ëv├®nement modifi├®"
+  "├®v├®nement "
+  " a ├®t├® modifi├® : ${changes.join("
+  "├ëv├®nement mis ├á jour"
+  "Non autoris├®"
+  "Impossible de mettre ├á jour l"
+utils/countries.ts: 54 FR literals
+  "Alg├®rie"
+  "Arm├®nie"
+  "Azerba├»djan"
+  "Bahre├»n"
+  "Bi├®lorussie"
+  "B├®nin"
+  "Bosnie-Herz├®govine"
+  "Br├®sil"
+  "R├®publique centrafricaine"
+  "R├®publique d├®mocratique du Congo"
+  "C├┤te d"
+  "Tch├®quie"
+  "R├®publique dominicaine"
+  "├ëquateur"
+  "├ëgypte"
+  "Guin├®e ├®quatoriale"
+  "├ërythr├®e"
+  "├ëthiopie"
+  "G├®orgie"
+  "Gr├¿ce"
+  ... and 34 more
+utils/localizeError.ts: 11 FR literals
+  "Au moins 8 caract├¿res"
+  "Un caract├¿re sp├®cial parmi !@#$%^&"
+  "3 caract├¿res minimum"
+  "30 caract├¿res maximum"
+  "S├®lectionne au moins un sport"
+  "Heure de d├®but requise"
+  "heure de fin doit ├¬tre apr├¿s l"
+  "Heure de d├®but invalide"
+  "Tu dois accepter la politique de confidentialit├®"
+  "500 caract├¿res maximum"
+  "0 caract├¿res maximum"
+utils/validation.ts: 10 FR literals
+  "Au moins 8 caract├¿res"
+  "Un caract├¿re sp├®cial parmi !@#$%^&"
+  "3 caract├¿res minimum"
+  "30 caract├¿res maximum"
+  "heure de fin doit ├¬tre apr├¿s l"
+  "500 caract├¿res maximum"
+  "Tu dois accepter la politique de confidentialit├®"
+  "Description minimum 50 caract├¿res"
+  "Date de d├®but requise"
+  "La date de fin doit ├¬tre post├®rieure ├á la date de d├®but"
+lib/constants.ts: 53 FR literals
+  "Course ├á pied"
+  "D├®butant"
+  "Interm├®diaire"
+  "Confirm├®"
+  "Comp├®tition"
+  "├ëlite"
+  "Entra├«nement structur├®"
+  "R├®gional"
+  "D├®couverte"
+  "Comp├®tition UCI amateur"
+  "Ma├«tre"
+  "Comp├®tition r├®gionale"
+  "Comp├®tition nationale"
+  "4e s├®rie"
+  "3e s├®rie"
+  "2e s├®rie"
+  "1re s├®rie"
+  "Pr├®paration athl├®tique"
+  "├ëcole de rugby"
+  "F├®d├®rale 3"
+  ... and 33 more
+lib/i18n.ts: 1 FR literals
+  "Course ├á pied"
+lib/legalContent.ts: 31 FR literals
+  "utilisation (les ┬½ Conditions ┬╗) r├®gissent l"
+  "application Pulse (le ┬½ Service ┬╗), ├®dit├®e par Maximilien MONTANT (l"
+  "┬½ Utilisateur ┬╗, ┬½ vous ┬╗) acceptez ces Conditions dans leur int├®gralit├®. Si vous n"
+  "accord de votre repr├®sentant l├®gal si la loi qui vous est applicable l"
+  "identit├® d"
+  "ensemble des contenus ├®dit├®s par nous (hors Contenu Utilisateur) sont notre propri├®t├® ou font l"
+  "├®tat ┬╗** et **┬½ selon disponibilit├® ┬╗**, sans garantie de fonctionnement ininterrompu ou exempt d"
+  "elle peut ├¬tre engag├®e, est limit├®e aux dommages directs et pr├®visibles ; nous excluons les dommages indirects (perte de donn├®es, de profits, pr├®judice moral, etc.), sauf faute intentionnelle ou lourde de notre part, ou lorsque la loi applicable ne permet pas une telle limitation (par exemple ├á l"
+  "atteinte ├á la s├®curit├® ou de violation grave. Il n"
+  "acc├¿s au Service, retrait du contenu visible par les autres utilisateurs. Certaines obligations survivent ├á la fermeture du compte, notamment celles li├®es ├á la s├®curit├®, ├á la gestion d"
+  "Union europ├®enne, les dispositions imp├®ratives de protection des consommateurs de votre pays de r├®sidence continuent de s"
+  "inscription (nom, e-mail, ├óge, sports pratiqu├®s, etc.) pour faire fonctionner l"
+  "application et PostHog pour comprendre comment elle est utilis├®e. Vous pouvez ├á tout moment demander l"
+  "est d├®sign├® ├á ce stade ; toute question relative ├á vos donn├®es peut ├¬tre adress├®e directement ├á l"
+  "usage | Donn├®es d"
+  "application (par exemple un assistant de codage utilis├® par le d├®veloppeur, ou des biblioth├¿ques techniques qui s"
+  "Espace ├®conomique europ├®en, ce transfert est encadr├® par les garanties pr├®vues par le RGPD, notamment les clauses contractuelles types de la Commission europ├®enne. L"
+  "export de vos donn├®es dans un format lisible (par exemple JSON ou CSV) en nous contactant ├á l"
+  "est pas destin├® aux personnes de moins de 16 ans. Si nous apprenons qu"
+  "application. Sur la version web, si des cookies ou traceurs non essentiels sont utilis├®s, votre consentement vous sera demand├® conform├®ment ├á la r├®glementation applicable, et vous pourrez le refuser sans perdre l"
+  ... and 11 more
+lib/legalDocuments.ts: 4 FR literals
+  "Politique de confidentialit├®"
+  "Politique de mod├®ration"
+  "Comment signaler un probl├¿me"
+  "Mentions l├®gales"
+lib/localizedData.ts: 31 FR literals
+  "Course ├á pied"
+  "Entra├«nement structur├®"
+  "Club comp├®tition"
+  "Comp├®tition UCI amateur"
+  "Comp├®tition r├®gionale"
+  "Comp├®tition nationale"
+  "4e s├®rie"
+  "3e s├®rie"
+  "2e s├®rie"
+  "1re s├®rie"
+  "Pr├®paration athl├®tique"
+  "├ëcole de rugby"
+  "F├®d├®rale 3"
+  "F├®d├®rale 2"
+  "F├®d├®rale 1"
+  "Foot ├á 5/7"
+  "Entra├«nement technique"
+  "Padel en compl├®ment"
+  "Comp├®tition ITF"
+  "Pr├®pa triathlon"
+  ... and 11 more
+lib/translations.ts: 176 FR literals
+  "R├®essayer"
+  "Termin├®"
+  "Fran├ºais"
+  "Aucun r├®sultat"
+  "├ëv├®nement"
+  "Priv├®"
+  "Un profil public permet de cr├®er des posts visibles par tous."
+  "Cette action est irr├®versible."
+  "Mis ├á jour"
+  "D├®tails"
+  "Masquer les d├®tails"
+  "├ëpingler"
+  "D├®s├®pingler"
+  "Bloqu├®"
+  "D├®bloquer"
+  "R├®pondre"
+  "├Ç l"
+  "├ëv├®nement programm├®"
+  "Course ├á pied"
+  "R├®cent"
+  ... and 156 more

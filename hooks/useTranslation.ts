@@ -24,3 +24,21 @@ export function useTranslation() {
 
   return { t, language };
 }
+
+/**
+ * Standalone translator usable outside React components (module-level
+ * constants, hooks helpers, error messages). Reads the current language
+ * non-reactively from the zustand store. Prefer `useTranslation()` inside
+ * components so the UI re-renders on language change.
+ */
+export function t(key: TranslationKey, variables?: Record<string, string | number>) {
+  const language = useLanguageStore.getState().language;
+  const template = translations[language][key] ?? key;
+  if (variables) {
+    return Object.entries(variables).reduce(
+      (str, [k, v]) => str.replaceAll(`{${k}}`, String(v)),
+      template
+    );
+  }
+  return template;
+}

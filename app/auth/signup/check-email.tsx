@@ -4,7 +4,7 @@ import { Header } from "@/components/shared/Header";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { Icon } from "@/components/ui/Icon";
 import { useSignupStore } from "@/stores/signupStore";
 

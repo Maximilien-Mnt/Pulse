@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 import { blue } from "@/src/design-tokens/primitive/colors";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";

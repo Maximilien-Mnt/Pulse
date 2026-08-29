@@ -1,0 +1,22 @@
+  if (n.title) return n.title;
+  switch (n.type) {
+    case "club_join_request":
+      return "Demande d'adhésion";
+    case "event_join_request":
+      return "Demande de participation";
+    case "club_join_request_response_accept":
+      return "{t("notifications.type.clubJoinRequestResponseAccept")}";
+    case "event_join_request_response_accept":
+      return "{t("notifications.type.eventJoinRequestResponseAccept")}";
+    case "club_join_request_response_refuse":
+      return "{t("notifications.type.clubJoinRequestResponseRefuse")}";
+    case "event_join_request_response_refuse":
+      return "{t("notifications.type.eventJoinRequestResponseRefuse")}";
+    case "conversation_deleted":
+      return "{t("notifications.type.conversationDeleted")}";
+    default:
+      return "Notification";
+  }
+}
+
+export default function ProfileNotificationsScreen() {

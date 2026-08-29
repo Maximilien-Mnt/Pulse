@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 // Hours available for selection (6 AM → 11 PM)
 const HOURS = Array.from({ length: 24 - 6 }, (_, i) => 6 + i);
@@ -199,7 +199,7 @@ export default function SignupStep3() {
           {entries.map((e) => {
             const id = e.sportId;
             const expanded = !collapsed[id];
-            const summary = `${e.level} · ${e.practice} · ${e.timeSlots.length} créneau${e.timeSlots.length > 1 ? "x" : ""}`;
+            const summary = `${e.level} · ${e.practice} · ${t("signup.sportSummary", { slots: e.timeSlots.length })}`;
             return (
               <View
                 key={id}

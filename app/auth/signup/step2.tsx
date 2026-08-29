@@ -17,7 +17,7 @@ import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 type Form = z.infer<typeof signupStep2Schema>;
 

@@ -15,7 +15,7 @@ import { useSignupStore } from "@/stores/signupStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -111,9 +111,9 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Préférences */}
+        {/* {t("settings.section.preferences")} */}
         <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
-          Préférences
+          {t("settings.section.preferences")}
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
           {/* Dark mode toggle */}
@@ -121,7 +121,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-center gap-3">
               <Icon name="Settings" size={20} color="text-secondary" />
               <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                Mode sombre
+                {t("settings.darkMode")}
               </Text>
             </View>
             <Switch
@@ -158,7 +158,7 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Sécurité */}
+        {/* {t("security.title")} */}
         <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
           Sécurité
         </Text>
@@ -166,7 +166,7 @@ export default function SettingsScreen() {
           <SecuritySection email={profile?.email ?? ""} />
         </View>
 
-         {/* Session */}
+         {/* {t("common.session")} */}
          <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
            Session
          </Text>
@@ -176,10 +176,10 @@ export default function SettingsScreen() {
            loading={signingOut}
            className="w-full mb-4"
          >
-           Se déconnecter
+           {t("common.signOut")}
          </Button>
 
-          {/* Support */}
+          {/* {t("settings.section.support")} */}
           <Text className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
             Support
           </Text>
@@ -189,7 +189,7 @@ export default function SettingsScreen() {
             className="mb-4"
             icon="Bug"
           >
-            Signaler un bug
+            {t("common.reportBug")}
           </Button>
 
         {/* Juridique */}
@@ -218,17 +218,17 @@ export default function SettingsScreen() {
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
           <Pressable
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "02-politique-confidentialite.md", title: "Politique de confidentialité" } })}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "02-politique-confidentialite.md", title: t("legal.privacy.title") } })}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
               <Icon name="Shield" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Politique de confidentialité
+                  {t("legal.privacy.title")}
                 </Text>
                 <Text className="text-xs text-neutral-500 mt-0.5">
-                  Données personnelles et vie privée
+                  {t("legal.privacy.subtitle")}
                 </Text>
               </View>
             </View>
@@ -258,17 +258,17 @@ export default function SettingsScreen() {
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
           <Pressable
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: "Politique de modération" } })}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: t("legal.moderation.title") } })}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
               <Icon name="FileText" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Comment signaler un problème
+                  {t("bug.report.title")}
                 </Text>
                 <Text className="text-xs text-neutral-500 mt-0.5">
-                  Procédure pour les problèmes techniques
+                  {t("bug.report.subtitle")}
                 </Text>
               </View>
             </View>
@@ -278,17 +278,17 @@ export default function SettingsScreen() {
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
           <Pressable
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: "Politique de modération" } })}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: t("legal.moderation.title") } })}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
               <Icon name="Users" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Politique de modération
+                  {t("legal.moderation.title")}
                 </Text>
                 <Text className="text-xs text-neutral-500 mt-0.5">
-                  Règles de communauté et contenu
+                  {t("legal.moderation.subtitle")}
                 </Text>
               </View>
             </View>
@@ -298,17 +298,17 @@ export default function SettingsScreen() {
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
           <Pressable
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "05-mentions-legales.md", title: "Mentions légales" } })}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "05-mentions-legales.md", title: t("legal.legalNotices.title") } })}
             className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
           >
             <View className="flex-row items-center gap-3">
               <Icon name="Info" size={20} color="text-secondary" />
               <View>
                 <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Mentions légales
+                  {t("legal.legalNotices.title")}
                 </Text>
                 <Text className="text-xs text-neutral-500 mt-0.5">
-                  Éditeur et coordonnées
+                  {t("legal.legalNotices.subtitle")}
                 </Text>
               </View>
             </View>
@@ -316,16 +316,16 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Zone dangereuse */}
+        {/* {t("settings.section.danger")} */}
         <Text className="text-sm font-semibold text-error mb-2">
-          Zone dangereuse
+          {t("settings.section.danger")}
         </Text>
         <Button
           variant="destructive"
           onPress={() => setDeleteOpen(true)}
           className="w-full"
         >
-          Supprimer mon compte
+          {t("settings.deleteAccount")}
         </Button>
 
         {/* App version */}

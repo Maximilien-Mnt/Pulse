@@ -6,9 +6,11 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { BackButton } from "@/components/ui/BackButton";
+import { useTranslation , t } from "@/hooks/useTranslation";
 
 export default function PublicLegalHubScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const iconMap: Record<LegalSlug, IconName> = {
     terms: "FileText",
@@ -26,7 +28,7 @@ export default function PublicLegalHubScreen() {
         <View className="flex-row items-center gap-3">
           <BackButton fallbackRoute="/" />
           <Text className="flex-1 text-center text-lg font-bold text-neutral-900 dark:text-neutral-50">
-            Informations légales
+            {t("legal.title")}
           </Text>
           <View className="w-11" />
         </View>

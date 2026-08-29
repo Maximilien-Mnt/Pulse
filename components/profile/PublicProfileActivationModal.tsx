@@ -11,6 +11,7 @@ import { Image } from "expo-image";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -75,7 +76,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
     },
     onSuccess: () => {
       posthog.capture("public_profile_activated", { sports_count: sports.length, photos_count: photos.length });
-      Toast.show({ type: "success", text1: "Profil public activé !" });
+      Toast.show({ type: "success", text1: t("profile.goPublic.done") });
       setStep("intro");
       setStatusMap({});
       setPhotos([]);
@@ -109,7 +110,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
       <View className="flex-1 bg-black/50 justify-end">
         <View className="bg-white dark:bg-neutral-900 rounded-t-3xl p-4 max-h-[90%]">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-50">Profil public</Text>
+            <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-50">{t("profile.goPublic.title")}</Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={24} color="#64748B" />
             </Pressable>
@@ -119,13 +120,13 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
             {step === "intro" && (
               <View>
                 <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-4">
-                  Active ton profil public pour :
+                  {t("profile.goPublic.intro")}
                 </Text>
                 {[
-                  "Publier des posts visibles par la communauté",
-                  "Créer des clubs et événements publics",
-                  "Être suivi par d'autres sportifs",
-                  "Recevoir des messages via ta liste publique",
+                  t("profile.goPublic.posts"),
+                  t("profile.goPublic.clubs"),
+                  t("profile.goPublic.discoverable"),
+                  t("profile.goPublic.messages"),
                 ].map((t) => (
                   <View key={t} className="flex-row items-start gap-2 mb-2">
                     <Ionicons name="checkmark-circle" size={20} color="#1E6BFF" />
@@ -133,7 +134,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
                   </View>
                 ))}
                 <Text className="text-sm text-warning mt-4">
-                  Attention : une fois activé, le profil public ne peut pas être désactivé.
+                  {t("profile.goPublic.warning")}
                 </Text>
               </View>
             )}
@@ -141,7 +142,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
             {step === "status" && (
               <View>
                 <Text className="text-base text-neutral-700 dark:text-neutral-200 mb-4">
-                  Choisis ton statut public pour chaque sport pratiqué :
+                  {t("profile.goPublic.statusHeader")}
                 </Text>
                 {sports.map((s) => (
                   <View key={s.id} className="mb-4">

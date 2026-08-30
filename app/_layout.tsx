@@ -73,27 +73,56 @@ export default function RootLayout() {
   const params = useGlobalSearchParams();
   const previousPathname = useRef<string | undefined>(undefined);
 
-  const [outfitLoaded] = useOutfitFonts({
+  const [outfitLoaded, outfitError] = useOutfitFonts({
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
   });
-  const [spaceGroteskLoaded] = useSpaceGroteskFonts({
+  const [spaceGroteskLoaded, spaceGroteskError] = useSpaceGroteskFonts({
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
   });
-  const [interLoaded] = useInterFonts({
+  const [interLoaded, interError] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
   const loaded = outfitLoaded && spaceGroteskLoaded && interLoaded;
+  const fontError = outfitError ?? spaceGroteskError ?? interError;
 
+  // Hide the splash screen once fonts are loaded.
+  // On web, also hide it when fonts fail to load so the app doesn't
+  // stay on a blank splash screen forever. The Tailwind fontFamily
+  // entries include system-font fallbacks (e.g. ["Outfit_400Regular", "sans-serif"]),
+  // so the UI remains fully usable even with fallback fonts.
   useEffect(() => {
-    if (loaded) void SplashScreen.hideAsync();
-  }, [loaded]);
+    if (loaded) {
+      void SplashScreen.hideAsync();
+      return;
+    }
+    if (Platform.OS === "web" && fontError) {
+      console.warn(
+        "[RootLayout] Font loading failed on web; falling back to system fonts:",
+        String(fontError),
+      );
+      void SplashScreen.hideAsync();
+    }
+  }, [loaded, fontError]);
+
+  // Safety net: on web, if fonts haven't loaded within 10 seconds,
+  // proceed anyway so the user sees the app instead of a blank screen.
+  useEffect(() => {
+    if (Platform.OS !== "web" || loaded || fontError) return;
+    const timer = setTimeout(() => {
+      console.warn(
+        "[RootLayout] Font loading timed out on web; falling back to system fonts",
+      );
+      void SplashScreen.hideAsync();
+    }, 10_000);
+    return () => clearTimeout(timer);
+  }, [loaded, fontError]);
 
   // Hydrate theme preference and navbar layout preference from storage on start.
   useEffect(() => {
@@ -153,15 +182,13 @@ export default function RootLayout() {
     }
   }, [pathname, params]);
 
+  // On native, block rendering until fonts are fully loaded.
   if (!loaded && Platform.OS !== "web") return null;
 
-  if (!loaded) {
-    return (
-      <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
-        <StatusBar style={isDark ? "light" : "dark"} />
-      </View>
-    );
-  }
+  // On web, always render the full app even if fonts failed to load.
+  // The Tailwind fontFamily entries include system-font fallbacks
+  // (e.g. ["Outfit_400Regular", "sans-serif"]), so the UI remains
+  // usable while the splash screen is hidden via the timeout/error path above.
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

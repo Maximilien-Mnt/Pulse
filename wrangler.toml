@@ -1,0 +1,6 @@
+# Cloudflare Pages configuration
+# https://developers.cloudflare.com/pages/
+
+[build]
+  command = "npx expo export --platform web"
+  output_dir = "dist"

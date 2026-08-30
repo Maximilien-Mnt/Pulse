@@ -13,10 +13,21 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { NativeDateField } from "@/components/ui/NativeDateField";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { BackButton } from "@/components/ui/BackButton";
 import { t } from "@/hooks/useTranslation";
+
+function formatEventDateTime(d: Date): string {
+  return d.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function CreatePrivateEventScreen() {
   const router = useRouter();
@@ -29,8 +40,6 @@ export default function CreatePrivateEventScreen() {
   const [venue, setVenue] = useState("");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
   const [endDateError, setEndDateError] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [invitees, setInvitees] = useState<string[]>([]);
@@ -193,75 +202,59 @@ export default function CreatePrivateEventScreen() {
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
             Date de début *
           </Text>
-          <Pressable
-            onPress={() => setShowStartPicker(true)}
-            className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
-          >
-            <Text className="text-neutral-900 dark:text-neutral-50">
-              {startDate.toLocaleDateString("fr-FR", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </Text>
-          </Pressable>
-          {showStartPicker && (
-            <DateTimePicker
-              value={startDate}
-              mode="datetime"
-              onChange={(_, date) => {
-                setShowStartPicker(false);
-                if (date) {
-                  setStartDate(date);
-                  if (endDate && date >= endDate) {
-                    setEndDate(null);
-                    setEndDateError(t("events.endAfterStart"));
-                  }
-                }
-              }}
-            />
-          )}
+          <NativeDateField
+            mode="datetime"
+            value={startDate}
+            onChange={(d) => {
+              setStartDate(d);
+              if (endDate && d >= endDate) {
+                setEndDate(null);
+                setEndDateError(t("events.endAfterStart"));
+              }
+            }}
+            title="Date de début"
+            confirmLabel={t("common.ok")}
+            cancelLabel={t("common.cancel")}
+            renderTrigger={() => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Date de début"
+                className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
+              >
+                <Text className="text-neutral-900 dark:text-neutral-50">{formatEventDateTime(startDate)}</Text>
+              </Pressable>
+            )}
+          />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
             Date de fin (optionnel)
           </Text>
-          <Pressable
-            onPress={() => setShowEndPicker(true)}
-            className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
-          >
-            <Text className="text-neutral-900 dark:text-neutral-50">
-              {endDate
-                ? endDate.toLocaleDateString("fr-FR", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : t("updateEvent.dateLabel")}
-            </Text>
-          </Pressable>
-          {showEndPicker && (
-            <DateTimePicker
-              value={endDate ?? new Date()}
-              mode="datetime"
-              onChange={(_, date) => {
-                setShowEndPicker(false);
-                if (date) {
-                  if (date <= startDate) {
-                    setEndDateError(t("events.endAfterStart"));
-                  } else {
-                    setEndDateError("");
-                    setEndDate(date);
-                  }
-                }
-              }}
-            />
-          )}
+          <NativeDateField
+            mode="datetime"
+            value={endDate ?? startDate}
+            onChange={(d) => {
+              if (d <= startDate) {
+                setEndDateError(t("events.endAfterStart"));
+              } else {
+                setEndDateError("");
+                setEndDate(d);
+              }
+            }}
+            title="Date de fin"
+            confirmLabel={t("common.ok")}
+            cancelLabel={t("common.cancel")}
+            renderTrigger={() => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Date de fin"
+                className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
+              >
+                <Text className="text-neutral-900 dark:text-neutral-50">
+                  {endDate ? formatEventDateTime(endDate) : t("updateEvent.dateLabel")}
+                </Text>
+              </Pressable>
+            )}
+          />
           {endDateError ? (
             <Text className="text-error text-sm mb-4">{endDateError}</Text>
           ) : null}

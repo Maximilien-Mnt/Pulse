@@ -44,7 +44,7 @@ function isValidPayload(raw: unknown): {
       sportId: string;
       level: string;
       practice: string;
-      timeSlots: { weekday: number; startHour: number; endHour: number }[];
+      timeSlots?: { weekday: number; startHour: number; endHour: number }[];
       levelOther?: string;
       practiceOther?: string;
     }[];
@@ -104,23 +104,37 @@ function isValidPayload(raw: unknown): {
     return { ok: false, error: "Invalid payload" };
   }
 
-  if (!Array.isArray(sports) || sports.length === 0) {
-    return { ok: false, error: "Invalid payload" };
-  }
-
+  // The `sports` array was already validated as an array above. It may be empty
+  // ("Aucun sport" path) which is a valid signup.
   for (const s of sports) {
     if (
       typeof s !== "object" ||
       s === null ||
       typeof (s as any).sportId !== "string" ||
       typeof (s as any).level !== "string" ||
-      typeof (s as any).practice !== "string" ||
-      !Array.isArray((s as any).timeSlots) ||
-      typeof (s as any).timeSlots[0]?.weekday !== "number" ||
-      typeof (s as any).timeSlots[0]?.startHour !== "number" ||
-      typeof (s as any).timeSlots[0]?.endHour !== "number"
+      typeof (s as any).practice !== "string"
     ) {
       return { ok: false, error: "Invalid payload" };
+    }
+    // timeSlots is optional: users may sign up with practiced sports but no
+    // availability windows. When present it must be an array of complete
+    // slots: { weekday: number, startHour: number, endHour: number }.
+    const timeSlots = (s as any).timeSlots;
+    if (timeSlots !== undefined) {
+      if (!Array.isArray(timeSlots)) {
+        return { ok: false, error: "Invalid payload" };
+      }
+      for (const slot of timeSlots) {
+        if (
+          typeof slot !== "object" ||
+          slot === null ||
+          typeof (slot as any).weekday !== "number" ||
+          typeof (slot as any).startHour !== "number" ||
+          typeof (slot as any).endHour !== "number"
+        ) {
+          return { ok: false, error: "Invalid payload" };
+        }
+      }
     }
   }
 
@@ -266,7 +280,7 @@ Deno.serve(async (req) => {
       sport_id: s.sportId,
       level: s.level,
       practice: s.practice,
-      time_slots: s.timeSlots.map((slot) => ({
+      time_slots: (s.timeSlots ?? []).map((slot) => ({
         weekday: slot.weekday,
         startHour: slot.startHour,
         endHour: slot.endHour,

@@ -39,8 +39,6 @@ export default function SignupStep4() {
   const { t } = useTranslation();
   const setStep4 = useSignupStore((s) => s.setStep4);
   const step4 = useSignupStore((s) => s.step4);
-  const [heightOpen, setHeightOpen] = useState(false);
-  const [weightOpen, setWeightOpen] = useState(false);
   const mounted = useRef(false);
   const [objectivesDetails, setObjectivesDetails] = useState(step4?.objectivesDetails ?? "");
   const { control, handleSubmit, watch, setValue } = useForm<Form>({
@@ -181,28 +179,23 @@ export default function SignupStep4() {
             name="heightCm"
             render={({ field: { value, onChange } }) => (
               <View className="flex-1">
-                {!heightOpen ? (
-                  <Pressable
-                    onPress={() => setHeightOpen(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("signup.step4.height")}
-                    className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
-                  >
-                    <Text className="text-base text-text-primary">
-                      {value ? `${value} cm` : t("signup.step4.height") + " " + t("signup.optional")}
-                    </Text>
-                    <Text className="text-text-tertiary text-lg">›</Text>
-                  </Pressable>
-                ) : (
-                  <NativePicker
-                    visible={heightOpen}
-                    title={t("signup.step4.height")}
-                    options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: `${100 + i} cm` }))}
-                    selectedValue={value ?? ""}
-                    onSelect={(v) => onChange(v as string)}
-                    onClose={() => setHeightOpen(false)}
-                  />
-                )}
+                <NativePicker
+                  title={t("signup.step4.height")}
+                  options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: `${100 + i} cm` }))}
+                  selectedValue={value ?? ""}
+                  onSelect={(v) => onChange(v as string)}
+                  placeholder={`${t("signup.step4.height")} ${t("signup.optional")}`}
+                  renderTrigger={(label) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t("signup.step4.height")}
+                      className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between"
+                    >
+                      <Text className={`text-base ${value ? "text-text-primary" : "text-text-tertiary"}`}>{label}</Text>
+                      <Text className="text-text-tertiary text-lg">›</Text>
+                    </Pressable>
+                  )}
+                />
               </View>
             )}
           />
@@ -211,28 +204,23 @@ export default function SignupStep4() {
             name="weightKg"
             render={({ field: { value, onChange } }) => (
               <View className="flex-1">
-                {!weightOpen ? (
-                  <Pressable
-                    onPress={() => setWeightOpen(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("signup.step4.weight")}
-                    className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between active:opacity-70"
-                  >
-                    <Text className="text-base text-text-primary">
-                      {value ? `${value} kg` : t("signup.step4.weight") + " " + t("signup.optional")}
-                    </Text>
-                    <Text className="text-text-tertiary text-lg">›</Text>
-                  </Pressable>
-                ) : (
-                  <NativePicker
-                    visible={weightOpen}
-                    title={t("signup.step4.weight")}
-                    options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: `${30 + i} kg` }))}
-                    selectedValue={value ?? ""}
-                    onSelect={(v) => onChange(v as string)}
-                    onClose={() => setWeightOpen(false)}
-                  />
-                )}
+                <NativePicker
+                  title={t("signup.step4.weight")}
+                  options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: `${30 + i} kg` }))}
+                  selectedValue={value ?? ""}
+                  onSelect={(v) => onChange(v as string)}
+                  placeholder={`${t("signup.step4.weight")} ${t("signup.optional")}`}
+                  renderTrigger={(label) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t("signup.step4.weight")}
+                      className="border-[1.5px] border-border bg-surface px-4 h-12 rounded-sm flex-row items-center justify-between"
+                    >
+                      <Text className={`text-base ${value ? "text-text-primary" : "text-text-tertiary"}`}>{label}</Text>
+                      <Text className="text-text-tertiary text-lg">›</Text>
+                    </Pressable>
+                  )}
+                />
               </View>
             )}
           />

@@ -77,14 +77,14 @@ export const signupStep3Schema = z
           levelOther: z.string().optional(),
           practiceOther: z.string().optional(),
           timeSlots: z
-          .array(
-            z.object({
-              weekday: z.number().int().min(0).max(6).optional(),
-              startHour: z.number().int().min(6).max(21).optional(),
-              endHour: z.number().int().min(7).max(23).optional(),
-            })
-          )
-          .optional(),
+            .array(
+              z.object({
+                weekday: z.number().int().min(0).max(6),
+                startHour: z.number().int().min(6).max(23),
+                endHour: z.number().int().min(6).max(23),
+              })
+            )
+            .optional(),
 
         })
       )

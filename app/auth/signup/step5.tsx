@@ -23,7 +23,9 @@ import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import { useTranslation , t } from "@/hooks/useTranslation";
+import { Icon } from "@/components/ui/Icon";
 import { signupEdgeFunctionUrl } from "@/lib/supabase";
+import { getSignupErrorKey, getSignupMissingFields } from "@/utils/signupChecklist";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
@@ -86,6 +88,10 @@ export default function SignupStep5() {
   const bio = watch("bio");
   const discovery = watch("discovery");
   const discoveryDetails = watch("discoveryDetails");
+  const acceptTerms = watch("acceptTerms");
+  const acceptPrivacy = watch("acceptPrivacy");
+  const [attempted, setAttempted] = useState(false);
+  const missing = getSignupMissingFields({ acceptTerms, acceptPrivacy });
 
   useEffect(() => {
     if (!mounted.current) {
@@ -116,8 +122,21 @@ export default function SignupStep5() {
   };
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!step1 || !step2 || !step3.length || !step4) {
-      Toast.show({ type: "error", text1: t("error.incompleteSignup") });
+    const issues = getSignupMissingFields({
+      acceptTerms: values.acceptTerms,
+      acceptPrivacy: values.acceptPrivacy,
+    });
+    if (issues.length > 0) {
+      setAttempted(true);
+      Toast.show({ type: "error", text1: t("signup.missing.title") });
+      return;
+    }
+
+    // Safety net: the checklist above already blocks when these are missing,
+    // but we keep an explicit guard so TypeScript can narrow them below.
+    if (!step1 || !step2 || !step4) {
+      setAttempted(true);
+      Toast.show({ type: "error", text1: t("signup.missing.title") });
       return;
     }
 
@@ -217,12 +236,25 @@ export default function SignupStep5() {
       Toast.show({ type: "success", text1: t("toast.accountCreated") });
       router.replace("/(tabs)/feed");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : t("error.generic");
-      Toast.show({ type: "error", text1: msg });
+      const msg = e instanceof Error ? e.message : "signup_failed";
+      Toast.show({ type: "error", text1: t(getSignupErrorKey(msg)) });
     } finally {
       setSubmitting(false);
     }
   });
+
+  const handleCreateAccountPress = () => {
+    const issues = getSignupMissingFields({
+      acceptTerms: watch("acceptTerms"),
+      acceptPrivacy: watch("acceptPrivacy"),
+    });
+    setAttempted(true);
+    if (issues.length > 0) {
+      Toast.show({ type: "error", text1: t("signup.missing.title") });
+      return;
+    }
+    onSubmit();
+  };
 
   return (
     <SafeScreen edges={["top"]} className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
@@ -374,6 +406,34 @@ export default function SignupStep5() {
             <Text className="text-error text-sm mb-2">{localizeError(errors.acceptPrivacy.message, language)}</Text>
           ) : null}
 
+          {attempted && missing.length > 0 ? (
+            <View className="mt-6 rounded-2xl border border-error/30 bg-error/5 p-4">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Icon name="AlertCircle" size={20} color="error-500" />
+                <Text className="flex-1 text-sm font-semibold text-error">{t("signup.missing.title")}</Text>
+              </View>
+              {missing.map((issue, i) => (
+                <Pressable
+                  key={`${issue.step}-${i}`}
+                  onPress={() => {
+                    if (issue.labelKey === "signup.missing.terms") {
+                      router.push("/auth/signup/legal?document=terms");
+                    } else if (issue.labelKey === "signup.missing.privacy") {
+                      router.push("/auth/signup/legal?document=privacy");
+                    } else {
+                      router.push(`/auth/signup/step${issue.step}`);
+                    }
+                  }}
+                  accessibilityRole="button"
+                  className="flex-row items-center py-2"
+                >
+                  <Text className="flex-1 text-sm text-error pr-2">{t(issue.labelKey)}</Text>
+                  <Icon name="ChevronRight" size={16} color="text-tertiary" />
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
           <View className="flex-row items-center justify-between gap-3 mt-6">
           <Button
   title={t("signup.back")}
@@ -386,7 +446,13 @@ export default function SignupStep5() {
   }}
 />
 
-            <Button title={t("signup.step5.createAccount")} size="lg" iconRight="ChevronRight" onPress={onSubmit} loading={submitting} />
+            <Button
+              title={t("signup.step5.createAccount")}
+              size="lg"
+              iconRight="ChevronRight"
+              onPress={handleCreateAccountPress}
+              loading={submitting}
+            />
           </View>
       </ScrollView>
       </KeyboardAvoidingView>

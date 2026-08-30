@@ -31,27 +31,24 @@ export default function SignupStep3() {
   const { t } = useTranslation();
   const setStep3 = useSignupStore((s) => s.setStep3);
   const storeStep3 = useSignupStore((s) => s.step3);
+  const setStep3NoSport = useSignupStore((s) => s.setStep3NoSport);
+  const storeStep3NoSport = useSignupStore((s) => s.step3NoSport);
   const initialized = useRef(false);
   const mounted = useRef(false);
   const [entries, setEntries] = useState<SignupSportSelection[]>([]);
   const [noSport, setNoSport] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [hourPickerOpen, setHourPickerOpen] = useState<{
-    sportId: SportId;
-    field: "startHour" | "endHour";
-    slotIndex: number;
-  } | null>(null);
 
   const toggleCollapsed = (id: string) => {
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   useEffect(() => {
-    if (!initialized.current && storeStep3.length > 0) {
-      initialized.current = true;
-      setEntries(storeStep3);
-    }
-  }, [storeStep3]);
+    if (initialized.current) return;
+    initialized.current = true;
+    if (storeStep3.length > 0) setEntries(storeStep3);
+    setNoSport(storeStep3NoSport);
+  }, [storeStep3, storeStep3NoSport]);
 
   useEffect(() => {
     if (!mounted.current) {
@@ -63,6 +60,7 @@ export default function SignupStep3() {
 
   const toggleSport = (id: SportId) => {
     setNoSport(false);
+    setStep3NoSport(false);
     setEntries((prev) => {
       const exists = prev.find((p) => p.sportId === id);
       if (exists) return prev.filter((p) => p.sportId !== id);
@@ -74,7 +72,7 @@ export default function SignupStep3() {
           sportId: id,
           level: levels[0] ?? "",
           practice: practices[0] ?? "",
-          timeSlots: [{ weekday: 1, startHour: 8, endHour: 20 }],
+          timeSlots: [],
           levelOther: "",
           practiceOther: "",
         },
@@ -83,8 +81,10 @@ export default function SignupStep3() {
   };
 
   const toggleNoSport = () => {
-    setNoSport((v) => !v);
-    if (!noSport) {
+    const next = !noSport;
+    setNoSport(next);
+    setStep3NoSport(next);
+    if (next) {
       setEntries([]);
     }
   };
@@ -199,7 +199,9 @@ export default function SignupStep3() {
           {entries.map((e) => {
             const id = e.sportId;
             const expanded = !collapsed[id];
-            const summary = `${e.level} · ${e.practice} · ${t("signup.sportSummary", { slots: e.timeSlots.length })}`;
+            const slotCount = e.timeSlots.length;
+            const slotLabel = slotCount > 0 ? ` · ${slotCount} ${t(slotCount > 1 ? "signup.slot.many" : "signup.slot.one")}` : "";
+            const summary = `${e.level} · ${e.practice}${slotLabel}`;
             return (
               <View
                 key={id}
@@ -306,9 +308,11 @@ export default function SignupStep3() {
                       )}
                     </View>
 
-                    {/* Time slots */}
+                    {/* Time slots (optional) */}
                     <View className="mt-4">
-                      <Text className="text-sm text-neutral-500 mb-1">Créneaux horaires</Text>
+                      <Text className="text-sm text-neutral-500 mb-1">
+                        {t("signup.step3.availability")} {t("signup.optional")}
+                      </Text>
                       {e.timeSlots.map((slot, idx) => (
                         <View
                           key={idx}
@@ -344,43 +348,55 @@ export default function SignupStep3() {
                           </View>
 
                           <View className="flex-row gap-2 items-center">
-                            <Pressable
-                              onPress={() =>
-                                setHourPickerOpen({
-                                  sportId: id,
-                                  field: "startHour",
-                                  slotIndex: idx,
-                                })
-                              }
-                              accessibilityRole="button"
-                              className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
-                            >
-                              <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
-                                {formatHour(slot.startHour)}
-                              </Text>
-                              <Text className="text-xs text-neutral-400 dark:text-neutral-500">
-                                {t("signup.step3.start")}
-                              </Text>
-                            </Pressable>
+                            <View className="flex-1">
+                              <NativePicker
+                                title={t("signup.step3.hourStartTitle")}
+                                confirmLabel={t("common.ok")}
+                                cancelLabel={t("common.cancel")}
+                                options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
+                                selectedValue={slot.startHour}
+                                onSelect={(h) => updateSlot(id, idx, { startHour: typeof h === "string" ? Number(h) : h })}
+                                renderTrigger={(label) => (
+                                  <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t("signup.step3.start")}
+                                    className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center"
+                                  >
+                                    <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                      {label}
+                                    </Text>
+                                    <Text className="text-xs text-neutral-400 dark:text-neutral-500">
+                                      {t("signup.step3.start")}
+                                    </Text>
+                                  </Pressable>
+                                )}
+                              />
+                            </View>
                             <Text className="text-neutral-400 text-sm">→</Text>
-                            <Pressable
-                              onPress={() =>
-                                setHourPickerOpen({
-                                  sportId: id,
-                                  field: "endHour",
-                                  slotIndex: idx,
-                                })
-                              }
-                              accessibilityRole="button"
-                              className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
-                            >
-                              <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
-                                {formatHour(slot.endHour)}
-                              </Text>
-                              <Text className="text-xs text-neutral-400 dark:text-neutral-500">
-                                {t("signup.step3.end")}
-                              </Text>
-                            </Pressable>
+                            <View className="flex-1">
+                              <NativePicker
+                                title={t("signup.step3.hourEndTitle")}
+                                confirmLabel={t("common.ok")}
+                                cancelLabel={t("common.cancel")}
+                                options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
+                                selectedValue={slot.endHour}
+                                onSelect={(h) => updateSlot(id, idx, { endHour: typeof h === "string" ? Number(h) : h })}
+                                renderTrigger={(label) => (
+                                  <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t("signup.step3.end")}
+                                    className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center"
+                                  >
+                                    <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                      {label}
+                                    </Text>
+                                    <Text className="text-xs text-neutral-400 dark:text-neutral-500">
+                                      {t("signup.step3.end")}
+                                    </Text>
+                                  </Pressable>
+                                )}
+                              />
+                            </View>
                             <Pressable
                               onPress={() => removeSlot(id, idx)}
                               hitSlop={8}
@@ -391,6 +407,12 @@ export default function SignupStep3() {
                           </View>
                         </View>
                       ))}
+
+                      {e.timeSlots.length === 0 ? (
+                        <Text className="text-xs text-neutral-400 dark:text-neutral-500 mb-2">
+                          {t("signup.step3.noSlotsHint")}
+                        </Text>
+                      ) : null}
 
                       <Pressable
                         onPress={() => addSlot(id)}
@@ -407,34 +429,6 @@ export default function SignupStep3() {
               </View>
             );
           })}
-
-          <NativePicker
-            visible={!!hourPickerOpen}
-            title={
-              hourPickerOpen?.field === "startHour"
-                ? t("signup.step3.hourStartTitle")
-                : t("signup.step3.hourEndTitle")
-            }
-            confirmLabel="OK"
-            options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
-            selectedValue={
-              hourPickerOpen
-                ? entries.find((p) => p.sportId === hourPickerOpen.sportId)?.timeSlots[hourPickerOpen.slotIndex]?.[
-                    hourPickerOpen.field
-                  ] ?? 8
-                : 8
-            }
-            onSelect={(h) => {
-              if (hourPickerOpen) {
-                const numericHour = typeof h === 'string' ? Number(h) : h;
-                updateSlot(hourPickerOpen.sportId, hourPickerOpen.slotIndex, {
-                  [hourPickerOpen.field]: numericHour,
-                });
-              }
-              setHourPickerOpen(null);
-            }}
-            onClose={() => setHourPickerOpen(null)}
-          />
 
           <View className="flex-row items-center justify-between gap-3 mt-6">
           <Button

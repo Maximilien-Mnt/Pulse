@@ -37,11 +37,13 @@ type SignupState = {
   step1: SignupStep1 | null;
   step2: SignupStep2 | null;
   step3: SignupSportSelection[];
+  step3NoSport: boolean;
   step4: SignupStep4 | null;
   step5: SignupStep5 | null;
   setStep1: (v: SignupStep1) => void;
   setStep2: (v: SignupStep2) => void;
   setStep3: (v: SignupSportSelection[]) => void;
+  setStep3NoSport: (v: boolean) => void;
   setStep4: (v: SignupStep4) => void;
   setStep5: (v: SignupStep5) => void;
   reset: () => Promise<void>;
@@ -52,6 +54,7 @@ const initial = {
   step1: null,
   step2: null,
   step3: [] as SignupSportSelection[],
+  step3NoSport: false,
   step4: null,
   step5: null,
 };
@@ -93,6 +96,12 @@ export const useSignupStore = create<SignupState>((set, get) => ({
   setStep3: (step3) => {
     const state = get();
     const newState = { ...state, step3 };
+    set(newState);
+    void persistStore(newState);
+  },
+  setStep3NoSport: (step3NoSport) => {
+    const state = get();
+    const newState = { ...state, step3NoSport };
     set(newState);
     void persistStore(newState);
   },

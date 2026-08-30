@@ -30,7 +30,6 @@ export default function SignupStep1() {
   const [usernameOk, setUsernameOk] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
 
   const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep1Schema),
@@ -79,8 +78,6 @@ export default function SignupStep1() {
     router.push("/auth/signup/step2");
   });
 
-  const languageLabel = language === "fr" ? t("common.french") : t("common.english");
-
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -95,18 +92,10 @@ export default function SignupStep1() {
           <SignupStepProgress step={1} />
 
           <Text className="text-sm text-neutral-500 mb-2">{t("common.language")}</Text>
-          <Pressable
-            onPress={() => setLanguageOpen(true)}
-            className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4 flex-row items-center justify-between active:opacity-70"
-            accessibilityRole="button"
-            accessibilityLabel={t("common.language")}
-          >
-            <Text className="text-base text-neutral-900 dark:text-neutral-50">{languageLabel}</Text>
-            <Text className="text-text-tertiary text-lg">›</Text>
-          </Pressable>
           <NativePicker
-            visible={languageOpen}
             title={t("common.language")}
+            confirmLabel={t("common.ok")}
+            cancelLabel={t("common.cancel")}
             options={[
               { value: "fr", label: t("common.french") },
               { value: "en", label: t("common.english") },
@@ -115,9 +104,17 @@ export default function SignupStep1() {
             onSelect={(value) => {
               setValue("language", value);
               useLanguageStore.getState().setLanguage(value);
-              setLanguageOpen(false);
             }}
-            onClose={() => setLanguageOpen(false)}
+            renderTrigger={(label) => (
+              <Pressable
+                className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-4 mb-4 flex-row items-center justify-between"
+                accessibilityRole="button"
+                accessibilityLabel={t("common.language")}
+              >
+                <Text className="text-base text-neutral-900 dark:text-neutral-50">{label}</Text>
+                <Text className="text-text-tertiary text-lg">›</Text>
+              </Pressable>
+            )}
           />
           <Controller
             control={control}

@@ -1,4 +1,4 @@
-import { Picker } from "@react-native-picker/picker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useState, type ReactNode } from "react";
 import {
   Modal,
@@ -12,24 +12,18 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export type NativePickerOption<V extends string | number> = {
-  value: V;
-  label: string;
-};
-
-type NativePickerProps<V extends string | number> = {
-  options: NativePickerOption<V>[];
-  selectedValue: V;
-  onSelect: (value: V) => void;
+type NativeDateFieldProps = {
+  value: Date;
+  onChange: (date: Date) => void;
+  mode?: "date" | "time" | "datetime";
+  minimumDate?: Date;
+  maximumDate?: Date;
   /**
-   * Renders the styled trigger. Receives the display label of the current
-   * selection (falls back to `placeholder` when nothing matches). The trigger
-   * is purely presentational — the actual press lands on the invisible native
-   * picker overlaid on top of it, so the button keeps its exact styling.
+   * Renders the styled trigger. Receives the current value. The trigger is
+   * purely presentational — the actual press lands on the invisible native
+   * date control overlaid on top of it, so the button keeps its exact styling.
    */
-  renderTrigger: (valueLabel: string) => ReactNode;
-  /** Placeholder label shown when the current selection has no matching option. */
-  placeholder?: string;
+  renderTrigger: (date: Date) => ReactNode;
   /** Title of the picker (used on the iOS sheet and as accessibility label). */
   title?: string;
   confirmLabel?: string;
@@ -39,63 +33,75 @@ type NativePickerProps<V extends string | number> = {
   testID?: string;
 };
 
+const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+
+function toInputValue(d: Date, mode: "date" | "time" | "datetime"): string {
+  const datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const timePart = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (mode === "time") return timePart;
+  if (mode === "date") return datePart;
+  return `${datePart}T${timePart}`;
+}
+
+function fromInputValue(s: string, mode: "date" | "time" | "datetime"): Date {
+  if (mode === "time") {
+    const [h = "0", m = "0"] = s.split(":");
+    const d = new Date();
+    d.setHours(Number(h), Number(m), 0, 0);
+    return d;
+  }
+  if (mode === "date") return new Date(`${s}T00:00:00`);
+  return new Date(s);
+}
+
 /**
- * A styled select field that opens the **native OS picker** on press without
+ * A styled field that opens the **native OS date/time picker** on press without
  * any intermediary window and without ever replacing/deforming the trigger.
  *
- * - Web / desktop → a real native `<select>` is invisibly overlaid on top of
- *   the styled button. Clicking the button is a genuine click on the native
- *   control, so every browser opens its native dropdown.
- * - Android → the native dialog-mode `Picker` is invisibly overlaid on the
- *   button; tapping it opens the OS dialog directly.
- * - iOS → iOS has no programmatic picker, so the native wheel is presented in
- *   a bottom-sheet Modal (the platform-standard presentation).
+ * - Web / desktop → an invisible `<input type="date|time|datetime-local">` is
+ *   overlaid on the styled button; clicking it opens the browser-native picker.
+ * - Android → the native dialog is opened imperatively on tap
+ *   (`datetime` opens the date dialog then the time dialog, the platform norm).
+ * - iOS → the native wheel is presented in a bottom-sheet Modal (the
+ *   platform-standard presentation) and committed with OK/Cancel.
  */
-export function NativePicker<V extends string | number>({
-  options,
-  selectedValue,
-  onSelect,
+export function NativeDateField({
+  value,
+  onChange,
+  mode = "date",
+  minimumDate,
+  maximumDate,
   renderTrigger,
-  placeholder = "",
   title,
   confirmLabel = "OK",
   cancelLabel = "Cancel",
   accessibilityLabel,
   testID,
-}: NativePickerProps<V>) {
+}: NativeDateFieldProps) {
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === "dark";
   const [iosOpen, setIosOpen] = useState(false);
-  const [draft, setDraft] = useState<V | null>(null);
-
-  const selectedLabel =
-    options.find((o) => String(o.value) === String(selectedValue))?.label ?? placeholder;
-
-  const handleSelect = (value: V) => {
-    onSelect(value);
-  };
+  const [draft, setDraft] = useState<Date>(value);
 
   const closeSheet = () => setIosOpen(false);
 
-  // Web / desktop ── native <select> overlaid on the trigger.
+  // Web / desktop ── native <input> overlaid on the trigger.
   if (Platform.OS === "web") {
+    const inputType = mode === "datetime" ? "datetime-local" : mode;
     return (
       <View style={styles.host}>
         <View style={styles.trigger} pointerEvents="none">
-          {renderTrigger(selectedLabel)}
+          {renderTrigger(value)}
         </View>
-        <select
+        <input
           {...(testID ? { testID } : {})}
           aria-label={accessibilityLabel ?? title}
-          value={String(selectedValue)}
+          type={inputType}
+          value={toInputValue(value, mode)}
+          min={minimumDate ? toInputValue(minimumDate, mode) : undefined}
+          max={maximumDate ? toInputValue(maximumDate, mode) : undefined}
           onChange={(e) => {
-            let resolved: V = e.target.value as V;
-            const sample = options[0];
-            if (sample && typeof sample.value === "number") {
-              const num = Number(e.target.value);
-              if (Number.isFinite(num)) resolved = num as V;
-            }
-            handleSelect(resolved);
+            if (e.target.value) onChange(fromInputValue(e.target.value, mode));
           }}
           style={{
             position: "absolute",
@@ -109,45 +115,68 @@ export function NativePicker<V extends string | number>({
             cursor: "pointer",
             fontSize: 16,
           }}
-        >
-          {options.map((o) => (
-            <option key={String(o.value)} value={String(o.value)}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        />
       </View>
     );
   }
 
-  // Android ── native dialog-mode Picker overlaid on the trigger.
+  const openAndroidPicker = () => {
+    if (mode === "datetime") {
+      // Android has no combined dialog: show date, then time.
+      DateTimePickerAndroid.open({
+        value,
+        mode: "date",
+        minimumDate,
+        maximumDate,
+        onChange: (event, date) => {
+          if (event.type !== "set" || !date) return;
+          DateTimePickerAndroid.open({
+            value: date,
+            mode: "time",
+            is24Hour: true,
+            onChange: (event2, time) => {
+              if (event2.type === "set" && time) onChange(time);
+            },
+          });
+        },
+      });
+    } else {
+      DateTimePickerAndroid.open({
+        value,
+        mode: mode === "date" ? "date" : "time",
+        minimumDate,
+        maximumDate,
+        is24Hour: true,
+        onChange: (event, date) => {
+          if (event.type === "set" && date) onChange(date);
+        },
+      });
+    }
+  };
+
+  // Android ── native dialog opened directly on tap.
   if (Platform.OS === "android") {
     return (
       <View style={styles.host}>
         <View style={styles.trigger} pointerEvents="none">
-          {renderTrigger(selectedLabel)}
+          {renderTrigger(value)}
         </View>
-        <View style={styles.androidOverlay}>
-          <Picker
-            mode="dialog"
-            prompt={title}
-            selectedValue={selectedValue}
-            onValueChange={(value) => handleSelect(value as V)}
-            style={styles.androidControl}
-          >
-            {options.map((o) => (
-              <Picker.Item key={String(o.value)} label={o.label} value={o.value} />
-            ))}
-          </Picker>
-        </View>
+        <Pressable
+          testID={testID}
+          style={StyleSheet.absoluteFill as ViewStyle}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel ?? title}
+          onPress={openAndroidPicker}
+        />
       </View>
     );
   }
-// iOS ── bottom-sheet wheel (the platform-standard picker presentation).
+
+  // iOS ── bottom-sheet wheel (the platform-standard picker presentation).
   return (
     <View style={styles.host}>
       <View style={styles.trigger} pointerEvents="none">
-        {renderTrigger(selectedLabel)}
+        {renderTrigger(value)}
       </View>
       <Pressable
         testID={testID}
@@ -155,7 +184,7 @@ export function NativePicker<V extends string | number>({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? title}
         onPress={() => {
-          setDraft(selectedValue);
+          setDraft(value);
           setIosOpen(true);
         }}
       />
@@ -179,7 +208,7 @@ export function NativePicker<V extends string | number>({
                 hitSlop={8}
                 onPress={() => {
                   closeSheet();
-                  if (draft !== null) handleSelect(draft);
+                  onChange(draft);
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={confirmLabel}
@@ -187,16 +216,18 @@ export function NativePicker<V extends string | number>({
                 <Text style={[styles.sheetConfirm, isDark && styles.textDarkTint]}>{confirmLabel}</Text>
               </Pressable>
             </View>
-            <Picker
-              selectedValue={draft ?? selectedValue}
-              onValueChange={(value) => setDraft(value as V)}
+            <DateTimePicker
+              value={draft}
+              mode={mode}
+              display="spinner"
+              minimumDate={minimumDate}
+              maximumDate={maximumDate}
+              onChange={(_, date) => {
+                if (date) setDraft(date);
+              }}
               style={styles.iosWheel}
-              itemStyle={styles.iosWheelItem}
-            >
-              {options.map((o) => (
-                <Picker.Item key={String(o.value)} label={o.label} value={o.value} />
-              ))}
-            </Picker>
+              themeVariant={isDark ? "dark" : "light"}
+            />
           </Pressable>
         </Pressable>
       </Modal>
@@ -211,14 +242,6 @@ const styles = StyleSheet.create({
   },
   trigger: {
     width: "100%",
-  },
-  androidOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.01,
-  },
-  androidControl: {
-    width: "100%",
-    height: "100%",
   },
   backdrop: {
     flex: 1,
@@ -260,9 +283,6 @@ const styles = StyleSheet.create({
   iosWheel: {
     width: "100%",
     height: 216,
-  },
-  iosWheelItem: {
-    fontSize: 17,
   },
   textDark: { color: "#F5F6F8" },
   textDarkMuted: { color: "#A7ACB5" },

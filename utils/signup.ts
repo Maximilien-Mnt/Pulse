@@ -133,7 +133,7 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
         sport_id: s.sportId,
         level: s.level,
         practice: s.practice,
-        time_slots: s.timeSlots.map((slot) => ({
+        time_slots: (s.timeSlots ?? []).map((slot) => ({
           weekday: slot.weekday,
           startHour: slot.startHour,
           endHour: slot.endHour,

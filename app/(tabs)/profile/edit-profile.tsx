@@ -99,53 +99,6 @@ function formatHour(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
-function PickerField({
-  label,
-  value,
-  options,
-  onSelect,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onSelect: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {!open ? (
-        <Pressable
-          onPress={() => setOpen(true)}
-          className="h-10 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-3 flex-row items-center justify-between"
-          accessibilityRole="button"
-          accessibilityLabel={label}
-        >
-          <Text
-            className={`text-sm ${
-              value ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400"
-            }`}
-          >
-            {value || `{t("profile.country.placeholder", { label })}`}
-          </Text>
-          <Text className="text-tertiary text-lg leading-none">›</Text>
-        </Pressable>
-      ) : (
-        <NativePicker
-          visible={open}
-          title={label}
-          options={options}
-          selectedValue={value}
-          onSelect={(v) => {
-            onSelect(v);
-            setOpen(false);
-          }}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
-  );
-}
-
 export default function EditProfileScreen() {
   const router = useRouter();
   const posthog = usePostHog();
@@ -204,7 +157,6 @@ export default function EditProfileScreen() {
   const [practicedSports, setPracticedSports] = useState<string[]>([]);
   const [interestedSports, setInterestedSports] = useState<string[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
-  const [countryOpen, setCountryOpen] = useState(false);
   const [practicedSportDetails, setPracticedSportDetails] = useState<Record<string, {
     level: string;
     practice: string;
@@ -421,11 +373,6 @@ export default function EditProfileScreen() {
     }
   }
   const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
-  const [hourPickerOpen, setHourPickerOpen] = useState<{
-    sportId: string;
-    field: "startHour" | "endHour";
-    slotIndex: number;
-  } | null>(null);
 
   const updateSlot = (sportId: string, slotIndex: number, patch: Partial<{ weekday: number; startHour: number; endHour: number }>) => {
     setPracticedSportDetails((prev) => {
@@ -530,34 +477,29 @@ export default function EditProfileScreen() {
               <Text className="text-xs text-neutral-500 dark:text-neutral-400">
                 Pays
               </Text>
-              {!countryOpen ? (
-                <Pressable
-                  onPress={() => setCountryOpen(true)}
-                  accessibilityRole="button"
-                  className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between active:opacity-70"
-                >
-                  <Text className="text-base text-neutral-900 dark:text-neutral-50">
-                    {country ? getCountryDisplay(country) : t("profile.country.placeholder")}
-                  </Text>
-                  <Text className="text-tertiary text-lg leading-none">›</Text>
-                </Pressable>
-              ) : (
-                <NativePicker
-                  visible={countryOpen}
-                  title="Pays"
-                  confirmLabel="OK"
-                  options={COUNTRIES.map((c) => ({
-                    value: c.code,
-                    label: (getCountryDisplay(c.code) ?? "") as string,
-                  }))}
-                  selectedValue={country ?? "FR"}
-                  onSelect={(v) => {
-                    setCountry(v || null);
-                    setCountryOpen(false);
-                  }}
-                  onClose={() => setCountryOpen(false)}
-                />
-              )}
+              <NativePicker
+                title="Pays"
+                confirmLabel={t("common.ok")}
+                cancelLabel={t("common.cancel")}
+                options={COUNTRIES.map((c) => ({
+                  value: c.code,
+                  label: (getCountryDisplay(c.code) ?? "") as string,
+                }))}
+                selectedValue={country ?? "FR"}
+                onSelect={(v) => setCountry(v || null)}
+                renderTrigger={(label) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Pays"
+                    className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between"
+                  >
+                    <Text className="text-base text-neutral-900 dark:text-neutral-50">
+                      {country ? label : t("profile.country.placeholder")}
+                    </Text>
+                    <Text className="text-tertiary text-lg leading-none">›</Text>
+                  </Pressable>
+                )}
+              />
             </View>
 
             <Input
@@ -785,41 +727,53 @@ export default function EditProfileScreen() {
                             </View>
 
                             <View className="flex-row gap-2 items-center">
-                              <Pressable
-                                onPress={() =>
-                                  setHourPickerOpen({
-                                    sportId: sid,
-                                    field: "startHour",
-                                    slotIndex: idx,
-                                  })
-                                }
-                                accessibilityRole="button"
-                                className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
-                              >
-                                <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
-                                  {formatHour(slot.startHour)}
-                                </Text>
-                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">
-                                  {t("profile.from")}
-                                </Text>
-                              </Pressable>
+                              <View className="flex-1">
+                                <NativePicker
+                                  title={t("updateEvent.dateLabel")}
+                                  confirmLabel={t("common.ok")}
+                                  cancelLabel={t("common.cancel")}
+                                  options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
+                                  selectedValue={slot.startHour}
+                                  onSelect={(h) => updateSlot(sid, idx, { startHour: typeof h === "string" ? Number(h) : h })}
+                                  renderTrigger={(label) => (
+                                    <Pressable
+                                      accessibilityRole="button"
+                                      accessibilityLabel={t("profile.from")}
+                                      className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center"
+                                    >
+                                      <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                        {label}
+                                      </Text>
+                                      <Text className="text-xs text-neutral-400 dark:text-neutral-500">
+                                        {t("profile.from")}
+                                      </Text>
+                                    </Pressable>
+                                  )}
+                                />
+                              </View>
                               <Text className="text-neutral-400 text-sm">→</Text>
-                              <Pressable
-                                onPress={() =>
-                                  setHourPickerOpen({
-                                    sportId: sid,
-                                    field: "endHour",
-                                    slotIndex: idx,
-                                  })
-                                }
-                                accessibilityRole="button"
-                                className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center active:opacity-70"
-                              >
-                                <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
-                                  {formatHour(slot.endHour)}
-                                </Text>
-                                <Text className="text-xs text-neutral-400 dark:text-neutral-500">Fin</Text>
-                              </Pressable>
+                              <View className="flex-1">
+                                <NativePicker
+                                  title="Heure de fin"
+                                  confirmLabel={t("common.ok")}
+                                  cancelLabel={t("common.cancel")}
+                                  options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
+                                  selectedValue={slot.endHour}
+                                  onSelect={(h) => updateSlot(sid, idx, { endHour: typeof h === "string" ? Number(h) : h })}
+                                  renderTrigger={(label) => (
+                                    <Pressable
+                                      accessibilityRole="button"
+                                      accessibilityLabel="Fin"
+                                      className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 items-center"
+                                    >
+                                      <Text className="text-neutral-900 dark:text-neutral-50 font-medium text-sm">
+                                        {label}
+                                      </Text>
+                                      <Text className="text-xs text-neutral-400 dark:text-neutral-500">Fin</Text>
+                                    </Pressable>
+                                  )}
+                                />
+                              </View>
                               <Pressable
                                 onPress={() => removeSlot(sid, idx)}
                                 hitSlop={8}
@@ -866,32 +820,6 @@ export default function EditProfileScreen() {
         />
         <View className="h-4" />
       </ScrollView>
-
-          <NativePicker
-            visible={!!hourPickerOpen}
-            title={
-              hourPickerOpen?.field === "startHour"
-                ? t("updateEvent.dateLabel")
-                : "Heure de fin"
-            }
-            confirmLabel="OK"
-            options={HOURS.map((h) => ({ value: h, label: formatHour(h) }))}
-            selectedValue={
-              hourPickerOpen
-                ? (details => details.timeSlots[hourPickerOpen.slotIndex]?.[hourPickerOpen.field] ?? 8)(practicedSportDetails[hourPickerOpen.sportId] || { timeSlots: [{ startHour: 8, endHour: 20 }] })
-                : 8
-            }
-            onSelect={(h) => {
-              if (hourPickerOpen) {
-                const numericHour = typeof h === 'string' ? Number(h) : h;
-                updateSlot(hourPickerOpen.sportId, hourPickerOpen.slotIndex, {
-                  [hourPickerOpen.field]: numericHour,
-                });
-              }
-              setHourPickerOpen(null);
-            }}
-            onClose={() => setHourPickerOpen(null)}
-          />
     </SafeScreen>
   );
 }

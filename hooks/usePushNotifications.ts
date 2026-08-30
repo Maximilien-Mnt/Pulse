@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Platform } from "react";
 import * as Notifications from "expo-notifications";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,9 @@ export function usePushNotifications() {
           finalStatus = status;
         }
         if (finalStatus !== "granted") return;
+
+        // Push token via Expo is not supported on web yet.
+        if (typeof window === "undefined" || Platform.OS === "web") return;
 
         const tokenData = await Notifications.getExpoPushTokenAsync();
         const token = tokenData.data;

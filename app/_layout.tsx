@@ -153,7 +153,15 @@ export default function RootLayout() {
     }
   }, [pathname, params]);
 
-  if (!loaded) return null;
+  if (!loaded && Platform.OS !== "web") return null;
+
+  if (!loaded) {
+    return (
+      <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
+        <StatusBar style={isDark ? "light" : "dark"} />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

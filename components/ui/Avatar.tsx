@@ -1,7 +1,7 @@
 import { cn } from "@/utils/format";
 import { Image } from "expo-image";
 import { View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 
 type Props = {
   uri?: string | null;
@@ -24,7 +24,7 @@ export function Avatar({ uri, size = 40, className }: Props) {
           transition={200}
         />
       ) : (
-        <Ionicons name="person" size={size * 0.6} color="#94A3B8" />
+        <Icon name="User" size={size * 0.6} color="text-tertiary" />
       )}
     </View>
   );

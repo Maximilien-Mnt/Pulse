@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+
 import Constants from "expo-constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
@@ -87,7 +87,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
         </View>
 
@@ -212,7 +212,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -232,7 +232,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -252,7 +252,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -292,7 +292,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
@@ -312,7 +312,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
           </Pressable>
         </View>
 

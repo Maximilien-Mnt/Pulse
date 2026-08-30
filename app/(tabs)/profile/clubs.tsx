@@ -91,7 +91,7 @@ export default function ProfileClubsScreen() {
       {clubs.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
-            icon="people-outline"
+            icon="Users"
             title={
               activeTab === "member"
                 ? t("common.noClub")

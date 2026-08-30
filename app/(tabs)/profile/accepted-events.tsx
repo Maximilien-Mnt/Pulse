@@ -71,7 +71,7 @@ export default function ProfileAcceptedEventsScreen() {
       {events.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
-            icon="calendar-outline"
+            icon="Calendar"
             title={
               activeTab === "upcoming"
                 ? t("events.emptyUpcoming")

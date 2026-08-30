@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { FeedPost, PostFormat } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SlideDownOverlay } from "@/components/ui/SlideDownOverlay";
 import { t } from "@/hooks/useTranslation";
@@ -158,11 +158,11 @@ export function SearchPanel({
           className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800"
           hitSlop={8}
         >
-          <Ionicons name="options-outline" size={16} color="#94A3B8" />
+          <Icon name="SlidersHorizontal" size={16} color="text-tertiary" />
           <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
             Filtres
           </Text>
-          <Ionicons name="chevron-down" size={16} color="#94A3B8" />
+          <Icon name="ChevronDown" size={16} color="text-tertiary" />
         </Pressable>
 
         {summary.length === 0 ? (
@@ -187,7 +187,7 @@ export function SearchPanel({
         )}
 
         <Pressable onPress={handleMinimize} hitSlop={8} className="ml-auto">
-          <Ionicons name="expand-outline" size={18} color="#94A3B8" />
+          <Icon name="Expand" size={18} color="text-tertiary" />
         </Pressable>
       </View>
     );
@@ -204,11 +204,11 @@ export function SearchPanel({
       {/* Header row with grab handle + minimize button */}
       <View className="flex-row items-center justify-between px-4 pt-1.5">
         <Pressable onPress={handleMinimize} hitSlop={8} className="p-1">
-          <Ionicons name="chevron-up" size={22} color="#94A3B8" />
+          <Icon name="ChevronUp" size={20} color="text-tertiary" />
         </Pressable>
         <Text className="text-sm font-semibold text-neutral-500">Filtres et tri</Text>
         <Pressable onPress={handleMinimize} hitSlop={8} className="p-1">
-          <Ionicons name="chevron-up" size={22} color="#94A3B8" />
+          <Icon name="ChevronUp" size={20} color="text-tertiary" />
         </Pressable>
       </View>
 
@@ -282,11 +282,11 @@ export function SearchPanel({
               {history.map((h) => (
                 <View key={h} className="flex-row items-center justify-between">
                   <Pressable className="flex-1 flex-row items-center gap-2 py-1" onPress={() => onSelectHistory(h)}>
-                    <Ionicons name="time-outline" size={16} color="#94A3B8" />
+                    <Icon name="Clock" size={16} color="text-tertiary" />
                     <Text className="text-neutral-700 dark:text-neutral-200">{h}</Text>
                   </Pressable>
                   <Pressable onPress={() => onRemoveHistory(h)} hitSlop={8}>
-                    <Ionicons name="close" size={16} color="#94A3B8" />
+                    <Icon name="X" size={16} color="text-tertiary" />
                   </Pressable>
                 </View>
               ))}

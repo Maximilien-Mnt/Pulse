@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, FlatList, Pressable, Alert, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "@/components/ui/Avatar";
+import { Icon } from "@/components/ui/Icon";
 import { useRemoveClubMember } from "@/hooks/useRemoveClubMember";
 import { useRemoveEventParticipant } from "@/hooks/useRemoveEventParticipant";
 
@@ -73,7 +73,7 @@ export function MembersListSheet({ visible, onClose, members, type, targetId, cr
             {type === "club" ? "Membres" : "Participants"} ({members.length})
           </Text>
           <Pressable onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={28} color="#0F172A" />
+            <Icon name="X" size={24} color="text-primary" />
           </Pressable>
         </View>
 
@@ -112,7 +112,7 @@ export function MembersListSheet({ visible, onClose, members, type, targetId, cr
                     {isRemoving ? (
                       <ActivityIndicator size="small" color="#EF4444" />
                     ) : (
-                      <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                      <Icon name="Trash2" size={24} color="error-500" />
                     )}
                   </Pressable>
                 )}

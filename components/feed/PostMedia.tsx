@@ -1,10 +1,10 @@
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
 import { useWindowDimensions } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import type { PostFormat } from "@/types";
+import { Icon } from "@/components/ui/Icon";
 import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { t } from "@/hooks/useTranslation";
@@ -78,7 +78,7 @@ function VideoPost({
           className="justify-center items-center"
           onPress={() => player.play()}
         >
-          <Ionicons name="play-circle" size={56} color="rgba(255,255,255,0.85)" />
+          <Icon name="CirclePlay" size={32} color="white" />
         </Pressable>
       ) : null}
 
@@ -87,7 +87,7 @@ function VideoPost({
         onPress={() => viewRef.current?.enterFullscreen()}
         hitSlop={8}
       >
-        <Ionicons name="expand" size={18} color="#fff" />
+        <Icon name="Expand" size={18} color="white" />
       </Pressable>
 
       <Pressable
@@ -95,7 +95,7 @@ function VideoPost({
         onPress={toggleMute}
         hitSlop={8}
       >
-        <Ionicons name={muted ? "volume-mute" : "volume-high"} size={18} color="#fff" />
+        <Icon name={muted ? "VolumeX" : "Volume2"} size={18} color="white" />
       </Pressable>
 
       <View className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded">
@@ -168,7 +168,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
         <Pressable className="mt-2" onPress={() => setViewer(firstUrl)}>
           {failedImages.has(firstUrl) ? (
             <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-lg overflow-hidden" style={{ width: containerWidth, height: imageHeight }}>
-              <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+              <Icon name="Image" size={32} color="text-tertiary" />
             </View>
           ) : (
             <Image
@@ -189,7 +189,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
         <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
           <View className="flex-1 bg-black">
             <Pressable className="absolute top-14 right-4 z-10 p-3" onPress={() => setViewer(null)}>
-              <Ionicons name="close" size={28} color="#fff" />
+              <Icon name="X" size={24} color="white" />
             </Pressable>
             {viewer ? (
               <Image
@@ -356,7 +356,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
                 >
                   {failedImages.has(item) ? (
                     <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: containerWidth, height: imageHeight }}>
-                      <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+                      <Icon name="Image" size={32} color="text-tertiary" />
                     </View>
                     ) : (
                     <Image
@@ -385,7 +385,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
                   className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
                   onPress={() => scrollGallery("left")}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#111" />
+                  <Icon name="ChevronLeft" size={20} color="text-primary" />
                 </Pressable>
               ) : null}
               {canRight ? (
@@ -393,7 +393,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
                   onPress={() => scrollGallery("right")}
                 >
-                  <Ionicons name="chevron-forward" size={20} color="#111" />
+                  <Icon name="ChevronRight" size={20} color="text-primary" />
                 </Pressable>
               ) : null}
             </>
@@ -403,7 +403,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
         <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
           <View className="flex-1 bg-black">
             <Pressable className="absolute top-14 right-4 z-10 p-3" onPress={() => setViewer(null)}>
-              <Ionicons name="close" size={28} color="#fff" />
+              <Icon name="X" size={24} color="white" />
             </Pressable>
             {viewer ? (
               <Image
@@ -432,7 +432,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
               className="flex-row items-center gap-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800"
               onPress={() => setPdfOpen(url)}
             >
-              <Ionicons name="document-text-outline" size={26} color="#1E6BFF" />
+              <Icon name="FileText" size={24} color="primary" />
               <View className="flex-1">
                 <Text className="font-semibold text-neutral-900 dark:text-neutral-50">Document PDF</Text>
                 <Text className="text-xs text-neutral-500">Ouvrir le document</Text>
@@ -453,7 +453,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
           >
             {failedImages.has(url) ? (
               <View className="items-center justify-center bg-neutral-200 dark:bg-neutral-700" style={{ width: containerWidth, height: imageHeight }}>
-                <Ionicons name="image-outline" size={48} color="#9CA3AF" />
+                <Icon name="Image" size={32} color="text-tertiary" />
               </View>
             ) : (
               <Image
@@ -476,7 +476,7 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
       <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <View className="flex-1 bg-black">
           <Pressable className="absolute top-14 right-4 z-10 p-3" onPress={() => setViewer(null)}>
-            <Ionicons name="close" size={28} color="#fff" />
+            <Icon name="X" size={24} color="white" />
           </Pressable>
           {viewer ? (
             <Image

@@ -16,7 +16,7 @@ import { useProfile } from "@/hooks/useProfile";
 import type { Club, EventRow } from "@/types";
 import type { ClubListFilters } from "@/hooks/useClubs";
 import type { EventListFilters } from "@/hooks/useEvents";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -138,10 +138,10 @@ export default function DiscoverScreen() {
 
       <View className="px-4 flex-row justify-between py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
-          <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />
+          <Icon name="Funnel" size={24} color="primary" />
         </Pressable>
         <Pressable onPress={() => setGrid((g) => !g)}>
-          <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
+          <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
         </Pressable>
       </View>
 
@@ -190,7 +190,7 @@ export default function DiscoverScreen() {
               }}
               ListEmptyComponent={
                 <EmptyState
-                  icon="people-outline"
+                  icon="Users"
                   title={t("common.noClub")}
                   subtitle={t("common.tryOtherFilters")}
                 />
@@ -228,7 +228,7 @@ export default function DiscoverScreen() {
               }}
               ListEmptyComponent={
                 <EmptyState
-                  icon="calendar-outline"
+                  icon="Calendar"
                   title={t("common.noEvents")}
                   subtitle={t("common.tryOtherFilters")}
                 />

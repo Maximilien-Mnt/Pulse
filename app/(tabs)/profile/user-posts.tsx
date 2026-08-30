@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t } from "@/hooks/useTranslation";
@@ -125,7 +125,7 @@ export default function UserPostsScreen() {
       {posts.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
-            icon="images-outline"
+            icon="Images"
             title={t("common.noPosts")}
             subtitle={t("feed.empty")}
           />
@@ -211,7 +211,7 @@ export default function UserPostsScreen() {
                 Commentaires
               </Text>
               <Pressable onPress={handleCloseModal}>
-                <Ionicons name="close" size={28} color="#64748B" />
+                <Icon name="X" size={28} color="text-secondary" />
               </Pressable>
             </View>
 
@@ -301,7 +301,7 @@ function CommentsContent({ postId }: { postId: string }) {
       <View className="flex-1">
         {comments.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8 py-12">
-            <Ionicons name="chatbubble-outline" size={40} color="#9CA3AF" />
+            <Icon name="MessageSquare" size={40} color="text-tertiary" />
             <Text className="text-neutral-500 text-center mt-4">
               Aucun commentaire pour le moment.
             </Text>
@@ -334,7 +334,7 @@ function CommentsContent({ postId }: { postId: string }) {
           className={`rounded-xl p-3 mb-1 ${body.trim() ? "bg-primary" : "bg-neutral-300 dark:bg-neutral-700"}`}
           disabled={!body.trim()}
         >
-          <Ionicons name="send" size={20} color={body.trim() ? "#fff" : "#9CA3AF"} />
+          <Icon name="Send" size={20} color={body.trim() ? "white" : "text-tertiary"} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>

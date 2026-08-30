@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
 import { formatDateLong } from "@/utils/date";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -18,7 +18,7 @@ function Stars({ n }: { n: number }) {
   return (
     <View className="flex-row">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Ionicons key={i} name={i < n ? "star" : "star-outline"} size={14} color="#F59E0B" />
+        <Icon key={i} name="Star" size={14} color="warning-500" filled={i < n} />
       ))}
     </View>
   );
@@ -75,10 +75,10 @@ export function EventCard({ event, compact }: Props) {
       </View>
       <View className="justify-between items-end">
         <Pressable onPress={() => fav.mutate()} hitSlop={8}>
-          <Ionicons name="heart-outline" size={22} color="#64748B" />
+          <Icon name="Heart" size={22} color="text-secondary" />
         </Pressable>
         <Pressable onPress={() => Share.share({ message: event.name })} hitSlop={8}>
-          <Ionicons name="share-social-outline" size={22} color="#64748B" />
+          <Icon name="Share2" size={22} color="text-secondary" />
         </Pressable>
       </View>
     </Pressable>

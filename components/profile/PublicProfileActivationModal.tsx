@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { PUBLIC_SPORT_STATUSES, SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import type { PublicStatusMap, UserSport } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -112,7 +112,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-50">{t("profile.goPublic.title")}</Text>
             <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={24} color="#64748B" />
+              <Icon name="X" size={24} color="text-secondary" />
             </Pressable>
           </View>
 
@@ -129,7 +129,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
                   t("profile.goPublic.messages"),
                 ].map((t) => (
                   <View key={t} className="flex-row items-start gap-2 mb-2">
-                    <Ionicons name="checkmark-circle" size={20} color="#1E6BFF" />
+                    <Icon name="CheckCircle2" size={20} color="primary" />
                     <Text className="flex-1 text-neutral-800 dark:text-neutral-100">{t}</Text>
                   </View>
                 ))}

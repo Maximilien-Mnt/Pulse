@@ -1,5 +1,6 @@
 import { COUNTRIES as FULL_COUNTRIES } from "@/utils/countries";
 import { Platform } from "react-native";
+import type { IconName } from "@/components/ui/Icon";
 
 export { FULL_COUNTRIES as COUNTRIES };
 
@@ -53,33 +54,34 @@ export type SportId =
 export type SportDefinition = {
   id: SportId;
   label: string;
-  icon: string;
+  /** Icon name from the Pulse icon set (components/ui/Icon). */
+  icon: IconName;
   color: string;
 };
 
 export const SPORTS: SportDefinition[] = [
-  { id: "football", label: "Football", icon: "football-outline", color: "#16A34A" },
-  { id: "basketball", label: "Basketball", icon: "basketball-outline", color: "#EA580C" },
-  { id: "tennis", label: "Tennis", icon: "tennisball-outline", color: "#EAB308" },
-  { id: "running", label: "Course à pied", icon: "walk-outline", color: "#3B82F6" },
-  { id: "cycling", label: "Cyclisme", icon: "bicycle-outline", color: "#6366F1" },
-  { id: "swimming", label: "Natation", icon: "swim-outline", color: "#06B6D4" },
-  { id: "volleyball", label: "Volleyball", icon: "american-football-outline", color: "#F97316" },
-  { id: "handball", label: "Handball", icon: "hand-right-outline", color: "#DC2626" },
-  { id: "padel", label: "Padel", icon: "tennisball-outline", color: "#A855F7" },
-  { id: "badminton", label: "Badminton", icon: "tennisball-outline", color: "#14B8A6" },
-  { id: "fitness", label: "Fitness", icon: "barbell-outline", color: "#64748B" },
-  { id: "rugby", label: "Rugby", icon: "american-football-outline", color: "#15803D" },
-  { id: "squash", label: "Squash", icon: "circle-outline", color: "#0891B2" },
-  { id: "table_tennis", label: "Tennis de table", icon: "disc-outline", color: "#BE185D" },
-  { id: "martial_arts", label: "Arts martiaux", icon: "shield-outline", color: "#B45309" },
-  { id: "yoga", label: "Yoga", icon: "body-outline", color: "#7C3AED" },
-  { id: "pilates", label: "Pilates", icon: "accessibility-outline", color: "#DB2777" },
-  { id: "boxing", label: "Boxe", icon: "flash-outline", color: "#991B1B" },
-  { id: "climbing", label: "Escalade", icon: "trending-up-outline", color: "#4F46E5" },
-  { id: "golf", label: "Golf", icon: "locate-outline", color: "#15803D" },
-  { id: "dance", label: "Danse", icon: "musical-notes-outline", color: "#C026D3" },
-  { id: "surfing", label: "Surf", icon: "water-outline", color: "#0EA5E9" },
+  { id: "football", label: "Football", icon: "Target", color: "#16A34A" },
+  { id: "basketball", label: "Basketball", icon: "Volleyball", color: "#EA580C" },
+  { id: "tennis", label: "Tennis", icon: "CircleDot", color: "#EAB308" },
+  { id: "running", label: "Course à pied", icon: "Footprints", color: "#3B82F6" },
+  { id: "cycling", label: "Cyclisme", icon: "Bike", color: "#6366F1" },
+  { id: "swimming", label: "Natation", icon: "Waves", color: "#06B6D4" },
+  { id: "volleyball", label: "Volleyball", icon: "Circle", color: "#F97316" },
+  { id: "handball", label: "Handball", icon: "Hand", color: "#DC2626" },
+  { id: "padel", label: "Padel", icon: "CircleDot", color: "#A855F7" },
+  { id: "badminton", label: "Badminton", icon: "Feather", color: "#14B8A6" },
+  { id: "fitness", label: "Fitness", icon: "Dumbbell", color: "#64748B" },
+  { id: "rugby", label: "Rugby", icon: "Trophy", color: "#15803D" },
+  { id: "squash", label: "Squash", icon: "Disc", color: "#0891B2" },
+  { id: "table_tennis", label: "Tennis de table", icon: "CircleSmall", color: "#BE185D" },
+  { id: "martial_arts", label: "Arts martiaux", icon: "Swords", color: "#B45309" },
+  { id: "yoga", label: "Yoga", icon: "PersonStanding", color: "#7C3AED" },
+  { id: "pilates", label: "Pilates", icon: "Accessibility", color: "#DB2777" },
+  { id: "boxing", label: "Boxe", icon: "Zap", color: "#991B1B" },
+  { id: "climbing", label: "Escalade", icon: "Mountain", color: "#4F46E5" },
+  { id: "golf", label: "Golf", icon: "Flag", color: "#15803D" },
+  { id: "dance", label: "Danse", icon: "Music", color: "#C026D3" },
+  { id: "surfing", label: "Surf", icon: "Sailboat", color: "#0EA5E9" },
 ];
 
 const defaultLevels = ["Débutant", "Intermédiaire", "Confirmé", "Compétition", "Élite"];

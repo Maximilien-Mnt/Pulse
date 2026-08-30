@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
 import { formatDateLong } from "@/utils/date";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -63,10 +63,10 @@ export function EventCardGrid({ event }: Props) {
         </Text>
         <View className="flex-row justify-end gap-2 mt-2">
           <Pressable onPress={() => fav.mutate()}>
-            <Ionicons name="heart-outline" size={20} color="#64748B" />
+            <Icon name="Heart" size={20} color="text-secondary" />
           </Pressable>
           <Pressable onPress={() => Share.share({ message: event.name })}>
-            <Ionicons name="share-social-outline" size={20} color="#64748B" />
+            <Icon name="Share2" size={20} color="text-secondary" />
           </Pressable>
         </View>
       </View>

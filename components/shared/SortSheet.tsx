@@ -1,5 +1,4 @@
 import Slider from "@react-native-community/slider";
-import { Ionicons } from "@expo/vector-icons";
 import {
   Modal,
   Pressable,
@@ -7,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Icon } from "@/components/ui/Icon";
 
 export type SortOption = {
   value: string;
@@ -59,7 +59,7 @@ export function SortSheet({
               Trier
             </Text>
             <Pressable onPress={onClose}>
-              <Ionicons name="close" size={28} color="#64748B" />
+              <Icon name="X" size={24} color="text-secondary" />
             </Pressable>
           </View>
 
@@ -90,16 +90,16 @@ export function SortSheet({
                         {o.label}
                       </Text>
                       {isNearby && !isLocationEnabled && (
-                        <Ionicons
-                          name="location-outline"
+                        <Icon
+                          name="MapPin"
                           size={16}
-                          color="#64748B"
+                          color="text-secondary"
                           className="ml-2"
                         />
                       )}
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={20} color="#1E6BFF" />
+                      <Icon name="CheckCircle2" size={20} color="primary" />
                     ) : null}
                   </View>
                   {isNearby && !isLocationEnabled ? (

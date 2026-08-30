@@ -11,7 +11,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import Toast from "react-native-toast-message";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useTranslation , t } from "@/hooks/useTranslation";
@@ -72,7 +72,7 @@ export default function ForgotPasswordScreen() {
             />
             <View className="items-center mt-12 mb-8">
               <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-6">
-                <Ionicons name="mail-outline" size={48} color="#1E6BFF" />
+                <Icon name="Mail" size={48} color="primary" />
               </View>
               <Text className="text-neutral-600 dark:text-neutral-300 text-center">
                 {t("auth.forgotPassword.sent.description")}

@@ -4,7 +4,7 @@ import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
 import type { EventListFilters } from "@/hooks/useEvents";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { t } from "@/hooks/useTranslation";
@@ -43,7 +43,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Filtres événements</Text>
             <Pressable onPress={onClose}>
-              <Ionicons name="close" size={28} color="#64748B" />
+              <Icon name="X" size={28} color="text-secondary" />
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled">

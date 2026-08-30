@@ -20,7 +20,6 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { BackButton } from "@/components/ui/BackButton";
 import { NativePicker } from "@/components/ui/NativePicker";
-import { Ionicons } from "@expo/vector-icons";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { supabase } from "@/lib/supabase";
@@ -667,8 +666,8 @@ export default function EditProfileScreen() {
                             backgroundColor: `${sportDef?.color ?? "#3358FF"}20`,
                           }}
                         >
-                          <Ionicons
-                            name={(sportDef?.icon ?? "help-outline") as any}
+                          <Icon
+                            name={sportDef?.icon ?? "CircleQuestionMark"}
                             size={15}
                             color={sportDef?.color ?? "#3358FF"}
                           />

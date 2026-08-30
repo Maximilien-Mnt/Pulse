@@ -16,7 +16,6 @@ import { SourceBadge } from '@/components/shared/SourceBadge';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
-import { Ionicons } from '@expo/vector-icons';
 import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
@@ -255,7 +254,7 @@ export default function ClubDetailScreen() {
                 </View>
                 <View className='items-center px-2.5 py-1.5 rounded-full bg-primary/10 self-start'>
                   <View className='flex-row items-center gap-1'>
-                    <Ionicons name='people-outline' size={14} color={'#3358FF'} />
+                    <Icon name='Users' size={14} color='primary' />
                     <PulseText variant='caption' className='text-primary font-semibold'>
                       {club.member_count}
                     </PulseText>
@@ -291,7 +290,7 @@ export default function ClubDetailScreen() {
                   onPress={() => void WebBrowser.openBrowserAsync(club.registration_url!)}
                 >
                   <View className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center'>
-                    <Ionicons name='person-add-outline' size={20} color={'#3358FF'} />
+                    <Icon name='UserPlus' size={20} color='primary' />
                   </View>
                   <View className='flex-1'>
                     <PulseText variant='body' className='font-medium text-neutral-900 dark:text-neutral-50'>
@@ -440,7 +439,7 @@ export default function ClubDetailScreen() {
                             }}
                             hitSlop={4}
                           >
-                            <Ionicons name='star' size={10} color='white' />
+                            <Icon name='Star' size={10} color='white' filled />
                           </Pressable>
                         ) : null}
                       </View>
@@ -607,7 +606,7 @@ function InfoSection({
 
 function SportBadge({ sport }: { sport: string }) {
   const definition = SPORTS.find((s) => s.id === sport);
-  const iconName = definition?.icon ?? 'trophy-outline';
+  const iconName = definition?.icon ?? 'Trophy';
   const color = definition?.color ?? '#3358FF';
   const label = definition?.label ?? sport;
 
@@ -616,7 +615,7 @@ function SportBadge({ sport }: { sport: string }) {
       className='flex-row items-center gap-1.5 px-3 py-1.5 rounded-full self-start'
       style={{ backgroundColor: `${color}15` }}
     >
-      <Ionicons name={iconName as any} size={16} color={color} />
+      <Icon name={iconName} size={16} color={color} />
       <PulseText variant='caption' className='font-semibold' style={{ color }}>
         {label}
       </PulseText>

@@ -1,5 +1,5 @@
 import { useFeedStore } from "@/stores/feedStore";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { Pressable, Text, View } from "react-native";
 
 /**
@@ -15,11 +15,11 @@ export function TagFilterBanner() {
   return (
     <View className="flex-row items-center justify-between px-4 py-2 bg-primary/10 border-b border-primary/20">
       <View className="flex-row items-center gap-2">
-        <Ionicons name="pricetag" size={16} color="#1E6BFF" />
+        <Icon name="Tag" size={16} color="primary" />
         <Text className="text-sm font-medium text-primary">#{activeTag}</Text>
       </View>
       <Pressable onPress={() => setActiveTag(null)} hitSlop={8}>
-        <Ionicons name="close-circle" size={20} color="#94A3B8" />
+        <Icon name="XCircle" size={20} color="text-tertiary" />
       </Pressable>
     </View>
   );

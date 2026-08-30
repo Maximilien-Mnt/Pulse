@@ -21,6 +21,15 @@
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
 
+/assets/*.eot
+  Content-Type: application/vnd.ms-fontobject
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
 /_expo/static/css/*
   Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable

@@ -1,4 +1,5 @@
-import { useEffect, Platform } from "react";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";

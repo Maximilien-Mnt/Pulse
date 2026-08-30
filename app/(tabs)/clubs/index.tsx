@@ -13,7 +13,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import type { Club } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -87,11 +87,11 @@ export default function ClubsScreen() {
       <Header title={t("common.clubs")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between items-center py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
-          <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />
+          <Icon name="Funnel" size={24} color="primary" />
         </Pressable>
         {showViewToggle ? (
           <Pressable onPress={() => setGrid((g) => !g)}>
-            <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
+            <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
           </Pressable>
         ) : null}
       </View>
@@ -123,7 +123,7 @@ export default function ClubsScreen() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
-        ListEmptyComponent={<EmptyState icon="people-outline" title={t("common.noClub")} subtitle={t("common.tryOtherFilters")} />}
+        ListEmptyComponent={<EmptyState icon="Users" title={t("common.noClub")} subtitle={t("common.tryOtherFilters")} />}
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 

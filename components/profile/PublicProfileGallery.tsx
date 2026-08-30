@@ -4,7 +4,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SPORTS } from "@/lib/constants";
 import type { Club, EventRow, FeedPost } from "@/types";
 import { PostCard } from "@/components/feed/PostCard";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -58,7 +58,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
 
       {tab === "posts" && (
         posts.length === 0 ? (
-          <EmptyState icon="images-outline" title="Aucun post" />
+          <EmptyState icon="Images" title="Aucun post" />
         ) : (
           <View className="pb-4">
             {posts.map((post) => (
@@ -74,7 +74,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
 
       {tab === "clubs" && (
         clubs.length === 0 ? (
-          <EmptyState icon="people-outline" title="Aucun club" />
+          <EmptyState icon="Users" title="Aucun club" />
         ) : (
           <View className="gap-3">
             {clubs.map((c) => (
@@ -84,7 +84,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
                     <Image source={{ uri: c.logo_url }} style={{ width: 48, height: 48, borderRadius: 12 }} />
                   ) : (
                     <View className="w-12 h-12 rounded-xl bg-primary/10 items-center justify-center">
-                      <Ionicons name="people" size={24} color="#1E6BFF" />
+                      <Icon name="Users" size={24} color="primary" />
                     </View>
                   )}
                   <View className="flex-1">
@@ -102,7 +102,7 @@ export function PublicProfileGallery({ posts, clubs, events, loading }: Props) {
 
       {tab === "events" && (
         events.length === 0 ? (
-          <EmptyState icon="calendar-outline" title={t("profile.noEvents")} />
+          <EmptyState icon="Calendar" title={t("profile.noEvents")} />
         ) : (
           <View className="gap-3">
             {events.map((e) => (

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SPORTS } from "@/lib/constants";
 import type { ClubListFilters } from "@/hooks/useClubs";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { t } from "@/hooks/useTranslation";
@@ -38,7 +38,7 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Filtres clubs</Text>
             <Pressable onPress={onClose}>
-              <Ionicons name="close" size={28} color="#64748B" />
+              <Icon name="X" size={28} color="text-secondary" />
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>

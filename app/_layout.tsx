@@ -4,26 +4,8 @@ import { useLanguageStore } from "@/stores/languageStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavbarStore } from "@/stores/navbarStore";
+import { usePulseFonts } from "@/lib/usePulseFonts";
 
-import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
-  useFonts as useOutfitFonts,
-} from "@expo-google-fonts/outfit";
-import {
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_700Bold,
-  useFonts as useSpaceGroteskFonts,
-} from "@expo-google-fonts/space-grotesk";
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts as useInterFonts,
-} from "@expo-google-fonts/inter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useGlobalSearchParams } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -73,24 +55,7 @@ export default function RootLayout() {
   const params = useGlobalSearchParams();
   const previousPathname = useRef<string | undefined>(undefined);
 
-  const [outfitLoaded, outfitError] = useOutfitFonts({
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-  });
-  const [spaceGroteskLoaded, spaceGroteskError] = useSpaceGroteskFonts({
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
-  });
-  const [interLoaded, interError] = useInterFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
-  const loaded = outfitLoaded && spaceGroteskLoaded && interLoaded;
-  const fontError = outfitError ?? spaceGroteskError ?? interError;
+  const [loaded, fontError] = usePulseFonts();
 
   // Hide the splash screen once fonts are loaded.
   // On web, also hide it when fonts fail to load so the app doesn't

@@ -1,11 +1,11 @@
 import { cn } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import { Button } from "./Button";
+import { Icon, type IconName } from "./Icon";
 
 type Props = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IconName;
   title: string;
   subtitle?: string;
   ctaLabel?: string;
@@ -16,7 +16,7 @@ type Props = {
 export function EmptyState({ icon, title, subtitle, ctaLabel, onCta, children }: Props) {
   return (
     <View className="items-center justify-center py-12 px-6">
-      <Ionicons name={icon} size={48} color="#94A3B8" />
+      <Icon name={icon} size={32} color="text-tertiary" />
       <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50 mt-4 text-center">
         {title}
       </Text>

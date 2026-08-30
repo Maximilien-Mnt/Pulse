@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useState, useEffect } from "react";
 import { Pressable, Text, View, Modal, TextInput, Alert, ActivityIndicator } from "react-native";
 import { useChangePassword } from "@/hooks/useChangePassword";
@@ -73,7 +73,7 @@ export function SecuritySection({ email }: Props) {
           </Text>
         </View>
         <Pressable onPress={() => setShowEmail((v) => !v)} hitSlop={8}>
-          <Ionicons name={showEmail ? "eye-off-outline" : "eye-outline"} size={22} color="#64748B" />
+          <Icon name={showEmail ? "EyeOff" : "Eye"} size={22} color="#64748B" />
         </Pressable>
       </View>
 
@@ -96,11 +96,11 @@ export function SecuritySection({ email }: Props) {
         <View className="flex-row items-center gap-2">
           {canShowPassword && (
             <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#64748B" />
+              <Icon name={showPassword ? "EyeOff" : "Eye"} size={22} color="#64748B" />
             </Pressable>
           )}
           <Pressable onPress={() => setShowChangeModal(true)} hitSlop={8}>
-            <Ionicons name="pencil-outline" size={20} color="#64748B" />
+            <Icon name="Pen" size={20} color="#64748B" />
           </Pressable>
         </View>
       </View>
@@ -119,7 +119,7 @@ export function SecuritySection({ email }: Props) {
                 Changer le mot de passe
               </Text>
               <Pressable onPress={() => setShowChangeModal(false)} hitSlop={8}>
-                <Ionicons name="close" size={24} color="#64748B" />
+                <Icon name="X" size={24} color="#64748B" />
               </Pressable>
             </View>
 
@@ -136,8 +136,8 @@ export function SecuritySection({ email }: Props) {
                 autoCapitalize="none"
               />
               <Pressable onPress={() => setShowNewPassword(!showNewPassword)} hitSlop={8}>
-                <Ionicons 
-                  name={showNewPassword ? "eye-off-outline" : "eye-outline"} 
+                <Icon 
+                  name={showNewPassword ? "EyeOff" : "Eye"} 
                   size={20} 
                   color="#64748B" 
                 />
@@ -157,8 +157,8 @@ export function SecuritySection({ email }: Props) {
                 autoCapitalize="none"
               />
               <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={8}>
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                <Icon 
+                  name={showConfirmPassword ? "EyeOff" : "Eye"} 
                   size={20} 
                   color="#64748B" 
                 />

@@ -10,7 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { Image } from "expo-image";
@@ -537,7 +537,7 @@ export default function CreatePublicEventScreen() {
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"
                   >
-                    <Ionicons name="close" size={12} color="white" />
+                    <Icon name="X" size={12} color="white" />
                   </Pressable>
                 </View>
               ))}

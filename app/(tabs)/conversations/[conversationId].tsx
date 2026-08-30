@@ -3,7 +3,7 @@ import { ConversationActionSheet } from "@/components/conversations/Conversation
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import type { Message } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -217,7 +217,7 @@ export default function ConversationScreen() {
           </Text>
         </Pressable>
         <Pressable onPress={() => setMenuOpen(true)}>
-          <Ionicons name="settings-outline" size={22} color="#64748B" />
+          <Icon name="Settings" size={22} color="text-secondary" />
         </Pressable>
       </View>
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={80}>
@@ -244,7 +244,7 @@ export default function ConversationScreen() {
             onChangeText={setText}
           />
           <Pressable onPress={() => sendMut.mutate()} className="bg-primary rounded-full p-3">
-            <Ionicons name="send" size={22} color="#fff" />
+            <Icon name="Send" size={22} color="white" />
           </Pressable>
         </View>
       </KeyboardAvoidingView>

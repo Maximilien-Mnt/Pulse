@@ -12,7 +12,7 @@ import { useResponsiveListGrid } from "@/hooks/useResponsiveListGrid";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { EventRow } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -84,11 +84,11 @@ export default function EventsScreen() {
       <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between py-2">
         <Pressable onPress={() => setFilterOpen(true)}>
-          <Ionicons name="funnel-outline" size={24} color="#1E6BFF" />
+          <Icon name="Funnel" size={24} color="primary" />
         </Pressable>
         {showViewToggle ? (
           <Pressable onPress={() => setGrid((g) => !g)}>
-            <Ionicons name={grid ? "list-outline" : "grid-outline"} size={24} color="#1E6BFF" />
+            <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
           </Pressable>
         ) : null}
       </View>
@@ -114,7 +114,7 @@ export default function EventsScreen() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
-        ListEmptyComponent={<EmptyState icon="calendar-outline" title={t("common.noEvents")} subtitle={t("common.tryOtherFilters")} />}
+        ListEmptyComponent={<EmptyState icon="Calendar" title={t("common.noEvents")} subtitle={t("common.tryOtherFilters")} />}
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 

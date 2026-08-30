@@ -7,7 +7,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import { queryClient } from "@/lib/queryClient";
 import { parseTagsInput } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery } from "@tanstack/react-query";

@@ -1,8 +1,8 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { formatRelative } from "@/utils/date";
 import { useAuthStore } from "@/stores/authStore";
-import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
+import { Icon } from "@/components/ui/Icon";
 import { useCommentLike } from "@/hooks/useCommentLike";
 
 export type CommentRow = {
@@ -50,7 +50,12 @@ export function CommentItem({ comment }: Props) {
           onPress={toggleLike}
           disabled={!userId || isPending}
         >
-          <Ionicons name={liked ? "heart" : "heart-outline"} size={18} color={liked ? "#EF4444" : "#94A3B8"} />
+          <Icon
+            name="Heart"
+            size={18}
+            color={liked ? "error-500" : "text-tertiary"}
+            filled={liked}
+          />
           <Text className="text-xs text-neutral-500">{likesCount}</Text>
         </Pressable>
       </View>

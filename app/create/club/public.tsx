@@ -10,7 +10,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { Image } from "expo-image";
@@ -396,7 +395,7 @@ export default function CreatePublicClubScreen() {
                   onPress={() => setLogoUri(null)}
                   className="absolute -top-2 -right-2 bg-error rounded-full p-1.5"
                 >
-                  <Ionicons name="close" size={16} color="white" />
+                  <Icon name="X" size={16} color="white" />
                 </Pressable>
               </View>
             </View>
@@ -432,7 +431,7 @@ export default function CreatePublicClubScreen() {
                   onPress={() => setCoverUri(null)}
                   className="absolute top-2 right-2 bg-error rounded-full p-1.5"
                 >
-                  <Ionicons name="close" size={16} color="white" />
+                  <Icon name="X" size={16} color="white" />
                 </Pressable>
               </View>
             </View>
@@ -465,7 +464,7 @@ export default function CreatePublicClubScreen() {
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"
                   >
-                    <Ionicons name="close" size={12} color="white" />
+                    <Icon name="X" size={12} color="white" />
                   </Pressable>
                 </View>
               ))}

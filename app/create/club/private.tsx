@@ -6,7 +6,6 @@ import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPrivateSchema } from "@/utils/validation";
-import { Ionicons } from "@expo/vector-icons";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -289,7 +288,7 @@ export default function CreatePrivateClubScreen() {
                   onPress={() => setLogoUri(null)}
                   className="absolute -top-2 -right-2 bg-error rounded-full p-1.5"
                 >
-                  <Ionicons name="close" size={16} color="white" />
+                  <Icon name="X" size={16} color="white" />
                 </Pressable>
               </View>
             </View>
@@ -325,7 +324,7 @@ export default function CreatePrivateClubScreen() {
                   onPress={() => setCoverUri(null)}
                   className="absolute top-2 right-2 bg-error rounded-full p-1.5"
                 >
-                  <Ionicons name="close" size={16} color="white" />
+                  <Icon name="X" size={16} color="white" />
                 </Pressable>
               </View>
             </View>
@@ -372,7 +371,7 @@ export default function CreatePrivateClubScreen() {
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"
                   >
-                    <Ionicons name="close" size={12} color="white" />
+                    <Icon name="X" size={12} color="white" />
                   </Pressable>
                 </View>
               ))}
@@ -409,7 +408,7 @@ export default function CreatePrivateClubScreen() {
                     <Text className="text-sm text-neutral-500">@{user.username}</Text>
                   </View>
                   {invitees.includes(user.id) && (
-                    <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
+                    <Icon name="CheckCircle2" size={24} color="success" />
                   )}
                 </Pressable>
               ))}
@@ -430,7 +429,7 @@ export default function CreatePrivateClubScreen() {
                     <Avatar uri={u.avatar_url} size={20} />
                     <Text className="ml-1 text-sm text-primary">@{u.username}</Text>
                     <Pressable onPress={() => toggleInvitee(u.id)} className="ml-1">
-                      <Ionicons name="close-circle" size={16} color="#EF4444" />
+                      <Icon name="XCircle" size={16} color="error-500" />
                     </Pressable>
                   </View>
                 ))}

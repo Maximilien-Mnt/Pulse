@@ -10,8 +10,8 @@
  * --------------------------------------------------------------- */
 
 :root {
-  --font-display: "SpaceGrotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "SpaceGrotesk_700Bold", system-ui, sans-serif;
+  --font-body: "Inter", "Inter_400Regular", system-ui, sans-serif;
 }
 
 /* Light mode (default) */

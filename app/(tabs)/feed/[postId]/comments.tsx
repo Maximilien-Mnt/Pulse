@@ -2,7 +2,7 @@ import { CommentItem, type CommentRow } from "@/components/feed/CommentItem";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -96,7 +96,7 @@ export default function PostCommentsModal() {
             <Text className="text-primary text-sm font-medium">{sortLikes ? "Tri : likes" : "Tri : date"}</Text>
           </Pressable>
           <Pressable onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color="#64748B" />
+            <Icon name="X" size={28} color="text-secondary" />
           </Pressable>
         </View>
       </View>
@@ -120,7 +120,7 @@ export default function PostCommentsModal() {
             className="bg-primary rounded-xl p-3 mb-1"
             disabled={!body.trim()}
           >
-            <Ionicons name="send" size={22} color="#fff" />
+            <Icon name="Send" size={22} color="white" />
           </Pressable>
         </View>
       </KeyboardAvoidingView>

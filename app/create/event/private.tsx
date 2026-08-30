@@ -6,7 +6,7 @@ import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPrivateSchema } from "@/utils/validation";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -311,7 +311,7 @@ export default function CreatePrivateEventScreen() {
                     <Text className="text-sm text-neutral-500">@{user.username}</Text>
                   </View>
                   {invitees.includes(user.id) && (
-                    <Ionicons name="checkmark-circle" size={24} color="#22C55E" />
+                    <Icon name="CheckCircle2" size={24} color="success" />
                   )}
                 </Pressable>
               ))}
@@ -332,7 +332,7 @@ export default function CreatePrivateEventScreen() {
                     <Avatar uri={u.avatar_url} size={20} />
                     <Text className="ml-1 text-sm text-primary">@{u.username}</Text>
                     <Pressable onPress={() => toggleInvitee(u.id)} className="ml-1">
-                      <Ionicons name="close-circle" size={16} color="#EF4444" />
+                      <Icon name="XCircle" size={16} color="error-500" />
                     </Pressable>
                   </View>
                 ))}

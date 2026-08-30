@@ -12,7 +12,6 @@
 
 import React from "react";
 import { Pressable, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -117,8 +116,8 @@ export function SportStatusCard({
                     className="w-8 h-8 rounded-full items-center justify-center"
                     style={{ backgroundColor: `${sportDef?.color ?? "#3358FF"}20` }}
                   >
-                    <Ionicons
-                      name={(sportDef?.icon ?? "help-outline") as any}
+                    <Icon
+                      name={sportDef?.icon ?? "CircleQuestionMark"}
                       size={18}
                       color={sportDef?.color ?? "#3358FF"}
                     />
@@ -192,8 +191,8 @@ export function InterestedSportsCard({
           return (
             <Tag key={sid} size="sm" className="pl-2.5 pr-3">
               <View className="flex-row items-center gap-1.5">
-                <Ionicons
-                  name={(sportDef?.icon ?? "help-outline") as any}
+                <Icon
+                  name={sportDef?.icon ?? "CircleQuestionMark"}
                   size={14}
                   color={sportDef?.color ?? "#3358FF"}
                 />

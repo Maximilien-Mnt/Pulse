@@ -159,19 +159,25 @@ module.exports = {
       fontWeight,
 
       fontFamily: {
-        // Keeping existing Outfit mappings for backward compat
-        outfit: ["Outfit_400Regular", "sans-serif"],
-        "outfit-medium": ["Outfit_500Medium", "sans-serif"],
-        "outfit-semibold": ["Outfit_600SemiBold", "sans-serif"],
-        "outfit-bold": ["Outfit_700Bold", "sans-serif"],
-        // New Inter + SpaceGrotesk families per design tokens
-        inter: ["Inter_400Regular", "sans-serif"],
-        "inter-medium": ["Inter_500Medium", "sans-serif"],
-        "inter-semibold": ["Inter_600SemiBold", "sans-serif"],
-        "inter-bold": ["Inter_700Bold", "sans-serif"],
-        "space-grotesk": ["SpaceGrotesk_400Regular", "sans-serif"],
-        "space-grotesk-medium": ["SpaceGrotesk_500Medium", "sans-serif"],
-        "space-grotesk-bold": ["SpaceGrotesk_700Bold", "sans-serif"],
+        // Pulse families.
+        //
+        // Native: the first entry is the bundled TTF family name registered by
+        // lib/usePulseFonts (e.g. "Outfit_400Regular").
+        // Web: no TTFs are bundled, so the first entry has no match and the
+        // browser falls through to the CSS family loaded from Google Fonts
+        // ("Outfit", "Inter", "Space Grotesk" — served as woff2).
+        outfit: ["Outfit_400Regular", "Outfit", "sans-serif"],
+        "outfit-medium": ["Outfit_500Medium", "Outfit", "sans-serif"],
+        "outfit-semibold": ["Outfit_600SemiBold", "Outfit", "sans-serif"],
+        "outfit-bold": ["Outfit_700Bold", "Outfit", "sans-serif"],
+        // Inter + SpaceGrotesk families per design tokens
+        inter: ["Inter_400Regular", "Inter", "sans-serif"],
+        "inter-medium": ["Inter_500Medium", "Inter", "sans-serif"],
+        "inter-semibold": ["Inter_600SemiBold", "Inter", "sans-serif"],
+        "inter-bold": ["Inter_700Bold", "Inter", "sans-serif"],
+        "space-grotesk": ["SpaceGrotesk_500Medium", "Space Grotesk", "sans-serif"],
+        "space-grotesk-medium": ["SpaceGrotesk_500Medium", "Space Grotesk", "sans-serif"],
+        "space-grotesk-bold": ["SpaceGrotesk_700Bold", "Space Grotesk", "sans-serif"],
       },
     },
   },

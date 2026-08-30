@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Animated, Pressable, Text, TextInput, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 
 type Props = {
@@ -60,7 +60,7 @@ export function SearchBar({
           className
         )}
       >
-        <Ionicons name="search-outline" size={20} color="#94A3B8" />
+        <Icon name="Search" size={20} color="text-tertiary" />
         <Text
           className={cn(
             "ml-2 flex-1 text-base",
@@ -79,7 +79,7 @@ export function SearchBar({
   // ── Expanded ─────────────────────────────────────────────────────
   return (
     <View className={cn("flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2.5", className)}>
-      <Ionicons name="search-outline" size={20} color="#94A3B8" />
+      <Icon name="Search" size={20} color="text-tertiary" />
       <TextInput
         className="ml-2 flex-1 text-base text-neutral-900 dark:text-neutral-50"
         placeholder={placeholder}
@@ -92,10 +92,11 @@ export function SearchBar({
       />
       {/* Cross / close button */}
       <Pressable onPress={handleClear} hitSlop={8} className="ml-2">
-        <Ionicons
-          name={value.length > 0 ? "close-circle" : "close-circle-outline"}
+        <Icon
+          name="XCircle"
           size={20}
-          color="#94A3B8"
+          color="text-tertiary"
+          filled={value.length > 0}
         />
       </Pressable>
     </View>

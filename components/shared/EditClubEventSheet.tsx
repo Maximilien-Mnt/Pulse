@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import type { Club, EventRow } from "@/types";
 import { t } from "@/hooks/useTranslation";
 
@@ -117,7 +117,7 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         <View className="flex-row items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700">
           <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{title}</Text>
           <Pressable onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={28} color="#0F172A" />
+            <Icon name="X" size={24} color="text-primary" />
           </Pressable>
         </View>
 

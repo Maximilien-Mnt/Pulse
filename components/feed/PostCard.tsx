@@ -27,6 +27,7 @@ import { PostMedia } from "./PostMedia";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import { usePostLike } from "@/hooks/usePostLike";
 import { LikeButton } from "./LikeButton";
+import { CommentButton } from "./CommentButton";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -246,17 +247,10 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
         />
 
         {/* Comment */}
-        <Pressable
+        <CommentButton
+          commentsCount={post.comments_count ?? 0}
           onPress={handleComment}
-          accessibilityRole="button"
-          accessibilityLabel="Commenter"
-          className="flex-row items-center gap-1.5"
-        >
-          <Icon name="MessageSquare" size={20} color="text-tertiary" />
-          <Text variant="caption" className="text-text-tertiary tabular-nums">
-            {post.comments_count ?? 0}
-          </Text>
-        </Pressable>
+        />
 
         {/* Share */}
         <Pressable

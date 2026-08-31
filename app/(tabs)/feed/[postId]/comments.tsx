@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { usePostComment } from "@/hooks/usePostComment";
 
 export default function PostCommentsModal() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
@@ -15,6 +16,15 @@ export default function PostCommentsModal() {
   const userId = useAuthStore((s) => s.userId);
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
+
+  const {
+    commentsCount,
+    isPending,
+    addComment,
+  } = usePostComment({
+    postId: postId ?? "",
+    initialCommentsCount: 0,
+  });
 
   const { data: comments = [], refetch } = useQuery({
     queryKey: ["comments", postId, sortLikes, userId],
@@ -53,38 +63,7 @@ export default function PostCommentsModal() {
     },
   });
 
-  const { data: count = 0 } = useQuery({
-    queryKey: ["post-comments-count", postId],
-    enabled: !!postId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("post_comments")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId!);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  const addMut = useMutation({
-    mutationFn: async () => {
-      if (!userId || !body.trim()) return;
-      const { error } = await supabase.from("post_comments").insert({
-        post_id: postId!,
-        user_id: userId,
-        body: body.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setBody("");
-      void queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-      void queryClient.invalidateQueries({ queryKey: ["post-comments-count", postId] });
-      void queryClient.invalidateQueries({ queryKey: ["feed"] });
-    },
-  });
-
-  const title = useMemo(() => `Commentaires (${count})`, [count]);
+  const title = useMemo(() => `Commentaires (${commentsCount})`, [commentsCount]);
 
   return (
     <SafeScreen className="flex-1 bg-white dark:bg-neutral-900" edges={["top", "bottom"]}>
@@ -116,9 +95,11 @@ export default function PostCommentsModal() {
             multiline
           />
           <Pressable
-            onPress={() => addMut.mutate()}
+            onPress={() => {
+              void addComment(body);
+            }}
             className="bg-primary rounded-xl p-3 mb-1"
-            disabled={!body.trim()}
+            disabled={!body.trim() || isPending}
           >
             <Icon name="Send" size={22} color="white" />
           </Pressable>

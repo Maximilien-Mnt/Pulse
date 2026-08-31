@@ -1,6 +1,7 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { formatRelative } from "@/utils/date";
 import { useAuthStore } from "@/stores/authStore";
+import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { useCommentLike } from "@/hooks/useCommentLike";
@@ -21,34 +22,56 @@ export type CommentRow = {
   liked_by_me?: boolean;
 };
 
-type Props = { comment: CommentRow };
+type Props = { comment: CommentRow; onDelete?: (commentId: string) => Promise<void> };
 
-export function CommentItem({ comment }: Props) {
+export function CommentItem({ comment, onDelete }: Props) {
   const userId = useAuthStore((s) => s.userId);
   const author = comment.profiles;
 
-  const { liked, likesCount, isPending, toggleLike } = useCommentLike({
+  const { liked, likesCount, isPending: likePending, toggleLike } = useCommentLike({
     commentId: comment.id,
     postId: comment.post_id,
     initialLiked: !!comment.liked_by_me,
     initialLikesCount: comment.likes_count,
   });
 
+  const [localDeleting, setLocalDeleting] = useState(false);
+  const deleting = likePending || localDeleting;
+
+  const handleDelete = useCallback(async () => {
+    if (!onDelete) return;
+    setLocalDeleting(true);
+    try {
+      await onDelete(comment.id);
+    } finally {
+      setLocalDeleting(false);
+    }
+  }, [comment.id, onDelete]);
+
+  const canDelete = !!userId && userId === comment.user_id;
+
   return (
     <View className="flex-row gap-3 py-3 border-b border-neutral-100 dark:border-neutral-800">
       <Avatar uri={author?.avatar_url} size={32} />
       <View className="flex-1">
-        <View className="flex-row justify-between">
-          <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-            {author?.full_name ?? "Utilisateur"}
-          </Text>
-          <Text className="text-xs text-neutral-400">{formatRelative(comment.created_at)}</Text>
+        <View className="flex-row justify-between items-start">
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+              {author?.full_name ?? "Utilisateur"}
+            </Text>
+            <Text className="text-xs text-neutral-400">{formatRelative(comment.created_at)}</Text>
+          </View>
+          {canDelete ? (
+            <Pressable onPress={handleDelete} disabled={deleting} className="p-1">
+              <Icon name="Trash2" size={18} color="error-500" />
+            </Pressable>
+          ) : null}
         </View>
         <Text className="text-base text-neutral-800 dark:text-neutral-100 mt-1">{comment.body}</Text>
         <Pressable
           className="flex-row items-center gap-1 mt-2"
           onPress={toggleLike}
-          disabled={!userId || isPending}
+          disabled={!userId || likePending}
         >
           <Icon
             name="Heart"

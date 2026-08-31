@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useUserPosts } from "@/hooks/useUserPosts";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
+import { usePostComment } from "@/hooks/usePostComment";
 import { useState, useCallback } from "react";
 import {
   FlatList,
@@ -115,51 +116,25 @@ export default function UserPostsScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Header
-        title="Mes posts"
-        showBackButton
-        showAvatar
-        avatarUrl={profile?.avatar_url}
-      />
+      <Header title="Mes posts" showBackButton showAvatar avatarUrl={profile?.avatar_url} />
 
       {posts.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <EmptyState
-            icon="Images"
-            title={t("common.noPosts")}
-            subtitle={t("feed.empty")}
-          />
+          <EmptyState icon="Images" title={t("common.noPosts")} subtitle={t("feed.empty")} />
         </View>
       ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderListItem}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
+        <FlatList data={posts} keyExtractor={(item) => item.id} renderItem={renderListItem} contentContainerStyle={{ paddingBottom: 24 }} />
       )}
 
       {/* Delete confirmation modal */}
-      <Modal
-        visible={!!deleteConfirmId}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCancelDelete}
-      >
-        <Pressable
-          className="flex-1 bg-black/60 items-center justify-center"
-          onPress={handleCancelDelete}
-        >
-          <Pressable
-            className="bg-white dark:bg-neutral-900 rounded-2xl p-5"
-            style={{ width: Dimensions.get("window").width * 0.85, maxHeight: Dimensions.get("window").height * 0.35 }}
-            onPress={() => {}}
-          >
+      <Modal visible={!!deleteConfirmId} transparent animationType="fade" onRequestClose={handleCancelDelete}>
+        <Pressable className="flex-1 bg-black/60 items-center justify-center" onPress={handleCancelDelete}>
+          <Pressable className="bg-white dark:bg-neutral-900 rounded-2xl p-5" style={{ width: Dimensions.get("window").width * 0.85, maxHeight: Dimensions.get("window").height * 0.35 }} onPress={() => {}}>
             <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
               Supprimer le post ?
             </Text>
             <Text className="text-neutral-600 dark:text-neutral-400 mb-5">
-              Cette action est irréversible.
+              Cette action est irreversible.
             </Text>
 
             {deleteError ? (
@@ -167,20 +142,12 @@ export default function UserPostsScreen() {
             ) : null}
 
             <View className="flex-row gap-3">
-              <Pressable
-                onPress={handleCancelDelete}
-                className="flex-1 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700"
-                disabled={isDeleting}
-              >
+              <Pressable onPress={handleCancelDelete} className="flex-1 py-3 rounded-xl border border-neutral-300 dark:border-neutral-700" disabled={isDeleting}>
                 <Text className="text-center font-semibold text-neutral-900 dark:text-neutral-50">
                   Annuler
                 </Text>
               </Pressable>
-              <Pressable
-                onPress={handleConfirmDelete}
-                className="flex-1 py-3 rounded-xl bg-red-500"
-                disabled={isDeleting}
-              >
+              <Pressable onPress={handleConfirmDelete} className="flex-1 py-3 rounded-xl bg-red-500" disabled={isDeleting}>
                 <Text className="text-center font-semibold text-white">
                   {isDeleting ? t("common.deleting") : t("common.delete")}
                 </Text>
@@ -191,21 +158,9 @@ export default function UserPostsScreen() {
       </Modal>
 
       {/* Centered Modal for Comments */}
-      <Modal
-        visible={!!selectedPostId}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCloseModal}
-      >
-        <Pressable
-          className="flex-1 bg-black/60 items-center justify-center"
-          onPress={handleCloseModal}
-        >
-          <Pressable
-            className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden"
-            style={{ width: Dimensions.get("window").width * 0.9, maxHeight: Dimensions.get("window").height * 0.8 }}
-            onPress={() => {}}
-          >
+      <Modal visible={!!selectedPostId} transparent animationType="fade" onRequestClose={handleCloseModal}>
+        <Pressable className="flex-1 bg-black/60 items-center justify-center" onPress={handleCloseModal}>
+          <Pressable className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden" style={{ width: Dimensions.get("window").width * 0.9, maxHeight: Dimensions.get("window").height * 0.8 }} onPress={() => {}}>
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
               <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
                 Commentaires
@@ -227,18 +182,20 @@ export default function UserPostsScreen() {
 
 function CommentsContent({ postId }: { postId: string }) {
   const currentUserId = useAuthStore((s) => s.userId);
-  const queryClient = useQueryClient();
   const [body, setBody] = useState("");
   const [sortLikes, setSortLikes] = useState(false);
+
+  const { commentsCount, addComment, deleteComment } = usePostComment({
+    postId,
+    initialCommentsCount: 0,
+  });
 
   const { data: comments = [] } = useQuery({
     queryKey: ["user-posts-comments", postId, sortLikes, currentUserId],
     enabled: !!postId,
     queryFn: async () => {
       if (!postId) return [];
-      const order = sortLikes
-        ? { column: "likes_count" as const, asc: false }
-        : { column: "created_at" as const, asc: false };
+      const order = sortLikes ? { column: "likes_count" as const, asc: false } : { column: "created_at" as const, asc: false };
       const { data: rows, error } = await supabase
         .from("post_comments")
         .select("*")
@@ -263,7 +220,6 @@ function CommentsContent({ postId }: { postId: string }) {
           .select("comment_id")
           .eq("user_id", currentUserId)
           .in("comment_id", cids);
-
         liked = new Set((likes ?? []).map((l) => l.comment_id));
       }
       return (rows ?? []).map((r) => ({
@@ -273,24 +229,6 @@ function CommentsContent({ postId }: { postId: string }) {
       })) as CommentRow[];
     },
   });
-
-  const handleAddComment = async () => {
-    if (!currentUserId || !postId || !body.trim()) return;
-    const { error } = await supabase.from("post_comments").insert({
-      post_id: postId,
-      user_id: currentUserId,
-      body: body.trim(),
-    });
-
-    if (error) {
-      console.error("Error adding comment:", error);
-      return;
-    }
-
-    setBody("");
-    await queryClient.invalidateQueries({ queryKey: ["user-posts-comments", postId] });
-    await queryClient.invalidateQueries({ queryKey: ["user-posts-with-author"] });
-  };
 
   return (
     <KeyboardAvoidingView
@@ -306,14 +244,16 @@ function CommentsContent({ postId }: { postId: string }) {
               Aucun commentaire pour le moment.
             </Text>
             <Text className="text-neutral-400 text-center mt-2 text-sm">
-              Sois le premier à commenter !
+              Sois le premier a commenter !
             </Text>
           </View>
         ) : (
           <FlatList
             data={comments}
             keyExtractor={(c) => c.id}
-            renderItem={({ item }) => <CommentItem comment={item} />}
+            renderItem={({ item }) => (
+              <CommentItem comment={item} onDelete={deleteComment} />
+            )}
             contentContainerClassName="px-4 py-2"
             style={{ maxHeight: Dimensions.get("window").height * 0.5 }}
           />
@@ -323,15 +263,18 @@ function CommentsContent({ postId }: { postId: string }) {
       <View className="flex-row items-end gap-2 px-4 py-3 border-t border-neutral-200 dark:border-neutral-700">
         <TextInput
           className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-base text-neutral-900 dark:text-neutral-50 bg-neutral-50 dark:bg-neutral-800 max-h-28"
-          placeholder="Ton commentaire…"
+          placeholder="Ton commentaire..."
           value={body}
           onChangeText={setBody}
           multiline
           placeholderTextColor="#9CA3AF"
         />
         <Pressable
-          onPress={handleAddComment}
-          className={`rounded-xl p-3 mb-1 ${body.trim() ? "bg-primary" : "bg-neutral-300 dark:bg-neutral-700"}`}
+          onPress={async () => {
+            await addComment(body);
+            setBody("");
+          }}
+          className={`${"rounded-xl p-3"} ${body.trim() ? "bg-primary" : "bg-neutral-300 dark:bg-neutral-700"}`}
           disabled={!body.trim()}
         >
           <Icon name="Send" size={20} color={body.trim() ? "white" : "text-tertiary"} />

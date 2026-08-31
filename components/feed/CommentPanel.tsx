@@ -12,12 +12,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
 import { CommentItem, type CommentRow } from "./CommentItem";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import { usePostComment } from "@/hooks/usePostComment";
 
 type CommentPanelProps = {
   postId: string | null;
@@ -30,6 +31,15 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
   const queryClient = useQueryClient();
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
+  const {
+    commentsCount,
+    isPending,
+    addComment,
+    deleteComment,
+  } = usePostComment({
+    postId: postId ?? "",
+    initialCommentsCount: 0,
+  });
   const slideAnim = useMemo(
     () => new Animated.Value(visible ? 1 : 0),
     []
@@ -85,41 +95,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     },
   });
 
-  const { data: count = 0 } = useQuery({
-    queryKey: ["post-comments-count", postId],
-    enabled: !!postId && visible,
-    queryFn: async () => {
-      if (!postId) return 0;
-      const { count, error } = await supabase
-        .from("post_comments")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  const addMut = useMutation({
-    mutationFn: async () => {
-      if (!userId || !postId || !body.trim()) return;
-      const { error } = await supabase.from("post_comments").insert({
-        post_id: postId,
-        user_id: userId,
-        body: body.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setBody("");
-      if (postId) {
-        void queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-        void queryClient.invalidateQueries({ queryKey: ["post-comments-count", postId] });
-        void queryClient.invalidateQueries({ queryKey: ["feed"] });
-      }
-    },
-  });
-
-  const title = useMemo(() => `Commentaires (${count})`, [count]);
+  const title = useMemo(() => `Commentaires (${commentsCount})`, [commentsCount]);
 
   if (!postId) return null;
 
@@ -188,12 +164,10 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
           />
           <Pressable
             onPress={() => {
-              if (body.trim()) {
-                addMut.mutate();
-              }
+              void addComment(body);
             }}
             className={`rounded-xl p-3 mb-1 ${body.trim() ? "bg-primary" : "bg-border dark:bg-border-dark"}`}
-            disabled={!body.trim() || addMut.isPending}
+            disabled={!body.trim() || isPending}
           >
             <Icon name="Send" size={20} color={body.trim() ? "text-inverse" : "text-tertiary"} />
           </Pressable>

@@ -97,6 +97,11 @@ export default function SignupStep5() {
     }
   };
 
+  const removeImage = () => {
+    setAvatarUri(null);
+    setStep5({ bio: watch("bio"), discovery: watch("discovery"), discoveryDetails: watch("discoveryDetails"), avatarLocalUri: null });
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     const issues = getSignupMissingFields({
       acceptTerms: values.acceptTerms,
@@ -293,7 +298,12 @@ export default function SignupStep5() {
         <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
           {t("signup.step5.photo")} {t("signup.optional")}
         </Text>
-        <Pressable onPress={pickImage} accessibilityRole="button" className="mb-3 items-center">
+        <Pressable
+          onPress={pickImage}
+          accessibilityRole="button"
+          accessibilityLabel={avatarUri ? t("signup.step5.changePhoto") : t("signup.step5.addPhoto")}
+          className="mb-3 items-center"
+        >
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={{ width: 112, height: 112, borderRadius: 56 }} contentFit="cover" />
           ) : (
@@ -302,7 +312,30 @@ export default function SignupStep5() {
             </View>
           )}
         </Pressable>
-        <Text className="text-xs text-neutral-500 text-center mb-4">{t("signup.step5.photoHint")}</Text>
+        {avatarUri ? (
+          <View className="flex-row items-center justify-center gap-5 mb-4">
+            <Pressable
+              onPress={pickImage}
+              accessibilityRole="button"
+              accessibilityLabel={t("signup.step5.changePhoto")}
+              className="flex-row items-center gap-1.5 px-2 py-1"
+            >
+              <Icon name="Pen" size={16} color="primary" />
+              <Text className="text-primary dark:text-primary-dark text-sm font-medium">{t("signup.step5.changePhoto")}</Text>
+            </Pressable>
+            <Pressable
+              onPress={removeImage}
+              accessibilityRole="button"
+              accessibilityLabel={t("signup.step5.removePhoto")}
+              className="flex-row items-center gap-1.5 px-2 py-1"
+            >
+              <Icon name="Trash2" size={16} color="error-500" />
+              <Text className="text-error text-sm font-medium">{t("signup.step5.removePhoto")}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Text className="text-xs text-neutral-500 text-center mb-4">{t("signup.step5.photoHint")}</Text>
+        )}
 
         <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50 mb-2">{t("signup.step5.discovery")}</Text>
         <Controller

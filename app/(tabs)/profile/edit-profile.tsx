@@ -528,24 +528,50 @@ export default function EditProfileScreen() {
             Morphologie
           </Text>
           <View className="flex-row gap-3">
-            <View className="flex-1">
-              <Input
-                label="Taille (cm)"
-                value={height}
-                onChangeText={setHeight}
-                keyboardType="numeric"
-                returnKeyType="next"
-                placeholder="180"
+            <View className="flex-1 gap-2">
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">Taille (cm)</Text>
+              <NativePicker
+                title="Taille (cm)"
+                confirmLabel={t("common.ok")}
+                cancelLabel={t("common.cancel")}
+                options={Array.from({ length: 151 }, (_, i) => ({ value: String(100 + i), label: `${100 + i} cm` }))}
+                selectedValue={height ?? ""}
+                onSelect={(v) => setHeight(v)}
+                renderTrigger={(label) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Taille (cm)"
+                    className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between"
+                  >
+                    <Text className={`text-base ${height ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-500"}`}>
+                      {height ? label : "180"}
+                    </Text>
+                    <Text className="text-tertiary text-lg leading-none">›</Text>
+                  </Pressable>
+                )}
               />
             </View>
-            <View className="flex-1">
-              <Input
-                label="Poids (kg)"
-                value={weight}
-                onChangeText={setWeight}
-                keyboardType="numeric"
-                returnKeyType="done"
-                placeholder="75"
+            <View className="flex-1 gap-2">
+              <Text className="text-xs text-neutral-500 dark:text-neutral-400">Poids (kg)</Text>
+              <NativePicker
+                title="Poids (kg)"
+                confirmLabel={t("common.ok")}
+                cancelLabel={t("common.cancel")}
+                options={Array.from({ length: 171 }, (_, i) => ({ value: String(30 + i), label: `${30 + i} kg` }))}
+                selectedValue={weight ?? ""}
+                onSelect={(v) => setWeight(v)}
+                renderTrigger={(label) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Poids (kg)"
+                    className="h-12 justify-center rounded-sm border-[1.5px] border-border bg-surface dark:bg-surface-dark px-4 flex-row items-center justify-between"
+                  >
+                    <Text className={`text-base ${weight ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-500"}`}>
+                      {weight ? label : "75"}
+                    </Text>
+                    <Text className="text-tertiary text-lg leading-none">›</Text>
+                  </Pressable>
+                )}
               />
             </View>
           </View>

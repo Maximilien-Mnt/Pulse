@@ -131,6 +131,10 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
       {
         user_id: profile.id,
         sport_id: s.sportId,
+        // Signup sports are always *practiced* sports. Without this the
+        // column default ('practiced') was applied implicitly — and any
+        // future change of the default would silently corrupt signup data.
+        category: "practiced",
         level: s.level,
         practice: s.practice,
         time_slots: (s.timeSlots ?? []).map((slot) => ({
@@ -139,7 +143,10 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
           endHour: slot.endHour,
         })),
       },
-      { onConflict: "id", ignoreDuplicates: true }
+      // Conflict on the natural key so re-running signup updates the existing
+      // row instead of inserting a duplicate (the old `onConflict: "id"` never
+      // matched, since `id` is generated and not supplied).
+      { onConflict: "user_id,sport_id,category", ignoreDuplicates: false }
     );
     if (se) throw se;
   }

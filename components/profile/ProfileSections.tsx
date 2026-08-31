@@ -18,7 +18,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
 import { Text } from "@/components/ui/Text";
 import { SPORTS, WEEKDAYS } from "@/lib/constants";
-import type { UserStats, UserSport, PublicStatusMap } from "@/types";
+import type { UserStats, UserSport } from "@/types";
 import { cn } from "@/utils/format";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
@@ -79,15 +79,24 @@ export function StatsGrid({
 
 export function SportStatusCard({
   sports,
-  statusMap,
   onEditPress,
 }: {
   sports: UserSport[];
-  statusMap: PublicStatusMap;
   onEditPress?: () => void;
 }) {
   const { t } = useTranslation();
-  if (sports.length === 0) return null;
+
+  // Defensive normalization: one entry per sport, no unknown sport ids.
+  // (Data-sync bugs elsewhere must never leak duplicates or garbage rows
+  // into the profile display.)
+  const seenSports = new Set<string>();
+  const normalizedSports = (sports ?? []).filter((s) => {
+    if (!s?.sport_id || seenSports.has(s.sport_id)) return false;
+    seenSports.add(s.sport_id);
+    return true;
+  });
+
+  if (normalizedSports.length === 0) return null;
 
   return (
     <Card className="mt-5 p-4">
@@ -100,14 +109,16 @@ export function SportStatusCard({
         ) : null}
       </View>
       <View className="gap-4">
-        {sports.map((s) => {
+        {normalizedSports.map((s) => {
           const sportDef = SPORTS.find((x) => x.id === s.sport_id);
-          const timeSlots =
-            (s.time_slots as { weekday: number; startHour: number; endHour: number }[] | undefined) ?? [];
+          // Sort slots chronologically: weekday (0 = Lundi ... 6 = Dimanche), then start hour,
+          // so chips always read Monday-first instead of storage/insertion order.
+          const timeSlots = ([...(((s.time_slots as { weekday: number; startHour: number; endHour: number }[] | undefined) ?? []))] as { weekday: number; startHour: number; endHour: number }[])
+            .sort((a, b) => a.weekday - b.weekday || a.startHour - b.startHour);
 
           return (
             <View
-              key={s.id}
+              key={s.sport_id}
               className="border-b border-border dark:border-border-dark last:border-b-0 pb-3 last:pb-0"
             >
               <View className="flex-row items-center justify-between">
@@ -126,11 +137,10 @@ export function SportStatusCard({
                     {sportDef?.label ?? s.sport_id}
                   </Text>
                 </View>
-                <Badge>{statusMap[s.sport_id] ?? "—"}</Badge>
+                <Badge>{s.level || "—"}</Badge>
               </View>
 
               <View className="flex-row flex-wrap gap-2 mt-2">
-                <Tag size="sm">{s.level}</Tag>
                 <Tag size="sm" tone="neutral">
                   {s.practice}
                 </Tag>

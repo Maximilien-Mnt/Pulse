@@ -8,7 +8,7 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
+import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useUserPublicContent } from "@/hooks/useUserPublicContent";
 import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "expo-router";
@@ -40,7 +40,6 @@ export default function MyPublicProfileScreen() {
     );
   }
 
-  const statusMap = parsePublicStatus(profile.public_status);
   const stats = profile.stats;
 
   return (
@@ -63,7 +62,7 @@ export default function MyPublicProfileScreen() {
 
         {stats && <StatsGrid stats={stats} isPublic={profile.is_public_profile} />}
 
-        <SportStatusCard sports={profile.sports} statusMap={statusMap} />
+        <SportStatusCard sports={profile.sports} />
         <InterestedSportsCard sports={profile.interested_sports ?? []} />
         <ObjectivesCard objectives={profile.objectives ?? []} />
 

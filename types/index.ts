@@ -79,6 +79,7 @@ export type Database = {
           id: string;
           user_id: string;
           sport_id: string;
+          category: string;
           level: string;
           practice: string;
           time_slots: {
@@ -92,6 +93,7 @@ export type Database = {
           id?: string;
           user_id: string;
           sport_id: string;
+          category?: string;
           level: string;
           practice: string;
           time_slots?: {

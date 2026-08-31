@@ -14,7 +14,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
-import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
+import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
@@ -78,7 +78,6 @@ export default function ProfileScreen() {
   const coverUrl = profile.avatar_url ?? null;
   const name = profile.full_name ?? t("common.userNotFound");
   const bio = profile.bio ?? "";
-  const statusMap = parsePublicStatus(profile.public_status);
   return (
     <SafeScreen edges={["top"]}>
       <ScrollView bounces={false}>
@@ -132,7 +131,6 @@ export default function ProfileScreen() {
           {/* Sports practiced */}
           <SportStatusCard
             sports={profile.sports ?? []}
-            statusMap={statusMap}
             onEditPress={() =>
               router.push("/profile/edit-profile?focusSection=practiced" as any)
             }

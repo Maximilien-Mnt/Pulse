@@ -199,6 +199,9 @@ export default function EditProfileScreen() {
         }> = {};
         for (const row of rows) {
           if (row.category === "practiced") {
+            // Guard against duplicate rows for the same sport: keep the first,
+            // so the settings toggles reflect a clean set.
+            if (practiced.includes(row.sport_id)) continue;
             practiced.push(row.sport_id);
             details[row.sport_id] = {
               level: row.level ?? "",
@@ -208,6 +211,7 @@ export default function EditProfileScreen() {
                 : [],
             };
           } else if (row.category === "interested") {
+            if (interested.includes(row.sport_id)) continue;
             interested.push(row.sport_id);
           }
         }

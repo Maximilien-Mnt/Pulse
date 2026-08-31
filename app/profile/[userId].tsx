@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Icon } from "@/components/ui/Icon";
 import { useContactUser } from "@/hooks/useContactUser";
 import { useFollow, useIsFollowing } from "@/hooks/useFollow";
-import { usePublicProfile, parsePublicStatus } from "@/hooks/usePublicProfile";
+import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useUserPublicContent } from "@/hooks/useUserPublicContent";
 import { useBlockUser } from "@/hooks/useBlockUser";
 import { getCountryDisplay } from "@/utils/countries";
@@ -56,7 +56,6 @@ export default function UserPublicProfileScreen() {
     );
   }
 
-  const statusMap = parsePublicStatus(profile.public_status);
   const stats = profile.stats;
   const engagementRate =
     stats && stats.posts_count > 0
@@ -167,7 +166,7 @@ export default function UserPublicProfileScreen() {
 
         {isPublic && stats && <StatsGrid stats={stats} isPublic={isPublic} />}
 
-        <SportStatusCard sports={profile.sports} statusMap={statusMap} />
+        <SportStatusCard sports={profile.sports} />
 
         <InterestedSportsCard sports={profile.interested_sports ?? []} />
 

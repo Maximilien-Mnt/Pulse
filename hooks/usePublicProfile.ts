@@ -24,11 +24,17 @@ export function usePublicProfile(userId: string | null | undefined) {
       if (error) throw error;
       if (!profile) return null;
 
-      const [{ data: sports, error: se }, { data: stats, error: stE }, { data: objectives, error: obE }] =
+      const [{ data: sports, error: se }, { data: stats, error: stE }, { data: objectives, error: obE },
+        { count: followersCount }, { count: followingCount }] =
         await Promise.all([
           supabase.from("user_sports").select("*").eq("user_id", userId!),
           supabase.from("user_stats").select("*").eq("user_id", userId!).maybeSingle(),
           supabase.from("user_objectives").select("*").eq("user_id", userId!),
+          // Subscribers/following counts are recomputed live from the
+          // `follows` table (source of truth) on every fetch, so the value is
+          // always correct on every refresh — never a drifted snapshot.
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", userId!),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", userId!),
         ]);
       if (se) throw se;
       if (stE) throw stE;
@@ -46,7 +52,13 @@ export function usePublicProfile(userId: string | null | undefined) {
       return {
         ...(profile as PublicProfile),
         sports: (sports ?? []) as UserSport[],
-        stats: (stats as UserStats | null) ?? null,
+        stats: stats
+          ? {
+              ...(stats as UserStats),
+              followers_count: followersCount ?? 0,
+              following_count: followingCount ?? 0,
+            }
+          : null,
         interested_sports: (profile.interested_sports as string[]) ?? [],
         objectives: uniqueObjectives,
       };

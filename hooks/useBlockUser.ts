@@ -81,7 +81,9 @@ export function useBlockUser() {
         queryClient.invalidateQueries({ queryKey: ["user-posts", targetId] });
         queryClient.invalidateQueries({ queryKey: ["user-clubs", targetId] });
         queryClient.invalidateQueries({ queryKey: ["user-events", targetId] });
+        // Recomputes counts from `follows` (covers the implicit unfollow above).
         queryClient.invalidateQueries({ queryKey: ["public-profile", targetId] });
+        queryClient.invalidateQueries({ queryKey: ["public-profile", userId] });
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
         queryClient.invalidateQueries({ queryKey: ["blocked-users", userId] });
 

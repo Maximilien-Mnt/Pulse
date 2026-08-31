@@ -247,10 +247,17 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
         />
 
         {/* Comment */}
-        <CommentButton
-          commentsCount={post.comments_count ?? 0}
+        <Pressable
           onPress={handleComment}
-        />
+          accessibilityRole="button"
+          accessibilityLabel="Commenter"
+          className="flex-row items-center gap-1.5"
+        >
+          <Icon name="MessageSquare" size={20} color="text-tertiary" />
+          <Text variant="caption" className="text-text-tertiary tabular-nums">
+            {post.comments_count ?? 0}
+          </Text>
+        </Pressable>
 
         {/* Share */}
         <Pressable

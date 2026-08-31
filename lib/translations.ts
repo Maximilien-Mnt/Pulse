@@ -224,6 +224,9 @@ export const translations = {
     "signup.error.generic": "Une erreur est survenue. Réessaie.",
     "signup.error.invalidPayload": "Certaines données saisies sont invalides. Vérifie ton inscription.",
     "signup.error.emailTaken": "Un compte existe déjà avec cet email.",
+    "signup.error.usernameTaken": "Ce nom d'utilisateur est déjà pris.",
+    "signup.error.underage": "Tu dois avoir au moins 16 ans pour créer un compte.",
+    "signup.error.network": "Problème de connexion. Vérifie ta connexion internet et réessaie.",
     "signup.checkEmail.title": "Vérifiez votre email",
     "signup.checkEmail.description":
       "Un email de confirmation vient d'être envoyé. Cliquez sur le lien pour activer votre compte.",
@@ -1119,6 +1122,9 @@ export const translations = {
     "signup.error.generic": "Something went wrong. Please try again.",
     "signup.error.invalidPayload": "Some entered data is invalid. Please review your signup.",
     "signup.error.emailTaken": "An account already exists with this email.",
+    "signup.error.usernameTaken": "This username is already taken.",
+    "signup.error.underage": "You must be at least 16 years old to create an account.",
+    "signup.error.network": "Connection problem. Check your internet connection and try again.",
     "signup.checkEmail.title": "Check your email",
     "signup.checkEmail.description":
       "A confirmation email has just been sent. Click the link to activate your account.",

@@ -40,9 +40,21 @@ export function getSignupMissingFields(input: MissingFieldInput): SignupIssue[] 
 }
 
 const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
+  // Machine-readable codes returned by supabase/functions/signup/index.ts.
+  INVALID_PAYLOAD: "signup.error.invalidPayload",
+  EMAIL_TAKEN: "signup.error.emailTaken",
+  USERNAME_TAKEN: "signup.error.usernameTaken",
+  UNDERAGE: "signup.error.underage",
+  // Legacy raw messages (older deployed functions) — still mapped so the
+  // client degrades gracefully if the server lags behind.
   "Invalid payload": "signup.error.invalidPayload",
   "User already registered": "signup.error.emailTaken",
+  // Client-side network failures.
+  "Failed to fetch": "signup.error.network",
+  "Network request failed": "signup.error.network",
+  // Fallback markers thrown by the client when the response isn't JSON.
   signup_failed: "signup.error.generic",
+  signup_invalid_response: "signup.error.generic",
 };
 
 /** Maps a server/edge-function error message to a friendly, localized label. */

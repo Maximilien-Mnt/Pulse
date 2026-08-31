@@ -14,6 +14,52 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+/**
+ * Stable, machine-readable error codes. These are the ONLY contract the
+ * client may rely on (see utils/signupChecklist.ts on the app side). Human
+ * Postgres / GoTrue messages are never forwarded raw, because the pre-2026
+ * versions leaked untyped messages that mapped to a generic toast on the
+ * client and hid the real cause.
+ *
+ * Conventions:
+ *  - INVALID_PAYLOAD   payload failed structural validation
+ *  - UNDERAGE          birth date is below MIN_AGE
+ *  - EMAIL_TAKEN       auth.users already contains this email
+ *  - USERNAME_TAKEN    profiles already contains this username
+ *  - AUTH_SIGNUP_FAILED auth.signUp rejected for any other reason
+ *  - PROFILE_INSERT_FAILED / SPORTS_INSERT_FAILED / OBJECTIVES_INSERT_FAILED
+ *                       row insert failed after the auth user was created
+ *  - INTERNAL           unhandled exception (never leaks stack traces)
+ */
+const ERR = {
+  INVALID_PAYLOAD: "INVALID_PAYLOAD",
+  UNDERAGE: "UNDERAGE",
+  EMAIL_TAKEN: "EMAIL_TAKEN",
+  USERNAME_TAKEN: "USERNAME_TAKEN",
+  AUTH_SIGNUP_FAILED: "AUTH_SIGNUP_FAILED",
+  PROFILE_INSERT_FAILED: "PROFILE_INSERT_FAILED",
+  SPORTS_INSERT_FAILED: "SPORTS_INSERT_FAILED",
+  OBJECTIVES_INSERT_FAILED: "OBJECTIVES_INSERT_FAILED",
+  INTERNAL: "INTERNAL",
+} as const;
+
+type ApiResponseBody = {
+  ok: boolean;
+  error?: string;
+  detail?: string;
+  userId?: string;
+  email?: string;
+  needsConfirmation?: boolean;
+};
+
+/** Always return JSON + CORS, whatever status, so the app can parse it. */
+function json(body: ApiResponseBody, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -184,6 +230,19 @@ function calculateAge(birthDateStr: string): number {
   return age;
 }
 
+/**
+ * Detect a Postgres unique-constraint violation on a specific column.
+ * PostgREST surfaces these with `code` = "23505" (unique_violation) and a
+ * human `message` naming the violated constraint, e.g.:
+ *   duplicate key value violates unique constraint "profiles_username_key"
+ * We match on the constraint name so email vs username conflicts map to the
+ * correct error code (both carry the same Postgres `code`).
+ */
+function isUniqueViolation(error: { message?: string }, column: string): boolean {
+  const constraint = `_${column.toLowerCase()}_key`;
+  return (error.message ?? "").toLowerCase().includes(constraint);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests from the browser
   if (req.method === "OPTIONS") {
@@ -191,37 +250,25 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return json({ ok: false, error: "Method not allowed" }, 405);
   }
 
   try {
     const raw = await req.json();
     const validation = isValidPayload(raw);
     if (!validation.ok) {
-      return new Response(
-        JSON.stringify({ ok: false as const, error: validation.error }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return json({ ok: false, error: ERR.INVALID_PAYLOAD }, 400);
     }
 
     const data = validation.data;
 
     if (!isValidDate(data.birth_date)) {
-      return new Response(
-        JSON.stringify({ ok: false as const, error: "INVALID_DATE" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return json({ ok: false, error: "INVALID_DATE" }, 400);
     }
 
     const age = calculateAge(data.birth_date);
     if (age < MIN_AGE) {
-      return new Response(
-        JSON.stringify({ ok: false as const, error: "UNDERAGE" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return json({ ok: false, error: ERR.UNDERAGE }, 403);
     }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -230,13 +277,13 @@ Deno.serve(async (req) => {
     });
 
     if (authError || !authData.user) {
-      return new Response(
-        JSON.stringify({
-          ok: false as const,
-          error: authError?.message ?? "Auth signup failed",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      const message = authError?.message ?? "Auth signup failed";
+      // GoTrue reports existing emails with a human message; map it to a
+      // stable code so the client can show a precise, localized toast.
+      const code = message.toLowerCase().includes("already registered")
+        ? ERR.EMAIL_TAKEN
+        : ERR.AUTH_SIGNUP_FAILED;
+      return json({ ok: false, error: code, detail: message }, 400);
     }
 
     const userId = authData.user.id;
@@ -266,15 +313,19 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       await supabase.auth.admin.deleteUser(userId);
-      return new Response(
-        JSON.stringify({
-          ok: false as const,
-          error: profileError.message,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      // Map unique-constraint violations (username/email already taken) to
+      // stable codes instead of leaking the Postgres message.
+      const message = profileError.message ?? "";
+      const code = isUniqueViolation(profileError, "username")
+        ? ERR.USERNAME_TAKEN
+        : isUniqueViolation(profileError, "email")
+          ? ERR.EMAIL_TAKEN
+          : ERR.PROFILE_INSERT_FAILED;
+      return json({ ok: false, error: code, detail: message }, 400);
     }
 
+    // "Aucun sport" (no-sport path) sends an empty sports array. Skip the
+    // insert in that case — PostgREST rejects inserting an empty array.
     const sportsRows = data.sports.map((s) => ({
       user_id: userId,
       sport_id: s.sportId,
@@ -287,16 +338,15 @@ Deno.serve(async (req) => {
       })),
     }));
 
-    const { error: sportsError } = await supabase.from("user_sports").insert(sportsRows);
-    if (sportsError) {
-      await supabase.auth.admin.deleteUser(userId);
-      return new Response(
-        JSON.stringify({
-          ok: false as const,
-          error: sportsError.message,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    if (sportsRows.length > 0) {
+      const { error: sportsError } = await supabase.from("user_sports").insert(sportsRows);
+      if (sportsError) {
+        await supabase.auth.admin.deleteUser(userId);
+        return json(
+          { ok: false, error: ERR.SPORTS_INSERT_FAILED, detail: sportsError.message },
+          400
+        );
+      }
     }
 
     const objectivesRows = data.objectives.map((o) => ({
@@ -304,37 +354,36 @@ Deno.serve(async (req) => {
       objective: o,
     }));
 
-    const { error: objError } = await supabase
-      .from("user_objectives")
-      .insert(objectivesRows);
+    if (objectivesRows.length > 0) {
+      const { error: objError } = await supabase
+        .from("user_objectives")
+        .insert(objectivesRows);
 
-    if (objError) {
-      await supabase.auth.admin.deleteUser(userId);
-      return new Response(
-        JSON.stringify({
-          ok: false as const,
-          error: objError.message,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      if (objError) {
+        await supabase.auth.admin.deleteUser(userId);
+        return json(
+          { ok: false, error: ERR.OBJECTIVES_INSERT_FAILED, detail: objError.message },
+          400
+        );
+      }
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true as const,
-        userId,
-        email: data.email,
-        needsConfirmation: !authData.session,
-      }),
-      { headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+    return json({
+      ok: true,
+      userId,
+      email: data.email,
+      needsConfirmation: !authData.session,
+    });
   } catch (e) {
-    return new Response(
-      JSON.stringify({
-        ok: false as const,
-        error: e instanceof Error ? e.message : "Unknown error",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    // Never leak internal error text: the client maps our codes to localized
+    // toasts. Detail is still attached for server-side log correlation.
+    return json(
+      {
+        ok: false,
+        error: ERR.INTERNAL,
+        detail: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error",
+      },
+      500
     );
   }
 });

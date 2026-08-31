@@ -12,10 +12,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import * as Linking from "expo-linking";
-// @ts-ignore - expo-file-system is not available on web
-import * as FileSystem from "expo-file-system/legacy";
-import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
@@ -26,33 +22,13 @@ import { useTranslation , t } from "@/hooks/useTranslation";
 import { Icon } from "@/components/ui/Icon";
 import { signupEdgeFunctionUrl } from "@/lib/supabase";
 import { getSignupErrorKey, getSignupMissingFields } from "@/utils/signupChecklist";
+import { buildSignupPayload } from "@/utils/signupPayload";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
 /** Discovery option key that reveals a free-text details field. */
 const OTHER_KEY = "other";
-
-function base64ToArrayBuffer(base64: string) {
-  const binary = globalThis.atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
-
-async function uploadAvatarToSupabase(uri: string, path: string) {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: "base64",
-  });
-  const arrayBuffer = base64ToArrayBuffer(base64);
-  const { error } = await supabase.storage.from("avatars").upload(path, arrayBuffer, {
-    contentType: "image/jpeg",
-    upsert: true,
-  });
-  if (error) throw error;
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  return data.publicUrl;
-}
 
 export default function SignupStep5() {
   const router = useRouter();
@@ -154,38 +130,32 @@ export default function SignupStep5() {
     setSubmitting(true);
 
     try {
+      // Upload the avatar BEFORE calling the edge function so the public URL
+      // can be stored on the profile. A failed upload must NEVER block account
+      // creation: the account is created anyway and the avatar is just unset.
       let avatar_url: string | null = null;
       if (avatarUri) {
-        // Upload avatar before calling the edge function so we can pass the public URL
-        avatar_url = await uploadAvatarToSupabase(avatarUri, `pending-${Date.now()}.jpg`);
+        try {
+          avatar_url = await uploadImageToStorage({
+            bucket: "avatars",
+            path: `pending-${Date.now()}.jpg`,
+            uri: avatarUri,
+            upsert: true,
+          });
+        } catch (avatarError) {
+          console.error("[signup] avatar upload failed, continuing without avatar", avatarError);
+        }
       }
 
-      const payload = {
-        email: step1.email,
-        password: step1.password,
-        full_name: step1.fullName,
-        username: step1.username,
-        birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
-        country: step2.country,
-        city: step2.city ?? null,
-        language: step1.language,
-        height_cm: step4.heightCm ? parseInt(step4.heightCm, 10) : null,
-        weight_kg: step4.weightKg ? parseFloat(step4.weightKg) : null,
+      const payload = buildSignupPayload({
+        step1,
+        step2,
+        step3,
+        step4,
         bio: values.bio || null,
-        avatar_url,
-        discovery_source: discoverySource,
-        interested_sports: step4.interestedSports,
-        sports: step3.map((s) => ({
-          sportId: s.sportId,
-          level: s.level,
-          practice: s.practice,
-          timeSlots: s.timeSlots,
-          levelOther: s.levelOther,
-          practiceOther: s.practiceOther,
-        })),
-        objectives: step4.objectives,
-        objectives_details: step4.objectivesDetails,
-      };
+        avatarUrl: avatar_url,
+        discoverySource,
+      });
 
       const res = await fetch(signupEdgeFunctionUrl, {
         method: "POST",
@@ -193,18 +163,37 @@ export default function SignupStep5() {
         body: JSON.stringify(payload),
       });
 
-      const json = (await res.json()) as {
+      // Guard against non-JSON responses (edge-runtime/proxy errors, the
+      // Cloudflare HTML fallback, etc.) so we never throw an unreadable
+      // SyntaxError that silently maps to the generic toast.
+      let json: {
         ok: boolean;
         userId?: string;
         error?: string;
+        detail?: string;
         needsConfirmation?: boolean;
       };
+      try {
+        json = (await res.json()) as typeof json;
+      } catch {
+        const raw = await res.text().catch(() => "");
+        throw new Error(
+          `signup_invalid_response (HTTP ${res.status})${raw ? ` — ${raw.slice(0, 300)}` : ""}`
+        );
+      }
 
       if (!res.ok || !json.ok) {
         if (json.error === "UNDERAGE") {
           router.replace("/auth/signup/under16");
           return;
         }
+        // Log the machine code + server detail so the failure is never
+        // invisible again (the toast itself is user-facing and generic).
+        console.error("[signup] rejected by server", {
+          code: json.error,
+          detail: json.detail,
+          status: res.status,
+        });
         throw new Error(json.error ?? "signup_failed");
       }
 
@@ -237,6 +226,14 @@ export default function SignupStep5() {
       router.replace("/(tabs)/feed");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "signup_failed";
+      // Always surface the real reason in logs — never let a signup failure
+      // be invisible again.
+      console.error("[signup] failed", {
+        error: msg,
+        detail: e instanceof Error ? e?.stack ?? e : e,
+        email: step1?.email,
+        username: step1?.username,
+      });
       Toast.show({ type: "error", text1: t(getSignupErrorKey(msg)) });
     } finally {
       setSubmitting(false);

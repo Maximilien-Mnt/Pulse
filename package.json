@@ -11,7 +11,10 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "smoke:signup": "node scripts/smoke-signup.mjs",
+    "check:drift": "node scripts/check-function-drift.mjs",
+    "record:deploy:signup": "node scripts/record-deploy.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

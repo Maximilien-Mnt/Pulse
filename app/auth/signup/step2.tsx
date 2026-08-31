@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Header } from "@/components/shared/Header";
 import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { NativePicker } from "@/components/ui/NativePicker";
-import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
+import { COUNTRIES, getCountryDisplay } from "@/utils/countries";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep2Schema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
@@ -21,6 +21,7 @@ import { useTranslation , t } from "@/hooks/useTranslation";
 type Form = z.infer<typeof signupStep2Schema>;
 
 const MAX_BIRTH_DATE = dayjs().subtract(16, "year").toDate();
+const MIN_BIRTH_DATE = dayjs().subtract(120, "year").toDate();
 
 export default function SignupStep2() {
   const router = useRouter();
@@ -32,7 +33,10 @@ export default function SignupStep2() {
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signupStep2Schema),
     defaultValues: {
-      birthDate: step2?.birthDate ?? MAX_BIRTH_DATE,
+      birthDate:
+        step2?.birthDate && !Number.isNaN(new Date(step2.birthDate).getTime())
+          ? new Date(step2.birthDate)
+          : MAX_BIRTH_DATE,
       country: step2?.country ?? "FR",
       city: step2?.city ?? "",
     },
@@ -71,10 +75,12 @@ export default function SignupStep2() {
                   mode="date"
                   value={value}
                   onChange={(d) => onChange(d)}
+                  minimumDate={MIN_BIRTH_DATE}
                   maximumDate={MAX_BIRTH_DATE}
                   title={t("signup.step2.birthDate")}
                   confirmLabel={t("common.ok")}
                   cancelLabel={t("common.cancel")}
+                  testID="birth-date-field"
                   renderTrigger={() => (
                     <Pressable
                       accessibilityRole="button"
@@ -107,7 +113,7 @@ export default function SignupStep2() {
                   title={t("signup.step2.pickerTitle")}
                   confirmLabel={t("common.ok")}
                   cancelLabel={t("common.cancel")}
-                  options={COMMON_COUNTRIES.map((c) => ({ value: c.code, label: `${flagEmoji(c.code)} ${c.label}` }))}
+                  options={COUNTRIES.map((c) => ({ value: c.code, label: getCountryDisplay(c.code) }))}
                   selectedValue={value}
                   onSelect={(v) => onChange(v)}
                   renderTrigger={(label) => (

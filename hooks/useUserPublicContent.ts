@@ -18,6 +18,25 @@ async function fetchBlockedUserIds(userId: string): Promise<string[]> {
   }
 }
 
+/** Fetches the ids of posts the viewer has liked (batched). */
+async function fetchLikedPostIds(
+  viewerId: string | null | undefined,
+  postIds: string[]
+): Promise<Set<string>> {
+  const liked = new Set<string>();
+  if (!viewerId || postIds.length === 0) return liked;
+
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .eq("user_id", viewerId)
+    .in("post_id", postIds);
+
+  if (error) return liked;
+  for (const row of data ?? []) liked.add(row.post_id);
+  return liked;
+}
+
 export function useUserPublicContent(userId: string | null | undefined) {
   const currentUserId = useAuthStore((s) => s.userId);
 
@@ -62,10 +81,14 @@ export function useUserPublicContent(userId: string | null | undefined) {
       };
 
       // Transform to FeedPost format with author data
+      const likedPostIds = await fetchLikedPostIds(
+        currentUserId,
+        (posts as Post[]).map((p) => p.id)
+      );
       return (posts as Post[]).map((post) => ({
         ...post,
         author,
-        liked_by_me: false,
+        liked_by_me: likedPostIds.has(post.id),
       }));
     },
   });

@@ -788,17 +788,14 @@ export type Database = {
         };
         Returns: undefined;
       };
-      increment_post_likes: {
+      toggle_post_like: {
         Args: {
-          post_id: string;
+          target_post_id: string;
         };
-        Returns: void;
-      };
-      decrement_post_likes: {
-        Args: {
-          post_id: string;
-        };
-        Returns: void;
+        Returns: Array<{
+          liked: boolean;
+          likes_count: number;
+        }>;
       };
       delete_my_account: {
         Args: {

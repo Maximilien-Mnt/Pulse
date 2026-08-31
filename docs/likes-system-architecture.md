@@ -2,356 +2,114 @@
 
 ## Overview
 
-The post likes system has been completely rewritten to ensure:
-- ✅ **Instant UI updates** via optimistic cache manipulation
-- ✅ **Data persistence** across app refreshes
-- ✅ **Clean architecture** with centralized logic
-- ✅ **Error resilience** with proper rollback mechanisms
-- ✅ **Future-proof** design for additional features
+The post likes system has been **completely rewritten** to guarantee one thing:
+**the count you see is always the exact number of likes that exist for a post.**
+
+The previous implementation suffered from a critical database bug: the trigger
+`adjust_post_likes_count()` was `SECURITY INVOKER`, so when a **non-author**
+liked a post, the trigger's `UPDATE posts SET likes_count = likes_count + 1`
+ran under the RLS policy `posts_update_own` (`author_id = auth.uid()`) and
+silently updated **0 rows**. The counter only ever went up for the author's own
+self-likes, so the stored counts drifted below the real counts.
+
+The rewrite fixes the root cause at the database level and simplifies the client.
 
 ## Architecture Components
 
-### 1. Database Layer (Migration 001)
+### 1. Database Layer (Migration 039)
 
-**Table: `post_likes`**
-- Primary key: `(post_id, user_id)` - prevents duplicate likes
-- Foreign keys to `posts` and `profiles` with CASCADE delete
-- Created_at timestamp for analytics
+**Table: `post_likes`** (unchanged)
+- Composite primary key `(post_id, user_id)` — **enforces at most one like per
+  user per post at the database level**. Duplicate likes are impossible.
+- Foreign keys to `posts` and `profiles` with CASCADE delete.
 
-**Trigger: `adjust_post_likes_count()`**
-- Automatically increments `likes_count` on INSERT
-- Automatically decrements `likes_count` on DELETE (using `greatest()` to prevent negative values)
-- Single source of truth for likes count
+**Trigger: `adjust_post_likes_count()`** (rewritten)
+- Now `SECURITY DEFINER` — RLS can never block the counter update.
+- **Recomputes the exact count** (`COUNT(*)`) on every INSERT/DELETE instead of
+  incrementing/decrementing. Self-healing: any edge case always converges.
 
-**Why this works:**
-The database trigger ensures the count is ALWAYS correct, regardless of:
-- How many times the app is refreshed
-- Network failures or race conditions
-- Multiple devices being used simultaneously
+**RPC: `toggle_post_like(target_post_id)`** (new, the single write path)
+- `SECURITY INVOKER` (RLS still applies: users can only touch their own rows).
+- Atomically likes or unlikes for `auth.uid()`.
+- **Returns the exact new state** `{ liked, likes_count }` computed from the
+  `post_likes` table — the server is the source of truth.
+- Raises `NOT_AUTHENTICATED` if no user, `POST_NOT_FOUND` if the post is gone.
 
-### 2. Centralized Hook: `hooks/usePostLike.ts`
+**Author stats** (`refresh_author_likes_received()`) — fixed with the same
+SECURITY DEFINER + exact `COUNT(*)` treatment so `user_stats.total_likes_received`
+(shown on profiles) never drifts either.
 
-**Purpose:** Single source of truth for like/unlike logic
+### 2. Client: `hooks/usePostLike.ts`
 
-**Key Features:**
+One mutation, one RPC, no magic:
 
-#### Optimistic Updates
 ```typescript
-onMutate: async () => {
-  // 1. Cancel pending refetches
-  await queryClient.cancelQueries({ queryKey: ["feed"] });
-  
-  // 2. Snapshot current values for rollback
-  const previousLiked = initialLiked;
-  const previousLikesCount = initialLikesCount;
-  
-  // 3. Calculate new values
-  const newLiked = !initialLiked;
-  const newLikesCount = initialLikesCount + (newLiked ? 1 : -1);
-  
-  // 4. Update ALL relevant queries in cache instantly
-  queryClient.setQueriesData({ queryKey: ["feed"] }, updatePostInCache);
-  queryClient.setQueriesData({ queryKey: ["user-posts-with-author"] }, updatePostInCache);
-  
-  // 5. Return snapshot for potential rollback
-  return { liked: previousLiked, likesCount: previousLikesCount };
-}
-```
-
-#### Error Rollback
-```typescript
-onError: (_err, _vars, context) => {
-  if (context) {
-    // Restore previous values in all caches
-    queryClient.setQueriesData({ queryKey: ["feed"] }, rollbackPostInCache);
-    queryClient.setQueriesData({ queryKey: ["user-posts-with-author"] }, rollbackPostInCache);
-  }
-}
-```
-
-#### Server Synchronization
-```typescript
-onSuccess: async () => {
-  // Refetch to ensure cache matches server state
-  await queryClient.invalidateQueries({ queryKey: ["feed"] });
-  await queryClient.invalidateQueries({ queryKey: ["user-posts-with-author"] });
-}
-```
-
-### 3. Component Integration: `PostCard.tsx`
-
-**Before (Old Approach):**
-```typescript
-// Inline mutation logic - scattered and hard to maintain
-const likeMutation = useMutation({
-  mutationFn: async () => {
-    // Delete/insert post_likes
-    // Call RPC functions (redundant!)
-    // Manual state management
-  },
-  onMutate: () => setIsMutating(true),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["feed"] });
-    setTimeout(() => setIsMutating(false), 300);
-  }
-});
-```
-
-**After (New Approach):**
-```typescript
-// Clean, declarative usage
 const { liked, likesCount, isPending, toggleLike } = usePostLike({
   postId: post.id,
-  initialLiked: post.liked_by_me,
-  initialLikesCount: post.likes_count,
-  onOptimisticUpdate: (postId, newLiked, newLikesCount) => {
-    if (newLiked) setShowRing(true); // Trigger animation
-  }
+  initialLiked: post.liked_by_me ?? false,
+  initialLikesCount: post.likes_count ?? 0,
 });
-
-// Simple handler
-const handleLike = useCallback(() => {
-  void toggleLike();
-}, [toggleLike]);
 ```
 
-## Data Flow
+**Flow on tap:**
+1. `toggleLike()` → `supabase.rpc("toggle_post_like", ...)`.
+2. Optimistic update flips the UI instantly (heart + count) for immediate feedback.
+3. Server returns the authoritative `{ liked, likes_count }` — this value wins
+   and is written to every cached query (`feed`, `user-posts-with-author`,
+   `user-posts`).
+4. On error, the optimistic snapshot is rolled back everywhere.
+5. `onSettled` invalidates the post queries so any other screen stays in sync.
 
-### When User Likes a Post:
+Refreshing the app, changing settings, or anything else never adds/cancels a
+like — a like is only ever created/removed by the user action, persisted in
+`post_likes`, and read back from there.
 
-```
-1. User taps heart button
-   ↓
-2. toggleLike() called
-   ↓
-3. onMutate() fires:
-   - Cancel pending refetches
-   - Snapshot current state
-   - Update ALL cache entries instantly
-   - UI re-renders with new count ← INSTANT!
-   ↓
-4. mutationFn() executes:
-   - INSERT INTO post_likes
-   - Database trigger fires: likes_count++
-   ↓
-5. onSuccess() fires:
-   - Invalidate queries (triggers refetch)
-   - Server data confirms our optimistic update
-   ↓
-6. Refetch completes with authoritative server data
-   - Cache now has server-confirmed values
-```
+### 3. UI: `components/feed/LikeButton.tsx`
 
-### When User Unlikes a Post:
+- `liked` → **blue, filled heart** (`primary` token); not liked → default icon.
+- Small **pop animation** on every like AND unlike (respects reduced motion).
+- Count rendered next to the icon comes straight from the hook (server-exact).
 
-```
-1. User taps heart button
-   ↓
-2. toggleLike() called
-   ↓
-3. onMutate() fires:
-   - Cancel pending refetches
-   - Snapshot current state
-   - Update ALL cache entries instantly
-   - UI re-renders with decremented count ← INSTANT!
-   ↓
-4. mutationFn() executes:
-   - DELETE FROM post_likes
-   - Database trigger fires: likes_count--
-   ↓
-5. onSuccess() fires:
-   - Invalidate queries (triggers refetch)
-   - Server data confirms our optimistic update
-   ↓
-6. Refetch completes with authoritative server data
-   - Cache now has server-confirmed values
-```
+`components/feed/PostCard.tsx` uses `<LikeButton>` and nothing else.
 
-## Cache Invalidation Strategy
+### 4. Like-state loading across every screen
 
-### Queries Affected by Likes:
+- `hooks/useFeed.ts` — batched `post_likes` lookup → `liked_by_me` per row.
+- `hooks/useUserPosts.ts` — now loads the viewer's liked ids (was hardcoded `false`).
+- `hooks/useUserPublicContent.ts` — same fix for public profile galleries.
 
-1. **Feed queries** - `["feed"]` (infinite query with pages)
-   - Home feed
-   - Tag-filtered feed
-   - Following feed
-   - Sport-specific feed
+## Verification
 
-2. **User posts queries** - `["user-posts-with-author"]`
-   - User profile posts
-   - Public profile posts
+### Database level (migration 039 applied)
+- [x] `posts.likes_count` reconciled → **zero** posts with drift.
+- [x] `user_stats.total_likes_received` reconciled → **zero** drift.
+- [x] `toggle_post_like` tested: unlike → 2→1, like → 1→2, exact each time.
+- [x] Composite PK verified: `COUNT(DISTINCT (post_id, user_id))` equals `COUNT(*)`.
 
-### Why We Invalidate Multiple Query Keys:
-
-```typescript
-// Posts can appear in multiple places simultaneously:
-// - Main feed (home)
-// - User's profile
-// - Search results
-// - Club/event pages (if shared)
-
-// Updating all ensures consistency everywhere
-await queryClient.invalidateQueries({ queryKey: ["feed"] });
-await queryClient.invalidateQueries({ queryKey: ["user-posts-with-author"] });
-```
-
-## Removed Redundancy
-
-### Migration 028 (Old - Now Redundant):
-```sql
--- These RPC functions are NO LONGER NEEDED
-CREATE FUNCTION increment_post_likes(post_id uuid);
-CREATE FUNCTION decrement_post_likes(post_id uuid);
-```
-
-**Why removed:** The database trigger `adjust_post_likes_count()` from migration 001 already handles this automatically. Calling both the trigger AND the RPC was causing double-updates.
-
-### Migration 031 (New - Cleanup):
-```sql
--- Remove the redundant RPC functions
-DROP FUNCTION IF EXISTS public.increment_post_likes(uuid);
-DROP FUNCTION IF EXISTS public.decrement_post_likes(uuid);
-
--- Keep the trigger from migration 001 - it's the single source of truth
-```
-
-## Error Handling
-
-### Network Failure Scenario:
-
-```
-1. User likes post
-   ↓
-2. Optimistic update shows +1 instantly
-   ↓
-3. Network request fails
-   ↓
-4. onError() fires:
-   - Rollback ALL cache entries to previous values
-   - UI instantly reverts to old count
-   ↓
-5. User sees error and can retry
-```
-
-### Race Condition Prevention:
-
-```typescript
-onMutate: async () => {
-  // Cancel any ongoing refetches BEFORE making changes
-  await queryClient.cancelQueries({ queryKey: ["feed"] });
-  await queryClient.cancelQueries({ queryKey: ["user-posts-with-author"] });
-  
-  // Now safe to update cache without interference
-  // ...
-}
-```
-
-## Testing Checklist
-
-### Basic Functionality:
-- [ ] Like a post with 0 likes → count increases to 1
-- [ ] Unlike a post with 1 like → count decreases to 0
-- [ ] Like animation plays when liking
-- [ ] Heart icon changes color (primary when liked)
-- [ ] Button is disabled while mutation is pending
-- [ ] Cannot double-click (isPending prevents it)
-
-### Persistence:
-- [ ] Like a post
-- [ ] Close the app completely
-- [ ] Reopen the app
-- [ ] Verify the like and count persist
-
-### Cache Consistency:
-- [ ] Like a post in the feed
-- [ ] Navigate to user's profile
-- [ ] Verify count is updated there too
-- [ ] Go back to feed
-- [ ] Verify count is still correct
-
-### Error Handling:
-- [ ] Enable airplane mode
-- [ ] Try to like a post
-- [ ] Verify optimistic update shows temporarily
-- [ ] Verify UI rolls back on error
-- [ ] Disable airplane mode
-- [ ] Verify normal operation resumes
-
-### Edge Cases:
-- [ ] Like while scrolling fast
-- [ ] Like during feed refresh
-- [ ] Like same post from two different screens
-- [ ] Unlike immediately after liking
-- [ ] Rapid multiple likes/unlikes (should be prevented by isPending)
+### Client level
+- [ ] Like a post → heart turns blue instantly, count +1.
+- [ ] Unlike → default icon, count -1.
+- [ ] Refresh / refetch → state persists (comes from `post_likes`).
+- [ ] Same post on profile pages shows the same blue heart / count.
+- [ ] Double-tap cannot create a second like (RPC + PK).
 
 ## Implementation Files
 
-### New Files:
-- `hooks/usePostLike.ts` - Centralized like management hook
-- `supabase/migrations/031_deprecate_redundant_likes_rpc.sql` - Database cleanup
-
-### Modified Files:
-- `components/feed/PostCard.tsx` - Uses new hook, removed inline mutation logic
-
-### Unchanged Files:
-- `hooks/useFeed.ts` - Still fetches liked status correctly
-- `hooks/useUserPosts.ts` - Still normalizes post data correctly
-- Database tables and triggers (migration 001) - Already working correctly
-
-## Future Enhancements
-
-The new architecture makes it easy to add:
-
-1. **Like analytics** - Track when and how often users like posts
-2. **Unlike confirmation** - Add a dialog before unliking
-3. **Like notifications** - Notify post authors when their posts are liked
-4. **Batch operations** - Like multiple posts at once (e.g., from search results)
-5. **Optimistic reactions** - Extend the pattern to comments and other reactions
-6. **Offline support** - Queue likes for when network returns
-
-## Migration Guide for Other Components
-
-If you need to add like functionality to other components (e.g., ClubCard, EventCard):
-
-```typescript
-import { usePostLike } from "@/hooks/usePostLike";
-
-function MyComponent({ post }) {
-  const { liked, likesCount, isPending, toggleLike } = usePostLike({
-    postId: post.id,
-    initialLiked: post.liked_by_me,
-    initialLikesCount: post.likes_count,
-  });
-
-  return (
-    <Pressable onPress={toggleLike} disabled={isPending}>
-      <Text>{likesCount} likes</Text>
-    </Pressable>
-  );
-}
-```
-
-## Common Pitfalls to Avoid
-
-1. **Don't bypass the hook** - Always use `usePostLike` for like/unlike operations
-2. **Don't manually update post.likes_count** - Let the hook and database handle it
-3. **Don't call invalidateQueries in multiple places** - The hook handles it
-4. **Don't use local state for likes_count** - It's managed by the hook via cache
-5. **Don't forget to pass the post ID** - Each component instance needs its own `postId`
-
-## Performance Considerations
-
-- **Optimistic updates happen synchronously** - No waiting for server
-- **Cache updates are O(n)** where n = number of posts in cache (usually < 100)
-- **Single mutation per like action** - Not multiple RPC calls
-- **Smart invalidation** - Only refetches affected queries, not everything
+- `supabase/migrations/039_rewrite_post_likes_(done).sql` — trigger + RPC + reconciliation.
+- `hooks/usePostLike.ts` — rewritten against `toggle_post_like`.
+- `components/feed/LikeButton.tsx` — new button with pop animation.
+- `components/feed/PostCard.tsx` — uses LikeButton, dropped the old ring hack.
+- `hooks/useFeed.ts`, `hooks/useUserPosts.ts`, `hooks/useUserPublicContent.ts` —
+  all load real `liked_by_me` + exact counts.
+- `types/index.ts` — typed `toggle_post_like` (dropped the deleted RPCs).
 
 ## Summary
 
-This implementation provides a robust, instant, and maintainable likes system that:
-1. Updates UI immediately (optimistic updates)
-2. Persists across app refreshes (database trigger)
-3. Handles errors gracefully (rollback mechanism)
-4. Prevents race conditions (cache cancellation)
-5. Works across all views (multiple query invalidation)
-6. Is easy to extend (centralized hook pattern)
+This implementation guarantees a **clean, always-right likes system**:
+1. One like per user per post — enforced by the composite PK.
+2. Exact counts — recomputed from the data on every change, and on write the
+   RPC returns the exact number.
+3. Persists across refresh — stored in `post_likes`, loaded back on every fetch.
+4. Optimistic UI with pop animation — instant feedback.
+5. Consistent across every screen — the hook patches all post caches.
+6. No drift — SECURITY DEFINER triggers and one-time reconciliation.

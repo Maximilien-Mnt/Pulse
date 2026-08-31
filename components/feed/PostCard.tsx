@@ -5,9 +5,8 @@
 // and Avatar components from the design system.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Animated,
   Pressable,
   Share,
   View,
@@ -27,49 +26,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PostMedia } from "./PostMedia";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import { usePostLike } from "@/hooks/usePostLike";
-
-// ---------------------------------------------------------------------------
-// Like animation ring
-// ---------------------------------------------------------------------------
-
-function LikeRing({ visible, onDone }: { visible: boolean; onDone: () => void }) {
-  const scale = useRef(new Animated.Value(0.6)).current;
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!visible) return;
-    scale.setValue(0.6);
-    opacity.setValue(1);
-    Animated.parallel([
-      Animated.timing(scale, {
-        toValue: 2.0,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onDone();
-    });
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!visible) return null;
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      className="absolute inset-0 items-center justify-center z-10"
-    >
-      <Animated.View
-        className="w-10 h-10 rounded-full border-2 border-primary"
-        style={{ transform: [{ scale }], opacity }}
-      />
-    </Animated.View>
-  );
-}
+import { LikeButton } from "./LikeButton";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -92,21 +49,14 @@ interface PostCardProps {
 export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: PostCardProps) {
   const router = useRouter();
   
-  // Use centralized like management hook with optimistic updates
+  // Centralized like management — optimistic UI, server-exact counts.
   const { liked, likesCount, isPending, toggleLike } = usePostLike({
     postId: post.id,
-    initialLiked: (post as any).liked_by_me as boolean ?? false,
+    initialLiked: (post as any).liked_by_me ?? false,
     initialLikesCount: post.likes_count ?? 0,
-    onOptimisticUpdate: (postId, newLiked, newLikesCount) => {
-      // Trigger animation when liking (not unliking)
-      if (newLiked) {
-        setShowRing(true);
-      }
-    },
   });
   
   // Only local state is UI-related
-  const [showRing, setShowRing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const [tagsExpanded, setTagsExpanded] = useState(false);
@@ -126,8 +76,7 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
   }, [post.id]);
 
   const handleLike = useCallback(() => {
-    // Hook handles authentication and pending state internally
-    void toggleLike();
+    toggleLike();
   }, [toggleLike]);
 
   const handleComment = useCallback(() => {
@@ -289,27 +238,12 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
       {/* Actions bar */}
       <View className="flex-row items-center justify-around px-4 py-3 border-t border-border">
         {/* Like */}
-        <Pressable
+        <LikeButton
+          liked={liked}
+          likesCount={likesCount}
+          isPending={isPending}
           onPress={handleLike}
-          disabled={isPending}
-          accessibilityRole="button"
-          accessibilityLabel={liked ? "Ne plus aimer" : "Aimer"}
-          className="flex-row items-center gap-1.5"
-          style={{ opacity: isPending ? 0.6 : 1 }}
-        >
-          <View>
-            <Icon
-              name="Heart"
-              size={20}
-              color={liked ? "primary" : "text-tertiary"}
-              active={liked}
-            />
-            <LikeRing visible={showRing} onDone={() => setShowRing(false)} />
-          </View>
-          <Text variant="caption" className="text-text-tertiary tabular-nums">
-            {likesCount}
-          </Text>
-        </Pressable>
+        />
 
         {/* Comment */}
         <Pressable

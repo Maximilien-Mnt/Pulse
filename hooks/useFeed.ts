@@ -74,13 +74,6 @@ async function fetchFollowingIds(userId: string | null): Promise<string[]> {
     }
     throw error;
   }
-  if (__DEV__) {
-    console.log("[useFeed] fetchFollowingIds", {
-      userId,
-      count: data?.length ?? 0,
-      followingIds: (data ?? []).map((row) => row.following_id),
-    });
-  }
   return (data ?? []).map((row) => row.following_id);
 }
 
@@ -168,44 +161,24 @@ async function fetchFeedPage(
   if (userId && data && data.length > 0) {
     try {
       const postIds = data.map((row: any) => row.id);
-      console.log("[useFeed] Loading liked status for user", {
-        userId,
-        postIds,
-        postCount: postIds.length,
-      });
-      
+
       const { data: likesData, error: likesError } = await supabase
         .from("post_likes")
         .select("post_id")
         .eq("user_id", userId)
         .in("post_id", postIds);
 
-      console.log("[useFeed] Liked status loaded", {
-        userId,
-        likesFound: likesData?.length ?? 0,
-        likedPostIds: likesData?.map(l => l.post_id),
-        error: likesError,
-        query: {
-          table: "post_likes",
-          filter: { user_id: userId, post_id: { in: postIds } },
-        },
-      });
-
-      if (likesData && likesData.length > 0) {
+      if (likesError) {
+        if (__DEV__) {
+          console.warn("[useFeed] Failed to load liked status", { userId, error: likesError });
+        }
+      } else if (likesData && likesData.length > 0) {
         likedByMeSet = new Set(likesData.map((like) => like.post_id));
       }
     } catch (e) {
       if (__DEV__) {
         console.warn("[useFeed] Failed to load liked status", e);
       }
-    }
-  } else {
-    if (__DEV__) {
-      console.log("[useFeed] Skipping liked status load", {
-        hasUserId: !!userId,
-        hasData: !!data,
-        dataLength: data?.length,
-      });
     }
   }
 
@@ -223,20 +196,7 @@ export function useFeed(tag: string | null | undefined, filter: FeedFilter = { t
   return useInfiniteQuery({
     queryKey: ["feed", tag, filter, userId],
     queryFn: async ({ pageParam }) => {
-      console.log("[useFeed] Fetching feed page", {
-        tag,
-        filter,
-        userId,
-        pageParam,
-      });
-      
       const result = await fetchFeedPage(pageParam ?? null, tag ?? null, userId, filter);
-      
-      console.log("[useFeed] Feed page fetched", {
-        itemCount: result.items.length,
-        postIds: result.items.map(item => ({ id: item.id, liked: item.liked_by_me, likes: item.likes_count })),
-      });
-      
       return result;
     },
     initialPageParam: null as string | null,

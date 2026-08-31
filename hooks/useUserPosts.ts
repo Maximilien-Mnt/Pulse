@@ -2,8 +2,32 @@ import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import type { Post } from "@/types";
 import type { FeedPost } from "@/types";
+import { useAuthStore } from "@/stores/authStore";
 
-function normalizeUserPost(row: any, profileMap: Map<string, { id: string; full_name: string; username: string; avatar_url: string | null }>): FeedPost {
+/** Fetches the ids of posts the viewer has liked (batched). */
+async function fetchLikedPostIds(
+  viewerId: string | null | undefined,
+  postIds: string[]
+): Promise<Set<string>> {
+  const liked = new Set<string>();
+  if (!viewerId || postIds.length === 0) return liked;
+
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .eq("user_id", viewerId)
+    .in("post_id", postIds);
+
+  if (error) return liked;
+  for (const row of data ?? []) liked.add(row.post_id);
+  return liked;
+}
+
+function normalizeUserPost(
+  row: any,
+  profileMap: Map<string, { id: string; full_name: string; username: string; avatar_url: string | null }>,
+  likedPostIds: Set<string>
+): FeedPost {
   const post: FeedPost = {
     id: row.id,
     author_id: row.author_id,
@@ -26,16 +50,19 @@ function normalizeUserPost(row: any, profileMap: Map<string, { id: string; full_
       username: "utilisateur",
       avatar_url: null,
     },
-    liked_by_me: false,
+    liked_by_me: likedPostIds.has(row.id),
   };
   
   return post;
 }
 
 /**
- * Fetches all posts created by a specific user with author data
+ * Fetches all posts created by a specific user with author data,
+ * and marks the ones the current viewer has liked.
  */
 export function useUserPosts(userId: string | null | undefined) {
+  const viewerId = useAuthStore((s) => s.userId);
+
   return useQuery({
     queryKey: ["user-posts-with-author", userId],
     enabled: !!userId,
@@ -68,8 +95,13 @@ export function useUserPosts(userId: string | null | undefined) {
         avatar_url: p.avatar_url,
       }));
 
+      const likedPostIds = await fetchLikedPostIds(
+        viewerId,
+        postsWithAuthor.map((p) => p.id)
+      );
+
       // Transform to FeedPost format with proper normalization
-      return postsWithAuthor.map((post) => normalizeUserPost(post, profileMap));
+      return postsWithAuthor.map((post) => normalizeUserPost(post, profileMap, likedPostIds));
     },
   });
 }

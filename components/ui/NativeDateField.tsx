@@ -1,5 +1,5 @@
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Modal,
   Platform,
@@ -34,6 +34,34 @@ type NativeDateFieldProps = {
 };
 
 const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+
+function isValidDate(d: Date): boolean {
+  return d instanceof Date && !Number.isNaN(d.getTime());
+}
+
+/**
+ * The invisible web overlay. Kept as plain `CSSProperties` (not RN styles)
+ * because it is applied to a real DOM `<input>`, whose `style` prop is typed
+ * as `React.CSSProperties`.
+ */
+const webInputStyles: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  width: "100%",
+  height: "100%",
+  margin: 0,
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  display: "block",
+  opacity: 0,
+  cursor: "pointer",
+  fontSize: 16,
+  zIndex: 1,
+};
 
 function toInputValue(d: Date, mode: "date" | "time" | "datetime"): string {
   const datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -82,39 +110,54 @@ export function NativeDateField({
   const isDark = useColorScheme() === "dark";
   const [iosOpen, setIosOpen] = useState(false);
   const [draft, setDraft] = useState<Date>(value);
+  const nativeInputRef = useRef<HTMLInputElement>(null);
 
   const closeSheet = () => setIosOpen(false);
 
   // Web / desktop ── native <input> overlaid on the trigger.
   if (Platform.OS === "web") {
     const inputType = mode === "datetime" ? "datetime-local" : mode;
+
+    /**
+     * Explicitly request the native calendar. The invisible overlay against
+     * the real browser default on its own in a few edge cases (re-renders,
+     * focus quirks, finite-pointer devices), so this guarantees the picker
+     * opens wherever `showPicker()` is supported (Chrome, Edge, Firefox 101+,
+     * Safari 16+). When it isn't, the browser's own click-to-open still runs.
+     *
+     * `currentTarget` is preferred (always correct in a real browser); the ref
+     * is the fallback for test renderers that don't populate event targets.
+     */
+    const openNativePicker = (target?: HTMLInputElement) => {
+      const input = target ?? nativeInputRef.current;
+      if (!input || typeof input.showPicker !== "function") return;
+      try {
+        input.showPicker();
+      } catch {
+        // Picker already open / blocked by the browser — default behavior applies.
+      }
+    };
+
     return (
-      <View style={styles.host}>
+      <View style={styles.hostWeb}>
         <View style={styles.trigger} pointerEvents="none">
           {renderTrigger(value)}
         </View>
         <input
           {...(testID ? { testID } : {})}
+          ref={nativeInputRef}
           aria-label={accessibilityLabel ?? title}
           type={inputType}
-          value={toInputValue(value, mode)}
+          value={isValidDate(value) ? toInputValue(value, mode) : ""}
           min={minimumDate ? toInputValue(minimumDate, mode) : undefined}
           max={maximumDate ? toInputValue(maximumDate, mode) : undefined}
           onChange={(e) => {
-            if (e.target.value) onChange(fromInputValue(e.target.value, mode));
+            if (!e.target.value) return;
+            const parsed = fromInputValue(e.target.value, mode);
+            if (!Number.isNaN(parsed.getTime())) onChange(parsed);
           }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: "100%",
-            opacity: 0,
-            cursor: "pointer",
-            fontSize: 16,
-          }}
+          onClick={(e) => openNativePicker(e?.currentTarget ?? undefined)}
+          style={webInputStyles}
         />
       </View>
     );
@@ -239,6 +282,13 @@ const styles = StyleSheet.create({
   host: {
     alignSelf: "stretch",
     width: "100%",
+    position: "relative",
+  },
+  hostWeb: {
+    alignSelf: "stretch",
+    width: "100%",
+    position: "relative",
+    zIndex: 0,
   },
   trigger: {
     width: "100%",

@@ -3,7 +3,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
+import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
 import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
@@ -389,7 +389,7 @@ export default function CreatePublicEventScreen() {
                           : "text-neutral-700 dark:text-neutral-200 text-sm"
                       }
                     >
-                      {flagEmoji(c.code)} {c.label}
+                      {countryFlag(c.code)} {c.label}
                     </Text>
                   </Pressable>
                 ))}

@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { COUNTRIES_EN } from "@/utils/countries.en";
 import { useLanguageStore } from "@/stores/languageStore";
 
@@ -5,7 +6,7 @@ export { COUNTRIES_EN };
 
 /**
  * Full ISO 3166-1 alpha-2 country list with French labels.
- * 249 entries.
+ * 196 entries.
  */
 export const COUNTRIES: { code: string; label: string }[] = [
   { code: "AF", label: "Afghanistan" },
@@ -210,7 +211,8 @@ export type Country = { code: string; label: string };
 
 /**
  * Curated shortlist of common countries (French labels), ordered with
- * France first. Used for event/club creation and signup country pickers.
+ * France first. Used for the horizontal quick-country chips on the event
+ * and club creation screens. Signup uses the full COUNTRIES list instead.
  */
 export const COMMON_COUNTRIES: Country[] = [
   { code: "FR", label: "France" },
@@ -244,6 +246,98 @@ export function flagEmoji(code: string): string {
   );
 }
 
+let cachedFlagEmojiSupport: boolean | null = null;
+
+/**
+ * True when the current environment provides a real 2D canvas that can measure
+ * text. jsdom (test env) ships a canvas whose `getContext("2d")` is not
+ * implemented, so we skip detection there — the conservative `true` (emoji)
+ * default applies, which is exactly what the tests render.
+ */
+function canMeasureCanvasText(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    // jsdom's canvas is a stub; don't attempt measurement there.
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.userAgent === "string" &&
+      /jsdom/i.test(navigator.userAgent)
+    ) {
+      return false;
+    }
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext && canvas.getContext("2d");
+    return !!ctx && typeof ctx.measureText === "function";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Detects whether the current platform renders emoji flags as a single glyph
+ * instead of two separate letter characters.
+ *
+ * - Native (iOS / Android): flag emojis are always rendered → `true`.
+ * - Web: uses a canvas measurement heuristic. Platforms without a flag font
+ *   (most notably Windows browsers) fall back to drawing the two regional
+ *   indicator letters, which measure roughly 2× a single letter, so flags are
+ *   detected as unsupported and the abbreviation fallback kicks in.
+ *
+ * The result is cached for the lifetime of the app. Detection is conservative:
+ * any failure to measure defaults to `true` (emoji-first, per product spec).
+ */
+export function flagEmojiSupported(): boolean {
+  if (cachedFlagEmojiSupport !== null) return cachedFlagEmojiSupport;
+  let supported = true;
+  if (Platform.OS === "web" && canMeasureCanvasText()) {
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.font = "48px sans-serif";
+        // "FR" as regional indicator symbols (U+1F1EB U+1F1F7)
+        const flagWidth = ctx.measureText("\u{1F1EB}\u{1F1F7}").width;
+        const letterWidth = ctx.measureText("F").width;
+        // Real flag glyph ≈ 1 letter width; two fallback letters ≈ 2×.
+        if (flagWidth > 0 && letterWidth > 0) {
+          supported = flagWidth / letterWidth < 1.5;
+        }
+      }
+    } catch {
+      supported = true;
+    }
+  }
+  cachedFlagEmojiSupport = supported;
+  return supported;
+}
+
+/**
+ * Test-only override for the cached flag-emoji support result.
+ * Pass a boolean to force the support state, or `null` to reset it back to
+ * runtime detection.
+ */
+export function __setFlagEmojiSupported(supported: boolean | null): void {
+  cachedFlagEmojiSupport = supported;
+}
+
+/**
+ * Returns the flag shown for an ISO 3166-1 alpha-2 country code.
+ *
+ * By default this is the native OS flag emoji (e.g. "FR" -> "🇫🇷"). If the
+ * platform cannot render emoji flags (e.g. most Windows web browsers, which
+ * would otherwise show two letter glyphs instead of a flag), it gracefully
+ * falls back to the plain ISO abbreviation ("FR") so the UI never shows a
+ * broken or corrupt glyph.
+ *
+ * Returns "" for empty or non-ISO codes.
+ */
+export function countryFlag(code: string | null | undefined): string {
+  if (!code) return "";
+  const upper = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(upper)) return "";
+  return flagEmojiSupported() ? flagEmoji(upper) : upper;
+}
+
 /**
  * Returns the localized label for an ISO country code, falling back to the
  * raw code itself when the code is unknown (e.g. externally-synced rows).
@@ -258,10 +352,14 @@ export function getCountryLabel(code: string | null | undefined): string {
 }
 
 /**
- * Returns a display string with the flag emoji + localized label:
- * "FR" -> "🇫🇷 France". Falls back to the raw code if unknown.
+ * Returns a display string with the country flag + localized label:
+ * "FR" -> "🇫🇷 France". When flag emojis cannot be rendered, the ISO
+ * abbreviation replaces the flag ("FR France"). Falls back to the raw
+ * code if unknown.
  */
 export function getCountryDisplay(code: string | null | undefined): string {
   if (!code) return "";
-  return `${flagEmoji(code)} ${getCountryLabel(code)}`.trim();
+  const flag = countryFlag(code);
+  if (!flag) return getCountryLabel(code);
+  return `${flag} ${getCountryLabel(code)}`.trim();
 }

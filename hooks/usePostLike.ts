@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -7,229 +7,160 @@ interface UsePostLikeOptions {
   postId: string;
   initialLiked: boolean;
   initialLikesCount: number;
-  onOptimisticUpdate?: (postId: string, liked: boolean, likesCount: number) => void;
+  /** Called whenever the displayed state changes (optimistic or server-confirmed). */
+  onLikedChange?: (postId: string, liked: boolean, likesCount: number) => void;
 }
 
 interface UsePostLikeResult {
   liked: boolean;
   likesCount: number;
   isPending: boolean;
-  toggleLike: () => Promise<void>;
+  toggleLike: () => void;
 }
 
+type TogglePostLikeRow = { liked: boolean; likes_count: number };
+
 /**
- * Centralized hook for managing post likes with optimistic updates
- * 
- * Features:
- * - Instant UI updates via optimistic cache manipulation
- * - Proper rollback on errors
- * - Centralized likes count management
- * - Automatic cache invalidation for all relevant queries
- * - Prevents race conditions and ensures data consistency
- * - Manages local state to prevent stale prop overwrites
+ * Centralized post-like management.
+ *
+ * Reads/writes a single source of truth — the `toggle_post_like` database RPC,
+ * which atomically likes/unlikes and returns the exact new state
+ * `{ liked, likes_count }`. The composite PK (post_id, user_id) guarantees a
+ * user can only ever submit one like per post, and the count the UI shows is
+ * always the exact count the database computed.
+ *
+ * The UI is updated optimistically (instant feedback + animation), then
+ * reconciled with the authoritative server response.
  */
 export function usePostLike({
   postId,
   initialLiked,
   initialLikesCount,
-  onOptimisticUpdate,
+  onLikedChange,
 }: UsePostLikeOptions): UsePostLikeResult {
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
 
-  // Local state management to prevent stale props from overwriting optimistic updates
   const [liked, setLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
-  
-  // Track when mutation is in progress to prevent useEffect from overwriting optimistic updates
+
+  // The server is the source of truth for the count. Keep a flag so we never
+  // let a refetched prop overwrite a pending optimistic change mid-flight.
   const isMutatingRef = useRef(false);
 
-  // Sync local state when props change (e.g., after refetch), but NOT during mutation
+  // Sync local state when the server data changes (e.g. after refetch/refresh).
   useEffect(() => {
-    // Only sync from props if we're not currently mutating
-    if (!isMutatingRef.current) {
-      setLiked(initialLiked);
-      setLikesCount(initialLikesCount);
-    }
+    if (isMutatingRef.current) return;
+    setLiked(initialLiked);
+    setLikesCount(initialLikesCount);
   }, [initialLiked, initialLikesCount]);
 
-  // Track the intended action (like/unlike) to avoid stale closure issues
-  const intendedActionRef = useRef<"like" | "unlike" | null>(null);
+  // Write the new state everywhere the post is cached (feed, user posts,
+  // public profile galleries) so every screen stays consistent.
+  const applyState = useCallback(
+    (newLiked: boolean, newLikesCount: number) => {
+      const updater = (old: any) => {
+        if (!old) return old;
 
-  const likeMutation = useMutation({
-    mutationFn: async (): Promise<void> => {
-      // CRITICAL: Always use the intended action from onMutate
-      // The 'liked' variable is stale here due to closure timing
-      const action = intendedActionRef.current;
-
-      if (!action) {
-        console.error(`[usePostLike ${postId}] No intended action set`);
-        throw new Error("No intended action set - cannot determine like/unlike");
-      }
-
-      if (!userId) {
-        console.error(`[usePostLike ${postId}] User not authenticated`);
-        throw new Error("User not authenticated");
-      }
-
-      if (action === "unlike") {
-        const { error: deleteError } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", userId);
-
-        if (deleteError) {
-          console.error(`[usePostLike ${postId}] Unlike failed`, deleteError);
-          throw deleteError;
-        }
-      } else {
-        const { error: insertError } = await supabase.from("post_likes").insert({
-          post_id: postId,
-          user_id: userId,
-        });
-
-        if (insertError) {
-          console.error(`[usePostLike ${postId}] Like failed`, insertError);
-          throw insertError;
-        }
-      }
-
-      intendedActionRef.current = null;
-    },
-
-    // Optimistic update: update UI immediately before server responds
-    onMutate: async (): Promise<{ liked: boolean; likesCount: number } | void> => {
-      // Cancel any outgoing refetches to prevent them from overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["feed"] });
-      await queryClient.cancelQueries({ queryKey: ["user-posts-with-author"] });
-
-      const previousLiked = liked;
-      const previousLikesCount = likesCount;
-      const newLiked = !liked;
-      const newLikesCount = likesCount + (newLiked ? 1 : -1);
-
-      intendedActionRef.current = newLiked ? "like" : "unlike";
-
-      setLiked(newLiked);
-      setLikesCount(Math.max(0, newLikesCount));
-
-      queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) => {
-        if (!old?.pages) return old;
-
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            items: page.items.map((post: any) => {
-              if (post.id === postId) {
-                return {
-                  ...post,
-                  liked_by_me: newLiked,
-                  likes_count: Math.max(0, newLikesCount),
-                };
-              }
-              return post;
-            }),
-          })),
-        };
-      });
-
-      queryClient.setQueriesData({ queryKey: ["user-posts-with-author"] }, (old: any) => {
-        if (!Array.isArray(old)) return old;
-
-        return old.map((post: any) => {
-          if (post.id === postId) {
-            return {
-              ...post,
-              liked_by_me: newLiked,
-              likes_count: Math.max(0, newLikesCount),
-            };
-          }
-          return post;
-        });
-      });
-
-      if (onOptimisticUpdate) {
-        onOptimisticUpdate(postId, newLiked, Math.max(0, newLikesCount));
-      }
-
-      return { liked: previousLiked, likesCount: previousLikesCount };
-    },
-
-    onError: (err, _vars, context) => {
-      console.error(`[usePostLike ${postId}] Mutation failed`, err);
-
-      if (context) {
-        setLiked(context.liked);
-        setLikesCount(context.likesCount);
-
-        queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) => {
-          if (!old?.pages) return old;
-
+        // Pages shape used by the infinite feed query: { pages: [{ items }] }
+        if (Array.isArray(old.pages)) {
           return {
             ...old,
             pages: old.pages.map((page: any) => ({
               ...page,
-              items: page.items.map((post: any) => {
-                if (post.id === postId) {
-                  return {
-                    ...post,
-                    liked_by_me: context.liked,
-                    likes_count: context.likesCount,
-                  };
-                }
-                return post;
-              }),
+              items: updatePost(page.items, postId, newLiked, newLikesCount),
             })),
           };
-        });
-
-        queryClient.setQueriesData({ queryKey: ["user-posts-with-author"] }, (old: any) => {
-          if (!Array.isArray(old)) return old;
-
-          return old.map((post: any) => {
-            if (post.id === postId) {
-              return {
-                ...post,
-                liked_by_me: context.liked,
-                likes_count: context.likesCount,
-              };
-            }
-            return post;
-          });
-        });
-
-        if (onOptimisticUpdate) {
-          onOptimisticUpdate(postId, context.liked, context.likesCount);
         }
-      }
+
+        // Plain array shape used by user-posts / profile galleries.
+        if (Array.isArray(old)) {
+          return updatePost(old, postId, newLiked, newLikesCount);
+        }
+
+        return old;
+      };
+
+      queryClient.setQueriesData({ queryKey: ["feed"] }, updater);
+      queryClient.setQueriesData({ queryKey: ["user-posts-with-author"] }, updater);
+      queryClient.setQueriesData({ queryKey: ["user-posts"] }, updater);
+    },
+    [postId, queryClient]
+  );
+
+  const notifyChange = useCallback(
+    (newLiked: boolean, newLikesCount: number) => {
+      onLikedChange?.(postId, newLiked, newLikesCount);
+    },
+    [postId, onLikedChange]
+  );
+
+  const likeMutation = useMutation({
+    mutationFn: async (): Promise<TogglePostLikeRow> => {
+      if (!userId) throw new Error("User not authenticated");
+
+      const { data, error } = await supabase.rpc("toggle_post_like", {
+        target_post_id: postId,
+      });
+
+      if (error) throw error;
+
+      const row = data?.[0];
+      if (!row) throw new Error("toggle_post_like returned no result");
+
+      return row;
     },
 
-    onSuccess: async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
-      await queryClient.invalidateQueries({ queryKey: ["user-posts-with-author"] });
+    // Optimistic update: flip UI immediately, roll back on error.
+    onMutate: async (): Promise<{ prevLiked: boolean; prevLikesCount: number }> => {
+      // Stop any in-flight refetch from clobbering our optimistic snapshot.
+      await queryClient.cancelQueries({ queryKey: ["feed"] });
+      await queryClient.cancelQueries({ queryKey: ["user-posts-with-author"] });
+      await queryClient.cancelQueries({ queryKey: ["user-posts"] });
+
+      const prevLiked = liked;
+      const prevLikesCount = likesCount;
+      const nextLiked = !prevLiked;
+      const nextLikesCount = Math.max(0, prevLikesCount + (nextLiked ? 1 : -1));
+
+      isMutatingRef.current = true;
+      setLiked(nextLiked);
+      setLikesCount(nextLikesCount);
+      applyState(nextLiked, nextLikesCount);
+      notifyChange(nextLiked, nextLikesCount);
+
+      return { prevLiked, prevLikesCount };
     },
 
-    // On settled: always execute (cleanup if needed)
+    onError: (_err, _vars, context) => {
+      if (!context) return;
+      setLiked(context.prevLiked);
+      setLikesCount(context.prevLikesCount);
+      applyState(context.prevLiked, context.prevLikesCount);
+      notifyChange(context.prevLiked, context.prevLikesCount);
+    },
+
+    // Server truth always wins: show exactly what the database computed.
+    onSuccess: (row) => {
+      setLiked(row.liked);
+      setLikesCount(row.likes_count);
+      applyState(row.liked, row.likes_count);
+      notifyChange(row.liked, row.likes_count);
+    },
+
     onSettled: () => {
-      // No additional cleanup needed
+      isMutatingRef.current = false;
+      // Revalidate all post queries so any other screen shows the same truth.
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["user-posts-with-author"] });
+      void queryClient.invalidateQueries({ queryKey: ["user-posts"] });
     },
   });
 
-  const toggleLike = async (): Promise<void> => {
-    isMutatingRef.current = true;
-
-    try {
-      await likeMutation.mutateAsync();
-    } catch (error) {
-      console.error(`[usePostLike ${postId}] toggleLike failed`, error);
-      throw error;
-    } finally {
-      isMutatingRef.current = false;
-    }
-  };
+  const toggleLike = useCallback(() => {
+    if (!userId || likeMutation.isPending) return;
+    likeMutation.mutate();
+  }, [userId, likeMutation.isPending, likeMutation.mutate]);
 
   return {
     liked,
@@ -237,4 +168,21 @@ export function usePostLike({
     isPending: likeMutation.isPending,
     toggleLike,
   };
+}
+
+/** Returns the array with the target post's like fields rewritten. */
+function updatePost(
+  posts: any[],
+  postId: string,
+  liked: boolean,
+  likesCount: number
+): any[] {
+  return posts.map((post: any) => {
+    if (post?.id !== postId) return post;
+    return {
+      ...post,
+      liked_by_me: liked,
+      likes_count: Math.max(0, likesCount),
+    };
+  });
 }

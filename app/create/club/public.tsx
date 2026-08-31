@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
-import { COMMON_COUNTRIES, flagEmoji } from "@/utils/countries";
+import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
 import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
@@ -315,7 +315,7 @@ export default function CreatePublicClubScreen() {
                         country === c.code ? "text-white font-medium text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"
                       }
                     >
-                      {flagEmoji(c.code)} {c.label}
+                      {countryFlag(c.code)} {c.label}
                     </Text>
                   </Pressable>
                 ))}

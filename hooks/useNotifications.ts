@@ -119,12 +119,15 @@ export function useJoinRequestAction() {
       type,
       targetId,
       requesterId,
+      message,
     }: {
       action: JoinRequestAction;
       requestId: string;
       type: "club" | "event";
       targetId: string;
       requesterId: string;
+      /** Optional explanation shown to the requester when refusing */
+      message?: string;
     }) => {
       if (!userId) throw new Error("auth");
 
@@ -161,7 +164,9 @@ export function useJoinRequestAction() {
         : t("notifications.toast.refused");
       const bodyText = action === "accept"
         ? t("invitations.acceptedBody")
-        : t("invitations.refusedBody");
+        : message?.trim()
+          ? message.trim()
+          : t("invitations.refusedBody");
 
       // Build notification data - include owner_id for refused so user can contact them
       const notificationData: Record<string, string> = {
@@ -171,6 +176,10 @@ export function useJoinRequestAction() {
       };
       if (action === "refuse") {
         notificationData.owner_id = userId;
+        // Preserve the optional explanation so the requester can read it from the notification
+        if (message?.trim()) {
+          notificationData.message = message.trim();
+        }
       }
 
       const { error: notifErr } = await supabase.from("notifications").insert({

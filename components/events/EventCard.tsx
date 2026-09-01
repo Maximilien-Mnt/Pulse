@@ -8,9 +8,10 @@ import { useAuthStore } from "@/stores/authStore";
 import { formatDateLong } from "@/utils/date";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Pressable, Share, Text, View } from "react-native";
+import { FavoriteButton } from "@/components/feed/LikeButton";
 
 type Props = { event: EventRow; compact?: boolean };
 
@@ -28,6 +29,38 @@ export function EventCard({ event, compact }: Props) {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
 
+  // Track whether this user has favorited the event
+  const { data: isFavorited, isLoading: loadingFav } = useQuery({
+    queryKey: ["event-favorite", event.id],
+    queryFn: async () => {
+      if (!userId) return false;
+      const { data, error } = await supabase
+        .from("event_favorites")
+        .select("event_id")
+        .eq("user_id", userId)
+        .eq("event_id", event.id)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!userId && !!event.id,
+    staleTime: 5000,
+  });
+
+  const { data: favCount = 0, isLoading: loadingCount } = useQuery({
+    queryKey: ["event-favorites-count", event.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("event_favorites")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", event.id);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!event.id,
+    staleTime: 5000,
+  });
+
   const fav = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
@@ -43,7 +76,26 @@ export function EventCard({ event, compact }: Props) {
         await supabase.from("event_favorites").insert({ user_id: userId, event_id: event.id });
       }
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["events"] }),
+    onMutate: async () => {
+      const prevIsFav = queryClient.getQueryData(["event-favorite", event.id]);
+      const prevCount = queryClient.getQueryData(["event-favorites-count", event.id]) as number | undefined;
+      queryClient.setQueryData(["event-favorite", event.id], true);
+      queryClient.setQueryData(["event-favorites-count", event.id], (prevCount ?? 0) + 1);
+      return { prevIsFav, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevIsFav !== undefined) {
+        queryClient.setQueryData(["event-favorite", event.id], context.prevIsFav);
+      }
+      if (context?.prevCount !== undefined) {
+        queryClient.setQueryData(["event-favorites-count", event.id], context.prevCount);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["event-favorite", event.id] });
+      void queryClient.invalidateQueries({ queryKey: ["event-favorites-count", event.id] });
+      void queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
   });
 
   return (
@@ -74,9 +126,12 @@ export function EventCard({ event, compact }: Props) {
         </View>
       </View>
       <View className="justify-between items-end">
-        <Pressable onPress={() => fav.mutate()} hitSlop={8}>
-          <Icon name="Heart" size={22} color="text-secondary" />
-        </Pressable>
+          <FavoriteButton
+            isFavorite={!!isFavorited}
+            count={favCount ?? undefined}
+            isPending={fav.isPending}
+            onPress={() => fav.mutate()}
+          />
         <Pressable onPress={() => Share.share({ message: event.name })} hitSlop={8}>
           <Icon name="Share2" size={22} color="text-secondary" />
         </Pressable>

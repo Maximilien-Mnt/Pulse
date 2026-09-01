@@ -98,6 +98,29 @@ export default function ConversationScreen() {
   const title = other?.full_name ?? otherName ?? "Messages";
   const avatarUrl = other?.avatar_url ?? otherAvatarUrl ?? null;
 
+  // ── Fetch conversation row for group-chat metadata ──────────────────────
+  const { data: convRow } = useQuery({
+    queryKey: ["conv-row", conversationId],
+    enabled: !!conversationId,
+    queryFn: async () => {
+      const { data: row, error } = await supabase
+        .from("conversations")
+        .select("is_group, group_name, group_photo_url")
+        .eq("id", conversationId!)
+        .single();
+      if (error) throw error;
+      return row ?? null;
+    },
+  });
+
+  const isGroupChat = convRow?.is_group ?? false;
+  const groupName = convRow?.group_name ?? null;
+  const groupPhotoUrl = convRow?.group_photo_url ?? null;
+
+  // For group chats, override title/avatar with group metadata
+  const effectiveTitle = isGroupChat && groupName ? groupName : title;
+  const effectiveAvatarUrl = isGroupChat && groupPhotoUrl ? groupPhotoUrl : avatarUrl;
+
   // Debug logging (only in development)
   if (__DEV__) {
     console.log("Conversation Screen Debug:", {
@@ -106,8 +129,10 @@ export default function ConversationScreen() {
       otherFromParams: !!otherFromParams,
       otherFromQuery: !!otherFromQuery,
       other: !!other,
+      isGroupChat,
+      groupName,
       title,
-      hasAvatar: !!avatarUrl,
+      hasAvatar: !!effectiveAvatarUrl,
     });
   }
 
@@ -205,15 +230,15 @@ export default function ConversationScreen() {
         <Pressable
           className="flex-1 flex-row items-center gap-2 pl-1"
           onPress={() => {
-            if (other?.id) router.push(`/profile/${other.id}`);
+            if (!isGroupChat && other?.id) router.push(`/profile/${other.id}`);
           }}
         >
-          <Avatar uri={avatarUrl} size={36} />
+          <Avatar uri={effectiveAvatarUrl} size={36} />
           <Text
             className="text-base font-semibold text-neutral-900 dark:text-neutral-50"
             numberOfLines={1}
           >
-            {title}
+            {effectiveTitle}
           </Text>
         </Pressable>
         <Pressable onPress={() => setMenuOpen(true)}>
@@ -252,11 +277,14 @@ export default function ConversationScreen() {
       <ConversationActionSheet
         visible={menuOpen}
         conversationId={conversationId ?? ""}
-        name={title}
+        name={effectiveTitle}
         pinned={pinned}
         onClose={() => setMenuOpen(false)}
         onDeleted={() => router.back()}
         targetAuthorId={other?.id}
+        isGroup={isGroupChat}
+        groupName={groupName ?? undefined}
+        onLeft={() => router.back()}
       />
     </SafeScreen>
   );

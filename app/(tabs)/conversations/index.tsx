@@ -101,36 +101,46 @@ export default function ConversationsScreen() {
   }, [data, search, convFilter]);
 
   const renderItem = useCallback(
-    ({ item }: { item: any }) => (
+    ({ item }: { item: any }) => {
+      const isGroup = item.conversation.is_group;
+      const convName = isGroup
+        ? item.conversation.group_name ?? "Groupe"
+        : item.other?.full_name ?? "";
+      const convAvatar = isGroup
+        ? item.conversation.group_photo_url ?? null
+        : item.other?.avatar_url ?? null;
+
+      return (
       <ConversationItem
         conversation={{
           id: item.conversation.id,
-          name: item.other?.full_name ?? "",
-          avatar_url: item.other?.avatar_url ?? null,
+          name: convName,
+          avatar_url: convAvatar,
           last_message: item.conversation.last_message_preview,
           last_message_at: item.conversation.last_message_at,
           unread: item.unread > 0,
           pinned: item.pinned,
         }}
-        onPress={() =>
+        onPress={() => {
           router.push({
             pathname: "/(tabs)/conversations/[conversationId]" as any,
             params: {
               conversationId: item.conversation.id,
-              otherName: item.other?.full_name ?? "Messages",
-              otherAvatarUrl: item.other?.avatar_url ?? "",
-              otherId: item.other?.id ?? "",
+              otherName: convName,
+              otherAvatarUrl: convAvatar ?? "",
+              otherId: isGroup ? "" : item.other?.id ?? "",
             },
-          })
-        }
+          });
+        }}
         onLongPress={() => setMenuItem(item)}
         onAvatarPress={
-          item.other?.id
+          isGroup ? undefined : item.other?.id
             ? () => router.push(`/profile/${item.other.id}`)
             : undefined
         }
       />
-    ),
+    );
+    },
     [router]
   );
 
@@ -168,7 +178,13 @@ export default function ConversationsScreen() {
       <ConversationActionSheet
         visible={!!menuItem}
         conversationId={menuItem?.conversation?.id ?? ""}
-        name={menuItem?.other?.full_name ?? ""}
+        name={
+          menuItem?.conversation?.is_group
+            ? menuItem?.conversation?.group_name ?? "Groupe"
+            : menuItem?.other?.full_name ?? ""
+        }
+        group={!!menuItem?.conversation?.is_group}
+        groupName={menuItem?.conversation?.group_name ?? ""}
         pinned={menuItem?.pinned ?? false}
         onClose={() => setMenuItem(null)}
         targetAuthorId={menuItem?.other?.id}

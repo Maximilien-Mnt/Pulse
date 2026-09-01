@@ -12,9 +12,15 @@ import React from "react";
 import { View, useWindowDimensions, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useJoinRequestStatus, deriveStatus } from "@/hooks/useJoinRequestStatus";
+import { useAuthStore } from "@/stores/authStore";
+import { queryClient } from "@/lib/queryClient";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
+import { FavoriteButton } from "@/components/feed/LikeButton";
+import { ShareButton } from "@/components/shared/ShareButton";
+import { supabase } from "@/lib/supabase";
 
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
@@ -61,6 +67,59 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { data } = useJoinRequestStatus("event", event.id);
+  const userId = useAuthStore((s) => s.userId);
+
+  // ── Favorites (like) ───────────────────────────────────────────────
+  const { data: isFavorited } = useQuery({
+    queryKey: ["event-favorite-card", event.id],
+    enabled: !!userId && !!event.id,
+    queryFn: async () => {
+      const { data: favData, error } = await supabase
+        .from("event_favorites")
+        .select("event_id")
+        .eq("user_id", userId!)
+        .eq("event_id", event.id)
+        .maybeSingle();
+      if (error) throw error;
+      return !!favData;
+    },
+  });
+
+  const toggleEventFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId || !event.id) return;
+      if (isFavorited) {
+        await supabase.from("event_favorites").delete().eq("user_id", userId).eq("event_id", event.id);
+      } else {
+        await supabase.from("event_favorites").insert({ user_id: userId, event_id: event.id });
+      }
+    },
+    onMutate: async () => {
+      const prevIsFav = queryClient.getQueryData(["event-favorite-card", event.id]);
+      queryClient.setQueryData(["event-favorite-card", event.id], !prevIsFav);
+      return { prevIsFav };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevIsFav !== undefined) {
+        queryClient.setQueryData(["event-favorite-card", event.id], context.prevIsFav);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["event-favorite-card", event.id] });
+      void queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+  });
+
+  const handleToggleFavorite = () => {
+    void toggleEventFavoriteMutation.mutate();
+  };
+
+  // ── Share content ──────────────────────────────────────────────────
+  const shareContent = {
+    title: event.name,
+    message: `${event.name} — ${event.sport ?? "Sport"} | Pulse`,
+    url: `https://pulse.app/event/${event.id}`,
+  };
 
   const coverUrl = event.hero_urls?.[0] ?? event.logo_url ?? null;
   const participantCount = event.participant_count ?? 0;
@@ -207,6 +266,16 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
               Participer
             </Button>
           )}
+
+          {/* Like & Share actions */}
+          <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
+            <FavoriteButton
+              isFavorite={isFavorited ?? false}
+              onPress={handleToggleFavorite}
+              size={16}
+            />
+            <ShareButton content={shareContent} iconSize={16} />
+          </View>
         </View>
       </Card>
     );
@@ -261,9 +330,19 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
                 Participer
               </Button>
             )}
+
+            {/* Like & Share actions */}
+            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
+              <FavoriteButton
+                isFavorite={isFavorited ?? false}
+                onPress={handleToggleFavorite}
+                size={16}
+              />
+              <ShareButton content={shareContent} iconSize={16} />
+            </View>
           </View>
 
-          {/* Right: Cover image with date badge */}
+          {/* Right: Cover image */}
           <View style={{ width: isCompact ? 200 : 260 }}>
             {coverUrl ? (
               <Image
@@ -371,6 +450,16 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
                 Participer
               </Button>
             )}
+
+            {/* Like & Share actions */}
+            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
+              <FavoriteButton
+                isFavorite={isFavorited ?? false}
+                onPress={handleToggleFavorite}
+                size={16}
+              />
+              <ShareButton content={shareContent} iconSize={16} />
+            </View>
           </View>
         </>
       )}

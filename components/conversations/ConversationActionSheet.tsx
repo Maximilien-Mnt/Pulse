@@ -16,10 +16,13 @@ import {
   useDeleteConversation,
   usePinConversation,
   useUnpinConversation,
+  useLeaveGroupConversation,
+  useRenameGroupConversation,
 } from "@/hooks/useConversationActions";
 import { useBlockUser } from "@/hooks/useBlockUser";
 import Toast from "react-native-toast-message";
 import { useTranslation , t } from "@/hooks/useTranslation";
+import { TextInput } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,6 +46,12 @@ interface Props {
   conversationId: string;
   /** Id of the other participant — used for the self-report guard in useReport. */
   targetAuthorId?: string;
+  /** Whether this is a group conversation (e.g. club chat). */
+  isGroup?: boolean;
+  /** Called when the user successfully leaves a group. */
+  onLeft?: () => void;
+  /** Current group name (shown in rename input). */
+  groupName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,6 +66,9 @@ export function ConversationActionSheet({
   onDeleted,
   conversationId,
   targetAuthorId,
+  isGroup = false,
+  onLeft,
+  groupName,
 }: Props) {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
@@ -74,8 +86,13 @@ export function ConversationActionSheet({
   const unpinMut = useUnpinConversation();
   const deleteMut = useDeleteConversation();
   const blockMut = useBlockUser();
+  const leaveMut = useLeaveGroupConversation();
+  const renameMut = useRenameGroupConversation();
 
   const [confirmingBlock, setConfirmingBlock] = useState(false);
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [confirmingRename, setConfirmingRename] = useState(false);
+  const [newGroupName, setNewGroupName] = useState(groupName ?? "");
 
   // Reset local state each time the sheet opens for a conversation
   useEffect(() => {
@@ -83,12 +100,17 @@ export function ConversationActionSheet({
       setIsPinned(pinned);
       setConfirming(false);
       setConfirmingBlock(false);
+      setConfirmingLeave(false);
+      setConfirmingRename(false);
+      setNewGroupName(groupName ?? "");
     }
-  }, [visible, pinned]);
+  }, [visible, pinned, groupName]);
 
   const handleClose = () => {
     setConfirming(false);
     setConfirmingBlock(false);
+    setConfirmingLeave(false);
+    setConfirmingRename(false);
     onClose();
   };
 
@@ -113,34 +135,89 @@ export function ConversationActionSheet({
     onClose();
   };
 
-  const options: Option[] = [
-    {
-      key: isPinned ? "unpin" : "pin",
-      label: isPinned ? t("common.unpinned") : t("common.pinned"),
-      icon: isPinned ? "PinOff" : "Pin",
-      onPress: handleTogglePin,
-    },
-    {
-      key: "delete",
-      label: t("common.delete"),
-      icon: "Trash2",
-      iconColor: "error-600",
-      onPress: () => setConfirming(true),
-    },
-    {
-      key: "delete-and-block",
-      label: t("common.deleteAndBlock"),
-      icon: "Shield",
-      iconColor: "error-600",
-      onPress: () => setConfirmingBlock(true),
-    },
-    {
-      key: "signal",
-      label: "Signaler",
-      icon: "Flag",
-      onPress: handleSignal,
-    },
-  ];
+  // ── Group-chat handlers ────────────────────────────────────────────────
+  const handleLeave = () => {
+    leaveMut.mutate(conversationId, {
+      onSuccess: () => {
+        setConfirmingLeave(false);
+        Toast.show({ type: "success", text1: t("conv.leftGroup") });
+        onLeft?.();
+      },
+    });
+  };
+
+  const handleRename = () => {
+    if (!newGroupName.trim()) {
+      Toast.show({ type: "error", text1: t("conv.nameRequired") });
+      return;
+    }
+    renameMut.mutate(
+      { conversationId, groupName: newGroupName.trim() },
+      {
+        onSuccess: () => {
+          setConfirmingRename(false);
+          Toast.show({ type: "success", text1: t("conv.groupRenamed") });
+        },
+      },
+    );
+  };
+
+  // ── Options (conditional for groups vs 1:1) ────────────────────────────
+  const buildOptions = (): Option[] => {
+    const base: Option[] = [
+      {
+        key: isPinned ? "unpin" : "pin",
+        label: isPinned ? t("common.unpinned") : t("common.pinned"),
+        icon: isPinned ? "PinOff" : "Pin",
+        onPress: handleTogglePin,
+      },
+    ];
+
+    if (isGroup) {
+      base.push(
+        {
+          key: "rename",
+          label: t("conv.renameGroup"),
+          icon: "PenLine",
+          onPress: () => setConfirmingRename(true),
+        },
+        {
+          key: "leave",
+          label: t("conv.leaveGroup"),
+          icon: "LogOut",
+          iconColor: "error-600",
+          onPress: () => setConfirmingLeave(true),
+        },
+      );
+    } else {
+      base.push(
+        {
+          key: "delete",
+          label: t("common.delete"),
+          icon: "Trash2",
+          iconColor: "error-600",
+          onPress: () => setConfirming(true),
+        },
+        {
+          key: "delete-and-block",
+          label: t("common.deleteAndBlock"),
+          icon: "Shield",
+          iconColor: "error-600",
+          onPress: () => setConfirmingBlock(true),
+        },
+        {
+          key: "signal",
+          label: "Signaler",
+          icon: "Flag",
+          onPress: handleSignal,
+        },
+      );
+    }
+
+    return base;
+  };
+
+  const options = buildOptions();
 
   const handleConfirmDelete = () => {
     deleteMut.mutate(conversationId, {
@@ -235,6 +312,64 @@ export function ConversationActionSheet({
                       variant="destructive"
                       onPress={handleConfirmDeleteAndBlock}
                       loading={deleteMut.isPending || blockMut.isPending}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : confirmingLeave ? (
+              <>
+                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
+                  {t("conv.leaveGroup")} ?
+                </Text>
+                <Text className="text-sm text-text-secondary mb-6">
+                  {t("conv.leaveConfirm")}
+                </Text>
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Button
+                      title={t("common.cancel")}
+                      variant="ghost"
+                      onPress={() => setConfirmingLeave(false)}
+                      disabled={leaveMut.isPending}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      title={t("common.delete")}
+                      variant="destructive"
+                      onPress={handleLeave}
+                      loading={leaveMut.isPending}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : confirmingRename ? (
+              <>
+                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
+                  {t("conv.renameGroup")}
+                </Text>
+                <TextInput
+                  className="w-full border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-base text-neutral-900 dark:text-neutral-50 mb-6"
+                  value={newGroupName}
+                  onChangeText={setNewGroupName}
+                  placeholder={t("conv.enterNewName")}
+                  autoFocus
+                />
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Button
+                      title={t("common.cancel")}
+                      variant="ghost"
+                      onPress={() => setConfirmingRename(false)}
+                      disabled={renameMut.isPending}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      title={t("common.save")}
+                      variant="secondary"
+                      onPress={handleRename}
+                      loading={renameMut.isPending}
                     />
                   </View>
                 </View>

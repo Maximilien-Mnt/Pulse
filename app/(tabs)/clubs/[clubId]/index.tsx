@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, Share, View, Text, ActivityIndicator, FlatList } from 'react-native';
@@ -12,6 +12,7 @@ import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
+import { ShareButton } from '@/components/shared/ShareButton';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -21,6 +22,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { MembersListSheet, type Member } from '@/components/shared/MembersListSheet';
 import { EditClubEventSheet } from '@/components/shared/EditClubEventSheet';
+import { FavoriteButton } from '@/components/feed/LikeButton';
 import { useClubMembers } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
 import { useUpdateClub } from '@/hooks/useUpdateClub';
@@ -28,9 +30,12 @@ import { supabase } from '@/lib/supabase';
 import type { Club } from '@/types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { t } from "@/hooks/useTranslation";
+import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
+import { sanitizeOpeningHours } from '@/lib/openingHours';
 
 export default function ClubDetailScreen() {
-  const { clubId } = useLocalSearchParams<{ clubId: string }>();
+  const params = useLocalSearchParams<{ clubId: string; public?: string }>();
+  const { clubId } = params;
   const router = useRouter();
   const posthog = usePostHog();
   const { t } = useTranslation();
@@ -145,7 +150,88 @@ export default function ClubDetailScreen() {
       Toast.show({ type: 'error', text1: t('error.clubJoin') }),
   });
 
+  // Favorite status & count queries
+  const { data: isFavorited } = useQuery({
+    queryKey: ['club-favorite', clubId],
+    enabled: !!userId && !!clubId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('club_favorites')
+        .select('club_id')
+        .eq('user_id', userId!)
+        .eq('club_id', clubId!)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
+
+  const { data: favoritesCount = 0 } = useQuery({
+    queryKey: ['club-favorites-count', clubId],
+    enabled: !!clubId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('club_favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('club_id', clubId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 5000,
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId || !clubId) return;
+      if (isFavorited) {
+        await supabase
+          .from('club_favorites')
+          .delete()
+          .eq('user_id', userId)
+          .eq('club_id', clubId);
+      } else {
+        await supabase
+          .from('club_favorites')
+          .insert({ user_id: userId, club_id: clubId });
+      }
+    },
+    onMutate: async () => {
+      const prevIsFav = queryClient.getQueryData(['club-favorite', clubId]);
+      const prevCount = queryClient.getQueryData(['club-favorites-count', clubId]) as number | undefined;
+      queryClient.setQueryData(['club-favorite', clubId], true);
+      queryClient.setQueryData(['club-favorites-count', clubId], (prevCount ?? 0) + 1);
+      return { prevIsFav, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevIsFav !== undefined) {
+        queryClient.setQueryData(['club-favorite', clubId], context.prevIsFav);
+      }
+      if (context?.prevCount !== undefined) {
+        queryClient.setQueryData(['club-favorites-count', clubId], context.prevCount);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['club-favorite', clubId] });
+      void queryClient.invalidateQueries({ queryKey: ['club-favorites-count', clubId] });
+      void queryClient.invalidateQueries({ queryKey: ['clubs'] });
+      void queryClient.invalidateQueries({ queryKey: ['club', clubId] });
+    },
+  });
+
+  const handleToggle = () => {
+    void toggleFavoriteMutation.mutate();
+  };
+
   const isCreator = !!userId && club?.created_by === userId;
+
+  // Club owners are sent to their dashboard instead of the public detail page,
+  // unless they explicitly asked for the public view (?public=true).
+  useEffect(() => {
+    if (club && !clubLoading && isCreator && !params.public) {
+      router.replace(`/(tabs)/clubs/${clubId}/dashboard`);
+    }
+  }, [club, clubLoading, isCreator, params.public, clubId, router]);
+
 
   if (!club) {
     if (clubLoading) {
@@ -252,13 +338,24 @@ export default function ClubDetailScreen() {
                     <SourceBadge isExternal={club.is_external} />
                   </View>
                 </View>
-                <View className='items-center px-2.5 py-1.5 rounded-full bg-primary/10 self-start'>
-                  <View className='flex-row items-center gap-1'>
-                    <Icon name='Users' size={14} color='primary' />
-                    <PulseText variant='caption' className='text-primary font-semibold'>
-                      {club.member_count}
-                    </PulseText>
+                <View className='flex-row items-center gap-2 self-start'>
+                  {/* Members badge */}
+                  <View className='items-center px-2.5 py-1.5 rounded-full bg-primary/10'>
+                    <View className='flex-row items-center gap-1'>
+                      <Icon name='Users' size={14} color='primary' />
+                      <PulseText variant='caption' className='text-primary font-semibold'>
+                        {club.member_count}
+                      </PulseText>
+                    </View>
                   </View>
+                  {/* Favorites */}
+                  <FavoriteButton
+                    isFavorite={!!isFavorited}
+                    count={favoritesCount}
+                    isPending={toggleFavoriteMutation.isPending}
+                    onPress={() => handleToggle()}
+                    size={16}
+                  />
                 </View>
               </View>
             </View>
@@ -393,6 +490,14 @@ export default function ClubDetailScreen() {
             <InfoRow icon='Mail' label='Contact' value={club.contact_email} />
           ) : null}
         </InfoSection>
+{sanitizeOpeningHours(club.opening_hours).length >0 ? (
+          <View className='mx-4 mb-5'>
+            <PulseText variant='overline' className='text-neutral-400 mb-2'>
+              {t("clubs.hours.title")}
+            </PulseText>
+            <ClubOpeningHoursDisplay slots={club.opening_hours ?? []} />
+          </View>
+        ) : null}
 
         {!club.is_external && members.length > 0 ? (
           <View className='mx-4 mb-5'>

@@ -86,3 +86,53 @@ export function useDeleteConversation() {
     },
   });
 }
+
+/**
+ * Lets a participant quit a group chat without leaving the club.
+ * Uses the SECURITY DEFINER RPC which soft-deletes (left_at) the caller's
+ * participant row for the given group conversation.
+ */
+export function useLeaveGroupConversation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase.rpc("leave_group_conversation", {
+        p_conv_id: conversationId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
+/**
+ * Renames a group conversation (e.g. a club chat). Only group_name is touched,
+ * so the underlying club name is never modified.
+ */
+export function useRenameGroupConversation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      conversationId,
+      groupName,
+    }: {
+      conversationId: string;
+      groupName: string;
+    }) => {
+      const name = groupName.trim();
+      if (!name) throw new Error(t("conv.nameRequired"));
+      const { error } = await supabase
+        .from("conversations")
+        .update({ group_name: name })
+        .eq("id", conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}

@@ -26,7 +26,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PostMedia } from "./PostMedia";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import { usePostLike } from "@/hooks/usePostLike";
-import { LikeButton } from "./LikeButton";
+import { FavoriteButton } from "./LikeButton";
 import { CommentButton } from "./CommentButton";
 
 // ---------------------------------------------------------------------------
@@ -239,9 +239,9 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
       {/* Actions bar */}
       <View className="flex-row items-center justify-around px-4 py-3 border-t border-border">
         {/* Like */}
-        <LikeButton
-          liked={liked}
-          likesCount={likesCount}
+        <FavoriteButton
+          isFavorite={liked}
+          count={likesCount}
           isPending={isPending}
           onPress={handleLike}
         />

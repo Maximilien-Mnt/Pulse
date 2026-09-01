@@ -20,6 +20,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { BackButton } from "@/components/ui/BackButton";
 import { t } from "@/hooks/useTranslation";
+import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
+import type { OpeningHourSlot } from "@/lib/openingHours";
 
 async function uploadImage(uri: string, path: string) {
   return uploadImageToStorage({ bucket: "clubs", path, uri });
@@ -70,6 +72,7 @@ export default function CreatePublicClubScreen() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [league, setLeague] = useState("");
   const [foundedDate, setFoundedDate] = useState("");
+  const [openingHours, setOpeningHours] = useState<OpeningHourSlot[]>([]);
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
@@ -203,6 +206,7 @@ export default function CreatePublicClubScreen() {
           website_url: websiteUrl || null,
           league: league || null,
           founded_date: foundedDate || null,
+          opening_hours: openingHours.length > 0 ? openingHours : [],
           is_private: false,
           is_external: false,
           created_by: userId,
@@ -470,6 +474,16 @@ export default function CreatePublicClubScreen() {
               ))}
             </ScrollView>
           )}
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">
+            {t("clubs.hours.title")}
+          </Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            {t("clubs.hours.hint")}
+          </Text>
+          <ClubOpeningHoursEditor value={openingHours} onChange={setOpeningHours} />
         </Card>
 
         <Button

@@ -12,6 +12,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { useRouter } from "expo-router";
 import { useNotifications, useMarkAsRead, useJoinRequestAction } from "@/hooks/useNotifications";
 import { useStartConversationWith } from "@/hooks/useStartConversationWith";
+import { RefuseJoinRequestSheet } from "@/components/shared/RefuseJoinRequestSheet";
 import Toast from "react-native-toast-message";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import { TranslationKey } from "@/lib/translations";
@@ -71,6 +72,8 @@ export default function ProfileNotificationsScreen() {
     n.type === "club_join_request_response_refuse" || 
     n.type === "event_join_request_response_refuse";
 
+  const [refuseItem, setRefuseItem] = useState<any>(null);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
@@ -95,7 +98,8 @@ export default function ProfileNotificationsScreen() {
 
   const handleAction = async (
     action: "accept" | "refuse",
-    item: any
+    item: any,
+    reason?: string
   ) => {
     const data = item.data as any;
     if (!data?.request_id) return;
@@ -106,7 +110,9 @@ export default function ProfileNotificationsScreen() {
         type: item.type === "club_join_request" ? "club" : "event",
         targetId: data.club_id ?? data.event_id,
         requesterId: data.requester_id,
+        message: action === "refuse" ? reason : undefined,
       });
+      setRefuseItem(null);
       Toast.show({
         type: "success",
         text1: action === "accept" ? t("notifications.toast.accepted") : t("notifications.toast.refused"),
@@ -181,7 +187,7 @@ export default function ProfileNotificationsScreen() {
               <Text className="text-sm font-semibold text-white">{t("common.accept")}</Text>
             </Pressable>
             <Pressable
-              onPress={() => handleAction("refuse", item)}
+              onPress={() => setRefuseItem(item)}
               className="px-5 py-3 rounded-xl bg-neutral-200 dark:bg-neutral-700 active:opacity-80"
             >
               <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
@@ -268,6 +274,14 @@ export default function ProfileNotificationsScreen() {
           }
         />
       )}
+      <RefuseJoinRequestSheet
+        visible={!!refuseItem}
+        onClose={() => setRefuseItem(null)}
+        requesterName={refuseItem?.data?.requester_name ?? "—"}
+        entityName={refuseItem?.data?.club_name ?? refuseItem?.data?.event_name ?? ''}
+        onConfirm={(reason) => handleAction("refuse", refuseItem, reason)}
+        isPending={joinAction.isPending}
+      />
     </SafeScreen>
   );
 }

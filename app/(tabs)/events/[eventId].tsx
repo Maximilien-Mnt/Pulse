@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { InvitationButton } from "@/components/shared/InvitationButton";
+import { ShareButton } from "@/components/shared/ShareButton";
+import { FavoriteButton } from "@/components/feed/LikeButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Icon } from "@/components/ui/Icon";
 import { Text as PulseText } from "@/components/ui/Text";
@@ -155,6 +157,72 @@ export default function EventDetailScreen() {
     },
     onError: () => Toast.show({ type: "error", text1: t("common.error") }),
   });
+
+  // ── Favorites (like) ───────────────────────────────────────────────
+  const { data: isFavorited } = useQuery({
+    queryKey: ["event-favorite", eventId],
+    enabled: !!userId && !!eventId,
+    queryFn: async () => {
+      const { data: favData, error } = await supabase
+        .from("event_favorites")
+        .select("event_id")
+        .eq("user_id", userId!)
+        .eq("event_id", eventId!)
+        .maybeSingle();
+      if (error) throw error;
+      return !!favData;
+    },
+  });
+
+  const { data: favoritesCount = 0 } = useQuery({
+    queryKey: ["event-favorites-count", eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("event_favorites")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 5000,
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId || !eventId) return;
+      if (isFavorited) {
+        await supabase.from("event_favorites").delete().eq("user_id", userId).eq("event_id", eventId);
+      } else {
+        await supabase.from("event_favorites").insert({ user_id: userId, event_id: eventId });
+      }
+    },
+    onMutate: async () => {
+      const prevIsFav = queryClient.getQueryData(["event-favorite", eventId]);
+      const prevCount = queryClient.getQueryData(["event-favorites-count", eventId]) as number | undefined;
+      queryClient.setQueryData(["event-favorite", eventId], true);
+      queryClient.setQueryData(["event-favorites-count", eventId], (prevCount ?? 0) + 1);
+      return { prevIsFav, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevIsFav !== undefined) {
+        queryClient.setQueryData(["event-favorite", eventId], context.prevIsFav);
+      }
+      if (context?.prevCount !== undefined) {
+        queryClient.setQueryData(["event-favorites-count", eventId], context.prevCount);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["event-favorite", eventId] });
+      void queryClient.invalidateQueries({ queryKey: ["event-favorites-count", eventId] });
+      void queryClient.invalidateQueries({ queryKey: ["events"] });
+      void queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+    },
+  });
+
+  const handleToggleFavorite = () => {
+    void toggleFavoriteMutation.mutate();
+  };
 
   if (!event) {
     if (eventLoading) {
@@ -319,6 +387,18 @@ export default function EventDetailScreen() {
                   {formatPriceFromCents(event.price_cents, event.is_paid)}
                 </PulseText>
               </View>
+
+              {/* Favorites */}
+              <View className="flex-row items-center gap-1.5 mt-3">
+                <FavoriteButton
+                  isFavorite={!!isFavorited}
+                  count={favoritesCount}
+                  isPending={toggleFavoriteMutation.isPending}
+                  onPress={handleToggleFavorite}
+                  size={16}
+                />
+                <ShareButton content={{ title: event.name, message: `${event.name} — Pulse`, url: `https://pulse.app/event/${event.id}` }} iconSize={16} />
+              </View>
             </View>
           </View>
         </View>
@@ -433,12 +513,7 @@ export default function EventDetailScreen() {
         <View className="mx-4 mb-10 gap-2.5">
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Button
-                title={t("events.share")}
-                variant="secondary"
-                icon="Share2"
-                onPress={() => void Share.share({ message: event.name })}
-              />
+              <ShareButton content={{ title: event.name, message: `${event.name} — Pulse`, url: `https://pulse.app/event/${event.id}` }} />
             </View>
             {actionVisible ? <View className="flex-1">{actionButton}</View> : null}
           </View>

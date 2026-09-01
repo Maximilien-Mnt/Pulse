@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
+import type { OpeningHourSlot } from "@/lib/openingHours";
 
 type ClubUpdateData = {
   name?: string;
@@ -18,6 +19,7 @@ type ClubUpdateData = {
   cover_url?: string | null;
   logo_url?: string | null;
   hero_urls?: string[];
+  opening_hours?: OpeningHourSlot[];
 };
 
 export function useUpdateClub() {
@@ -63,6 +65,7 @@ export function useUpdateClub() {
         founded_date: "Date de fondation",
         cover_url: "Image de couverture",
         logo_url: "Logo",
+        opening_hours: "Horaires d'ouverture",
       };
 
       for (const [key, label] of Object.entries(fieldLabels)) {

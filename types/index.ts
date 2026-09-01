@@ -168,6 +168,7 @@ export type Database = {
           is_private: boolean;
           training_schedule: Json;
           website_url: string | null;
+          opening_hours: Json;
         };
         Insert: {
           id?: string;
@@ -200,6 +201,7 @@ export type Database = {
           is_private?: boolean;
           training_schedule?: Json;
           website_url?: string | null;
+          opening_hours?: Json;
         };
         Update: Partial<Database["public"]["Tables"]["clubs"]["Insert"]>;
         Relationships: [];
@@ -468,6 +470,7 @@ export type Database = {
           is_group: boolean;
           group_name: string | null;
           group_photo_url: string | null;
+          club_id: string | null;
         };
         Insert: {
           id?: string;
@@ -478,6 +481,7 @@ export type Database = {
           is_group?: boolean;
           group_name?: string | null;
           group_photo_url?: string | null;
+          club_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["conversations"]["Insert"]>;
         Relationships: [];
@@ -749,6 +753,18 @@ export type Database = {
       get_my_conversations: {
         Args: Record<string, never>;
         Returns: Conversation[];
+      };
+      get_or_create_club_chat: {
+        Args: {
+          p_club_id: string;
+        };
+        Returns: string;
+      };
+      leave_group_conversation: {
+        Args: {
+          p_conv_id: string;
+        };
+        Returns: undefined;
       };
       get_conversation_other_participants: {
         Args: {

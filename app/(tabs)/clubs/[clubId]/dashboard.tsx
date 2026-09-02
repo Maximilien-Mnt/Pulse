@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, Share, View, ActivityIndicator } from 'react-native';
+import { Pressable, ScrollView, Share, Text, View, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeScreen } from '@/components/shared/SafeScreen';
@@ -19,7 +19,6 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { MembersListSheet, type Member } from '@/components/shared/MembersListSheet';
-import { EditClubEventSheet } from '@/components/shared/EditClubEventSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { RefuseJoinRequestSheet } from '@/components/shared/RefuseJoinRequestSheet';
@@ -39,12 +38,16 @@ import type { Club } from '@/types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { t } from '@/hooks/useTranslation';
 
+const CARD =
+  'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
+
 export default function ClubDashboardScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const router = useRouter();
   const posthog = usePostHog();
   const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
+  const { width: winWidth } = useWindowDimensions();
 
   const { data: club, isLoading: clubLoading } = useQuery({
     queryKey: ['club', clubId],
@@ -124,7 +127,6 @@ export default function ClubDashboardScreen() {
   });
 
   const [showMembersList, setShowMembersList] = useState(false);
-  const [showEditSheet, setShowEditSheet] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showHoursSheet, setShowHoursSheet] = useState(false);
   const [refuseRequest, setRefuseRequest] = useState<ClubJoinRequest | null>(null);
@@ -207,6 +209,24 @@ export default function ClubDashboardScreen() {
   const cover = club.cover_url ?? club.hero_urls?.[0] ?? club.logo_url;
   const pendingRequests = joinRequests;
 
+  // ---- Responsive layout (matches the public detail screen) ----
+  const isWide = winWidth >= 760;
+  const contentMax = 920;
+  const coverH = isWide ? 280 : winWidth >= 400 ? 220 : 180;
+  const statBasis = isWide ? '23%' : '47%';
+  const infoBasis = isWide ? '47%' : '100%';
+
+  const sports: string[] =
+    Array.isArray(club.sports) && club.sports.length > 0
+      ? club.sports
+      : club.sport
+        ? [club.sport]
+        : [];
+  const levels = (club.required_levels ?? {}) as Record<string, string>;
+  const levelRows = sports
+    .map((s) => ({ sport: s, level: levels[s] ?? (sports.length === 1 ? club.required_level : undefined) }))
+    .filter((r): r is { sport: string; level: string } => !!r.level);
+
   return (
     <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]' edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -220,86 +240,121 @@ export default function ClubDashboardScreen() {
         <Pressable
           onPress={() => void Share.share({ message: club.name })}
           hitSlop={8}
-          className='mr-3'
+          className='mr-2'
         >
           <Icon name='Share2' size={22} color='text-secondary' />
         </Pressable>
+        <Pressable
+          onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
+          hitSlop={8}
+          className='mr-3'
+        >
+          <Icon name='Settings' size={22} color='text-secondary' />
+        </Pressable>
       </View>
 
-      <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
-        {/* Cover */}
-        <View className='px-4'>
+      <ScrollView
+        className='flex-1'
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ width: '100%', maxWidth: contentMax, alignSelf: 'center' }}
+      >
+        {/* ---- Hero cover ---- */}
+        <View className='px-4 pt-1'>
           {cover ? (
             <Image
               source={{ uri: cover }}
-              className='w-full h-40 rounded-2xl mb-4'
+              className='w-full rounded-2xl'
+              style={{ height: coverH }}
               contentFit='cover'
             />
           ) : (
-            <View className='w-full h-32 rounded-2xl mb-4 bg-neutral-200 dark:bg-neutral-700 items-center justify-center'>
+            <View
+              className='w-full rounded-2xl bg-neutral-200 dark:bg-neutral-700 items-center justify-center'
+              style={{ height: coverH - 40 }}
+            >
               <Icon name='Image' size={32} color='text-tertiary' />
             </View>
           )}
         </View>
 
-        {/* Identity */}
+        {/* ---- Identity ---- */}
         <View className='px-5 mb-5'>
-          <View className='flex-row items-start gap-4'>
+          <View className='-mt-10 self-start'>
             {club.logo_url ? (
               <Image
                 source={{ uri: club.logo_url }}
-                className='w-[64px] h-[64px] rounded-2xl bg-neutral-100 dark:bg-neutral-700'
+                className='w-20 h-20 rounded-3xl bg-white dark:bg-neutral-800'
+                style={{ borderWidth: 4, borderColor: '#fff' }}
                 contentFit='cover'
               />
             ) : (
-              <View className='w-[64px] h-[64px] rounded-2xl bg-neutral-200 dark:bg-neutral-700 items-center justify-center'>
+              <View
+                className='w-20 h-20 rounded-3xl bg-neutral-200 dark:bg-neutral-700 items-center justify-center'
+                style={{ borderWidth: 4, borderColor: '#fff' }}
+              >
                 <Icon name='Trophy' size={24} color='text-tertiary' />
               </View>
             )}
-            <View className='flex-1'>
-              <PulseText variant='h1' numberOfLines={2}>
-                {club.name}
+          </View>
+          <View className='mt-2'>
+            <PulseText variant='h1' numberOfLines={2}>
+              {club.name}
+            </PulseText>
+            {club.short_description ? (
+              <PulseText variant='body' className='text-neutral-500 mt-1.5' numberOfLines={2}>
+                {club.short_description}
               </PulseText>
-              <View className='flex-row flex-wrap gap-2 mt-2 items-center'>
-                <SportBadge sport={club.sport} />
-                <SourceBadge isExternal={club.is_external} />
-                {club.is_private ? (
-                  <View className='flex-row items-center gap-1 px-3 py-1.5 rounded-full self-start bg-neutral-200 dark:bg-neutral-700'>
-                    <Icon name='Lock' size={14} color='text-secondary' />
-                    <PulseText
-                      variant='caption'
-                      className='font-semibold text-neutral-600 dark:text-neutral-300'
-                    >
-                      {t('clubs.dashboard.private')}
-                    </PulseText>
-                  </View>
-                ) : null}
+            ) : null}
+            <View className='flex-row flex-wrap gap-2 mt-3 items-center'>
+              {sports.map((s) => (
+                <SportBadge key={s} sport={s} />
+              ))}
+              <SourceBadge isExternal={club.is_external} />
+              {club.is_private ? (
+                <View className='flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-700'>
+                  <Icon name='Lock' size={14} color='text-secondary' />
+                  <PulseText variant='caption' className='font-semibold text-neutral-600 dark:text-neutral-300'>
+                    {t('clubs.dashboard.private')}
+                  </PulseText>
+                </View>
+              ) : null}
+              <View className='flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10'>
+                <Icon name='Settings' size={14} color='primary' />
+                <PulseText variant='caption' className='font-semibold text-primary'>
+                  {t('clubs.dashboard.title')}
+                </PulseText>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Stats row */}
-        <View className='px-4 mb-5'>
-          <View className='flex-row gap-3'>
-            <StatTile
-              icon='Users'
-              value={club.member_count}
-              label={t('clubs.dashboard.members')}
-              onPress={() => setShowMembersList(true)}
-            />
-            <StatTile icon='Heart' value={favoritesCount} label={t('clubs.dashboard.favorites')} />
-            <StatTile
-              icon='Calendar'
-              value={clubEvents.length}
-              label={t('clubs.dashboard.events')}
-            />
-            <StatTile
-              icon='Inbox'
-              value={pendingRequests.length}
-              label={t('clubs.dashboard.requests')}
-              highlight={pendingRequests.length > 0}
-            />
+        {/* ---- Stats row (admin: members / favorites / events / requests) ---- */}
+        <View className='flex-row flex-wrap gap-3 px-4 mb-5'>
+          <StatTile
+            icon='Users'
+            value={club.member_count}
+            label={t('clubs.dashboard.members')}
+            basis={statBasis}
+            onPress={() => setShowMembersList(true)}
+          />
+          <StatTile icon='Heart' value={favoritesCount} label={t('clubs.dashboard.favorites')} basis={statBasis} />
+          <StatTile icon='Calendar' value={clubEvents.length} label={t('clubs.dashboard.events')} basis={statBasis} />
+          <StatTile
+            icon='Inbox'
+            value={pendingRequests.length}
+            label={t('clubs.dashboard.requests')}
+            basis={statBasis}
+            highlight={pendingRequests.length > 0}
+          />
+        </View>
+
+        {/* ---- Quick actions (admin shortcuts) ---- */}
+        <View className='flex-row gap-3 px-4 mb-6'>
+          <View className='flex-1'>
+            <Button title={t('clubs.dashboard.editClub')} icon='Pen' variant='secondary' onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)} />
+          </View>
+          <View className='flex-1'>
+            <Button title={t('clubs.hours.title')} icon='Clock' variant='secondary' onPress={() => setShowHoursSheet(true)} />
           </View>
         </View>
 
@@ -409,81 +464,127 @@ export default function ClubDashboardScreen() {
           )}
         </Section>
 
-        {/* Club info */}
-        <Section title={t('clubs.dashboard.info')}>
+        {/* ---- Info grid: 2 columns on wide screens ---- */}
+        <View className='flex-row flex-wrap gap-3 mx-4 mb-5'>
+          {/* Description */}
           {club.description ? (
-            <InfoRow icon='AlignLeft' label={t('clubs.dashboard.description')} value={club.description} />
-          ) : null}
-          {club.city || club.country ? (
-            <InfoRow
-              icon='MapPin'
-              label={t('clubs.dashboard.location')}
-              value={
-                (club.address ? `${club.address}, ` : '') +
-                [club.city, getCountryDisplay(club.country)].filter(Boolean).join(', ')
-              }
-            />
-          ) : null}
-          {club.website_url ? (
-            <Pressable
-              className='flex-row items-start gap-3 py-3 border-b border-neutral-100 dark:border-neutral-800'
-              onPress={() => void WebBrowser.openBrowserAsync(club.website_url!)}
-            >
-              <View className='pt-0.5'>
-                <Icon name='Globe' size={16} color='text-secondary' />
-              </View>
-              <View className='flex-1 gap-0.5'>
+            <View style={{ flexGrow: 1, flexBasis: '100%' }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-2'>
+                <Icon name='FileText' size={16} color='primary' />
                 <PulseText variant='overline' className='text-neutral-400'>
-                  {t('forms.website')}
-                </PulseText>
-                <PulseText variant='body' className='text-primary' numberOfLines={1}>
-                  {club.website_url}
+                  {t('clubs.dashboard.description')}
                 </PulseText>
               </View>
-            </Pressable>
+              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 leading-relaxed' numberOfLines={6}>
+                {club.description}
+              </PulseText>
+            </View>
           ) : null}
-          {club.contact_email ? (
-            <InfoRow icon='Mail' label={t('clubs.dashboard.contactEmail')} value={club.contact_email} />
+
+          {/* Location */}
+          {club.city || club.country || club.address || club.postal_code ? (
+            <View style={{ flexGrow: 1, flexBasis: infoBasis }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-3'>
+                <Icon name='MapPin' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>
+                  {t('clubs.dashboard.location')}
+                </PulseText>
+              </View>
+              <View className='flex-row items-center gap-2'>
+                <Text className='text-base'>{club.country ? getCountryDisplay(club.country).split(' ')[0] : ''}</Text>
+                <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
+                  {[club.city, club.country ? getCountryDisplay(club.country).replace(/^[^A-Za-z]+/, '') : null].filter(Boolean).join(', ') || '—'}
+                </PulseText>
+              </View>
+              {club.address || club.postal_code ? (
+                <PulseText variant='body' className='text-neutral-500 mt-1'>
+                  {[club.address, club.postal_code].filter(Boolean).join(', ')}
+                </PulseText>
+              ) : null}
+            </View>
           ) : null}
-          {club.league ? (
-            <InfoRow icon='Award' label={t('forms.league')} value={club.league} />
+          {/* Details */}
+          {club.founded_date || club.league || club.age_min !== null || club.age_max !== null ? (
+            <View style={{ flexGrow: 1, flexBasis: infoBasis }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-1'>
+                <Icon name='Info' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>
+                  {t('common.details')}
+                </PulseText>
+              </View>
+              {club.founded_date ? <InfoRow icon='Calendar' label={t('forms.foundedDate')} value={String(club.founded_date)} /> : null}
+              {club.league ? <InfoRow icon='Trophy' label={t('forms.league')} value={club.league} /> : null}
+              {club.age_min !== null || club.age_max !== null ? (
+                <InfoRow
+                  icon='Users'
+                  label={t('clubs.dashboard.ageRange')}
+                  value={`${club.age_min ?? '?'} – ${club.age_max ?? '?'}`}
+                />
+              ) : null}
+            </View>
           ) : null}
-          {club.required_level ? (
-            <InfoRow icon='Gauge' label={t('forms.requiredLevel')} value={club.required_level} />
+
+          {/* Required levels per sport */}
+          {levelRows.length > 0 ? (
+            <View style={{ flexGrow: 1, flexBasis: infoBasis }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-2'>
+                <Icon name='Activity' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>
+                  {t('forms.requiredLevel')}
+                </PulseText>
+              </View>
+              {levelRows.map((r) => (
+                <View key={r.sport} className='flex-row items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0'>
+                  <SportBadge sport={r.sport} />
+                  <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
+                    {r.level}
+                  </PulseText>
+                </View>
+              ))}
+            </View>
           ) : null}
-          {club.founded_date ? (
-            <InfoRow icon='CalendarDays' label={t('forms.foundedDate')} value={club.founded_date} />
+
+          {/* Contact & links */}
+          {club.contact_email || club.phone_number || club.website_url ? (
+            <View style={{ flexGrow: 1, flexBasis: infoBasis }} className={CARD + ' overflow-hidden px-3 py-1'}>
+              {club.contact_email ? <InfoRow icon='Mail' label={t('clubs.dashboard.contactEmail')} value={club.contact_email} /> : null}
+              {club.phone_number ? <InfoRow icon='Smartphone' label='Téléphone' value={club.phone_number} /> : null}
+              {club.website_url ? (
+                <Pressable
+                  className='flex-row items-start gap-3 py-3 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0 active:opacity-80'
+                  onPress={() => void WebBrowser.openBrowserAsync(club.website_url!)}
+                >
+                  <View className='pt-1'>
+                    <Icon name='Globe' size={15} color='text-secondary' />
+                  </View>
+                  <View className='flex-1 gap-0.5'>
+                    <PulseText variant='caption' className='text-neutral-400'>
+                      {t('forms.website')}
+                    </PulseText>
+                    <PulseText variant='body' className='text-primary' numberOfLines={1}>
+                      {club.website_url}
+                    </PulseText>
+                  </View>
+                </Pressable>
+              ) : null}
+            </View>
           ) : null}
-          {club.age_min !== null || club.age_max !== null ? (
-            <InfoRow
-              icon='Users'
-              label={t('clubs.dashboard.ageRange')}
-              value={`${club.age_min ?? '?'} – ${club.age_max ?? '?'}`}
-            />
+
+          {/* Opening hours */}
+          {sanitizeOpeningHours(club.opening_hours).length > 0 ? (
+            <View style={{ flexGrow: 1, flexBasis: '100%' }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-2'>
+                <Icon name='Clock' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>
+                  {t('clubs.hours.title')}
+                </PulseText>
+              </View>
+              <ClubOpeningHoursDisplay slots={(club.opening_hours as OpeningHourSlot[] | undefined) ?? []} />
+            </View>
           ) : null}
-        </Section>
-        {sanitizeOpeningHours(club.opening_hours).length >0 ? (
-          <View className='mx-4 mb-5'>
-            <PulseText variant='overline' className='text-neutral-400 mb-2'>
-              {t('clubs.hours.title')}
-            </PulseText>
-            <ClubOpeningHoursDisplay slots={(club.opening_hours as OpeningHourSlot[] | undefined) ?? []} />
-          </View>
-        ) : null}
+        </View>
         <Section title={t('clubs.dashboard.settings')}>
           <View className='gap-3 pt-1'>
-            <Button
-              title={t('clubs.dashboard.editClub')}
-              icon='Settings'
-              variant='secondary'
-              onPress={() => setShowEditSheet(true)}
-            />
-            <Button
-              title={t('clubs.hours.title')}
-              icon='Clock'
-              variant='secondary'
-              onPress={() => setShowHoursSheet(true)}
-            />
             <InvitationButton type='club' targetId={club.id} visible={!!isCreator} />
             <Button
               title={t('clubs.dashboard.viewPublic')}
@@ -511,20 +612,6 @@ export default function ClubDashboardScreen() {
         targetId={club.id}
         createdBy={club.created_by}
         currentUserId={userId}
-      />
-
-      <EditClubEventSheet
-        visible={showEditSheet}
-        onClose={() => setShowEditSheet(false)}
-        type='club'
-        data={club}
-        onSave={(updateData) => {
-          void updateClub.mutate(
-            { clubId: club.id, data: updateData, oldData: club },
-            { onSuccess: () => setShowEditSheet(false) }
-          );
-        }}
-        isLoading={updateClub.isPending}
       />
 
       <DeleteClubSheet
@@ -581,12 +668,14 @@ function StatTile({
   icon,
   value,
   label,
+  basis,
   onPress,
   highlight,
 }: {
   icon: string;
   value: number;
   label: string;
+  basis?: string;
   onPress?: () => void;
   highlight?: boolean;
 }) {
@@ -594,31 +683,43 @@ function StatTile({
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      className={`flex-1 items-center py-3 rounded-2xl border ${
+      style={basis ? { flexGrow: 1, flexBasis: basis as never } : undefined}
+      className={`p-3.5 rounded-2xl border ${
         highlight
           ? 'bg-primary/10 border-primary/30'
           : 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700'
       }`}
     >
-      <Icon name={icon as any} size={18} color={highlight ? 'primary' : 'text-secondary'} />
-      <PulseText variant='subtitle' className='mt-1 font-semibold'>
-        {value}
-      </PulseText>
-      <PulseText variant='overline' className='text-neutral-400 text-center' numberOfLines={1}>
-        {label}
-      </PulseText>
+      <View className='flex-row items-center gap-2.5'>
+        <View
+          className={`w-9 h-9 rounded-full items-center justify-center ${
+            highlight ? 'bg-primary/15' : 'bg-primary/10'
+          }`}
+        >
+          <Icon name={icon as any} size={16} color='primary' />
+        </View>
+        <View className='flex-1 min-w-0'>
+          <PulseText variant='stat' className='font-semibold text-neutral-900 dark:text-neutral-50' numberOfLines={1}>
+            {value}
+          </PulseText>
+          <PulseText variant='caption' className='text-neutral-400' numberOfLines={1}>
+            {label}
+          </PulseText>
+        </View>
+        {onPress ? <Icon name='ChevronRight' size={16} color='text-tertiary' /> : null}
+      </View>
     </Pressable>
   );
 }
 
 function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <View className='flex-row items-start gap-3 py-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0'>
-      <View className='pt-0.5'>
-        <Icon name={icon as any} size={16} color='text-secondary' />
+    <View className='flex-row items-start gap-3 py-2.5 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0'>
+      <View className='pt-1'>
+        <Icon name={icon as any} size={15} color='text-secondary' />
       </View>
       <View className='flex-1 gap-0.5'>
-        <PulseText variant='overline' className='text-neutral-400'>
+        <PulseText variant='caption' className='text-neutral-400'>
           {label}
         </PulseText>
         <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100'>

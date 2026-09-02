@@ -169,6 +169,14 @@ export type Database = {
           training_schedule: Json;
           website_url: string | null;
           opening_hours: Json;
+          sports: string[];
+          required_levels: Json;
+          postal_code: string | null;
+          phone_number: string | null;
+          instagram_url: string | null;
+          facebook_url: string | null;
+          tiktok_url: string | null;
+          extra_link: string | null;
         };
         Insert: {
           id?: string;
@@ -202,6 +210,14 @@ export type Database = {
           training_schedule?: Json;
           website_url?: string | null;
           opening_hours?: Json;
+          sports?: string[];
+          required_levels?: Json;
+          postal_code?: string | null;
+          phone_number?: string | null;
+          instagram_url?: string | null;
+          facebook_url?: string | null;
+          tiktok_url?: string | null;
+          extra_link?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["clubs"]["Insert"]>;
         Relationships: [];
@@ -803,6 +819,16 @@ export type Database = {
           p_title?: string | null;
           p_body?: string | null;
           p_data?: Json;
+        };
+        Returns: undefined;
+      };
+      delete_club_full: {
+        Args: {
+          p_club_id: string;
+          p_club_title: string;
+          p_club_body: string;
+          p_event_title: string;
+          p_event_body: string;
         };
         Returns: undefined;
       };

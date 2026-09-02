@@ -2,7 +2,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { SPORTS } from "@/lib/constants";
+import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
+import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPrivateSchema } from "@/utils/validation";
@@ -20,6 +21,8 @@ import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { BackButton } from "@/components/ui/BackButton";
 import { t } from "@/hooks/useTranslation";
+import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
+import type { OpeningHourSlot } from "@/lib/openingHours";
 
 export default function CreatePrivateClubScreen() {
   const router = useRouter();
@@ -27,8 +30,21 @@ export default function CreatePrivateClubScreen() {
   const keyboardHeight = useKeyboardHeight();
 
   const [name, setName] = useState("");
-  const [sport, setSport] = useState("");
+  const [sports, setSports] = useState<string[]>([]);
+  const [requiredLevels, setRequiredLevels] = useState<Record<string, string>>({});
   const [description, setDescription] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [extraLink, setExtraLink] = useState("");
+  const [openingHours, setOpeningHours] = useState<OpeningHourSlot[]>([]);
   const [searchQ, setSearchQ] = useState("");
   const [invitees, setInvitees] = useState<string[]>([]);
   const [searchHits, setSearchHits] = useState<
@@ -37,6 +53,12 @@ export default function CreatePrivateClubScreen() {
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [heroUris, setHeroUris] = useState<string[]>([]);
+
+  const primarySport = sports[0] ?? "";
+
+  const toggleSport = (id: string) => {
+    setSports((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+  };
 
   async function uploadImage(uri: string, path: string) {
     return uploadImageToStorage({ bucket: "clubs", path, uri });
@@ -73,9 +95,9 @@ export default function CreatePrivateClubScreen() {
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const remaining = 5 - heroUris.length;
+    const remaining = 10 - heroUris.length;
     if (remaining <= 0) {
-      Toast.show({ type: "info", text1: "Maximum 5 photos" });
+      Toast.show({ type: "info", text1: "Maximum 10 photos" });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -86,7 +108,7 @@ export default function CreatePrivateClubScreen() {
     });
     if (!res.canceled) {
       const newUris = res.assets.map((a) => a.uri);
-      setHeroUris((prev) => [...prev, ...newUris].slice(0, 5));
+      setHeroUris((prev) => [...prev, ...newUris].slice(0, 10));
     }
   };
 
@@ -131,7 +153,24 @@ export default function CreatePrivateClubScreen() {
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
 
-      const validation = clubPrivateSchema.safeParse({ name, sport, description, invitees });
+      const validation = clubPrivateSchema.safeParse({
+        name,
+        sports,
+        sport: primarySport,
+        description,
+        invitees,
+        country,
+        city,
+        address,
+        postal_code: postalCode,
+        phone_number: phoneNumber,
+        website_url: websiteUrl,
+        instagram_url: instagramUrl,
+        facebook_url: facebookUrl,
+        tiktok_url: tiktokUrl,
+        extra_link: extraLink,
+        opening_hours: openingHours,
+      });
       if (!validation.success) {
         throw new Error(validation.error.errors[0]?.message ?? "Validation error");
       }
@@ -160,11 +199,23 @@ export default function CreatePrivateClubScreen() {
         .from("clubs")
         .insert({
           name: name.trim(),
-          sport,
+          sport: primarySport,
+          sports,
           description: description.trim() || '',
+          short_description: shortDescription.trim() || '',
           is_private: true,
-          country: profile?.country || "",
-          city: profile?.city || "",
+          country: country || profile?.country || "",
+          city: city || profile?.city || "",
+          address: address || null,
+          postal_code: postalCode || null,
+          phone_number: phoneNumber || null,
+          website_url: websiteUrl || null,
+          instagram_url: instagramUrl || null,
+          facebook_url: facebookUrl || null,
+          tiktok_url: tiktokUrl || null,
+          extra_link: extraLink || null,
+          opening_hours: openingHours.length > 0 ? openingHours : [],
+          required_levels: Object.keys(requiredLevels).length > 0 ? requiredLevels : null,
           created_by: userId,
           logo_url: logoUrl,
           cover_url: coverUrl,
@@ -205,7 +256,7 @@ export default function CreatePrivateClubScreen() {
     },
   });
 
-  const isValid = name.trim().length > 0 && sport.length > 0;
+  const isValid = name.trim().length > 0 && primarySport.length > 0;
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -234,22 +285,22 @@ export default function CreatePrivateClubScreen() {
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sport *
+            Sports pratiqués (un ou plusieurs) *
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {SPORTS.map((s) => (
               <Pressable
                 key={s.id}
-                onPress={() => setSport(s.id)}
+                onPress={() => toggleSport(s.id)}
                 className={`px-4 py-2 rounded-full mr-2 ${
-                  sport === s.id
+                  sports.includes(s.id)
                     ? "bg-primary"
                     : "bg-neutral-200 dark:bg-neutral-800"
                 }`}
               >
                 <Text
                   className={
-                    sport === s.id
+                    sports.includes(s.id)
                       ? "text-white font-medium"
                       : "text-neutral-700 dark:text-neutral-200"
                   }
@@ -260,6 +311,46 @@ export default function CreatePrivateClubScreen() {
             ))}
           </ScrollView>
 
+          {sports.length > 0 && (
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Niveau requis par sport (optionnel)
+              </Text>
+              {sports.map((sid) => (
+                <View key={sid} className="mb-3">
+                  <Text className="text-xs text-neutral-500 mb-1">
+                    {SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] ?? ["Débutant", "Intermédiaire", "Confirmé"]).map((lvl) => {
+                      const active = requiredLevels[sid] === lvl;
+                      return (
+                        <Pressable
+                          key={lvl}
+                          onPress={() => setRequiredLevels((prev) => ({ ...prev, [sid]: active ? "" : lvl }))}
+                          className={`px-3 py-2 rounded-full mr-2 ${
+                            active ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
+                          }`}
+                        >
+                          <Text className={active ? "text-white font-medium text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}>
+                            {lvl}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Input
+            label="Description courte (optionnel)"
+            value={shortDescription}
+            onChangeText={setShortDescription}
+            placeholder="Une phrase pour présenter le club"
+          />
+
           <Input
             label="Description"
             value={description}
@@ -267,6 +358,94 @@ export default function CreatePrivateClubScreen() {
             multiline
             placeholder="Description optionnelle..."
           />
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Localisation</Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            Optionnel — renseigne la ville pour faciliter la découverte du club.
+          </Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+            {COMMON_COUNTRIES.map((c) => (
+              <Pressable
+                key={c.code}
+                onPress={() => setCountry(c.label)}
+                className={`px-3 py-2 rounded-full mr-2 ${
+                  country === c.label ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
+                }`}
+              >
+                <Text className={country === c.label ? "text-white text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}>
+                  {countryFlag(c.code)} {c.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Input label="Ville" value={city} onChangeText={setCity} placeholder="Ex: Paris" />
+          <Input
+            label="Adresse exacte (optionnel)"
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Ex: 12 rue des Sports"
+          />
+          <Input label="Code postal (optionnel)" value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">Contact & liens</Text>
+          <Text className="text-sm text-neutral-500 mb-3">Tous optionnels.</Text>
+          <Input
+            label="Téléphone (optionnel)"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="+33 6 12 34 56 78"
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Site web (optionnel)"
+            value={websiteUrl}
+            onChangeText={setWebsiteUrl}
+            placeholder="https://"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Instagram (optionnel)"
+            value={instagramUrl}
+            onChangeText={setInstagramUrl}
+            placeholder="https://instagram.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="Facebook (optionnel)"
+            value={facebookUrl}
+            onChangeText={setFacebookUrl}
+            placeholder="https://facebook.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="TikTok (optionnel)"
+            value={tiktokUrl}
+            onChangeText={setTiktokUrl}
+            placeholder="https://tiktok.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="Lien supplémentaire (optionnel)"
+            value={extraLink}
+            onChangeText={setExtraLink}
+            placeholder="https://"
+            autoCapitalize="none"
+          />
+        </Card>
+
+        <Card className="p-4 mb-4">
+          <Text className="text-lg font-semibold mb-3">
+            {t("clubs.hours.title")}
+          </Text>
+          <Text className="text-sm text-neutral-500 mb-3">
+            {t("clubs.hours.hint")}
+          </Text>
+          <ClubOpeningHoursEditor value={openingHours} onChange={setOpeningHours} />
         </Card>
 
         <Card className="p-4 mb-4">
@@ -344,13 +523,13 @@ export default function CreatePrivateClubScreen() {
         <Card className="p-4 mb-4">
           <Text className="text-lg font-semibold mb-3">Photos du club</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Ajoutez des photos pour illustrer votre club
+            Ajoutez des photos pour illustrer votre club ({heroUris.length}/10)
           </Text>
           <Button
             title="Ajouter des photos"
             variant="secondary"
             onPress={pickHeroPhotos}
-            disabled={heroUris.length >= 5}
+            disabled={heroUris.length >= 10}
           />
           {heroUris.length > 0 && (
             <ScrollView

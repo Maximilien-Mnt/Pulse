@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
-import { SPORTS } from "@/lib/constants";
+import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
@@ -52,8 +52,10 @@ export default function CreatePublicClubScreen() {
   }
 
   const [name, setName] = useState("");
-  const [sport, setSport] = useState("");
+  const [sports, setSports] = useState<string[]>([]);
+  const [requiredLevels, setRequiredLevels] = useState<Record<string, string>>({});
   const [description, setDescription] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   // Sync country/city from profile once loaded
@@ -68,8 +70,14 @@ export default function CreatePublicClubScreen() {
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [requiredLevel, setRequiredLevel] = useState("");
   const [address, setAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [extraLink, setExtraLink] = useState("");
   const [league, setLeague] = useState("");
   const [foundedDate, setFoundedDate] = useState("");
   const [openingHours, setOpeningHours] = useState<OpeningHourSlot[]>([]);
@@ -77,6 +85,12 @@ export default function CreatePublicClubScreen() {
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const primarySport = sports[0] ?? "";
+
+  const toggleSport = (id: string) => {
+    setSports((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+  };
 
   const pickLogo = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -111,9 +125,9 @@ export default function CreatePublicClubScreen() {
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const remaining = 5 - heroUris.length;
+    const remaining = 10 - heroUris.length;
     if (remaining <= 0) {
-      Toast.show({ type: "info", text1: "Maximum 5 photos" });
+      Toast.show({ type: "info", text1: "Maximum 10 photos" });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -124,7 +138,7 @@ export default function CreatePublicClubScreen() {
     });
     if (!res.canceled) {
       const newUris = res.assets.map((a) => a.uri);
-      setHeroUris((prev) => [...prev, ...newUris].slice(0, 5));
+      setHeroUris((prev) => [...prev, ...newUris].slice(0, 10));
     }
   };
 
@@ -138,15 +152,24 @@ export default function CreatePublicClubScreen() {
 
       const data = {
         name,
-        sport,
+        sport: primarySport,
+        sports,
         description,
+        short_description: shortDescription,
         country,
         city,
         registration_url: registrationUrl,
         required_level: requiredLevel,
+        required_levels: requiredLevels,
         address,
+        postal_code: postalCode,
         contact_email: contactEmail,
+        phone_number: phoneNumber,
         website_url: websiteUrl,
+        instagram_url: instagramUrl,
+        facebook_url: facebookUrl,
+        tiktok_url: tiktokUrl,
+        extra_link: extraLink,
         league,
         founded_date: foundedDate,
       };
@@ -191,19 +214,27 @@ export default function CreatePublicClubScreen() {
         .from("clubs")
         .insert({
           name: name.trim(),
-          sport,
+          sport: primarySport,
+          sports,
           description: description.trim(),
-          short_description: description.trim().slice(0, 100),
+          short_description: shortDescription.trim() || description.trim().slice(0, 100),
           country,
           city,
           registration_url: registrationUrl || null,
           required_level: requiredLevel || null,
+          required_levels: Object.keys(requiredLevels).length > 0 ? requiredLevels : null,
           logo_url: logoUrl,
           cover_url: coverUrl,
           hero_urls: heroUrls,
           address: address || null,
+          postal_code: postalCode || null,
           contact_email: contactEmail || null,
+          phone_number: phoneNumber || null,
           website_url: websiteUrl || null,
+          instagram_url: instagramUrl || null,
+          facebook_url: facebookUrl || null,
+          tiktok_url: tiktokUrl || null,
+          extra_link: extraLink || null,
           league: league || null,
           founded_date: foundedDate || null,
           opening_hours: openingHours.length > 0 ? openingHours : [],
@@ -237,7 +268,7 @@ export default function CreatePublicClubScreen() {
     },
   });
 
-  const isValid = name.trim().length > 0 && sport.length > 0 && description.length >= 50 && country && city;
+  const isValid = name.trim().length > 0 && primarySport.length > 0 && description.length >= 50 && country && city;
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -267,26 +298,71 @@ export default function CreatePublicClubScreen() {
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sport *
+            Sports pratiqués (un ou plusieurs) *
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {SPORTS.map((s) => (
               <Pressable
                 key={s.id}
-                onPress={() => setSport(s.id)}
+                onPress={() => toggleSport(s.id)}
                 className={`px-4 py-2 rounded-full mr-2 ${
-                  sport === s.id ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
+                  sports.includes(s.id) ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
                 }`}
               >
                 <Text
-                  className={sport === s.id ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
+                  className={sports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
                 >
                   {s.label}
                 </Text>
               </Pressable>
-            ))}  
+            ))}
           </ScrollView>
+
+          {sports.length > 0 && (
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Niveau requis par sport (optionnel)
+              </Text>
+              {sports.map((sid) => (
+                <View key={sid} className="mb-3">
+                  <Text className="text-xs text-neutral-500 mb-1">
+                    {SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] ?? ["Débutant", "Intermédiaire", "Confirmé"]).map((lvl) => {
+                      const active = requiredLevels[sid] === lvl;
+                      return (
+                        <Pressable
+                          key={lvl}
+                          onPress={() => setRequiredLevels((prev) => ({ ...prev, [sid]: active ? "" : lvl }))}
+                          className={`px-3 py-2 rounded-full mr-2 ${
+                            active ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
+                          }`}
+                        >
+                          <Text
+                            className={active ? "text-white font-medium text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}
+                          >
+                            {lvl}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ))}
+            </View>
+          )}
+          {(!primarySport) ? (
+            <Text className="text-error text-sm mb-2">Sélectionne au moins un sport</Text>
+          ) : null}
           {errors.sport && <Text className="text-error text-sm mb-2">{errors.sport}</Text>}
+
+          <Input
+            label="Description courte (optionnel)"
+            value={shortDescription}
+            onChangeText={setShortDescription}
+            placeholder="Une phrase pour présenter le club"
+          />
 
           <Input
             label={t("create.club.description")}
@@ -345,6 +421,7 @@ export default function CreatePublicClubScreen() {
           <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} placeholder={t("create.club.levelExample")} />
 
           <Input label="Adresse exacte" value={address} onChangeText={setAddress} />
+          <Input label="Code postal (optionnel)" value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
           <Input
             label="Email contact"
             value={contactEmail}
@@ -355,10 +432,45 @@ export default function CreatePublicClubScreen() {
             keyboardType="email-address"
           />
           <Input
+            label="Téléphone (optionnel)"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="+33 6 12 34 56 78"
+            keyboardType="phone-pad"
+          />
+          <Input
             label="Site web"
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
             error={errors.website_url}
+            placeholder="https://"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Instagram (optionnel)"
+            value={instagramUrl}
+            onChangeText={setInstagramUrl}
+            placeholder="https://instagram.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="Facebook (optionnel)"
+            value={facebookUrl}
+            onChangeText={setFacebookUrl}
+            placeholder="https://facebook.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="TikTok (optionnel)"
+            value={tiktokUrl}
+            onChangeText={setTiktokUrl}
+            placeholder="https://tiktok.com/..."
+            autoCapitalize="none"
+          />
+          <Input
+            label="Lien supplémentaire (optionnel)"
+            value={extraLink}
+            onChangeText={setExtraLink}
             placeholder="https://"
             autoCapitalize="none"
           />
@@ -371,7 +483,7 @@ export default function CreatePublicClubScreen() {
               </Text>
               <Text className="text-xs text-neutral-700 dark:text-neutral-300">
                 {name.trim().length === 0 && "• Nom du club\n"}
-                {sport.length === 0 && "• Sport\n"}
+                {primarySport.length === 0 && "• Sport\n"}
                 {description.length < 50 && `• ${t("create.club.descriptionMin")}\n`}
                 {!country && "• Pays\n"}
                 {!city && "• Ville"}
@@ -456,7 +568,7 @@ export default function CreatePublicClubScreen() {
           <Text className="text-lg font-semibold mb-3">Photos</Text>
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Photos ({heroUris.length}/5)
+            Photos ({heroUris.length}/10)
           </Text>
           <Button title="Ajouter des photos" variant="secondary" onPress={pickHeroPhotos} />
           {heroUris.length > 0 && (

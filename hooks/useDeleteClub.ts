@@ -5,9 +5,14 @@ import type { Club } from "@/types";
 import { t } from "@/hooks/useTranslation";
 
 /**
- * Deletes a club and notifies all members.
- * - Deletes the club (FK cascade removes club_members)
- * - Sends notification to all members
+ * Deletes a club, all its events and all related data, and notifies everyone:
+ * - Calls the `delete_club_full` SECURITY DEFINER RPC which atomically:
+ *   - notifies every club member (club_deleted)
+ *   - notifies every participant of the club''s events (event_deleted)
+ *   - deletes the club''s events (+ participants, favorites, join requests)
+ *   - deletes the club (FK cascades: members, favorites, join requests, chats)
+ * The translated notification titles/bodies are passed as parameters so the
+ * notifications are localized on the client.
  */
 export function useDeleteClub() {
   const qc = useQueryClient();
@@ -17,53 +22,28 @@ export function useDeleteClub() {
     mutationFn: async ([clubId, clubName]: [string, string]) => {
       if (!userId) throw new Error("Not authenticated");
 
-      // First, get all member IDs before deletion
-      const { data: members, error: membersError } = await supabase
-        .from("club_members")
-        .select("user_id")
-        .eq("club_id", clubId);
+      const { error } = await supabase.rpc("delete_club_full", {
+        p_club_id: clubId,
+        p_club_title: t("deleteClub.success"),
+        p_club_body: t("deleteClub.body", { clubName }),
+        p_event_title: t("deleteClub.eventTitle"),
+        p_event_body: t("deleteClub.eventBody", { clubName }),
+      });
 
-      if (membersError) throw membersError;
-
-      const memberIds = (members ?? []).map((m) => m.user_id);
-
-      // Delete the club (FK cascade will delete club_members automatically)
-      const { error: deleteError } = await supabase
-        .from("clubs")
-        .delete()
-        .eq("id", clubId)
-        .eq("created_by", userId); // Ensure only creator can delete
-
-      if (deleteError) throw deleteError;
-
-      // Notify all members (except the creator who deleted it)
-      const notificationPromises = memberIds
-        .filter((id) => id !== userId)
-        .map((memberId) =>
-          supabase.rpc("notify_user", {
-            p_user_id: memberId,
-            p_type: "club_deleted",
-            p_title: t("deleteClub.success"),
-            p_body: t("deleteClub.body", { clubName }),
-            p_data: { club_id: clubId, club_name: clubName },
-          })
-        );
-
-      await Promise.all(notificationPromises);
-
+      if (error) throw error;
       return { ok: true };
     },
     onMutate: async ([clubId]) => {
       // Cancel any outgoing refetches
       await qc.cancelQueries({ queryKey: ["my-created-clubs", userId] });
       await qc.cancelQueries({ queryKey: ["clubs"] });
-      
+
       // Optimistically remove the club from the cache
       const previousCreatedClubs = qc.getQueryData<Club[]>(["my-created-clubs", userId]);
       qc.setQueryData(["my-created-clubs", userId], (old: Club[] | undefined) =>
         old ? old.filter((c) => c.id !== clubId) : old
       );
-      
+
       // Also remove from general clubs cache
       const previousClubs = qc.getQueryData<Club[]>(["clubs"]);
       qc.setQueryData(["clubs"], (old: Club[] | undefined) =>
@@ -85,6 +65,7 @@ export function useDeleteClub() {
       void qc.invalidateQueries({ queryKey: ["my-created-clubs", userId] });
       void qc.invalidateQueries({ queryKey: ["my-club-memberships", userId] });
       void qc.invalidateQueries({ queryKey: ["clubs"] });
+      void qc.invalidateQueries({ queryKey: ["events"] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
     },
   });

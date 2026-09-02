@@ -11,15 +11,26 @@ type ClubUpdateData = {
   description?: string;
   short_description?: string;
   address?: string | null;
+  postal_code?: string | null;
   contact_email?: string | null;
+  phone_number?: string | null;
   website_url?: string | null;
+  registration_url?: string | null;
   required_level?: string | null;
+  required_levels?: Record<string, string> | null;
+  sports?: string[];
   league?: string | null;
   founded_date?: string | null;
+  age_min?: number | null;
+  age_max?: number | null;
   cover_url?: string | null;
   logo_url?: string | null;
   hero_urls?: string[];
   opening_hours?: OpeningHourSlot[];
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  tiktok_url?: string | null;
+  extra_link?: string | null;
 };
 
 export function useUpdateClub() {

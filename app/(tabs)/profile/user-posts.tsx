@@ -185,7 +185,7 @@ function CommentsContent({ postId }: { postId: string }) {
   const [body, setBody] = useState("");
   const [sortLikes, setSortLikes] = useState(false);
 
-  const { commentsCount, addComment, deleteComment } = usePostComment({
+  const { commentsCount, addComment, deleteComment, editComment } = usePostComment({
     postId,
     initialCommentsCount: 0,
   });
@@ -252,7 +252,11 @@ function CommentsContent({ postId }: { postId: string }) {
             data={comments}
             keyExtractor={(c) => c.id}
             renderItem={({ item }) => (
-              <CommentItem comment={item} onDelete={deleteComment} />
+              <CommentItem
+                comment={item}
+                onDelete={deleteComment}
+                onEdit={editComment}
+              />
             )}
             contentContainerClassName="px-4 py-2"
             style={{ maxHeight: Dimensions.get("window").height * 0.5 }}

@@ -18,9 +18,10 @@ export default function PostCommentsModal() {
   const [body, setBody] = useState("");
 
   const {
-    commentsCount,
     isPending,
     addComment,
+    deleteComment,
+    editComment,
   } = usePostComment({
     postId: postId ?? "",
     initialCommentsCount: 0,
@@ -63,7 +64,7 @@ export default function PostCommentsModal() {
     },
   });
 
-  const title = useMemo(() => `Commentaires (${commentsCount})`, [commentsCount]);
+  const title = useMemo(() => `Commentaires (${comments.length})`, [comments.length]);
 
   return (
     <SafeScreen className="flex-1 bg-white dark:bg-neutral-900" edges={["top", "bottom"]}>
@@ -83,7 +84,9 @@ export default function PostCommentsModal() {
         <FlatList
           data={comments}
           keyExtractor={(c) => c.id}
-          renderItem={({ item }) => <CommentItem comment={item} />}
+          renderItem={({ item }) => (
+            <CommentItem comment={item} onDelete={deleteComment} onEdit={editComment} />
+          )}
           contentContainerClassName="px-4 pb-4"
         />
         <View className="flex-row items-end gap-2 px-4 py-3 border-t border-neutral-100 dark:border-neutral-800">

@@ -14,6 +14,7 @@ export interface UsePostCommentResult {
   isPending: boolean;
   addComment: (body: string) => Promise<void>;
   deleteComment: (commentId: string) => Promise<void>;
+  editComment: (commentId: string, newBody: string) => Promise<void>;
 }
 
 type AddRow = { comment_id: string; comments_count: number };
@@ -149,22 +150,50 @@ export function usePostComment({
       setCommentsCount(next);
       apply(next);
 
-      queryClient.setQueriesData({ queryKey: ['comments', postId] }, (old: any) =>
-        Array.isArray(old) ? old.filter((c: any) => c.id !== commentId) : old
-      );
+      // Capture the removed rows so we can restore them if the RPC fails.
+      const snapshot: { comments?: any[]; userComments?: any[] } = {};
+      let removed: any = null;
+
+      queryClient.setQueriesData({ queryKey: ['comments', postId] }, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        removed = removed ?? old.find((c: any) => c.id === commentId) ?? null;
+        return old.filter((c: any) => c.id !== commentId);
+      });
       queryClient.setQueriesData(
         { queryKey: ['user-posts-comments', postId] },
-        (old: any) => (Array.isArray(old) ? old.filter((c: any) => c.id !== commentId) : old)
+        (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.filter((c: any) => c.id !== commentId);
+        }
       );
 
-      return { prev };
+      return { prev, removed };
     },
 
-    onError: (_e, _v, ctx) => {
+    onError: (_e, commentId, ctx: any) => {
       if (!ctx) return;
-      const prev = (ctx as any).prev;
-      setCommentsCount(prev);
-      apply(prev);
+      setCommentsCount(ctx.prev);
+      apply(ctx.prev);
+
+      // Re-insert the removed comment(s) so the UI stays consistent.
+      if (ctx.removed) {
+        queryClient.setQueriesData({ queryKey: ['comments', postId] }, (old: any) => {
+          if (!Array.isArray(old)) return old;
+          if (old.some((c: any) => c.id === commentId)) return old;
+          return [ctx.removed, ...old];
+        });
+        queryClient.setQueriesData(
+          { queryKey: ['user-posts-comments', postId] },
+          (old: any) => {
+            if (!Array.isArray(old)) return old;
+            if (old.some((c: any) => c.id === commentId)) return old;
+            return [ctx.removed, ...old];
+          }
+        );
+      }
+
+      void queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      void queryClient.invalidateQueries({ queryKey: ['user-posts-comments', postId] });
     },
 
     onSuccess: (row) => {
@@ -184,6 +213,55 @@ export function usePostComment({
     },
   });
 
+  const edit = useMutation({
+    mutationFn: async ({
+      commentId,
+      newBody,
+    }: {
+      commentId: string;
+      newBody: string;
+    }): Promise<{ id: string; body: string; updated_at: string }> => {
+      if (!userId) throw new Error('User not authenticated');
+      if (!newBody.trim()) throw new Error('Empty comment body');
+
+      const { data, error } = await (supabase.rpc as any)('edit_post_comment', {
+        target_comment_id: commentId,
+        new_body: newBody.trim(),
+      });
+      if (error) throw error;
+      const row = data?.[0];
+      if (!row) throw new Error('edit_post_comment returned no result');
+      return row;
+    },
+
+    onMutate: async ({ commentId, newBody }) => {
+      await queryClient.cancelQueries({ queryKey: ['comments', postId] });
+      await queryClient.cancelQueries({ queryKey: ['user-posts-comments', postId] });
+
+      // Optimistically update the comment body in the cache
+      const updater = (old: any) =>
+        Array.isArray(old)
+          ? old.map((c: any) =>
+              c.id === commentId ? { ...c, body: newBody, updated_at: new Date().toISOString() } : c
+            )
+          : old;
+
+      queryClient.setQueriesData({ queryKey: ['comments', postId] }, updater);
+      queryClient.setQueriesData({ queryKey: ['user-posts-comments', postId] }, updater);
+    },
+
+    onError: () => {
+      // Revert by refetching
+      void queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      void queryClient.invalidateQueries({ queryKey: ['user-posts-comments', postId] });
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      void queryClient.invalidateQueries({ queryKey: ['user-posts-comments', postId] });
+    },
+  });
+
   const addComment = useCallback(
     async (body: string) => {
       await add.mutateAsync(body);
@@ -196,11 +274,18 @@ export function usePostComment({
     },
     [del]
   );
+  const editComment = useCallback(
+    async (commentId: string, newBody: string) => {
+      await edit.mutateAsync({ commentId, newBody });
+    },
+    [edit]
+  );
 
   return {
     commentsCount,
-    isPending: add.isPending || del.isPending,
+    isPending: add.isPending || del.isPending || edit.isPending,
     addComment,
     deleteComment,
+    editComment,
   };
 }

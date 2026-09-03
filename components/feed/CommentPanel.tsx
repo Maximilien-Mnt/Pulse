@@ -36,6 +36,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     isPending,
     addComment,
     deleteComment,
+    editComment,
   } = usePostComment({
     postId: postId ?? "",
     initialCommentsCount: 0,
@@ -95,7 +96,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     },
   });
 
-  const title = useMemo(() => `Commentaires (${commentsCount})`, [commentsCount]);
+  const title = useMemo(() => `Commentaires (${comments.length})`, [comments.length]);
 
   if (!postId) return null;
 
@@ -147,7 +148,12 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
           ) : (
             <View className="flex-1">
               {comments.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} />
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={deleteComment}
+                  onEdit={editComment}
+                />
               ))}
             </View>
           )}

@@ -40,6 +40,8 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
     commentsCount,
     isPending,
     addComment,
+    deleteComment,
+    editComment,
   } = usePostComment({
     postId: postId ?? "",
     initialCommentsCount: 0,
@@ -113,7 +115,7 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
     },
   });
 
-  const title = useMemo(() => `Commentaires (${commentsCount})`, [commentsCount]);
+  const title = useMemo(() => `Commentaires (${comments.length})`, [comments.length]);
 
   if (!postId || !visible) return null;
 
@@ -231,7 +233,12 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
               ) : (
                 <View>
                   {comments.map((comment) => (
-                    <CommentItem key={comment.id} comment={comment} />
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      onDelete={deleteComment}
+                      onEdit={editComment}
+                    />
                   ))}
                 </View>
               )}

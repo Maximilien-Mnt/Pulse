@@ -1,12 +1,15 @@
 import { MessageBubble } from "@/components/conversations/MessageBubble";
 import { ConversationActionSheet } from "@/components/conversations/ConversationActionSheet";
+import { MessageEditModal } from "@/components/conversations/MessageEditModal";
+import { useMessageActions } from "@/hooks/useMessageActions";
+import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import type { Message } from "@/types";
 import { Icon } from "@/components/ui/Icon";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -33,6 +36,24 @@ export default function ConversationScreen() {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+
+  const { deleteMessage, editMessage, isPending: messageActionPending } = useMessageActions(
+    conversationId ?? ""
+  );
+
+  const handleMessageCopy = useCallback(async (content: string) => {
+    try {
+      if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        await Clipboard.setStringAsync(content);
+      }
+      Toast.show({ type: "success", text1: "Copié" });
+    } catch {
+      Toast.show({ type: "error", text1: "Copie impossible" });
+    }
+  }, []);
 
   // Use params from navigation as primary source, fallback to query if not available
   const otherFromParams = useMemo(() => {
@@ -184,6 +205,10 @@ export default function ConversationScreen() {
       .toString(36)
       .slice(2, 8)}`;
     const ch = supabase.channel(channelName);
+    const refresh = () => {
+      void qc.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    };
     ch.on(
       "postgres_changes",
       {
@@ -192,10 +217,23 @@ export default function ConversationScreen() {
         table: "messages",
         filter: `conversation_id=eq.${conversationId}`,
       },
-      () => {
-        void qc.invalidateQueries({ queryKey: ["messages", conversationId] });
-        void qc.invalidateQueries({ queryKey: ["conversations"] });
-      }
+      refresh
+    );
+    // Keep edits and deletions in sync across devices in real time
+    ch.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      refresh
+    );
+    ch.on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "messages" },
+      refresh
     );
     ch.subscribe();
     return () => {
@@ -250,13 +288,22 @@ export default function ConversationScreen() {
           inverted
           data={dataInverted}
           keyExtractor={(m) => m.id}
-          renderItem={({ item }) => (
-            <MessageBubble
-              text={item.body ?? ""}
-              isMine={item.sender_id === userId}
-              type={item.type}
-            />
-          )}
+          renderItem={({ item }) => {
+            const isMine = item.sender_id === userId;
+            return (
+              <MessageBubble
+                text={item.body ?? ""}
+                isMine={isMine}
+                type={item.type}
+                isEdited={item.is_edited}
+                canModify={isMine}
+                isDeleting={messageActionPending}
+                onCopy={() => void handleMessageCopy(item.body ?? "")}
+                onEdit={() => setEditingMessage(item)}
+                onDelete={() => void deleteMessage(item.id)}
+              />
+            );
+          }}
           contentContainerClassName="px-4 py-3"
         />
         <View className="flex-row items-end gap-2 px-3 py-2 border-t border-neutral-100 dark:border-neutral-800">
@@ -285,6 +332,19 @@ export default function ConversationScreen() {
         isGroup={isGroupChat}
         groupName={groupName ?? undefined}
         onLeft={() => router.back()}
+      />
+
+      {/* Edit message modal */}
+      <MessageEditModal
+        visible={!!editingMessage}
+        initialText={editingMessage?.body ?? ""}
+        saving={messageActionPending}
+        onClose={() => setEditingMessage(null)}
+        onSave={async (newText) => {
+          if (!editingMessage || !newText) return;
+          await editMessage(editingMessage.id, newText);
+          setEditingMessage(null);
+        }}
       />
     </SafeScreen>
   );

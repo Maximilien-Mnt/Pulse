@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
+import { t } from "@/hooks/useTranslation";
 
 export default function JoinClubScreen() {
   const router = useRouter();
@@ -33,12 +34,12 @@ export default function JoinClubScreen() {
 
   const handleJoin = () => {
     if (!userId) {
-      Toast.show({ type: "info", text1: "Connecte-toi pour rejoindre ce club" });
+      Toast.show({ type: "info", text1: t("clubJoin.loginRequired") });
       router.replace("/auth/signin");
       return;
     }
     if (!token) {
-      Toast.show({ type: "error", text1: "Lien d'invitation invalide" });
+      Toast.show({ type: "error", text1: t("clubJoin.invalidLink") });
       return;
     }
     redeem.mutate(
@@ -46,11 +47,11 @@ export default function JoinClubScreen() {
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["clubs"] });
-          Toast.show({ type: "success", text1: "Tu as rejoint le club !" });
+          Toast.show({ type: "success", text1: t("clubJoin.joined") });
           router.replace(`/(tabs)/clubs/${clubId}`);
         },
         onError: (e) => {
-          Toast.show({ type: "error", text1: e instanceof Error ? e.message : "Erreur" });
+          Toast.show({ type: "error", text1: e instanceof Error ? e.message : t("clubJoin.error") });
         },
       }
     );
@@ -67,27 +68,27 @@ export default function JoinClubScreen() {
               <Text className="text-4xl">🎟️</Text>
             </View>
             <Text className="text-2xl font-bold text-center text-neutral-900 dark:text-neutral-50">
-              Invitation à rejoindre
+              {t("clubJoin.title")}
             </Text>
             <Text className="text-xl font-semibold text-primary text-center mt-2">
-              {club?.name ?? "Ce club"}
+              {club?.name ?? t("clubJoin.defaultName")}
             </Text>
             {club?.sport ? (
               <Text className="text-neutral-500 text-center mt-1">{club.sport}</Text>
             ) : null}
             <Text className="text-neutral-600 dark:text-neutral-300 text-center mt-4 mb-8">
-              Tu as été invité(e) à rejoindre ce club privé. Accepte l'invitation pour y accéder.
+              {t("clubJoin.body")}
             </Text>
             {userId && club?.created_by === userId ? null : (
               <Button
-                title="Rejoindre le club"
+                title={t("clubJoin.joinButton")}
                 onPress={handleJoin}
                 loading={redeem.isPending}
                 className="w-full"
               />
             )}
             <Button
-              title="Annuler"
+              title={t("common.cancel")}
               variant="ghost"
               className="w-full mt-2"
               onPress={() => router.replace("/(tabs)/clubs")}

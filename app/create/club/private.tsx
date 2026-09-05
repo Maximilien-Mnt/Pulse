@@ -97,7 +97,7 @@ export default function CreatePrivateClubScreen() {
     if (!p.granted) return;
     const remaining = 10 - heroUris.length;
     if (remaining <= 0) {
-      Toast.show({ type: "info", text1: "Maximum 10 photos" });
+      Toast.show({ type: "info", text1: t("clubs.create.maxPhotos") });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -263,8 +263,7 @@ export default function CreatePrivateClubScreen() {
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Club privé
-        </Text>
+          {t("create.club.private")}</Text>
         <View className="w-11" />
       </View>
 
@@ -274,18 +273,18 @@ export default function CreatePrivateClubScreen() {
       >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
-            Crée un club privé pour inviter uniquement tes amis et contacts.
+            {t("clubs.create.introPrivate")}
           </Text>
 
           <Input
-            label="Nom du club *"
+            label={t("clubs.settings.clubName")}
             value={name}
             onChangeText={setName}
             placeholder={t("create.club.example")}
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sports pratiqués (un ou plusieurs) *
+            {t("clubs.create.sportsLabel")}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {SPORTS.map((s) => (
@@ -314,7 +313,7 @@ export default function CreatePrivateClubScreen() {
           {sports.length > 0 && (
             <View className="mb-4">
               <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                Niveau requis par sport (optionnel)
+                {t("clubs.create.levelPerSport")}
               </Text>
               {sports.map((sid) => (
                 <View key={sid} className="mb-3">
@@ -345,27 +344,27 @@ export default function CreatePrivateClubScreen() {
           )}
 
           <Input
-            label="Description courte (optionnel)"
+            label={t("clubs.create.shortDescriptionOpt")}
             value={shortDescription}
             onChangeText={setShortDescription}
-            placeholder="Une phrase pour présenter le club"
+            placeholder={t("clubs.create.shortDescriptionPlaceholder")}
           />
 
           <Input
-            label="Description"
+            label={t("clubs.settings.description")}
             value={description}
             onChangeText={setDescription}
             multiline
-            placeholder="Description optionnelle..."
+            placeholder={t("clubs.create.descriptionPlaceholderOpt")}
           />
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Localisation</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.settings.location")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
             Optionnel — renseigne la ville pour faciliter la découverte du club.
           </Text>
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays</Text>
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t("clubs.create.country")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
             {COMMON_COUNTRIES.map((c) => (
               <Pressable
@@ -381,56 +380,56 @@ export default function CreatePrivateClubScreen() {
               </Pressable>
             ))}
           </ScrollView>
-          <Input label="Ville" value={city} onChangeText={setCity} placeholder="Ex: Paris" />
+          <Input label={t("clubs.create.city")} value={city} onChangeText={setCity} placeholder="Ex: Paris" />
           <Input
-            label="Adresse exacte (optionnel)"
+            label={t("clubs.create.addressOpt")}
             value={address}
             onChangeText={setAddress}
-            placeholder="Ex: 12 rue des Sports"
+            placeholder={t("clubs.create.addressPlaceholder")}
           />
-          <Input label="Code postal (optionnel)" value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
+          <Input label={t("clubs.create.postalCodeOpt")} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Contact & liens</Text>
-          <Text className="text-sm text-neutral-500 mb-3">Tous optionnels.</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.settings.contactLinks")}</Text>
+          <Text className="text-sm text-neutral-500 mb-3">{t("clubs.create.allOptional")}</Text>
           <Input
-            label="Téléphone (optionnel)"
+            label={t("clubs.create.phoneOpt")}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             placeholder="+33 6 12 34 56 78"
             keyboardType="phone-pad"
           />
           <Input
-            label="Site web (optionnel)"
+            label={t("clubs.create.websiteOpt")}
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
             placeholder="https://"
             autoCapitalize="none"
           />
           <Input
-            label="Instagram (optionnel)"
+            label={t("clubs.create.instagramOpt")}
             value={instagramUrl}
             onChangeText={setInstagramUrl}
             placeholder="https://instagram.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="Facebook (optionnel)"
+            label={t("clubs.create.facebookOpt")}
             value={facebookUrl}
             onChangeText={setFacebookUrl}
             placeholder="https://facebook.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="TikTok (optionnel)"
+            label={t("clubs.create.tiktokOpt")}
             value={tiktokUrl}
             onChangeText={setTiktokUrl}
             placeholder="https://tiktok.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="Lien supplémentaire (optionnel)"
+            label={t("clubs.create.extraLinkOpt")}
             value={extraLink}
             onChangeText={setExtraLink}
             placeholder="https://"
@@ -449,9 +448,9 @@ export default function CreatePrivateClubScreen() {
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Logo du club</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.settings.clubLogo")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Ajoutez un logo pour votre club
+            {t("clubs.create.logoHint")}
           </Text>
           {logoUri ? (
             <View className="items-center">
@@ -478,16 +477,16 @@ export default function CreatePrivateClubScreen() {
             >
               <Icon name="Plus" size={32} color="text-tertiary" />
               <Text className="text-sm text-neutral-500 mt-2">
-                Ajouter un logo
+                {t("clubs.create.addLogo")}
               </Text>
             </Pressable>
           )}
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Image de couverture</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.create.coverSection")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Cette image apparaîtra en tête de la page du club
+            {t("clubs.create.coverHint")}
           </Text>
           {coverUri ? (
             <View className="items-center">
@@ -514,19 +513,19 @@ export default function CreatePrivateClubScreen() {
             >
               <Icon name="Plus" size={32} color="text-tertiary" />
               <Text className="text-sm text-neutral-500 mt-2">
-                Ajouter une image de couverture
+                {t("clubs.create.addCover")}
               </Text>
             </Pressable>
           )}
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Photos du club</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.create.photosSection")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Ajoutez des photos pour illustrer votre club ({heroUris.length}/10)
+            {t("clubs.create.photosHint", { count: heroUris.length })}
           </Text>
           <Button
-            title="Ajouter des photos"
+            title={t("clubs.create.addPhotos")}
             variant="secondary"
             onPress={pickHeroPhotos}
             disabled={heroUris.length >= 10}

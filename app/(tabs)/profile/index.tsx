@@ -31,6 +31,10 @@ import {
   InterestedSportsCard,
   ObjectivesCard,
 } from "@/components/profile/ProfileSections";
+import type { Club } from "@/types";
+import { ProfileClubsSection } from "@/components/profile/ProfileClubsSection";
+import { useMyClubMemberships } from "@/hooks/useMyClubMemberships";
+import { useMyCreatedClubs } from "@/hooks/useMyCreatedClubs";
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -62,6 +66,14 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(userId);
+  const { data: memberships, isLoading: loadingMemberships } = useMyClubMemberships(userId);
+  const { data: createdClubs, isLoading: loadingCreated } = useMyCreatedClubs(userId);
+  const createdIds = new Set((createdClubs ?? []).map((cl) => cl.id));
+  const clubsJoined = (memberships ?? [])
+    .map((m) => m.club)
+    .filter((cl): cl is Club => !!cl && !createdIds.has(cl.id));
+  const clubsCreated = (createdClubs ?? []) as Club[];
+  const clubsLoading = loadingMemberships || loadingCreated;
   const [goPublicOpen, setGoPublicOpen] = useState(false);
 
   if (isLoading) return <ProfileSkeleton />;
@@ -152,6 +164,13 @@ export default function ProfileScreen() {
             }
           />
 
+          {/* Clubs section */}
+          <ProfileClubsSection
+            clubsJoined={clubsJoined}
+            clubsCreated={clubsCreated}
+            isLoading={clubsLoading}
+          />
+
           {/* Divider */}
           <View className="border-t border-border mt-4" />
 
@@ -224,22 +243,6 @@ export default function ProfileScreen() {
           {/* Divider */}
           <View className="border-t border-border" />
 
-          {/* Clubs */}
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile/clubs" as any)}
-            className="flex-row items-center justify-between py-4"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Users" size={20} color="text-secondary" />
-              <Text variant="body" className="text-text-secondary">
-                {t("profile.clubs")}
-              </Text>
-            </View>
-            <Icon name="Search" size={16} color="text-tertiary" />
-          </Pressable>
-
-          {/* Divider */}
-          <View className="border-t border-border" />
 
           {/* Accepted Events */}
           <Pressable

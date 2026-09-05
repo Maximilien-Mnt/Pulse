@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { ScrollView, Share, View, Text, ActivityIndicator, FlatList, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Share, View, Text, ActivityIndicator, FlatList, useWindowDimensions, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import * as Clipboard from 'expo-clipboard';
 import { SafeScreen } from '@/components/shared/SafeScreen';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '@/stores/authStore';
@@ -20,14 +21,16 @@ import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { MembersListSheet, type Member } from '@/components/shared/MembersListSheet';
-import { EditClubEventSheet } from '@/components/shared/EditClubEventSheet';
 import { useClubMembers } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
-import { useUpdateClub } from '@/hooks/useUpdateClub';
+import { useLeaveClub } from '@/hooks/useLeaveClub';
+import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
+import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { supabase } from '@/lib/supabase';
-import type { Club } from '@/types';
+import type { Club, EventRow } from '@/types';
 import { useTranslation, t } from '@/hooks/useTranslation';
 import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
+import { EventCard } from '@/components/events/EventCard';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
 
 const CARD = 'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
@@ -116,8 +119,8 @@ export default function ClubDetailScreen() {
   });
 
   const [showMembersList, setShowMembersList] = useState(false);
-  const [showEditSheet, setShowEditSheet] = useState(false);
-  const updateClub = useUpdateClub();
+  const [showLeaveSheet, setShowLeaveSheet] = useState(false);
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const { data: joinStatus } = useJoinRequestStatus('club', clubId ?? null);
 
   const joinMut = useMutation({
@@ -183,6 +186,22 @@ export default function ClubDetailScreen() {
         .eq('club_id', clubId!);
       if (error) throw error;
       return count ?? 0;
+    },
+  });
+
+  // Upcoming events linked to this club (ordered by start_date ascending).
+  const { data: clubEvents = [] } = useQuery({
+    queryKey: ['club-events', clubId],
+    enabled: !!clubId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('club_id', clubId!)
+        .gte('start_date', new Date().toISOString())
+        .order('start_date', { ascending: true });
+      if (error) throw error;
+      return data as EventRow[];
     },
   });
 
@@ -290,13 +309,10 @@ export default function ClubDetailScreen() {
     (club.description ? club.description.replace(/\s+/g, ' ').trim().slice(0, 180) : null);
 
   const stats = [
-    { icon: 'Users', label: 'Membres', value: String(club.member_count ?? 0) },
+    { icon: 'Users', label: 'Membres', value: String(club.member_count ?? 0), onPress: 'members' },
     { icon: 'Heart', label: 'Favoris', value: String(favoritesCount) },
     { icon: 'Calendar', label: 'Événements', value: String(eventsCount) },
-    ...(club.founded_date
-      ? [{ icon: 'Calendar', label: 'Fondé en', value: String(club.founded_date).slice(0, 4) }]
-      : []),
-    ...(club.league ? [{ icon: 'Trophy', label: 'Ligue', value: club.league }] : []),
+    { icon: 'Inbox', label: 'Demandes', value: '0' },
   ];
 
   const linkRows = [
@@ -319,13 +335,13 @@ export default function ClubDetailScreen() {
     <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]' edges={['top']}>
       {/* ---- Header: back arrow + "Club" label (+ settings for the creator) ---- */}
       <View className='flex-row items-center gap-2 px-4 py-2 border-b border-neutral-100 dark:border-neutral-800'>
-        <BackButton useInAppSession />
+        <BackButton useInAppSession fallbackRoute="/(tabs)/profile" />
         <PulseText variant='h2' className='flex-1' numberOfLines={1}>
           {t('clubs.public')}
         </PulseText>
         {isCreator ? (
           <PressableScale
-            onPress={() => setShowEditSheet(true)}
+            onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
             hitSlop={8}
             scaleOnPress={0.9}
             scaleOnHover={1.08}
@@ -447,7 +463,7 @@ export default function ClubDetailScreen() {
           </View>
         </View>
         {/* ---- Stat tiles: responsive, wrap to any screen width ---- */}
-        <View className='flex-row flex-wrap gap-3 px-4 mb-6'>
+        <View className='flex-row flex-wrap gap-3 px-4 mb-5'>
           {stats.map((s) => (
             <StatTile
               key={s.label}
@@ -455,7 +471,8 @@ export default function ClubDetailScreen() {
               label={s.label}
               value={s.value}
               minWidth={isMd ? 150 : 132}
-              growBasis={isWide ? '30%' : '46%'}
+              growBasis={isWide ? '23%' : '47%'}
+              onPress={s.onPress === 'members' ? () => setShowMembersList(true) : undefined}
             />
           ))}
         </View>
@@ -513,8 +530,33 @@ export default function ClubDetailScreen() {
             </View>
           ) : null}
 
-          {/* Details — only when there is info not already shown in the stat tiles
-              (founded date & league are displayed there; keep age range only) */}
+          {/* Ligue / Division */}
+          {club.league ? (
+            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-2'>
+                <Icon name='Trophy' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>{t('clubs.league')}</PulseText>
+              </View>
+              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
+                {club.league}
+              </PulseText>
+            </View>
+          ) : null}
+
+          {/* Foundation date */}
+          {club.founded_date ? (
+            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
+              <View className='flex-row items-center gap-2 mb-2'>
+                <Icon name='Calendar' size={16} color='primary' />
+                <PulseText variant='overline' className='text-neutral-400'>{t('clubs.foundedDate')}</PulseText>
+              </View>
+              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
+                {String(club.founded_date)}
+              </PulseText>
+            </View>
+          ) : null}
+
+          {/* Details — age range only */}
           {(club.age_min != null || club.age_max != null) ? (
             <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
               <View className='flex-row items-center gap-2 mb-1'>
@@ -523,7 +565,7 @@ export default function ClubDetailScreen() {
               </View>
               <InfoRow
                 icon='Users'
-                label={t('common.ageRange')}
+                label={t('clubs.dashboard.ageRange')}
                 value={`${club.age_min ?? '—'} – ${club.age_max ?? '—'} ans`}
               />
             </View>
@@ -647,20 +689,7 @@ export default function ClubDetailScreen() {
 
         {/* ---- Actions ---- */}
         <View className='px-4 mb-8 gap-3'>
-          <View>
-            {joinStatus?.isMember ? (
-              <Button title='Membre' variant='secondary' onPress={() => {}} disabled />
-            ) : joinStatus?.isPending ? (
-              <Button title={t('clubJoin.requestSent')} variant='secondary' onPress={() => {}} disabled />
-            ) : isCreator ? null : (
-              <Button
-                title={club.is_private ? t('clubs.joinRequest') : 'Rejoindre le club'}
-                onPress={() => joinMut.mutate()}
-                loading={joinMut.isPending}
-              />
-            )}
-          </View>
-
+          {/* External club: source link */}
           {club.is_external && club.source_url ? (
             <PressableScale
               className={'flex-row items-center gap-2 py-3 px-4 ' + CARD}
@@ -675,8 +704,89 @@ export default function ClubDetailScreen() {
             </PressableScale>
           ) : null}
 
+          {/* Invitation link for creator of private clubs */}
           <InvitationButton type='club' targetId={club.id} visible={!!isCreator && !!club.is_private} />
+
+          {/* Main action row: copy link + join/quit */}
+          <View className='flex-row flex-wrap gap-3'>
+            {/* Left: copy invitation link */}
+            <View style={{ flex: 1, minWidth: 150 }}>
+              <Button
+                title={t('clubs.copyInviteLink')}
+                icon='Share2'
+                variant='secondary'
+                className='w-full'
+                onPress={async () => {
+                  const link = `https://pulse.app/club/${club.id}`;
+                  try {
+                    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+                      await navigator.clipboard.writeText(link);
+                    } else {
+                      await Clipboard.setStringAsync(link);
+                    }
+                    Toast.show({ type: 'success', text1: t('clubs.linkCopied') });
+                  } catch {
+                    Toast.show({ type: 'error', text1: t('common.error') });
+                  }
+                }}
+              />
+            </View>
+
+            {/* Right: join / demand / quit or delete for creator */}
+            <View style={{ flex: 1, minWidth: 150 }}>
+              {isCreator ? (
+                <Button
+                  title={t('clubs.dashboard.deleteClub')}
+                  variant='destructive'
+                  icon='Trash2'
+                  className='w-full'
+                  onPress={() => setShowDeleteSheet(true)}
+                />
+              ) : joinStatus?.isMember ? (
+                <Button
+                  title={t('clubs.leave')}
+                  variant='destructive'
+                  className='w-full'
+                  onPress={() => setShowLeaveSheet(true)}
+                />
+              ) : joinStatus?.isPending ? (
+                <Button
+                  title={t('clubJoin.requestSent')}
+                  variant='secondary'
+                  className='w-full'
+                  onPress={() => {}}
+                  disabled
+                />
+              ) : (
+                <Button
+                  title={club.is_private ? t('clubs.joinRequest') : t('clubs.join')}
+                  className='w-full'
+                  onPress={() => joinMut.mutate()}
+                  loading={joinMut.isPending}
+                />
+              )}
+            </View>
+          </View>
         </View>
+
+        {/* ---- Upcoming events (limited height, scrollable) ---- */}
+        {clubEvents.length > 0 ? (
+          <Section title={t('clubs.upcomingEvents')} className='px-4 mb-8'>
+            <View style={{ maxHeight: 320 }}>
+              <FlatList
+                data={clubEvents}
+                keyExtractor={(item) => item.id}
+                scrollEnabled
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <View className='mb-3'>
+                    <EventCard event={item} compact />
+                  </View>
+                )}
+              />
+            </View>
+          </Section>
+        ) : null}
       </ScrollView>
       <MembersListSheet
         visible={showMembersList}
@@ -687,19 +797,18 @@ export default function ClubDetailScreen() {
         createdBy={club.created_by}
         currentUserId={userId}
       />
-
-      <EditClubEventSheet
-        visible={showEditSheet}
-        onClose={() => setShowEditSheet(false)}
-        type='club'
-        data={club}
-        onSave={(updateData) => {
-          void updateClub.mutate(
-            { clubId: club.id, data: updateData, oldData: club },
-            { onSuccess: () => setShowEditSheet(false) }
-          );
-        }}
-        isLoading={updateClub.isPending}
+      <LeaveClubSheet
+        visible={showLeaveSheet}
+        onClose={() => setShowLeaveSheet(false)}
+        clubId={club.id}
+        clubName={club.name}
+        creatorId={club.created_by ?? ''}
+      />
+      <DeleteClubSheet
+        visible={showDeleteSheet}
+        onClose={() => setShowDeleteSheet(false)}
+        clubId={club.id}
+        clubName={club.name}
       />
     </SafeScreen>
   );
@@ -734,17 +843,21 @@ function StatTile({
   value,
   minWidth,
   growBasis,
+  onPress,
 }: {
   icon: string;
   label: string;
   value: string;
   minWidth: number;
   growBasis: string;
+  onPress?: () => void;
 }) {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
       style={{ flexGrow: 1, flexBasis: growBasis as never, minWidth }}
-      className='p-3.5 rounded-2xl bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700'
+      className={'p-3.5 rounded-2xl border ' + (onPress ? 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700' : 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700')}
     >
       <View className='flex-row items-center gap-2'>
         <View className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'>
@@ -758,8 +871,9 @@ function StatTile({
             {label}
           </PulseText>
         </View>
+        {onPress ? <Icon name='ChevronRight' size={16} color='text-tertiary' /> : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 

@@ -32,11 +32,11 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
           className="absolute inset-0 bg-black/40"
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t("clubs.filters.close")}
         />
         <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-3xl max-h-[85%] px-4 pt-4 pb-8">
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Filtres clubs</Text>
+            <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">{t("clubs.filters.title")}</Text>
             <Pressable onPress={onClose}>
               <Icon name="X" size={28} color="text-secondary" />
             </Pressable>
@@ -58,32 +58,32 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
             </View>
 
             <Input
-              label="Pays / ville"
+              label={t("clubs.filters.location")}
               value={draft.location}
               onChangeText={(location) => setDraft((d) => ({ ...d, location }))}
               placeholder="Ex. Luxembourg"
             />
             <Input
-              label="Niveau requis (exact)"
+              label={t("clubs.filters.levelExact")}
               value={draft.requiredLevel}
               onChangeText={(requiredLevel) => setDraft((d) => ({ ...d, requiredLevel }))}
             />
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Internes uniquement</Text>
+              <Text className="text-neutral-800 dark:text-neutral-100">{t("clubs.filters.internalOnly")}</Text>
               <Switch
                 value={draft.internalOnly}
                 onValueChange={(internalOnly) => setDraft((d) => ({ ...d, internalOnly, externalOnly: internalOnly ? false : d.externalOnly }))}
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Externes uniquement</Text>
+              <Text className="text-neutral-800 dark:text-neutral-100">{t("clubs.filters.externalOnly")}</Text>
               <Switch
                 value={draft.externalOnly}
                 onValueChange={(externalOnly) => setDraft((d) => ({ ...d, externalOnly, internalOnly: externalOnly ? false : d.internalOnly }))}
               />
             </View>
             <View className="flex-row items-center justify-between py-2 mb-4">
-              <Text className="text-neutral-800 dark:text-neutral-100">Favoris uniquement</Text>
+              <Text className="text-neutral-800 dark:text-neutral-100">{t("clubs.filters.favoritesOnly")}</Text>
               <Switch
                 value={draft.favoritesOnly}
                 onValueChange={(favoritesOnly) => setDraft((d) => ({ ...d, favoritesOnly }))}
@@ -92,7 +92,7 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
             
             <View className="mt-6 gap-3">
               <Button
-                title="Appliquer"
+                title={t("common.apply")}
                 onPress={() => {
                   onApply(draft);
                   onClose();

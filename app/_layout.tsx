@@ -21,7 +21,7 @@ import { PostHogProvider } from "posthog-react-native";
 import { posthog } from "@/src/config/posthog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuth } from "@/hooks/useAuth";
-import { markNavigatedInSession } from "@/lib/navigationSession";
+import { markNavigatedInSession, recordRouteChange } from "@/lib/navigationSession";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -139,6 +139,10 @@ export default function RootLayout() {
       if (previousPathname.current !== undefined) {
         markNavigatedInSession();
       }
+      // Track the previous route so the back affordance can return to the
+      // exact screen the user came from (cross-tab), instead of a hardcoded
+      // fallback or the wrong tab root.
+      recordRouteChange(previousPathname.current, pathname);
       posthog.screen(pathname, {
         previous_screen: previousPathname.current ?? null,
         ...params,

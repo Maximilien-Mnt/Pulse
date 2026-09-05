@@ -127,7 +127,7 @@ export default function CreatePublicClubScreen() {
     if (!p.granted) return;
     const remaining = 10 - heroUris.length;
     if (remaining <= 0) {
-      Toast.show({ type: "info", text1: "Maximum 10 photos" });
+      Toast.show({ type: "info", text1: t("clubs.create.maxPhotos") });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -275,8 +275,7 @@ export default function CreatePublicClubScreen() {
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Club public
-        </Text>
+          {t("create.club.public")}</Text>
         <View className="w-11" />
       </View>
 
@@ -286,11 +285,10 @@ export default function CreatePublicClubScreen() {
       >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
-            Crée un club public visible par tous. Tu dois avoir un profil public activé.
-          </Text>
+            {t("clubs.create.introPublic")}</Text>
 
           <Input
-            label="Nom du club *"
+            label={t("clubs.settings.clubName")}
             value={name}
             onChangeText={setName}
             error={errors.name}
@@ -298,7 +296,7 @@ export default function CreatePublicClubScreen() {
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sports pratiqués (un ou plusieurs) *
+            {t("clubs.create.sportsLabel")}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {SPORTS.map((s) => (
@@ -321,7 +319,7 @@ export default function CreatePublicClubScreen() {
           {sports.length > 0 && (
             <View className="mb-4">
               <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                Niveau requis par sport (optionnel)
+                {t("clubs.create.levelPerSport")}
               </Text>
               {sports.map((sid) => (
                 <View key={sid} className="mb-3">
@@ -353,15 +351,15 @@ export default function CreatePublicClubScreen() {
             </View>
           )}
           {(!primarySport) ? (
-            <Text className="text-error text-sm mb-2">Sélectionne au moins un sport</Text>
+            <Text className="text-error text-sm mb-2">{t("clubs.create.selectSport")}</Text>
           ) : null}
           {errors.sport && <Text className="text-error text-sm mb-2">{errors.sport}</Text>}
 
           <Input
-            label="Description courte (optionnel)"
+            label={t("clubs.create.shortDescriptionOpt")}
             value={shortDescription}
             onChangeText={setShortDescription}
-            placeholder="Une phrase pour présenter le club"
+            placeholder={t("clubs.create.shortDescriptionPlaceholder")}
           />
 
           <Input
@@ -374,13 +372,13 @@ export default function CreatePublicClubScreen() {
           />
           <Text className="text-xs text-neutral-500">
             {description.length < 50
-              ? `Encore ${50 - description.length} caractères requis`
-              : "Longueur minimale atteinte"}
+              ? t("clubs.create.charsRemaining", { count: 50 - description.length })
+              : t("clubs.create.charsMinReached")}
           </Text>
 
           <View className="flex-row gap-3 mt-4">
             <View className="flex-1">
-              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays *</Text>
+              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t("clubs.create.countryStar")}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {COMMON_COUNTRIES.map((c) => (
                   <Pressable
@@ -400,17 +398,17 @@ export default function CreatePublicClubScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
-              {!country && <Text className="text-error text-xs mt-1">Sélectionne un pays</Text>}
+              {!country && <Text className="text-error text-xs mt-1">{t("clubs.create.selectCountry")}</Text>}
             </View>
           </View>
 
           {(errors.country || !country) && (
-            <Text className="text-error text-xs mt-1 mb-2">{errors.country || "Le pays est requis"}</Text>
+            <Text className="text-error text-xs mt-1 mb-2">{errors.country || t("clubs.create.countryRequired")}</Text>
           )}
-          <Input label="Ville *" value={city} onChangeText={setCity} error={errors.city} />
+          <Input label={t("clubs.create.cityStar")} value={city} onChangeText={setCity} error={errors.city} />
 
           <Input
-            label="Lien d'inscription/contact"
+            label={t("clubs.create.registrationContact")}
             value={registrationUrl}
             onChangeText={setRegistrationUrl}
             error={errors.registration_url}
@@ -418,12 +416,12 @@ export default function CreatePublicClubScreen() {
             autoCapitalize="none"
           />
 
-          <Input label="Niveau requis" value={requiredLevel} onChangeText={setRequiredLevel} placeholder={t("create.club.levelExample")} />
+          <Input label={t("clubs.create.requiredLevel")} value={requiredLevel} onChangeText={setRequiredLevel} placeholder={t("create.club.levelExample")} />
 
-          <Input label="Adresse exacte" value={address} onChangeText={setAddress} />
-          <Input label="Code postal (optionnel)" value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
+          <Input label={t("clubs.create.address")} value={address} onChangeText={setAddress} />
+          <Input label={t("clubs.create.postalCodeOpt")} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" />
           <Input
-            label="Email contact"
+            label={t("clubs.create.contactEmail")}
             value={contactEmail}
             onChangeText={setContactEmail}
             error={errors.contact_email}
@@ -432,14 +430,14 @@ export default function CreatePublicClubScreen() {
             keyboardType="email-address"
           />
           <Input
-            label="Téléphone (optionnel)"
+            label={t("clubs.create.phoneOpt")}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             placeholder="+33 6 12 34 56 78"
             keyboardType="phone-pad"
           />
           <Input
-            label="Site web"
+            label={t("clubs.create.website")}
             value={websiteUrl}
             onChangeText={setWebsiteUrl}
             error={errors.website_url}
@@ -447,55 +445,55 @@ export default function CreatePublicClubScreen() {
             autoCapitalize="none"
           />
           <Input
-            label="Instagram (optionnel)"
+            label={t("clubs.create.instagramOpt")}
             value={instagramUrl}
             onChangeText={setInstagramUrl}
             placeholder="https://instagram.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="Facebook (optionnel)"
+            label={t("clubs.create.facebookOpt")}
             value={facebookUrl}
             onChangeText={setFacebookUrl}
             placeholder="https://facebook.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="TikTok (optionnel)"
+            label={t("clubs.create.tiktokOpt")}
             value={tiktokUrl}
             onChangeText={setTiktokUrl}
             placeholder="https://tiktok.com/..."
             autoCapitalize="none"
           />
           <Input
-            label="Lien supplémentaire (optionnel)"
+            label={t("clubs.create.extraLinkOpt")}
             value={extraLink}
             onChangeText={setExtraLink}
             placeholder="https://"
             autoCapitalize="none"
           />
-          <Input label="Ligue/Division" value={league} onChangeText={setLeague} />
-          <Input label="Date de fondation" value={foundedDate} onChangeText={setFoundedDate} placeholder="YYYY-MM-DD" />
+          <Input label={t("clubs.create.league")} value={league} onChangeText={setLeague} />
+          <Input label={t("clubs.create.foundedDate")} value={foundedDate} onChangeText={setFoundedDate} placeholder="YYYY-MM-DD" />
           {!isValid && (
             <View className="mt-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
               <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
-                Champs requis manquants :
+                {t("clubs.create.missingFields")}
               </Text>
               <Text className="text-xs text-neutral-700 dark:text-neutral-300">
-                {name.trim().length === 0 && "• Nom du club\n"}
-                {primarySport.length === 0 && "• Sport\n"}
+                {name.trim().length === 0 && t("clubs.create.missingName")}
+                {primarySport.length === 0 && t("clubs.create.missingSport")}
                 {description.length < 50 && `• ${t("create.club.descriptionMin")}\n`}
-                {!country && "• Pays\n"}
-                {!city && "• Ville"}
+                {!country && t("clubs.create.missingCountry")}
+                {!city && t("clubs.create.missingCity")}
               </Text>
             </View>
           )}
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Logo du club</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.settings.clubLogo")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Ajoutez un logo pour votre club
+            {t("clubs.create.logoHint")}
           </Text>
           {logoUri ? (
             <View className="items-center">
@@ -522,16 +520,16 @@ export default function CreatePublicClubScreen() {
             >
               <Icon name="Plus" size={32} color="text-tertiary" />
               <Text className="text-sm text-neutral-500 mt-2">
-                Ajouter un logo
+                {t("clubs.create.addLogo")}
               </Text>
             </Pressable>
           )}
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Image de couverture</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.create.coverSection")}</Text>
           <Text className="text-sm text-neutral-500 mb-3">
-            Cette image apparaîtra en tête de la page du club
+            {t("clubs.create.coverHint")}
           </Text>
           {coverUri ? (
             <View className="items-center">
@@ -558,19 +556,19 @@ export default function CreatePublicClubScreen() {
             >
               <Icon name="Plus" size={32} color="text-tertiary" />
               <Text className="text-sm text-neutral-500 mt-2">
-                Ajouter une image de couverture
+                {t("clubs.create.addCover")}
               </Text>
             </Pressable>
           )}
         </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Photos</Text>
+          <Text className="text-lg font-semibold mb-3">{t("clubs.create.photosSection")}</Text>
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Photos ({heroUris.length}/10)
+            {t("clubs.settings.clubPhotos", { count: heroUris.length })}
           </Text>
-          <Button title="Ajouter des photos" variant="secondary" onPress={pickHeroPhotos} />
+          <Button title={t("clubs.create.addPhotos")} variant="secondary" onPress={pickHeroPhotos} />
           {heroUris.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
               {heroUris.map((uri, i) => (
@@ -599,7 +597,7 @@ export default function CreatePublicClubScreen() {
         </Card>
 
         <Button
-          title="Publier le club"
+          title={t("clubs.create.publish")}
           onPress={() => createMut.mutate()}
           loading={createMut.isPending}
           disabled={!isValid}

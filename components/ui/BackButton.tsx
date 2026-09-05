@@ -25,7 +25,7 @@ import { useRouter } from "expo-router";
 import { Pressable } from "react-native";
 import { Icon } from "./Icon";
 import { cn } from "@/utils/format";
-import { hasNavigatedInSession } from "@/lib/navigationSession";
+import { hasNavigatedInSession, getPreviousRoute } from "@/lib/navigationSession";
 
 type BackButtonProps = {
   /** Route to navigate to when there is no history to go back to. */
@@ -59,7 +59,15 @@ export function BackButton({
       // Only go back when the user navigated here within this app session.
       // On a fresh load / refresh, `canGoBack()` can be misleading on web,
       // so we gate it behind our in-app navigation flag.
-      if (hasNavigatedInSession() && router.canGoBack()) {
+      //
+      // Prefer the exact screen the user actually came from (tracked cross-tab
+      // in `navigationSession.ts`) before relying on the navigation history or
+      // the hardcoded `fallbackRoute`. This lets a club detail page opened from
+      // profile return to profile, one opened from a clubs list return to that
+      // list, etc.
+      if (getPreviousRoute()) {
+        router.replace(getPreviousRoute()!);
+      } else if (hasNavigatedInSession() && router.canGoBack()) {
         router.back();
       } else {
         router.replace(fallbackRoute);

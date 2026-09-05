@@ -57,18 +57,17 @@ export function DeleteClubSheet({ visible, onClose, clubId, clubName }: Props) {
               <Icon name="Trash2" size={32} color="error-500" />
             </View>
             <Text className="text-xl font-bold text-neutral-900 dark:text-neutral-50 text-center">
-              Supprimer le club ?
+              {t("deleteClub.confirmTitle")}
             </Text>
           </View>
 
           <Text className="text-sm text-neutral-600 dark:text-neutral-400 mb-6 text-center">
-            Cette action est irréversible. Tous les membres seront supprimés du club et
-            recevront une notification.
+            {t("deleteClub.confirmBody")}
           </Text>
 
           <View className="gap-3">
             <Button
-              title="Annuler"
+              title={t("common.cancel")}
               variant="ghost"
               onPress={onClose}
               disabled={deleteMut.isPending}

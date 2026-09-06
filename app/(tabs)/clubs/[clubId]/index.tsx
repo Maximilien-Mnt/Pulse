@@ -118,6 +118,8 @@ export default function ClubDetailScreen() {
     },
   });
 
+  // Active tab of the events section (auto-falls back to Past when no upcoming events).
+  const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showMembersList, setShowMembersList] = useState(false);
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
@@ -189,8 +191,9 @@ export default function ClubDetailScreen() {
     },
   });
 
-  // Upcoming events linked to this club (ordered by start_date ascending).
-  const { data: clubEvents = [] } = useQuery({
+  // All events linked to this club (ordered by start_date ascending).
+  // Split client-side into upcoming (soonest first) and past (most recent first).
+  const { data: allClubEvents = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['club-events', clubId],
     enabled: !!clubId,
     queryFn: async () => {
@@ -198,12 +201,26 @@ export default function ClubDetailScreen() {
         .from('events')
         .select('*')
         .eq('club_id', clubId!)
-        .gte('start_date', new Date().toISOString())
         .order('start_date', { ascending: true });
       if (error) throw error;
       return data as EventRow[];
     },
   });
+  const nowIso = new Date().toISOString();
+  const upcomingEvents = allClubEvents.filter((e) => e.start_date >= nowIso);
+  const pastEvents = allClubEvents
+    .filter((e) => e.start_date < nowIso)
+    .slice()
+    .reverse();
+
+  const tabEvents = eventsTab === 'upcoming' ? upcomingEvents : pastEvents;
+
+  // If the Upcoming tab is empty but past events exist, show Past by default.
+  useEffect(() => {
+    if (!eventsLoading && eventsTab === 'upcoming' && upcomingEvents.length === 0 && pastEvents.length > 0) {
+      setEventsTab('past');
+    }
+  }, [eventsLoading, eventsTab, upcomingEvents.length, pastEvents.length]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async () => {
@@ -600,6 +617,63 @@ export default function ClubDetailScreen() {
           ) : null}
         </View>
 
+        {/* ---- Events: always visible, Upcoming / Past tabs, scrollable list ---- */}
+        <Section title={t('clubs.upcomingEvents')} className='px-4 mb-5'>
+          {eventsLoading ? (
+            <View className={'p-4 items-center ' + CARD}>
+              <ActivityIndicator size='small' color='#3358FF' />
+            </View>
+          ) : (
+            <View>
+              {/* Tab toggle: Upcoming / Past (with counts) */}
+              <View className='flex-row gap-2 mb-3'>
+                {(['upcoming', 'past'] as const).map((tabKey) => {
+                  const count = tabKey === 'upcoming' ? upcomingEvents.length : pastEvents.length;
+                  const active = eventsTab === tabKey;
+                  return (
+                    <PressableScale
+                      key={tabKey}
+                      onPress={() => setEventsTab(tabKey)}
+                      scaleOnPress={0.96}
+                      accessibilityRole='button'
+                      accessibilityLabel={t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')}
+                      className={'flex-row items-center gap-1.5 px-3 rounded-full ' + (active ? 'bg-primary/15' : 'bg-neutral-100 dark:bg-neutral-800')}
+                      style={{ height: 30 }}
+                    >
+                      <Icon name={tabKey === 'upcoming' ? 'Calendar' : 'Clock'} size={14} color={active ? 'primary' : 'text-secondary'} />
+                      <PulseText variant='caption' className={'font-semibold ' + (active ? 'text-primary' : 'text-neutral-500')}>
+                        {t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')} ({count})
+                      </PulseText>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+              {/* Scrollable, height-limited event list (or empty state) */}
+              {tabEvents.length > 0 ? (
+                <ScrollView
+                  style={{ maxHeight: 320 }}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={false}
+                  className={CARD + ' overflow-hidden'}
+                >
+                  <View className='p-2 gap-2'>
+                    {tabEvents.map((item) => (
+                      <EventCard key={item.id} event={item} compact />
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : (
+                <View className={CARD + ' p-6 items-center'}>
+                  <Icon name='Calendar' size={24} color='text-tertiary' />
+                  <PulseText variant='body' className='text-neutral-500 mt-2 text-center'>
+                    {eventsTab === 'upcoming' ? t('events.emptyUpcoming') : t('events.emptyPast')}
+                  </PulseText>
+                </View>
+              )}
+            </View>
+          )}
+        </Section>
+
         {/* ---- Contact & links (includes social networks) ---- */}
         {linkRows.length > 0 ? (
           <Section title='Contact & liens' className='px-4 mb-5'>
@@ -769,24 +843,6 @@ export default function ClubDetailScreen() {
           </View>
         </View>
 
-        {/* ---- Upcoming events (limited height, scrollable) ---- */}
-        {clubEvents.length > 0 ? (
-          <Section title={t('clubs.upcomingEvents')} className='px-4 mb-8'>
-            <View style={{ maxHeight: 320 }}>
-              <FlatList
-                data={clubEvents}
-                keyExtractor={(item) => item.id}
-                scrollEnabled
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <View className='mb-3'>
-                    <EventCard event={item} compact />
-                  </View>
-                )}
-              />
-            </View>
-          </Section>
-        ) : null}
       </ScrollView>
       <MembersListSheet
         visible={showMembersList}

@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, Share, View, Text, ActivityIndicator, FlatList, useWindowDimensions, Platform } from 'react-native';
+import { Pressable, ScrollView, Share, View, Text, ActivityIndicator, FlatList, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import * as Clipboard from 'expo-clipboard';
 import { SafeScreen } from '@/components/shared/SafeScreen';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,7 +12,6 @@ import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
-import { InvitationButton } from '@/components/shared/InvitationButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
@@ -387,6 +385,26 @@ export default function ClubDetailScreen() {
               >
                 <Icon name='Share2' size={22} color='primary' />
               </PressableScale>
+              <PressableScale
+                onPress={() => {
+                  if (isCreator) {
+                    setShowDeleteSheet(true);
+                  } else if (!joinStatus?.isMember && !joinStatus?.isPending) {
+                    joinMut.mutate();
+                  }
+                }}
+                disabled={joinStatus?.isPending || joinMut.isPending}
+                scaleOnPress={0.85}
+                scaleOnHover={1.1}
+                accessibilityRole='button'
+                accessibilityLabel={isCreator ? 'Supprimer' : joinStatus?.isPending ? 'Demande envoyée' : 'Rejoindre'}
+                hitSlop={6}
+                className={`h-12 rounded-full items-center justify-center border shadow-sm px-5 ${isCreator ? 'bg-red-500 border-red-500' : joinStatus?.isPending ? 'bg-neutral-200 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-700' : 'bg-primary border-primary'}`}
+              >
+                <PulseText variant='body' className={`font-semibold ${isCreator || joinStatus?.isPending ? 'text-white dark:text-neutral-300' : 'text-white'}`}>
+                  {isCreator ? t('clubs.dashboard.deleteClub') : joinStatus?.isPending ? t('clubJoin.requestSent') : club.is_private ? t('clubs.joinRequest') : t('clubs.join')}
+                </PulseText>
+              </PressableScale>
             </View>
           </View>
         </View>
@@ -715,87 +733,7 @@ export default function ClubDetailScreen() {
           </Section>
         ) : null}
 
-        {/* ---- Actions ---- */}
-        <View className='px-4 mb-8 gap-3'>
-          {/* External club: source link */}
-          {club.is_external && club.source_url ? (
-            <PressableScale
-              className={'flex-row items-center gap-2 py-3 px-4 ' + CARD}
-              scaleOnPress={0.98}
-              onPress={() => void WebBrowser.openBrowserAsync(club.source_url!)}
-            >
-              <Icon name='Globe' size={16} color='primary' />
-              <PulseText variant='body' className='text-primary font-medium flex-1'>
-                {club.source_name ?? club.source_url}
-              </PulseText>
-              <Icon name='ArrowRight' size={16} color='text-secondary' />
-            </PressableScale>
-          ) : null}
 
-          {/* Invitation link for creator of private clubs */}
-          <InvitationButton type='club' targetId={club.id} visible={!!isCreator && !!club.is_private} />
-
-          {/* Main action row: copy link + join/quit */}
-          <View className='flex-row flex-wrap gap-3'>
-            {/* Left: copy invitation link */}
-            <View style={{ flex: 1, minWidth: 150 }}>
-              <Button
-                title={t('clubs.copyInviteLink')}
-                icon='Share2'
-                variant='secondary'
-                className='w-full'
-                onPress={async () => {
-                  const link = `https://pulse.app/club/${club.id}`;
-                  try {
-                    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-                      await navigator.clipboard.writeText(link);
-                    } else {
-                      await Clipboard.setStringAsync(link);
-                    }
-                    Toast.show({ type: 'success', text1: t('clubs.linkCopied') });
-                  } catch {
-                    Toast.show({ type: 'error', text1: t('common.error') });
-                  }
-                }}
-              />
-            </View>
-
-            {/* Right: join / demand / quit or delete for creator */}
-            <View style={{ flex: 1, minWidth: 150 }}>
-              {isCreator ? (
-                <Button
-                  title={t('clubs.dashboard.deleteClub')}
-                  variant='destructive'
-                  icon='Trash2'
-                  className='w-full'
-                  onPress={() => setShowDeleteSheet(true)}
-                />
-              ) : joinStatus?.isMember ? (
-                <Button
-                  title={t('clubs.leave')}
-                  variant='destructive'
-                  className='w-full'
-                  onPress={() => setShowLeaveSheet(true)}
-                />
-              ) : joinStatus?.isPending ? (
-                <Button
-                  title={t('clubJoin.requestSent')}
-                  variant='secondary'
-                  className='w-full'
-                  onPress={() => {}}
-                  disabled
-                />
-              ) : (
-                <Button
-                  title={club.is_private ? t('clubs.joinRequest') : t('clubs.join')}
-                  className='w-full'
-                  onPress={() => joinMut.mutate()}
-                  loading={joinMut.isPending}
-                />
-              )}
-            </View>
-          </View>
-        </View>
 
       </ScrollView>
       <LeaveClubSheet

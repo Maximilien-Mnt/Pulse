@@ -569,6 +569,16 @@ export const translations = {
     "events.organizer": "Organisateur",
     "events.maxCapacityOptional": "Capacité maximale (optionnel)",
     "events.notConnected": "Connecte-toi pour rejoindre cet événement",
+    "events.cancelTitle": "Annuler l'événement ?",
+    "events.cancelConfirm": "Les participants et les membres du club seront notifiés de l'annulation.",
+    "events.cancelMessagePlaceholder": "Message optionnel pour les participants...",
+    "events.cancelOptionalMessage": "Message (optionnel)",
+    "events.canceled": "Événement annulé",
+    "events.cancelSuccess": "Événement annulé et notifications envoyées",
+    "events.canceledNotification": "L'événement \"{eventName}\" a été annulé.",
+    "events.canceledNotificationWithMessage": "L'événement \"{eventName}\" a été annulé. Message : {message}",
+    "events.create": "Créer un événement",
+    "events.cancelAction": "Annuler l'événement",
 
     // ── Profile ────────────────────────────────────────────────────────────
     "profile.title": "Modifier le profil",
@@ -1648,6 +1658,16 @@ export const translations = {
     "events.organizer": "Organizer",
     "events.maxCapacityOptional": "Max capacity (optional)",
     "events.notConnected": "Sign in to join this event",
+    "events.cancelTitle": "Cancel event?",
+    "events.cancelConfirm": "Participants and club members will be notified of the cancellation.",
+    "events.cancelMessagePlaceholder": "Optional message for participants...",
+    "events.cancelOptionalMessage": "Message (optional)",
+    "events.canceled": "Event cancelled",
+    "events.cancelSuccess": "Event cancelled and notifications sent",
+    "events.canceledNotification": "The event \"{eventName}\" has been cancelled.",
+    "events.canceledNotificationWithMessage": "The event \"{eventName}\" has been cancelled. Message: {message}",
+    "events.create": "Create event",
+    "events.cancelAction": "Cancel event",
 
     // ── Profile ────────────────────────────────────────────────────────────
     "profile.title": "Edit profile",

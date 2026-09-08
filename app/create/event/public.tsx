@@ -11,7 +11,7 @@ import { eventPublicSchema } from "@/utils/validation";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
 import { Icon } from "@/components/ui/Icon";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -41,6 +41,7 @@ function formatEventDateTime(d: Date): string {
 export default function CreatePublicEventScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const { clubId: clubIdParam } = useLocalSearchParams<{ clubId?: string }>();
   const keyboardHeight = useKeyboardHeight();
 
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -104,6 +105,13 @@ export default function CreatePublicEventScreen() {
   const [endDateError, setEndDateError] = useState("");
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Pre-fill club from URL param (e.g. when navigating from club dashboard)
+  useEffect(() => {
+    if (clubIdParam) {
+      setClubId(clubIdParam);
+    }
+  }, [clubIdParam]);
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();

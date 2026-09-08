@@ -24,6 +24,8 @@ import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { RefuseJoinRequestSheet } from '@/components/shared/RefuseJoinRequestSheet';
 import { useClubEvents } from '@/hooks/useClubEvents';
+import { useCancelEvent } from '@/hooks/useCancelEvent';
+import { CancelEventSheet } from '@/components/clubs/CancelEventSheet';
 import { EventCard } from '@/components/events/EventCard';
 import { useClubJoinRequests, type ClubJoinRequest } from '@/hooks/useClubJoinRequests';
 import { useJoinRequestAction } from '@/hooks/useNotifications';
@@ -35,7 +37,7 @@ import {
 } from '@/components/clubs/ClubOpeningHours';
 import type { OpeningHourSlot } from '@/lib/openingHours';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
-import type { Club } from '@/types';
+import type { Club, EventRow } from '@/types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { t } from '@/hooks/useTranslation';
 
@@ -161,6 +163,8 @@ export default function ClubDashboardScreen() {
     }
   }, [loadingEvents, eventsTab, upcomingEvents.length, pastEvents.length]);
   const [showHoursSheet, setShowHoursSheet] = useState(false);
+  const [cancelEvent, setCancelEvent] = useState<EventRow | null>(null);
+  const cancelEventMut = useCancelEvent();
   const [refuseRequest, setRefuseRequest] = useState<ClubJoinRequest | null>(null);
   const updateClub = useUpdateClub();
   const joinRequestAction = useJoinRequestAction();
@@ -456,7 +460,7 @@ export default function ClubDashboardScreen() {
         ) : null}
 
         {/* Members */}
-        <Section title={`${t('clubs.dashboard.members')} (${allMembers.length})`}>
+        <Section title={`${t('clubs.dashboard.members')} (${allMembers.length})`} className='px-4 mb-5'>
           {loadingAllMembers ? (
             <ActivityIndicator size='small' color='#3358FF' className='py-3' />
           ) : allMembers.length === 0 ? (
@@ -465,40 +469,41 @@ export default function ClubDashboardScreen() {
             </PulseText>
           ) : (
             <Pressable onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)} className='active:opacity-80'>
-              <View className='flex-row items-center py-1'>
-                <View className='flex-row'>
-                  {allMembers.slice(0, 6).map((member, index) => (
-                    <View key={member.user_id} style={{ marginLeft: index === 0 ? 0 : -10 }}>
-                      <Avatar uri={member.avatar_url} size={44} />
-                    </View>
-                  ))}
+              <View className={'p-4 ' + CARD}>
+                <View className='flex-row items-center'>
+                  <View className='flex-row'>
+                    {allMembers.slice(0, 6).map((member, index) => (
+                      <View key={member.user_id} style={{ marginLeft: index === 0 ? 0 : -10 }}>
+                        <Avatar uri={member.avatar_url} size={44} />
+                      </View>
+                    ))}
+                  </View>
+                  <View className='flex-1 ml-3'>
+                    <PulseText variant='body' className='text-primary font-medium'>
+                      {t('clubs.dashboard.manageMembers')}
+                    </PulseText>
+                    <PulseText variant='caption' className='text-neutral-500'>
+                      {t('clubs.dashboard.manageMembersHint')}
+                    </PulseText>
+                  </View>
+                  <Icon name='ChevronRight' size={18} color='text-tertiary' />
                 </View>
-                <View className='flex-1 ml-3'>
-                  <PulseText variant='body' className='text-primary font-medium'>
-                    {t('clubs.dashboard.manageMembers')}
-                  </PulseText>
-                  <PulseText variant='caption' className='text-neutral-500'>
-                    {t('clubs.dashboard.manageMembersHint')}
-                  </PulseText>
-                </View>
-                <Icon name='ChevronRight' size={18} color='text-tertiary' />
               </View>
             </Pressable>
           )}
         </Section>
 
-        {/* Club events */}
-        <Section title={t('clubs.dashboard.clubEvents')}>
+        {/* ---- Events: always visible, Upcoming / Past tabs, scrollable list ---- */}
+        <Section title={t('clubs.upcomingEvents')} className='px-4 mb-5'>
           {loadingEvents ? (
-            <ActivityIndicator size='small' color='#3358FF' className='py-3' />
-          ) : clubEvents.length === 0 ? (
-            <PulseText variant='body' className='text-neutral-500 py-2'>
-              {t('clubs.dashboard.noEvents')}
-            </PulseText>
+            <View className={'p-4 items-center ' + CARD}>
+              <ActivityIndicator size='small' color='#3358FF' />
+            </View>
           ) : (
             <View>
-              {/* Tab pills: Upcoming / Past */}
-              <View className='flex-row gap-1.5 mb-3'>
+              {/* Tab pills: Upcoming / Past + "+" button */}
+              <View className='flex-row gap-2 mb-3 justify-between'>
+                <View className='flex-row gap-2'>
                 {(['upcoming', 'past'] as const).map((tabKey) => {
                   const count = tabKey === 'upcoming' ? upcomingEvents.length : pastEvents.length;
                   const active = eventsTab === tabKey;
@@ -519,6 +524,17 @@ export default function ClubDashboardScreen() {
                     </PressableScale>
                   );
                 })}
+                </View>
+                <PressableScale
+                  onPress={() => router.push(`/create/event/public?clubId=${clubId}`)}
+                  hitSlop={8}
+                  scaleOnPress={0.96}
+                  accessibilityRole='button'
+                  accessibilityLabel={t('events.create')}
+                  className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'
+                >
+                  <Icon name='Plus' size={18} color='primary' />
+                </PressableScale>
               </View>
               {/* Scrollable, height-limited event list (or empty state) */}
               {tabEvents.length > 0 ? (
@@ -530,7 +546,13 @@ export default function ClubDashboardScreen() {
                 >
                   <View className='p-2 gap-2'>
                     {tabEvents.map((item) => (
-                      <EventCard key={item.id} event={item} compact />
+                      <EventCard
+                        key={item.id}
+                        event={item}
+                        compact
+                        showCancel={eventsTab === 'upcoming'}
+                        onCancel={() => setCancelEvent(item)}
+                      />
                     ))}
                   </View>
                 </ScrollView>
@@ -793,19 +815,48 @@ export default function ClubDashboardScreen() {
           handleRequestAction.mutate({ action: 'refuse', request: target, message: reason });
         }}
       />
+
+      <CancelEventSheet
+        visible={!!cancelEvent}
+        eventName={cancelEvent?.name ?? ''}
+        onClose={() => setCancelEvent(null)}
+        isLoading={cancelEventMut.isPending}
+        onConfirm={(message) => {
+          if (!cancelEvent) return;
+          const eventToCancel = cancelEvent;
+          setCancelEvent(null);
+          cancelEventMut.mutate({
+            eventId: eventToCancel.id,
+            eventName: eventToCancel.name,
+            clubId: club?.id,
+            message,
+          });
+        }}
+      />
     </SafeScreen>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  className,
+  headerRight,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  headerRight?: React.ReactNode;
+}) {
   return (
-    <View className='mx-4 mb-5'>
-      <PulseText variant='overline' className='text-neutral-400 mb-2'>
-        {title}
-      </PulseText>
-      <View className='p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700'>
-        {children}
+    <View className={className}>
+      <View className='flex-row items-center justify-between mb-2'>
+        <PulseText variant='overline' className='text-neutral-400'>
+          {title}
+        </PulseText>
+        {headerRight}
       </View>
+      {children}
     </View>
   );
 }

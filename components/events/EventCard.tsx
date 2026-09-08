@@ -12,8 +12,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Pressable, Share, Text, View } from "react-native";
 import { FavoriteButton } from "@/components/feed/LikeButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
-type Props = { event: EventRow; compact?: boolean };
+type Props = { event: EventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean };
 
 function Stars({ n }: { n: number }) {
   return (
@@ -25,9 +26,10 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export function EventCard({ event, compact }: Props) {
+export function EventCard({ event, compact, onCancel, showCancel }: Props) {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const { t } = useTranslation();
 
   // Track whether this user has favorited the event
   const { data: isFavorited, isLoading: loadingFav } = useQuery({
@@ -126,6 +128,20 @@ export function EventCard({ event, compact }: Props) {
         </View>
       </View>
       <View className="justify-between items-end">
+          {showCancel && onCancel ? (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+              hitSlop={8}
+              className="w-8 h-8 rounded-full bg-error-500/10 items-center justify-center mb-1"
+              accessibilityRole="button"
+              accessibilityLabel={t("events.cancelAction")}
+            >
+              <Icon name="X" size={16} color="error-500" />
+            </Pressable>
+          ) : null}
           <FavoriteButton
             isFavorite={!!isFavorited}
             count={favCount ?? undefined}

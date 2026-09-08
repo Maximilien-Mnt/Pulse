@@ -1,0 +1,35 @@
+491:         <Section title={t('clubs.dashboard.clubEvents')}>
+492:           {loadingEvents ? (
+493:             <ActivityIndicator size='small' color='#3358FF' className='py-3' />
+494:           ) : clubEvents.length === 0 ? (
+495:             <PulseText variant='body' className='text-neutral-500 py-2'>
+496:               {t('clubs.dashboard.noEvents')}
+497:             </PulseText>
+498:           ) : (
+499:             clubEvents.map((event) => (
+500:               <Pressable
+501:                 key={event.id}
+502:                 className='flex-row items-center py-3 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0 active:opacity-80'
+503:                 onPress={() => router.push(`/(tabs)/events/${event.id}`)}
+504:               >
+505:                 <View className='w-10 h-10 rounded-xl bg-primary/10 items-center justify-center'>
+506:                   <Icon name='Calendar' size={18} color='primary' />
+507:                 </View>
+508:                 <View className='flex-1 ml-3'>
+509:                   <PulseText variant='body' className='font-medium' numberOfLines={1}>
+510:                     {event.name}
+511:                   </PulseText>
+512:                   <PulseText variant='caption' className='text-neutral-500'>
+513:                     {new Date(event.start_date).toLocaleDateString()} · {event.city}
+514:                   </PulseText>
+515:                 </View>
+516:                 <Icon name='ChevronRight' size={18} color='text-tertiary' />
+517:               </Pressable>
+518:             ))
+519:           )}
+520:         </Section>
+521: 
+522:         {/* ---- Info sections: 1 column on phones, 2 columns on wide screens ---- */}
+523:         <View className='flex-row flex-wrap gap-3 px-4 mb-5'>
+524:           {/* Location */}
+525:           {(club.city || club.country || club.address || club.postal_code) ? (

@@ -53,6 +53,8 @@ function formatNotificationTitle(n: any, t: (key: TranslationKey, variables?: Re
       return t("notifications.type.conversationDeleted");
     case "club_member_left":
       return t("notifications.clubMemberLeft.title");
+    case "club_member_removed":
+      return t("notifications.clubMemberRemoved.title");
     default:
       return t("notifications.type.default");
   }

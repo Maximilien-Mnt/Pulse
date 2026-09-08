@@ -20,7 +20,6 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { MembersListSheet, type Member } from '@/components/shared/MembersListSheet';
 import { useClubMembers } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
 import { useLeaveClub } from '@/hooks/useLeaveClub';
@@ -79,48 +78,9 @@ export default function ClubDetailScreen() {
   });
 
   const { data: members = [] } = useClubMembers(clubId ?? null);
-  const { data: allMembers = [], isLoading: loadingAllMembers } = useQuery({
-    queryKey: ['club-all-members', clubId],
-    enabled: !!clubId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('club_members')
-        .select('user_id')
-        .eq('club_id', clubId!);
-      if (error) throw error;
-      const userIds = Array.from(
-        new Set(
-          (data ?? [])
-            .map((row: any) => row.user_id)
-            .filter((id: any): id is string => typeof id === 'string' && !!id)
-        )
-      );
-      const profileMap = new Map<string, any>();
-      if (userIds.length) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url')
-          .in('id', userIds);
-        if (profilesError) throw profilesError;
-        (profiles ?? []).forEach((profile: any) => {
-          profileMap.set(profile.id, profile);
-        });
-      }
-      return (data ?? []).map((row: any) => {
-        const profile = profileMap.get(row.user_id);
-        return {
-          user_id: row.user_id,
-          full_name: profile?.full_name ?? t('common.userNotFound'),
-          username: profile?.username ?? 'user',
-          avatar_url: profile?.avatar_url ?? null,
-        };
-      }) as Member[];
-    },
-  });
 
   // Active tab of the events section (auto-falls back to Past when no upcoming events).
   const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
-  const [showMembersList, setShowMembersList] = useState(false);
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const { data: joinStatus } = useJoinRequestStatus('club', clubId ?? null);
@@ -489,7 +449,7 @@ export default function ClubDetailScreen() {
               value={s.value}
               minWidth={isMd ? 150 : 132}
               growBasis={isWide ? '23%' : '47%'}
-              onPress={s.onPress === 'members' ? () => setShowMembersList(true) : undefined}
+              onPress={s.onPress === 'members' ? () => router.push(`/(tabs)/clubs/${clubId}/members`) : undefined}
             />
           ))}
         </View>
@@ -739,7 +699,7 @@ export default function ClubDetailScreen() {
               })}
             </View>
             <PressableScale
-              onPress={() => setShowMembersList(true)}
+              onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)}
               scaleOnPress={0.97}
               scaleOnHover={1.03}
               accessibilityRole='button'
@@ -753,12 +713,6 @@ export default function ClubDetailScreen() {
               <Icon name='ChevronRight' size={16} color='primary' />
             </PressableScale>
           </Section>
-        ) : null}
-
-        {!club.is_external && loadingAllMembers ? (
-          <View className='px-4 mb-5 items-center py-3'>
-            <ActivityIndicator size='small' color='#3358FF' />
-          </View>
         ) : null}
 
         {/* ---- Actions ---- */}
@@ -844,15 +798,6 @@ export default function ClubDetailScreen() {
         </View>
 
       </ScrollView>
-      <MembersListSheet
-        visible={showMembersList}
-        onClose={() => setShowMembersList(false)}
-        members={allMembers}
-        type='club'
-        targetId={club.id}
-        createdBy={club.created_by}
-        currentUserId={userId}
-      />
       <LeaveClubSheet
         visible={showLeaveSheet}
         onClose={() => setShowLeaveSheet(false)}

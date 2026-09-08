@@ -11,7 +11,16 @@ export function useRemoveClubMember() {
   const posthog = usePostHog();
 
   return useMutation({
-    mutationFn: async ({ clubId, memberId }: { clubId: string; memberId: string }) => {
+    mutationFn: async ({
+      clubId,
+      memberId,
+      message,
+    }: {
+      clubId: string;
+      memberId: string;
+      /** Optional explanation appended to the removed member's notification. */
+      message?: string;
+    }) => {
       if (!userId) throw new Error("auth");
       
       // Verify the current user is the club creator
@@ -33,14 +42,23 @@ export function useRemoveClubMember() {
 
       if (deleteError) throw deleteError;
 
-      // Send notification to the removed member
-      const { error: notifError } = await supabase.from("notifications").insert({
-        user_id: memberId,
-        type: "club_member_removed",
-        title: t("notifications.clubMemberRemoved.title"),
-        body: `${t("notifications.clubMemberRemoved.body", { clubName: club.name })}`,
-        data: { club_id: clubId, club_name: club.name } as any,
-        read_at: null,
+      // Optional message appended to the notification body.
+      const messageText = message?.trim()
+        ? `\n\n${t("notifications.clubMemberRemoved.messageLabel")} ${message.trim()}`
+        : "";
+
+      // Send notification to the removed member (RLS lets the admin insert a
+      // notification for the removed user through the notify_user RPC path).
+      const { error: notifError } = await supabase.rpc("notify_user", {
+        p_user_id: memberId,
+        p_type: "club_member_removed",
+        p_title: t("notifications.clubMemberRemoved.title"),
+        p_body: `${t("notifications.clubMemberRemoved.body", { clubName: club.name })}${messageText}`,
+        p_data: {
+          club_id: clubId,
+          club_name: club.name,
+          message: message?.trim() || null,
+        },
       });
 
       if (notifError) throw notifError;
@@ -51,6 +69,8 @@ export function useRemoveClubMember() {
       posthog.capture("club_member_removed", {});
       Toast.show({ type: "success", text1: t("actions.removeMember.success") });
       void qc.invalidateQueries({ queryKey: ["club-members"] });
+      void qc.invalidateQueries({ queryKey: ["club-all-members"] });
+      void qc.invalidateQueries({ queryKey: ["club"] });
       void qc.invalidateQueries({ queryKey: ["notifications"] });
       void qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
     },

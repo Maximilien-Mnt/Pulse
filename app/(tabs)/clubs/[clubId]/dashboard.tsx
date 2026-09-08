@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, Text, View, ActivityIndicator, useWindowDimensions } from 'react-native';
@@ -19,12 +19,12 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { MembersListSheet, type Member } from '@/components/shared/MembersListSheet';
+import type { Member } from '@/components/shared/MembersListSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { RefuseJoinRequestSheet } from '@/components/shared/RefuseJoinRequestSheet';
-import { useClubMembers } from '@/hooks/useClubMembers';
 import { useClubEvents } from '@/hooks/useClubEvents';
+import { EventCard } from '@/components/events/EventCard';
 import { useClubJoinRequests, type ClubJoinRequest } from '@/hooks/useClubJoinRequests';
 import { useJoinRequestAction } from '@/hooks/useNotifications';
 import { useUpdateClub } from '@/hooks/useUpdateClub';
@@ -83,8 +83,6 @@ export default function ClubDashboardScreen() {
       };
     },
   });
-
-  const { data: members = [] } = useClubMembers(clubId ?? null);
 
   const { data: allMembers = [], isLoading: loadingAllMembers } = useQuery({
     queryKey: ['club-all-members', clubId],
@@ -147,8 +145,21 @@ export default function ClubDashboardScreen() {
     },
   });
 
-  const [showMembersList, setShowMembersList] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+
+  // Active tab of the events section (auto-falls back to Past when no upcoming events).
+  const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
+  const nowIso = new Date().toISOString();
+  const upcomingEvents = clubEvents.filter((e) => e.start_date >= nowIso);
+  const pastEvents = clubEvents.filter((e) => e.start_date < nowIso).slice().reverse();
+  const tabEvents = eventsTab === 'upcoming' ? upcomingEvents : pastEvents;
+
+  // If the Upcoming tab is empty but past events exist, show Past by default.
+  useEffect(() => {
+    if (!loadingEvents && eventsTab === 'upcoming' && upcomingEvents.length === 0 && pastEvents.length > 0) {
+      setEventsTab('past');
+    }
+  }, [loadingEvents, eventsTab, upcomingEvents.length, pastEvents.length]);
   const [showHoursSheet, setShowHoursSheet] = useState(false);
   const [refuseRequest, setRefuseRequest] = useState<ClubJoinRequest | null>(null);
   const updateClub = useUpdateClub();
@@ -358,7 +369,7 @@ export default function ClubDashboardScreen() {
             value={club.member_count}
             label={t('clubs.dashboard.members')}
             basis={statBasis}
-            onPress={() => setShowMembersList(true)}
+            onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)}
           />
           <StatTile icon='Heart' value={favoritesCount} label={t('clubs.dashboard.favorites')} basis={statBasis} />
           <StatTile icon='Calendar' value={clubEvents.length} label={t('clubs.dashboard.events')} basis={statBasis} />
@@ -453,7 +464,7 @@ export default function ClubDashboardScreen() {
               {t('clubs.dashboard.noMembers')}
             </PulseText>
           ) : (
-            <Pressable onPress={() => setShowMembersList(true)} className='active:opacity-80'>
+            <Pressable onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)} className='active:opacity-80'>
               <View className='flex-row items-center py-1'>
                 <View className='flex-row'>
                   {allMembers.slice(0, 6).map((member, index) => (
@@ -485,26 +496,53 @@ export default function ClubDashboardScreen() {
               {t('clubs.dashboard.noEvents')}
             </PulseText>
           ) : (
-            clubEvents.map((event) => (
-              <Pressable
-                key={event.id}
-                className='flex-row items-center py-3 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0 active:opacity-80'
-                onPress={() => router.push(`/(tabs)/events/${event.id}`)}
-              >
-                <View className='w-10 h-10 rounded-xl bg-primary/10 items-center justify-center'>
-                  <Icon name='Calendar' size={18} color='primary' />
-                </View>
-                <View className='flex-1 ml-3'>
-                  <PulseText variant='body' className='font-medium' numberOfLines={1}>
-                    {event.name}
+            <View>
+              {/* Tab pills: Upcoming / Past */}
+              <View className='flex-row gap-1.5 mb-3'>
+                {(['upcoming', 'past'] as const).map((tabKey) => {
+                  const count = tabKey === 'upcoming' ? upcomingEvents.length : pastEvents.length;
+                  const active = eventsTab === tabKey;
+                  return (
+                    <PressableScale
+                      key={tabKey}
+                      onPress={() => setEventsTab(tabKey)}
+                      scaleOnPress={0.96}
+                      accessibilityRole='button'
+                      accessibilityLabel={t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')}
+                      className={'flex-row items-center gap-1.5 px-3 rounded-full ' + (active ? 'bg-primary/15' : 'bg-neutral-100 dark:bg-neutral-800')}
+                      style={{ height: 30 }}
+                    >
+                      <Icon name={tabKey === 'upcoming' ? 'Calendar' : 'Clock'} size={14} color={active ? 'primary' : 'text-secondary'} />
+                      <PulseText variant='caption' className={'font-semibold ' + (active ? 'text-primary' : 'text-neutral-500')}>
+                        {t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')} ({count})
+                      </PulseText>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+              {/* Scrollable, height-limited event list (or empty state) */}
+              {tabEvents.length > 0 ? (
+                <ScrollView
+                  style={{ maxHeight: 320 }}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={false}
+                  className={CARD + ' overflow-hidden'}
+                >
+                  <View className='p-2 gap-2'>
+                    {tabEvents.map((item) => (
+                      <EventCard key={item.id} event={item} compact />
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : (
+                <View className={CARD + ' p-6 items-center'}>
+                  <Icon name='Calendar' size={24} color='text-tertiary' />
+                  <PulseText variant='body' className='text-neutral-500 mt-2 text-center'>
+                    {eventsTab === 'upcoming' ? t('events.emptyUpcoming') : t('events.emptyPast')}
                   </PulseText>
-                  <PulseText variant='caption' className='text-neutral-500'>
-                    {new Date(event.start_date).toLocaleDateString()} · {event.city}
-                  </PulseText>
                 </View>
-                <Icon name='ChevronRight' size={18} color='text-tertiary' />
-              </Pressable>
-            ))
+              )}
+            </View>
           )}
         </Section>
 
@@ -650,51 +688,77 @@ export default function ClubDashboardScreen() {
           </View>
         ) : null}
 
-        {/* ---- Action buttons ---- */}
+                {/* ---- Action buttons ---- */}
         <View className='px-4 mb-5'>
           <View className='gap-3'>
-            <InvitationButton type='club' targetId={club.id} visible={true} />
-            <Button
-              title={t('clubs.dashboard.editClub')}
-              icon='Pen'
-              variant='secondary'
-              onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
-            />
-            <Button
-              title={t('clubs.dashboard.viewPublic')}
-              icon='Eye'
-              variant='ghost'
-              onPress={() => router.push(`/(tabs)/clubs/${club.id}?public=true`)}
-            />
-            <Button
-              title={t('clubs.dashboard.deleteClub')}
-              icon='Trash2'
-              variant='destructive'
-              onPress={() => setShowDelete(true)}
-            />
-            <Button
-              title={t('clubs.copyInviteLink')}
-              icon='Share2'
-              variant='ghost'
-              onPress={() => {
-                Toast.show({ type: 'success', text1: 'Lien copié !' });
-              }}
-            />
+            {/* Invitation link + Public access on same row when wide enough */}
+            {isWide ? (
+              <View className='flex-row gap-3 mb-3'>
+                <View style={{ flex: 1 }}>
+                  <InvitationButton type='club' targetId={club.id} visible={true} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={t('clubs.dashboard.viewPublic')}
+                    icon='Eye'
+                    variant='ghost'
+                    onPress={() => router.push(`/clubs/${club.id}?public=true`)}
+                  />
+                </View>
+              </View>
+            ) : (
+              <>
+                <InvitationButton type='club' targetId={club.id} visible={true} />
+                <Button
+                  title={t('clubs.dashboard.viewPublic')}
+                  icon='Eye'
+                  variant='ghost'
+                  onPress={() => router.push("/clubs?public=true")}
+                />
+              </>
+            )}
+            
+            {/* Delete + Edit buttons - side by side if wide enough */}
+            {isWide ? (
+              <View className='flex-row gap-3'>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={t('clubs.dashboard.editClub')}
+                    icon='Pen'
+                    variant='secondary'
+                    onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={t('clubs.dashboard.deleteClub')}
+                    icon='Trash2'
+                    variant='destructive'
+                    onPress={() => setShowDelete(true)}
+                  />
+                </View>
+              </View>
+            ) : (
+              <>
+                <Button
+                  title={t('clubs.dashboard.editClub')}
+                  icon='Pen'
+                  variant='secondary'
+                  onPress={() => router.push("/clubs/" + clubId + "/settings")}
+                />
+                <Button
+                  title={t('clubs.dashboard.deleteClub')}
+                  icon='Trash2'
+                  variant='destructive'
+                  onPress={() => setShowDelete(true)}
+                />
+              </>
+            )}
           </View>
         </View>
 
         <View className='h-8' />
       </ScrollView>
-
-      <MembersListSheet
-        visible={showMembersList}
-        onClose={() => setShowMembersList(false)}
-        members={allMembers}
-        type='club'
-        targetId={club.id}
-        createdBy={club.created_by}
-        currentUserId={userId}
-      />
 
       <DeleteClubSheet
         visible={showDelete}

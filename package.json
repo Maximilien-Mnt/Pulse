@@ -3,13 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  },
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start --clear",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "expo:doctor": "expo-doctor",
+    "build:web": "expo export --platform web",
     "test": "jest",
     "test:watch": "jest --watch",
     "smoke:signup": "node scripts/smoke-signup.mjs",
@@ -80,6 +90,9 @@
     "@types/jest": "^29.5.0",
     "@types/react": "~19.1.10",
     "babel-jest": "^29.7.0",
+    "eslint": "^9.18.0",
+    "eslint-config-expo": "~10.0.0",
+    "expo-doctor": "~1.13.3",
     "jest": "^29.7.0",
     "jest-expo": "~54.0.0",
     "tailwindcss": "^3.4.15",

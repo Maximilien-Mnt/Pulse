@@ -8,6 +8,7 @@ import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -178,7 +179,7 @@ export default function CreatePublicClubScreen() {
       if (!validation.success) {
         const errs: Record<string, string> = {};
         validation.error.errors.forEach((e) => {
-          if (e.path[0]) errs[e.path[0] as string] = e.message;
+          if (e.path[0]) errs[e.path[0] as string] = localizeError(e.message) ?? e.message;
         });
         setErrors(errs);
         throw new Error("Validation failed");

@@ -8,6 +8,7 @@ import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import * as ImagePicker from "expo-image-picker";
 import { Icon } from "@/components/ui/Icon";
@@ -168,7 +169,7 @@ export default function CreatePublicEventScreen() {
       if (!validation.success) {
         const errs: Record<string, string> = {};
         validation.error.errors.forEach((e) => {
-          if (e.path[0]) errs[e.path[0] as string] = e.message;
+          if (e.path[0]) errs[e.path[0] as string] = localizeError(e.message) ?? e.message;
         });
         setErrors(errs);
         throw new Error("Validation failed");

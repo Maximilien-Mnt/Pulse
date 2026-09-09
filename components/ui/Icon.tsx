@@ -120,6 +120,7 @@ import {
   X,
   XCircle,
   Zap,
+  LogOut,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -218,6 +219,7 @@ export const ICON_MAP = {
   X,
   XCircle,
   Zap,
+  LogOut,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICON_MAP;

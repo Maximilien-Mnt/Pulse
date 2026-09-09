@@ -5,6 +5,7 @@ import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
 import { getRedirectUrl } from "@/lib/constants";
 import { forgotPasswordSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
@@ -21,7 +22,7 @@ type Form = z.infer<typeof forgotPasswordSchema>;
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const posthog = usePostHog();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const {
     control,
@@ -122,7 +123,7 @@ export default function ForgotPasswordScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholder="vous@exemple.com"
-                error={errors.email?.message}
+                error={localizeError(errors.email?.message, language)}
                 className="mb-4"
               />
             )}

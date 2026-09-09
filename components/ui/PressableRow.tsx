@@ -1,11 +1,12 @@
 import { cn } from "@/utils/format";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
 type Props = {
   children: ReactNode;
   className?: string;
   onPress?: () => void;
+  hitSlop?: ComponentProps<typeof Pressable>["hitSlop"];
   /** Border color - defaults to primary */
   borderColor?: string;
   /** Show border on all sides */
@@ -22,6 +23,7 @@ export function PressableRow({
   children,
   className,
   onPress,
+  hitSlop,
   borderColor = "#1E6BFF",
   bordered = true,
   padded = true,
@@ -39,6 +41,7 @@ export function PressableRow({
     return (
       <Pressable
         onPress={onPress}
+        hitSlop={hitSlop}
         className={cn(containerClass, "active:opacity-80")}
         style={style}
       >

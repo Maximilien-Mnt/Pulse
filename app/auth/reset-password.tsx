@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { setStoredPassword } from "@/lib/passwordStorage";
 import { useSignupStore } from "@/stores/signupStore";
 import { resetPasswordSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useGlobalSearchParams } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
@@ -22,7 +23,7 @@ type Form = z.infer<typeof resetPasswordSchema>;
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const posthog = usePostHog();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const params = useGlobalSearchParams();
   const code = typeof params.code === "string" ? params.code : undefined;
 
@@ -271,7 +272,7 @@ export default function ResetPasswordScreen() {
               onChangeText={onChange}
               secureTextEntry={!showPassword}
               placeholder="••••••••"
-              error={errors.password?.message}
+              error={localizeError(errors.password?.message, language)}
               rightElement={
                 <Pressable
                   onPress={() => setShowPassword((prev) => !prev)}
@@ -301,7 +302,7 @@ export default function ResetPasswordScreen() {
               onChangeText={onChange}
               secureTextEntry={!showConfirmPassword}
               placeholder="••••••••"
-              error={errors.confirmPassword?.message}
+              error={localizeError(errors.confirmPassword?.message, language)}
               rightElement={
                 <Pressable
                   onPress={() => setShowConfirmPassword((prev) => !prev)}

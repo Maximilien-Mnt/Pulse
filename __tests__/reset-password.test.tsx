@@ -47,6 +47,8 @@ const tMock = (key: string) => {
     "auth.resetPassword.confirmPassword": "Confirmer le mot de passe",
     "auth.resetPassword.submit": "Réinitialiser le mot de passe",
     "auth.resetPassword.backToSignin": "Se connecter",
+    "auth.linkExpired": "Ce lien a expiré.",
+    "auth.requestNewLink": "Demander un nouveau lien",
   };
   return map[key] ?? key;
 };
@@ -124,7 +126,7 @@ describe("ResetPasswordScreen", () => {
     const inputs = await findAllByPlaceholderText("••••••••");
     fireEvent.changeText(inputs[0], "weak");
     fireEvent.press(getByText("Réinitialiser le mot de passe"));
-    expect(await findByText("Au moins 8 caractères")).toBeTruthy();
+    expect(await findByText("8 caractères minimum")).toBeTruthy();
   });
 
   it("shows validation error for password mismatch", async () => {
@@ -174,7 +176,7 @@ describe("ResetPasswordScreen", () => {
     const { findByText } = render(<ResetPasswordScreen />);
     expect(await findByText("Lien invalide")).toBeTruthy();
     expect(
-      await findByText("Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.")
+      await findByText("Ce lien a expiré. Demander un nouveau lien")
     ).toBeTruthy();
   });
 
@@ -185,7 +187,7 @@ describe("ResetPasswordScreen", () => {
     const { findByText } = render(<ResetPasswordScreen />);
     expect(await findByText("Lien invalide")).toBeTruthy();
     expect(
-      await findByText("Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.")
+      await findByText("Ce lien a expiré. Demander un nouveau lien")
     ).toBeTruthy();
   });
 });

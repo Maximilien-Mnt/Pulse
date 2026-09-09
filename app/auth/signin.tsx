@@ -6,6 +6,7 @@ import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
 import { setStoredPassword } from "@/lib/passwordStorage";
 import { signInSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
@@ -21,7 +22,7 @@ type Form = z.infer<typeof signInSchema>;
 export default function SignInScreen() {
   const router = useRouter();
   const posthog = usePostHog();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(signInSchema),
@@ -83,7 +84,7 @@ export default function SignInScreen() {
                 onChangeText={onChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                error={errors.email?.message}
+                error={localizeError(errors.email?.message, language)}
                 className="mb-4"
               />
             )}
@@ -97,7 +98,7 @@ export default function SignInScreen() {
                 value={value}
                 onChangeText={onChange}
                 secureTextEntry={!showPassword}
-                error={errors.password?.message}
+                error={localizeError(errors.password?.message, language)}
                 rightElement={
                   <Pressable
                     onPress={() => setShowPassword((prev) => !prev)}

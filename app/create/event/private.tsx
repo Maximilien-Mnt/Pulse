@@ -6,6 +6,7 @@ import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPrivateSchema } from "@/utils/validation";
+import { localizeError } from "@/utils/localizeError";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -96,7 +97,7 @@ export default function CreatePrivateEventScreen() {
 
       const validation = eventPrivateSchema.safeParse(data);
       if (!validation.success) {
-        throw new Error(validation.error.errors[0]?.message ?? "Validation error");
+        throw new Error(localizeError(validation.error.errors[0]?.message) ?? "Validation error");
       }
 
       // Create event

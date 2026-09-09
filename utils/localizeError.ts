@@ -1,12 +1,15 @@
+import { translations } from "@/lib/translations";
 import type { Language } from "@/stores/languageStore";
 
 /**
- * Maps the French validation messages emitted by the Zod schemas in
- * `utils/validation.ts` to their English equivalents.
+ * Maps Zod validation messages emitted by the schemas in `utils/validation.ts`
+ * to their localized equivalents.
  *
- * The signup/auth Zod schemas are authored in French. This helper lets the UI
- * render those messages in the currently-active interface language without
- * rewriting the schemas (which are shared with server-side logic and tests).
+ * Coordinate with `utils/validation.ts`: the schemas emit *translation keys*
+ * (e.g. "validation.minLength8") so messages are not frozen at import time.
+ * This helper resolves those keys against `translations` for the current
+ * interface language, then falls back to a French → English map so plain French
+ * strings (legacy / server-provided messages) still localize for non-French UIs.
  */
 const ERROR_MAP: Record<string, string> = {
   "Nom complet requis": "Full name required",
@@ -31,12 +34,22 @@ const ERROR_MAP: Record<string, string> = {
   "0 caractères maximum": "Maximum 0 characters",
 };
 
+const TRANSLATION_LOOKUP: Record<Language, Record<string, string>> = {
+  fr: Object.fromEntries(Object.entries(translations.fr)),
+  en: Object.fromEntries(Object.entries(translations.en)),
+};
+
 /** Returns a localized version of a Zod validation message. */
 export function localizeError(
   message: string | undefined,
-  language: Language
+  language: Language = "fr"
 ): string | undefined {
   if (!message) return undefined;
-  if (language === "fr") return message;
-  return ERROR_MAP[message] ?? message;
+
+  // Resolve translation keys (and pass through plain strings, e.g. legacy
+  // French messages) against the target language's dictionary.
+  const resolved = TRANSLATION_LOOKUP[language][message] ?? message;
+
+  if (language === "fr") return resolved;
+  return ERROR_MAP[resolved] ?? resolved;
 }

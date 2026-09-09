@@ -183,7 +183,7 @@ export default function ConversationsScreen() {
             ? menuItem?.conversation?.group_name ?? "Groupe"
             : menuItem?.other?.full_name ?? ""
         }
-        group={!!menuItem?.conversation?.is_group}
+        isGroup={!!menuItem?.conversation?.is_group}
         groupName={menuItem?.conversation?.group_name ?? ""}
         pinned={menuItem?.pinned ?? false}
         onClose={() => setMenuItem(null)}

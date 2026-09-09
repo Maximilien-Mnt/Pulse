@@ -85,7 +85,7 @@ describe("ForgotPasswordScreen", () => {
     expect(await findByText("Email envoyé")).toBeTruthy();
     expect(
       await findByText(
-        "Si ce compte existe, un email de réinitialisation vient d'être envoyé."
+        "Si ce compte existe, un email de réinitialisation vient d'être envoyé. Cliquez sur le lien dans l'email pour choisir un nouveau mot de passe."
       )
     ).toBeTruthy();
   });

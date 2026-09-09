@@ -178,7 +178,7 @@ export function ConversationActionSheet({
         {
           key: "rename",
           label: t("conv.renameGroup"),
-          icon: "PenLine",
+          icon: "Pen",
           onPress: () => setConfirmingRename(true),
         },
         {

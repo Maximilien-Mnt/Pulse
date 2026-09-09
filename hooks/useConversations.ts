@@ -43,6 +43,7 @@ function mapRow(row: ConversationFullRow): ConversationListItem {
     is_group: row.conversation_is_group,
     group_name: row.conversation_group_name,
     group_photo_url: row.conversation_group_photo_url,
+    club_id: null,
   };
 
   return {

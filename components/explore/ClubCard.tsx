@@ -11,11 +11,10 @@ import React from "react";
 import { View, useWindowDimensions, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useJoinRequestStatus, deriveStatus } from "@/hooks/useJoinRequestStatus";
 import { useAuthStore } from "@/stores/authStore";
-import { queryClient } from "@/lib/queryClient";
 import { FavoriteButton } from "@/components/feed/LikeButton";
+import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { ShareButton } from "@/components/shared/ShareButton";
 import { supabase } from "@/lib/supabase";
 
@@ -56,50 +55,14 @@ export function ClubCard({ club, isCompact = false, grid = false }: ClubCardProp
   const { data, isLoading: statusLoading } = useJoinRequestStatus("club", club.id);
   const userId = useAuthStore((s) => s.userId);
 
-  // ── Favorites (like) ───────────────────────────────────────────────
-  const { data: isFavorited } = useQuery({
-    queryKey: ["club-favorite-card", club.id],
-    enabled: !!userId && !!club.id,
-    queryFn: async () => {
-      const { data: favData, error } = await supabase
-        .from("club_favorites")
-        .select("club_id")
-        .eq("user_id", userId!)
-        .eq("club_id", club.id)
-        .maybeSingle();
-      if (error) throw error;
-      return !!favData;
-    },
+  const { isFavorited, isPending, toggle } = useToggleFavorite({
+    entityType: "club",
+    id: club.id,
+    queryKeyPrefix: "club-favorite-card",
+    includeCount: false,
   });
 
-  const toggleClubFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId || !club.id) return;
-      if (isFavorited) {
-        await supabase.from("club_favorites").delete().eq("user_id", userId).eq("club_id", club.id);
-      } else {
-        await supabase.from("club_favorites").insert({ user_id: userId, club_id: club.id });
-      }
-    },
-    onMutate: async () => {
-      const prevIsFav = queryClient.getQueryData(["club-favorite-card", club.id]);
-      queryClient.setQueryData(["club-favorite-card", club.id], !prevIsFav);
-      return { prevIsFav };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prevIsFav !== undefined) {
-        queryClient.setQueryData(["club-favorite-card", club.id], context.prevIsFav);
-      }
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["club-favorite-card", club.id] });
-      void queryClient.invalidateQueries({ queryKey: ["clubs"] });
-    },
-  });
-
-  const handleToggleFavorite = () => {
-    void toggleClubFavoriteMutation.mutate();
-  };
+  const handleToggleFavorite = () => toggle;
 
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {

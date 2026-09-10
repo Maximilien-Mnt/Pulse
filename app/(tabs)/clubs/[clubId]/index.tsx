@@ -7,11 +7,28 @@ import * as WebBrowser from 'expo-web-browser';
 import { SafeScreen } from '@/components/shared/SafeScreen';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '@/stores/authStore';
-import { queryClient } from '@/lib/queryClient';
 import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
+import { Text as PulseText } from '@/components/ui/Text';
+import { Avatar } from '@/components/ui/Avatar';
+import { BackButton } from '@/components/ui/BackButton';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { useClubMembers } from '@/hooks/useClubMembers';
+import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
+import { useLeaveClub } from '@/hooks/useLeaveClub';
+import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
+import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
+import { useToggleFavorite } from '@/hooks/useToggleFavorite';
+import { supabase } from '@/lib/supabase';
+import type { Club, EventRow } from '@/types';
+import { useTranslation, t } from '@/hooks/useTranslation';
+import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
+import { EventCard } from '@/components/events/EventCard';
+import { sanitizeOpeningHours } from '@/lib/openingHours';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
@@ -106,33 +123,12 @@ export default function ClubDetailScreen() {
     },
     onError: () => Toast.show({ type: 'error', text1: t('error.clubJoin') }),
   });
-  const { data: isFavorited } = useQuery({
-    queryKey: ['club-favorite', clubId],
+  const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
+    entityType: 'club',
+    id: clubId ?? '',
     enabled: !!userId && !!clubId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('club_favorites')
-        .select('club_id')
-        .eq('user_id', userId!)
-        .eq('club_id', clubId!)
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
-  });
-
-  const { data: favoritesCount = 0 } = useQuery({
-    queryKey: ['club-favorites-count', clubId],
-    enabled: !!clubId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('club_favorites')
-        .select('*', { count: 'exact', head: true })
-        .eq('club_id', clubId!);
-      if (error) throw error;
-      return count ?? 0;
-    },
-    staleTime: 5000,
+    optimisticToggle: true,
+    extraInvalidationKeys: [['club', clubId]],
   });
 
   // Number of events linked to this club (shown in the stat tiles).
@@ -180,40 +176,13 @@ export default function ClubDetailScreen() {
     }
   }, [eventsLoading, eventsTab, upcomingEvents.length, pastEvents.length]);
 
-  const toggleFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId || !clubId) return;
-      if (isFavorited) {
-        await supabase.from('club_favorites').delete().eq('user_id', userId).eq('club_id', clubId);
-      } else {
-        await supabase.from('club_favorites').insert({ user_id: userId, club_id: clubId });
-      }
-    },
-    onMutate: async () => {
-      const prevIsFav = queryClient.getQueryData(['club-favorite', clubId]);
-      const prevCount = queryClient.getQueryData(['club-favorites-count', clubId]) as number | undefined;
-      queryClient.setQueryData(['club-favorite', clubId], true);
-      queryClient.setQueryData(['club-favorites-count', clubId], (prevCount ?? 0) + 1);
-      return { prevIsFav, prevCount };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prevIsFav !== undefined) {
-        queryClient.setQueryData(['club-favorite', clubId], context.prevIsFav);
-      }
-      if (context?.prevCount !== undefined) {
-        queryClient.setQueryData(['club-favorites-count', clubId], context.prevCount);
-      }
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['club-favorite', clubId] });
-      void queryClient.invalidateQueries({ queryKey: ['club-favorites-count', clubId] });
-      void queryClient.invalidateQueries({ queryKey: ['clubs'] });
-      void queryClient.invalidateQueries({ queryKey: ['club', clubId] });
-    },
+  const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
+    entityType: 'club',
+    id: clubId ?? '',
+    extraInvalidationKeys: [['club', clubId]],
   });
-  const handleToggle = () => {
-    void toggleFavoriteMutation.mutate();
-  };
+
+  const handleToggle = () => void toggle();
 
   const handleShare = () => {
     void Share.share({ message: club ? club.name : '' });

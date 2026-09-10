@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 import { FlatList, ScrollView, View, Pressable, Share, ActivityIndicator } from "react-native";
@@ -7,7 +7,6 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useAuthStore } from "@/stores/authStore";
-import { queryClient } from "@/lib/queryClient";
 import { usePostHog } from "posthog-react-native";
 import { getCountryDisplay } from "@/utils/countries";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +15,14 @@ import { SourceBadge } from "@/components/shared/SourceBadge";
 import { InvitationButton } from "@/components/shared/InvitationButton";
 import { ShareButton } from "@/components/shared/ShareButton";
 import { FavoriteButton } from "@/components/feed/LikeButton";
+import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Badge } from "@/components/ui/Badge";
+import { SourceBadge } from "@/components/shared/SourceBadge";
+import { InvitationButton } from "@/components/shared/InvitationButton";
+import { ShareButton } from "@/components/shared/ShareButton";
+import { FavoriteButton } from "@/components/feed/LikeButton";
+import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Icon } from "@/components/ui/Icon";
 import { Text as PulseText } from "@/components/ui/Text";
@@ -158,71 +165,13 @@ export default function EventDetailScreen() {
     onError: () => Toast.show({ type: "error", text1: t("common.error") }),
   });
 
-  // ── Favorites (like) ───────────────────────────────────────────────
-  const { data: isFavorited } = useQuery({
-    queryKey: ["event-favorite", eventId],
-    enabled: !!userId && !!eventId,
-    queryFn: async () => {
-      const { data: favData, error } = await supabase
-        .from("event_favorites")
-        .select("event_id")
-        .eq("user_id", userId!)
-        .eq("event_id", eventId!)
-        .maybeSingle();
-      if (error) throw error;
-      return !!favData;
-    },
+  const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
+    entityType: "event",
+    id: eventId ?? "",
+    extraInvalidationKeys: [["event", eventId]],
   });
 
-  const { data: favoritesCount = 0 } = useQuery({
-    queryKey: ["event-favorites-count", eventId],
-    enabled: !!eventId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("event_favorites")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId!);
-      if (error) throw error;
-      return count ?? 0;
-    },
-    staleTime: 5000,
-  });
-
-  const toggleFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId || !eventId) return;
-      if (isFavorited) {
-        await supabase.from("event_favorites").delete().eq("user_id", userId).eq("event_id", eventId);
-      } else {
-        await supabase.from("event_favorites").insert({ user_id: userId, event_id: eventId });
-      }
-    },
-    onMutate: async () => {
-      const prevIsFav = queryClient.getQueryData(["event-favorite", eventId]);
-      const prevCount = queryClient.getQueryData(["event-favorites-count", eventId]) as number | undefined;
-      queryClient.setQueryData(["event-favorite", eventId], true);
-      queryClient.setQueryData(["event-favorites-count", eventId], (prevCount ?? 0) + 1);
-      return { prevIsFav, prevCount };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prevIsFav !== undefined) {
-        queryClient.setQueryData(["event-favorite", eventId], context.prevIsFav);
-      }
-      if (context?.prevCount !== undefined) {
-        queryClient.setQueryData(["event-favorites-count", eventId], context.prevCount);
-      }
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["event-favorite", eventId] });
-      void queryClient.invalidateQueries({ queryKey: ["event-favorites-count", eventId] });
-      void queryClient.invalidateQueries({ queryKey: ["events"] });
-      void queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-    },
-  });
-
-  const handleToggleFavorite = () => {
-    void toggleFavoriteMutation.mutate();
-  };
+  const handleToggleFavorite = () => toggle;
 
   if (!event) {
     if (eventLoading) {
@@ -393,7 +342,7 @@ export default function EventDetailScreen() {
                 <FavoriteButton
                   isFavorite={!!isFavorited}
                   count={favoritesCount}
-                  isPending={toggleFavoriteMutation.isPending}
+                  isPending={isPending}
                   onPress={handleToggleFavorite}
                   size={16}
                 />

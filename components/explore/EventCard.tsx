@@ -12,13 +12,12 @@ import React from "react";
 import { View, useWindowDimensions, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useJoinRequestStatus, deriveStatus } from "@/hooks/useJoinRequestStatus";
 import { useAuthStore } from "@/stores/authStore";
-import { queryClient } from "@/lib/queryClient";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import { FavoriteButton } from "@/components/feed/LikeButton";
+import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { ShareButton } from "@/components/shared/ShareButton";
 import { supabase } from "@/lib/supabase";
 
@@ -69,50 +68,14 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
   const { data } = useJoinRequestStatus("event", event.id);
   const userId = useAuthStore((s) => s.userId);
 
-  // ── Favorites (like) ───────────────────────────────────────────────
-  const { data: isFavorited } = useQuery({
-    queryKey: ["event-favorite-card", event.id],
-    enabled: !!userId && !!event.id,
-    queryFn: async () => {
-      const { data: favData, error } = await supabase
-        .from("event_favorites")
-        .select("event_id")
-        .eq("user_id", userId!)
-        .eq("event_id", event.id)
-        .maybeSingle();
-      if (error) throw error;
-      return !!favData;
-    },
+  const { isFavorited, isPending, toggle } = useToggleFavorite({
+    entityType: "event",
+    id: event.id,
+    queryKeyPrefix: "event-favorite-card",
+    includeCount: false,
   });
 
-  const toggleEventFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId || !event.id) return;
-      if (isFavorited) {
-        await supabase.from("event_favorites").delete().eq("user_id", userId).eq("event_id", event.id);
-      } else {
-        await supabase.from("event_favorites").insert({ user_id: userId, event_id: event.id });
-      }
-    },
-    onMutate: async () => {
-      const prevIsFav = queryClient.getQueryData(["event-favorite-card", event.id]);
-      queryClient.setQueryData(["event-favorite-card", event.id], !prevIsFav);
-      return { prevIsFav };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prevIsFav !== undefined) {
-        queryClient.setQueryData(["event-favorite-card", event.id], context.prevIsFav);
-      }
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["event-favorite-card", event.id] });
-      void queryClient.invalidateQueries({ queryKey: ["events"] });
-    },
-  });
-
-  const handleToggleFavorite = () => {
-    void toggleEventFavoriteMutation.mutate();
-  };
+  const handleToggleFavorite = () => toggle;
 
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {

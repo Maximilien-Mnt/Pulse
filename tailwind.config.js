@@ -9,7 +9,9 @@
 // Dark mode uses the `class` strategy (already in place in app/_layout.tsx).
 // ---------------------------------------------------------------------------
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+// eslint-disable @typescript-eslint/no-require-imports
+// (that rule is disabled globally for all JS files in eslint.config.js, so it
+// would otherwise be an undefined rule reference here and error the build)
 const { semanticColors } = require("./src/design-tokens/semantic/colors");
 const { fontSize, fontWeight, lineHeight } = require("./src/design-tokens/primitive/typography");
 const { spacing } = require("./src/design-tokens/primitive/spacing");

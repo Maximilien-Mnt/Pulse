@@ -53,6 +53,7 @@ interface EventCardProps {
   };
   isCompact?: boolean;
   grid?: boolean;
+  initialIsFavorite?: boolean;
 }
 
 // When the card is wider than 700px, the cover image moves to the right
@@ -62,7 +63,7 @@ const WIDE_CARD_BREAKPOINT = 700;
 // Component
 // ---------------------------------------------------------------------------
 
-export function EventCard({ event, isCompact = false, grid = false }: EventCardProps) {
+export function EventCard({ event, isCompact = false, grid = false, initialIsFavorite }: EventCardProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { data } = useJoinRequestStatus("event", event.id);
@@ -73,9 +74,10 @@ export function EventCard({ event, isCompact = false, grid = false }: EventCardP
     id: event.id,
     queryKeyPrefix: "event-favorite-card",
     includeCount: false,
+    initialIsFavorite,
   });
 
-  const handleToggleFavorite = () => toggle;
+  const handleToggleFavorite = toggle;
 
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {

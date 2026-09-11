@@ -5,7 +5,7 @@
 // and responsive list/grid of ClubCard / EventCard components.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useBatchFavoriteIds } from "@/hooks/useBatchedFavorites";
 import { useClubs } from "@/hooks/useClubs";
 import { useEvents } from "@/hooks/useEvents";
 import type { ClubListFilters } from "@/hooks/useClubs";
@@ -254,6 +255,17 @@ export default function ExploreScreen() {
     );
   }, [tab, clubsData, eventsData]);
 
+  // ── Batched favorite state (one query, not per card) ─────────────────────
+  const activeEntityType = tab === "clubs" ? "club" : "event";
+  const itemIds = useMemo(() => items.map((item: any) => item.id), [items]);
+  const { favoriteIds } = useBatchFavoriteIds(activeEntityType);
+  const favLookup = useMemo(
+    () => new Map<string, boolean>(
+      items.map((item: any) => [item.id, favoriteIds.has(item.id)]),
+    ),
+    [items, favoriteIds],
+  );
+
   const handleRefresh = useCallback(() => {
     void refetch();
   }, [refetch]);
@@ -280,12 +292,13 @@ export default function ExploreScreen() {
     ({ item }: { item: any }) => {
       const isCompact = viewMode === "list";
       const isGrid = viewMode === "grid";
+      const isFav = favLookup.get(item.id) ?? false;
       if (tab === "clubs") {
-        return <ClubCard club={item} isCompact={isCompact} grid={isGrid} />;
+        return <ClubCard club={item} isCompact={isCompact} grid={isGrid} initialIsFavorite={isFav} />;
       }
-      return <EventCard event={item} isCompact={isCompact} grid={isGrid} />;
+      return <EventCard event={item} isCompact={isCompact} grid={isGrid} initialIsFavorite={isFav} />;
     },
-    [tab, viewMode]
+    [tab, viewMode, favLookup],
   );
 
   const keyExtractor = useCallback((item: any) => item.id, []);

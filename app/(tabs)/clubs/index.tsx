@@ -18,6 +18,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { useBatchFavoriteIds, useBatchFavoriteCounts } from "@/hooks/useBatchedFavorites";
 
 
 const defaultFilters: ClubListFilters = {
@@ -52,6 +53,27 @@ export default function ClubsScreen() {
     useClubs(filtersWithLocation, userId);
 
   const clubs = useMemo(() => (data?.pages.flat() ?? []) as Club[], [data]);
+
+  // ── Batched favorite state (one query per entity type, not per card) ──────
+  const clubIds = useMemo(() => clubs.map((c) => c.id), [clubs]);
+  const { favoriteIds, isLoading: favIdsLoading } = useBatchFavoriteIds("club");
+  const { counts: favCounts } = useBatchFavoriteCounts("club", clubIds);
+  const favIdsLoadingOrCountLoading = favIdsLoading;
+
+  // Memoize per-club favorite lookups so render doesn't recompute.
+  const clubFavLookup = useMemo(
+    () =>
+      new Map<string, { isFavorite: boolean; favCount: number }>(
+        clubs.map((c) => [
+          c.id,
+          {
+            isFavorite: favoriteIds.has(c.id),
+            favCount: favCounts.get(c.id) ?? 0,
+          },
+        ]),
+      ),
+    [clubs, favoriteIds, favCounts],
+  );
 
   const onRefresh = useCallback(() => void refetch(), [refetch]);
 
@@ -107,17 +129,18 @@ export default function ClubsScreen() {
         numColumns={grid ? columns : 1}
         data={clubs}
         keyExtractor={(c) => c.id}
-        renderItem={({ item }) =>
-          grid ? (
+        renderItem={({ item }) => {
+          const fav = clubFavLookup.get(item.id) ?? { isFavorite: false, favCount: 0 };
+          return grid ? (
             <View className="px-1">
-              <ClubCardGrid club={item} />
+              <ClubCardGrid club={item} initialIsFavorite={fav.isFavorite} initialFavCount={fav.favCount} />
             </View>
           ) : (
             <View>
-              <ClubCard club={item} compact />
+              <ClubCard club={item} compact initialIsFavorite={fav.isFavorite} initialFavCount={fav.favCount} />
             </View>
-          )
-        }
+          );
+        }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
         onEndReachedThreshold={0.5}
         onEndReached={() => {

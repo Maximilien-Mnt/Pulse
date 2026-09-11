@@ -22,6 +22,25 @@ interface UseToggleFavoriteOptions {
   queryKeyPrefix?: string;
   /** When true a count query is managed and optimistic count deltas are applied. */
   includeCount?: boolean;
+  /**
+   * When provided, the `isFavorited` read query is skipped (enabled: false) and
+   * this value is used instead.  The cache is seeded with this value so
+   * optimistic updates in `onMutate` work correctly.
+   *
+   * Use this when the parent container has already fetched the favorite state
+   * via a batched query (e.g. `useBatchFavoriteIds`) and passes it down as a
+   * prop — this avoids one per-card network request on list screens.
+   */
+  initialIsFavorite?: boolean;
+  /**
+   * When provided, the `favCount` read query is skipped (enabled: false) and
+   * this value is used instead.  The cache is seeded with this value so
+   * optimistic count deltas in `onMutate` work correctly.
+   *
+   * Use this when the parent container has already fetched counts via a batched
+   * query (e.g. `useBatchFavoriteCounts`) and passes them down as props.
+   */
+  initialFavCount?: number;
   /** Extra query keys to invalidate on settlement (e.g. detail screen keys). */
   extraInvalidationKeys?: Array<string | string[]>;
 }
@@ -64,6 +83,8 @@ export function useToggleFavorite({
   id,
   queryKeyPrefix,
   includeCount = true,
+  initialIsFavorite,
+  initialFavCount,
   extraInvalidationKeys = [],
 }: UseToggleFavoriteOptions): UseToggleFavoriteResult {
   const queryClient = useQueryClient();
@@ -76,39 +97,56 @@ export function useToggleFavorite({
   const countKey: readonly [string, string] | null =
     includeCount ? countQueryKey(prefix, id) : null;
 
-  // ── isFavorited query ──────────────────────────────────────────────────
-  const { data: isFavorited, isLoading: isLoadingFav, refetch: refetchFav } = useQuery({
-    queryKey: favKey,
-    queryFn: async () => {
-      if (!userId) return false;
-      const { data, error } = await supabase
-        .from(table)
-        .select(col)
-        .eq("user_id", userId)
-        .eq(col, id)
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
-    enabled: !!userId && !!id,
-    staleTime: 5000,
-  });
+  // ── Determine whether to skip read-side queries (batched parent provided data) ──
+  const skipFavQuery = initialIsFavorite !== undefined;
+  const skipCountQuery = includeCount && initialFavCount !== undefined;
 
-  // ── favCount query ─────────────────────────────────────────────────────
-  const { data: favCountRaw, isLoading: isLoadingCount, refetch: refetchCount } =
+  // Seed cache with initial values so optimistic updates work correctly.
+  if (skipFavQuery) {
+    queryClient.setQueryData(favKey, initialIsFavorite);
+  }
+  if (skipCountQuery && countKey) {
+    queryClient.setQueryData(countKey, initialFavCount);
+  }
+
+  // ── isFavorited query ──────────────────────────────────────────────────
+  const { data: isFavorited, isLoading: isLoadingFav, refetch: refetchFav } =
     useQuery({
-      queryKey: countKey ?? [],
+      queryKey: favKey,
       queryFn: async () => {
-        const { count, error } = await supabase
-          .from(table)
-          .select("*", { count: "exact", head: true })
-          .eq(col, id);
+        if (!userId) return false;
+        const { data, error } = await supabase
+          .from(table as any)
+          .select(col as any)
+          .eq("user_id", userId)
+          .eq(col, id)
+          .maybeSingle();
         if (error) throw error;
-        return (count ?? 0) as number;
+        return !!data;
       },
-      enabled: !!id && includeCount,
+      enabled: !!userId && !!id && !skipFavQuery,
       staleTime: 5000,
     });
+
+  // ── favCount query ──────────────────────────────────────────────────────
+  const favCountQuery = useQuery({
+    queryKey: countKey!,
+    queryFn: async () => {
+      if (!userId) return 0;
+      const { count, error } = await supabase
+        .from(table as any)
+        .select(col as any, { count: "exact", head: true })
+        .eq(col, id);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!userId && !!id && !skipCountQuery && includeCount,
+  });
+
+  const favCountRaw =
+    skipCountQuery || !includeCount
+      ? initialFavCount ?? undefined
+      : favCountQuery.data ?? 0;
 
   const favCount = includeCount ? (favCountRaw ?? 0) : undefined;
 
@@ -117,20 +155,20 @@ export function useToggleFavorite({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
       const { data: existing } = await supabase
-        .from(table)
-        .select(col)
+        .from(table as any)
+        .select(col as any)
         .eq("user_id", userId)
         .eq(col, id)
         .maybeSingle();
       if (existing) {
         const { error } = await supabase
-          .from(table)
+          .from(table as any)
           .delete()
           .eq("user_id", userId)
           .eq(col, id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(table).insert({
+        const { error } = await supabase.from(table as any).insert({
           user_id: userId,
           [col]: id,
         });
@@ -186,10 +224,10 @@ export function useToggleFavorite({
         void queryClient.invalidateQueries({ queryKey: countKey });
       }
       for (const key of listInvalidationKey(entityType)) {
-        void queryClient.invalidateQueries({ queryKey: key });
+        void queryClient.invalidateQueries({ queryKey: key as readonly unknown[] });
       }
       for (const key of extraInvalidationKeys) {
-        void queryClient.invalidateQueries({ queryKey: key });
+        void queryClient.invalidateQueries({ queryKey: key as readonly unknown[] });
       }
     },
   });
@@ -209,7 +247,7 @@ export function useToggleFavorite({
   return {
     isFavorited: isFavorited ?? false,
     favCount,
-    isLoading: isLoadingFav || (includeCount ? isLoadingCount : false),
+    isLoading: isLoadingFav || (includeCount && !skipCountQuery ? favCountQuery.isLoading : false),
     isPending: mutation.isPending,
     error: mutation.error,
     toggle,

@@ -11,7 +11,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 
-type Props = { event: EventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean };
+type Props = { event: EventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean; initialIsFavorite?: boolean; initialFavCount?: number };
 
 function Stars({ n }: { n: number }) {
   return (
@@ -23,12 +23,14 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export function EventCard({ event, compact, onCancel, showCancel }: Props) {
+export function EventCard({ event, compact, onCancel, showCancel, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
   const { t } = useTranslation();
   const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
     entityType: "event",
     id: event.id,
+    initialIsFavorite,
+    initialFavCount,
   });
 
   return (

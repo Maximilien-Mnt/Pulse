@@ -1,0 +1,12 @@
+PASS __tests__/useFeedPagination.test.tsx
+  feed pagination
+    ÔêÜ fetches a bounded page of 25 with lookahead cursor (104 ms)
+    ÔêÜ pages with composite cursor and ends cleanly (170 ms)
+    ÔêÜ mergeFeedPages dedupes and tolerates deleted rows (15 ms)
+    ÔêÜ refresh resets to the first page (248 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        2.445 s
+Ran all test suites matching /__tests__\\useFeedPagination.test.tsx/i.

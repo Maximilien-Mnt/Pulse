@@ -11,13 +11,15 @@ import Toast from "react-native-toast-message";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 
-type Props = { club: Club; compact?: boolean; showDelete?: boolean; onDelete?: () => void };
+type Props = { club: Club; compact?: boolean; showDelete?: boolean; onDelete?: () => void; initialIsFavorite?: boolean; initialFavCount?: number };
 
-export function ClubCard({ club, compact, showDelete, onDelete }: Props) {
+export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
   const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
     entityType: "club",
     id: club.id,
+    initialIsFavorite,
+    initialFavCount,
   });
 
   return (

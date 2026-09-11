@@ -1,21 +1,25 @@
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
+import { Icon } from "@/components/ui/Icon";
 import type { Club } from "@/types";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Dimensions, Pressable, Share, Text, View } from "react-native";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { formatDateLong } from "@/utils/date";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
 
-type Props = { club: Club };
+type Props = { club: Club; initialIsFavorite?: boolean; initialFavCount?: number };
 
-export function ClubCardGrid({ club }: Props) {
+export function ClubCardGrid({ club, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
   const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
     entityType: "club",
     id: club.id,
+    initialIsFavorite,
+    initialFavCount,
   });
 
   return (

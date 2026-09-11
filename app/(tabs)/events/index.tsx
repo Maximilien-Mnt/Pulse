@@ -17,7 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { SafeScreen } from "@/components/shared/SafeScreen";
-import { t } from "@/hooks/useTranslation";
+import { useBatchFavoriteIds, useBatchFavoriteCounts } from "@/hooks/useBatchedFavorites";
 
 
 const defaultFilters: EventListFilters = {
@@ -57,6 +57,27 @@ export default function EventsScreen() {
     useEvents(filtersWithLocation, userId);
 
   const events = useMemo(() => (data?.pages.flat() ?? []) as EventRow[], [data]);
+
+  // ── Batched favorite state (one query per entity type, not per card) ──────
+  const eventIds = useMemo(() => events.map((e) => e.id), [events]);
+  const { favoriteIds } = useBatchFavoriteIds("event");
+  const { counts: favCounts } = useBatchFavoriteCounts("event", eventIds);
+
+  // Memoize per-event favorite lookups.
+  const eventFavLookup = useMemo(
+    () =>
+      new Map<string, { isFavorite: boolean; favCount: number }>(
+        events.map((e) => [
+          e.id,
+          {
+            isFavorite: favoriteIds.has(e.id),
+            favCount: favCounts.get(e.id) ?? 0,
+          },
+        ]),
+      ),
+    [events, favoriteIds, favCounts],
+  );
+
   const onRefresh = useCallback(() => void refetch(), [refetch]);
 
   if (isLoading && !data) {
@@ -98,17 +119,18 @@ export default function EventsScreen() {
         numColumns={grid ? columns : 1}
         data={events}
         keyExtractor={(e) => e.id}
-        renderItem={({ item }) =>
-          grid ? (
+        renderItem={({ item }) => {
+          const fav = eventFavLookup.get(item.id) ?? { isFavorite: false, favCount: 0 };
+          return grid ? (
             <View className="px-1">
-              <EventCardGrid event={item} />
+              <EventCardGrid event={item} initialIsFavorite={fav.isFavorite} initialFavCount={fav.favCount} />
             </View>
           ) : (
             <View>
-              <EventCard event={item} compact />
+              <EventCard event={item} compact initialIsFavorite={fav.isFavorite} initialFavCount={fav.favCount} />
             </View>
-          )
-        }
+          );
+        }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
         onEndReachedThreshold={0.5}
         onEndReached={() => {

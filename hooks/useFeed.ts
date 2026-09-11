@@ -19,9 +19,13 @@ async function fetchBlockedIds(userId: string): Promise<string[]> {
   }
 }
 
-type FeedPage = {
+export const FEED_PAGE_SIZE = 25;
+
+export type FeedCursor = { created_at: string; id: string } | null;
+
+export type FeedPage = {
   items: FeedPost[];
-  nextCursor: string | null;
+  nextCursor: FeedCursor;
 };
 
 function normalizeFeedPost(row: any, likedByMeSet?: Set<string>): FeedPost {
@@ -78,7 +82,7 @@ async function fetchFollowingIds(userId: string | null): Promise<string[]> {
 }
 
 async function fetchFeedPage(
-  cursor: string | null,
+  cursor: FeedCursor,
   tag: string | null,
   userId: string | null,
   filter: FeedFilter
@@ -110,11 +114,20 @@ async function fetchFeedPage(
       )
     `
     )
+    // Stable deterministic order: primary timestamp + id tie-breaker.
+    // Ordering semantics unchanged (created_at DESC); id DESC only
+    // disambiguates equal timestamps.
     .order("created_at", { ascending: false })
-    .limit(20);
+    .order("id", { ascending: false })
+    // +1 lookahead: a full PAGE+1 response means another page exists.
+    .limit(FEED_PAGE_SIZE + 1);
 
   if (cursor) {
-    query = query.lt("created_at", cursor);
+    // Keyset predicate for (created_at DESC, id DESC):
+    // strictly older, or same timestamp with a smaller id.
+    query = query.or(
+      `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
+    );
   }
 
   if (tag) {
@@ -184,22 +197,46 @@ async function fetchFeedPage(
 
   const rows = (data ?? []).map((row: any) => normalizeFeedPost(row, likedByMeSet));
 
+  // +1 lookahead: trim the probe row; a short page means end of list.
+  // Deleted rows simply never appear; no tombstone handling needed.
+  const hasMore = rows.length > FEED_PAGE_SIZE;
+  const items = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;
+  const last = items.length ? items[items.length - 1]! : null;
+
   return {
-    items: rows,
-    nextCursor: rows.length ? rows[rows.length - 1]!.created_at : null,
+    items,
+    nextCursor: hasMore && last ? { created_at: last.created_at, id: last.id } : null,
   };
+}
+
+/**
+ * Flattens infinite-query pages into a deduped list (by post id).
+ * Protects against duplicates when a new post shifts the window
+ * between page fetches. Deleted rows are safe: they just disappear.
+ */
+export function mergeFeedPages(pages: FeedPage[]): FeedPost[] {
+  const seen = new Set<string>();
+  const out: FeedPost[] = [];
+  for (const page of pages ?? []) {
+    for (const item of page?.items ?? []) {
+      if (!item || seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+    }
+  }
+  return out;
 }
 
 export function useFeed(tag: string | null | undefined, filter: FeedFilter = { type: "for-you" }) {
   const userId = useAuthStore((s) => s.userId);
-  
+
   return useInfiniteQuery({
     queryKey: ["feed", tag, filter, userId],
     queryFn: async ({ pageParam }) => {
       const result = await fetchFeedPage(pageParam ?? null, tag ?? null, userId, filter);
       return result;
     },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: null as FeedCursor,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }

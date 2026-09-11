@@ -12,13 +12,15 @@ import { formatDateLong } from "@/utils/date";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
 
-type Props = { event: EventRow };
+type Props = { event: EventRow; initialIsFavorite?: boolean; initialFavCount?: number };
 
-export function EventCardGrid({ event }: Props) {
+export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
   const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
     entityType: "event",
     id: event.id,
+    initialIsFavorite,
+    initialFavCount,
   });
 
   return (

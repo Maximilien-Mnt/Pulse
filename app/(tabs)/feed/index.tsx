@@ -207,15 +207,25 @@ export default function FeedScreen() {
     data,
     fetchNextPage,
     hasNextPage,
+    isFetching,
     isFetchingNextPage,
+    isRefetching,
     isLoading,
     isError,
+    isFetchNextPageError,
     refetch,
   } = useFeed(activeTag ?? undefined, filter);
 
   const posts = useMemo(() => {
     if (!data) return [];
-    return data.pages.flatMap((page: any) => page.items ?? []);
+    // Flat-map pages then dedupe by id (shifted window / reordered rows).
+    const flat = data.pages.flatMap((page: any) => page.items ?? []);
+    const seen = new Set<string>();
+    return flat.filter((p: FeedPost) => {
+      if (!p || seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
   }, [data]);
 
   const { trendingTags, personalizedTags } = useFeedTagSuggestions(posts, userId ?? undefined);
@@ -229,13 +239,23 @@ export default function FeedScreen() {
     return applySearch(posts, searchQuery, searchOptions);
   }, [posts, searchQuery, searchOptions]);
 
+  const refreshing = isRefetching || (isFetching && !isFetchingNextPage && !isLoading);
+
   const handleRefresh = useCallback(() => {
+    // Pull-to-refresh resets to page 1 via refetch of the infinite query.
     void refetch();
   }, [refetch]);
 
   const handleEndReached = useCallback(() => {
-    if (hasNextPage) void fetchNextPage();
-  }, [hasNextPage, fetchNextPage]);
+    // Guard against double-fire, end-of-list, and error states.
+    if (!hasNextPage || isFetchingNextPage || isFetching || isError) return;
+    void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, isFetching, isError, fetchNextPage]);
+
+  const handleRetryNextPage = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleOpenComments = useCallback(
     (postId: string) => {
@@ -512,12 +532,27 @@ export default function FeedScreen() {
               onEndReached={handleEndReached}
               onEndReachedThreshold={0.5}
               refreshControl={
-                <RefreshControl refreshing={false} onRefresh={handleRefresh} />
+                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
               }
               ListFooterComponent={
                 isFetchingNextPage ? (
                   <View className="py-4 gap-3">
                     <Skeleton className="w-full h-32 rounded-lg" />
+                  </View>
+                ) : isFetchNextPageError && hasNextPage ? (
+                  <View className="py-4 items-center gap-2">
+                    <Text variant="body" className="text-text-secondary text-center">
+                      {t("feed.errorBody")}
+                    </Text>
+                    <Button variant="secondary" onPress={handleRetryNextPage}>
+                      {t("feed.errorCta")}
+                    </Button>
+                  </View>
+                ) : !hasNextPage && visiblePosts.length > 0 ? (
+                  <View className="py-4 items-center">
+                    <Text variant="caption" className="text-text-tertiary text-center">
+                      {t("feed.endReached")}
+                    </Text>
                   </View>
                 ) : null
               }

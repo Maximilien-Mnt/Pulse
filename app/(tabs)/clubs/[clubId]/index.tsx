@@ -1,54 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Image } from 'expo-image';
-import { Pressable, ScrollView, Share, View, Text, ActivityIndicator, FlatList, useWindowDimensions } from 'react-native';
+import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { SafeScreen } from '@/components/shared/SafeScreen';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '@/stores/authStore';
 import { usePostHog } from 'posthog-react-native';
-import { getCountryDisplay } from '@/utils/countries';
-import { SPORTS } from '@/lib/constants';
-import { Button } from '@/components/ui/Button';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
-import { Text as PulseText } from '@/components/ui/Text';
-import { Avatar } from '@/components/ui/Avatar';
-import { BackButton } from '@/components/ui/BackButton';
-import { PressableScale } from '@/components/ui/PressableScale';
 import { useClubMembers } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
-import { useLeaveClub } from '@/hooks/useLeaveClub';
-import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
-import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
-import { supabase } from '@/lib/supabase';
-import type { Club, EventRow } from '@/types';
-import { useTranslation, t } from '@/hooks/useTranslation';
-import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
-import { EventCard } from '@/components/events/EventCard';
-import { sanitizeOpeningHours } from '@/lib/openingHours';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
-import { Text as PulseText } from '@/components/ui/Text';
-import { Avatar } from '@/components/ui/Avatar';
-import { BackButton } from '@/components/ui/BackButton';
-import { PressableScale } from '@/components/ui/PressableScale';
-import { useClubMembers } from '@/hooks/useClubMembers';
-import { useJoinRequestStatus } from '@/hooks/useJoinRequestStatus';
-import { useLeaveClub } from '@/hooks/useLeaveClub';
 import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
+import { queryClient } from '@/lib/queryClient';
 import { supabase } from '@/lib/supabase';
 import type { Club, EventRow } from '@/types';
 import { useTranslation, t } from '@/hooks/useTranslation';
-import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
-import { EventCard } from '@/components/events/EventCard';
-import { sanitizeOpeningHours } from '@/lib/openingHours';
-
-const CARD = 'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
-const DIVIDER = 'border-b border-neutral-100 dark:border-neutral-700';
+import { ClubActionHeader } from '@/components/clubs/public/ClubActionHeader';
+import { ClubHeroBar } from '@/components/clubs/public/ClubHeroBar';
+import { ClubIdentity } from '@/components/clubs/public/ClubIdentity';
+import { ClubStatTiles, type StatData } from '@/components/clubs/public/ClubStatTiles';
+import { ClubDescriptionCard } from '@/components/clubs/public/ClubDescriptionCard';
+import { ClubInfoGrid, type LevelRow } from '@/components/clubs/public/ClubInfoGrid';
+import { ClubEventsSection } from '@/components/clubs/public/ClubEventsSection';
+import { ClubContactLinks } from '@/components/clubs/public/ClubContactLinks';
+import { ClubPhotoGallery } from '@/components/clubs/public/ClubPhotoGallery';
+import { ClubMembersPreview } from '@/components/clubs/public/ClubMembersPreview';
+import { ClubLoadingSkeleton } from '@/components/clubs/public/ClubLoadingSkeleton';
+import { ClubNotFoundState } from '@/components/clubs/public/ClubNotFoundState';
+import type { LinkRowData } from '@/components/clubs/public/ClubSharedUI';
 
 export default function ClubDetailScreen() {
   const params = useLocalSearchParams<{ clubId: string; public?: string }>();
@@ -94,7 +73,6 @@ export default function ClubDetailScreen() {
 
   const { data: members = [] } = useClubMembers(clubId ?? null);
 
-  // Active tab of the events section (auto-falls back to Past when no upcoming events).
   const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
@@ -131,7 +109,6 @@ export default function ClubDetailScreen() {
     extraInvalidationKeys: [['club', clubId]],
   });
 
-  // Number of events linked to this club (shown in the stat tiles).
   const { data: eventsCount = 0 } = useQuery({
     queryKey: ['club-events-count', clubId],
     enabled: !!clubId,
@@ -167,20 +144,12 @@ export default function ClubDetailScreen() {
     .slice()
     .reverse();
 
-  const tabEvents = eventsTab === 'upcoming' ? upcomingEvents : pastEvents;
-
   // If the Upcoming tab is empty but past events exist, show Past by default.
   useEffect(() => {
     if (!eventsLoading && eventsTab === 'upcoming' && upcomingEvents.length === 0 && pastEvents.length > 0) {
       setEventsTab('past');
     }
   }, [eventsLoading, eventsTab, upcomingEvents.length, pastEvents.length]);
-
-  const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
-    entityType: 'club',
-    id: clubId ?? '',
-    extraInvalidationKeys: [['club', clubId]],
-  });
 
   const handleToggle = () => void toggle();
 
@@ -202,30 +171,11 @@ export default function ClubDetailScreen() {
     if (clubLoading) {
       return (
         <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]'>
-          <View className='px-4 pt-4 gap-3'>
-            <Skeleton className='w-full h-48 rounded-2xl' />
-            <View className='flex-row items-center gap-3'>
-              <Skeleton className='w-[72px] h-[72px] rounded-3xl' />
-              <View className='flex-1 gap-2'>
-                <Skeleton className='w-3/4 h-7 rounded-lg' />
-                <Skeleton className='w-1/2 h-4 rounded-md' />
-              </View>
-            </View>
-            <Skeleton className='w-full h-24 rounded-2xl' />
-            <Skeleton className='w-full h-12 rounded-xl' />
-          </View>
+          <ClubLoadingSkeleton />
         </SafeScreen>
       );
     }
-    return (
-      <SafeScreen className='flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1C]'>
-        <Icon name='AlertCircle' size={32} color='text-tertiary' />
-        <PulseText variant='body' className='mt-3 text-neutral-500'>
-          {t('clubs.notFound')}
-        </PulseText>
-        <Button title={t('clubs.back')} variant='secondary' className='mt-4' onPress={() => router.back()} />
-      </SafeScreen>
-    );
+    return <ClubNotFoundState onBack={() => router.back()} />;
   }
   // ---- Responsive layout ----
   const isWide = winWidth >= 760;   // tablet / landscape: 2-column info grid
@@ -243,23 +193,23 @@ export default function ClubDetailScreen() {
         ? [club.sport]
         : [];
   const levels = (club.required_levels ?? {}) as Record<string, string>;
-  const levelRows = sports
+  const levelRows: LevelRow[] = sports
     .map((s) => ({ sport: s, level: levels[s] ?? (sports.length === 1 ? club.required_level : undefined) }))
-    .filter((r): r is { sport: string; level: string } => !!r.level);
+    .filter((r): r is LevelRow => !!r.level);
 
   // Short description is always shown under the title: fall back to the long one.
   const shortDesc =
     club.short_description ||
     (club.description ? club.description.replace(/\s+/g, ' ').trim().slice(0, 180) : null);
 
-  const stats = [
+  const stats: StatData[] = [
     { icon: 'Users', label: 'Membres', value: String(club.member_count ?? 0), onPress: 'members' },
-    { icon: 'Heart', label: 'Favoris', value: String(favoritesCount) },
+    { icon: 'Heart', label: 'Favoris', value: String(favCount) },
     { icon: 'Calendar', label: 'Événements', value: String(eventsCount) },
     { icon: 'Inbox', label: 'Demandes', value: '0' },
   ];
 
-  const linkRows = [
+  const linkRows: LinkRowData[] = [
     club.registration_url && { icon: 'UserPlus', label: "S'inscrire", value: club.registration_url, url: club.registration_url },
     club.website_url && { icon: 'Globe', label: 'Site web', value: club.website_url, url: club.website_url },
     club.contact_email && {
@@ -273,30 +223,12 @@ export default function ClubDetailScreen() {
     club.facebook_url && { icon: 'Facebook', label: 'Facebook', value: club.facebook_url, url: club.facebook_url },
     club.tiktok_url && { icon: 'Music', label: 'TikTok', value: club.tiktok_url, url: club.tiktok_url },
     club.extra_link && { icon: 'Share2', label: 'Autre lien', value: club.extra_link, url: club.extra_link },
-  ].filter((r): r is { icon: string; label: string; value: string; url: string } => !!r);
+  ].filter((r): r is LinkRowData => !!r);
 
   return (
     <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]' edges={['top']}>
       {/* ---- Header: back arrow + "Club" label (+ settings for the creator) ---- */}
-      <View className='flex-row items-center gap-2 px-4 py-2 border-b border-neutral-100 dark:border-neutral-800'>
-        <BackButton useInAppSession fallbackRoute="/(tabs)/profile" />
-        <PulseText variant='h2' className='flex-1' numberOfLines={1}>
-          {t('clubs.public')}
-        </PulseText>
-        {isCreator ? (
-          <PressableScale
-            onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
-            hitSlop={8}
-            scaleOnPress={0.9}
-            scaleOnHover={1.08}
-            className='w-11 h-11 rounded-full bg-primary/10 items-center justify-center active:bg-primary/20'
-            accessibilityRole='button'
-            accessibilityLabel={t('clubs.edit')}
-          >
-            <Icon name='Settings' size={22} color='primary' />
-          </PressableScale>
-        ) : null}
-      </View>
+      <ClubActionHeader clubId={clubId ?? ''} isCreator={isCreator} />
 
       <ScrollView
         className='flex-1'
@@ -304,406 +236,61 @@ export default function ClubDetailScreen() {
         contentContainerStyle={{ width: '100%', maxWidth: contentMax, alignSelf: 'center' }}
       >
         {/* ---- Hero cover (like & share straddle its bottom-right edge) ---- */}
-        <View className='px-4 pt-3'>
-          <View className='relative'>
-            {cover ? (
-              <Image source={{ uri: cover }} className='w-full rounded-2xl' style={{ height: coverH }} contentFit='cover' />
-            ) : (
-              <View
-                className='w-full rounded-2xl bg-neutral-200 dark:bg-neutral-700 items-center justify-center'
-                style={{ height: coverH - 40 }}
-              >
-                <Icon name='Image' size={32} color='text-tertiary' />
-              </View>
-            )}
-            {/* Big, clear like & share buttons — far right, on the cover/content limit */}
-            <View className='absolute right-3 -bottom-6 flex-row items-center gap-2'>
-              <View>
-                <PressableScale
-                  onPress={handleToggle}
-                  scaleOnPress={0.85}
-                  scaleOnHover={1.1}
-                  disabled={toggleFavoriteMutation.isPending}
-                  accessibilityRole='button'
-                  accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  accessibilityState={{ selected: !!isFavorited, disabled: toggleFavoriteMutation.isPending }}
-                  hitSlop={6}
-                  className='w-12 h-12 rounded-full bg-white dark:bg-neutral-800 items-center justify-center border border-neutral-200 dark:border-neutral-700 shadow-sm active:bg-primary/15'
-                >
-                  <Icon name='Heart' size={24} color={isFavorited ? 'primary' : 'text-secondary'} active={!!isFavorited} />
-                </PressableScale>
-                {favoritesCount > 0 ? (
-                  <View
-                    className='absolute -bottom-1 -right-1 rounded-full bg-primary items-center justify-center border-2 border-white dark:border-[#0A0F1C]'
-                    style={{ minWidth: 20, height: 20, paddingHorizontal: 4 }}
-                  >
-                    <PulseText variant='caption' className='text-white font-semibold tabular-nums' style={{ fontSize: 10 }} numberOfLines={1}>
-                      {favoritesCount > 99 ? '99+' : favoritesCount}
-                    </PulseText>
-                  </View>
-                ) : null}
-              </View>
-              <PressableScale
-                onPress={handleShare}
-                scaleOnPress={0.85}
-                scaleOnHover={1.1}
-                accessibilityRole='button'
-                accessibilityLabel='Partager'
-                hitSlop={6}
-                className='w-12 h-12 rounded-full bg-white dark:bg-neutral-800 items-center justify-center border border-neutral-200 dark:border-neutral-700 shadow-sm active:bg-primary/15'
-              >
-                <Icon name='Share2' size={22} color='primary' />
-              </PressableScale>
-              <PressableScale
-                onPress={() => {
-                  if (isCreator) {
-                    setShowDeleteSheet(true);
-                  } else if (!joinStatus?.isMember && !joinStatus?.isPending) {
-                    joinMut.mutate();
-                  }
-                }}
-                disabled={joinStatus?.isPending || joinMut.isPending}
-                scaleOnPress={0.85}
-                scaleOnHover={1.1}
-                accessibilityRole='button'
-                accessibilityLabel={isCreator ? 'Supprimer' : joinStatus?.isPending ? 'Demande envoyée' : 'Rejoindre'}
-                hitSlop={6}
-                className={`h-12 rounded-full items-center justify-center border shadow-sm px-5 ${isCreator ? 'bg-red-500 border-red-500' : joinStatus?.isPending ? 'bg-neutral-200 dark:bg-neutral-700 border-neutral-200 dark:border-neutral-700' : 'bg-primary border-primary'}`}
-              >
-                <PulseText variant='body' className={`font-semibold ${isCreator || joinStatus?.isPending ? 'text-white dark:text-neutral-300' : 'text-white'}`}>
-                  {isCreator ? t('clubs.dashboard.deleteClub') : joinStatus?.isPending ? t('clubJoin.requestSent') : club.is_private ? t('clubs.joinRequest') : t('clubs.join')}
-                </PulseText>
-              </PressableScale>
-            </View>
-          </View>
-        </View>
+        <ClubHeroBar
+          club={club}
+          cover={cover}
+          coverH={coverH}
+          isFavorited={!!isFavorited}
+          favCount={favCount ?? 0}
+          isFavPending={isPending}
+          onToggle={handleToggle}
+          onShare={handleShare}
+          isCreator={isCreator}
+          joinStatus={joinStatus}
+          joinMut={joinMut}
+          onCreatorAction={() => setShowDeleteSheet(true)}
+        />
 
-        {/* ---- Identity: logo, title, short description, badges + big action buttons ---- */}
-        <View className='px-5 mb-5'>
-          <View className='-mt-10 self-start'>
-            {club.logo_url ? (
-              <PressableScale scaleOnHover={1.08} hoverOnly>
-                <Image
-                  source={{ uri: club.logo_url }}
-                  className='w-20 h-20 rounded-3xl bg-white dark:bg-neutral-800'
-                  style={{ borderWidth: 4, borderColor: '#fff' }}
-                  contentFit='cover'
-                />
-              </PressableScale>
-            ) : (
-              <PressableScale scaleOnHover={1.08} hoverOnly>
-                <View
-                  className='w-20 h-20 rounded-3xl bg-neutral-200 dark:bg-neutral-700 items-center justify-center'
-                  style={{ borderWidth: 4, borderColor: '#fff' }}
-                >
-                  <Icon name='Trophy' size={24} color='text-tertiary' />
-                </View>
-              </PressableScale>
-            )}
-          </View>
-          <View className='mt-2 flex-1 min-w-0'>
-            <PulseText variant='h1' numberOfLines={2}>
-              {club.name}
-            </PulseText>
-            {shortDesc ? (
-              <PulseText variant='body' className='text-neutral-500 mt-1.5' numberOfLines={3}>
-                {shortDesc}
-              </PulseText>
-            ) : null}
-            <View className='flex-row flex-wrap gap-2 mt-3 items-center'>
-              {sports.map((s) => (
-                <SportBadge key={s} sport={s} />
-              ))}
-              <SourcePill isExternal={club.is_external} />
-              {club.is_private != null ? (
-                <Pill
-                  icon={club.is_private ? 'Lock' : 'Globe'}
-                  label={club.is_private ? 'Privé' : 'Public'}
-                  color='#4A4F59'
-                  bgClass='bg-neutral-100 dark:bg-neutral-700'
-                />
-              ) : null}
-            </View>
-          </View>
-        </View>
+        {/* ---- Identity: logo, title, short description, badges ---- */}
+        <ClubIdentity club={club} shortDesc={shortDesc} sports={sports} />
+
         {/* ---- Stat tiles: responsive, wrap to any screen width ---- */}
-        <View className='flex-row flex-wrap gap-3 px-4 mb-5'>
-          {stats.map((s) => (
-            <StatTile
-              key={s.label}
-              icon={s.icon}
-              label={s.label}
-              value={s.value}
-              minWidth={isMd ? 150 : 132}
-              growBasis={isWide ? '23%' : '47%'}
-              onPress={s.onPress === 'members' ? () => router.push(`/(tabs)/clubs/${clubId}/members`) : undefined}
-            />
-          ))}
-        </View>
+        <ClubStatTiles
+          stats={stats}
+          isWide={isWide}
+          isMd={isMd}
+          onMembersPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)}
+        />
 
         {/* ---- Long description + founder ---- */}
-        {club.description ? (
-          <Section title='Description' className='px-4 mb-5'>
-            <View className={'p-4 ' + CARD}>
-              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 leading-relaxed'>
-                {club.description}
-              </PulseText>
-              {creator ? (
-                <PressableScale
-                  className='flex-row items-center gap-2 mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700 self-start'
-                  scaleOnPress={0.97}
-                  onPress={() => router.push(`/profile/${creator.id}`)}
-                  accessibilityRole='button'
-                  accessibilityLabel={`Fondé par ${creator.full_name}, voir le profil`}
-                >
-                  <Avatar uri={creator.avatar_url} size={28} />
-                  <PulseText variant='caption' className='text-neutral-500'>
-                    Fondé par{' '}
-                    <PulseText variant='caption' className='text-primary font-semibold'>
-                      {creator.full_name}
-                    </PulseText>
-                  </PulseText>
-                </PressableScale>
-              ) : null}
-            </View>
-          </Section>
-        ) : null}
+        <ClubDescriptionCard club={club} creator={creator} />
 
         {/* ---- Info sections: 1 column on phones, 2 columns on wide screens ---- */}
-        <View className='flex-row flex-wrap gap-3 px-4 mb-5'>
-          {/* Location */}
-          {(club.city || club.country || club.address || club.postal_code) ? (
-            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-3'>
-                <Icon name='MapPin' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>Localisation</PulseText>
-              </View>
-              <View className='flex-row items-center gap-2'>
-                <Text className='text-base'>{club.country ? getCountryDisplay(club.country).split(' ')[0] : ''}</Text>
-                <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
-                  {[club.city, club.country ? getCountryDisplay(club.country).replace(/^[^A-Za-z]+/, '') : null]
-                    .filter(Boolean)
-                    .join(', ') || '—'}
-                </PulseText>
-              </View>
-              {club.address || club.postal_code ? (
-                <PulseText variant='body' className='text-neutral-500 mt-1'>
-                  {[club.address, club.postal_code].filter(Boolean).join(', ')}
-                </PulseText>
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* Ligue / Division */}
-          {club.league ? (
-            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-2'>
-                <Icon name='Trophy' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>{t('clubs.league')}</PulseText>
-              </View>
-              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
-                {club.league}
-              </PulseText>
-            </View>
-          ) : null}
-
-          {/* Foundation date */}
-          {club.founded_date ? (
-            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-2'>
-                <Icon name='Calendar' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>{t('clubs.foundedDate')}</PulseText>
-              </View>
-              <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
-                {String(club.founded_date)}
-              </PulseText>
-            </View>
-          ) : null}
-
-          {/* Details — age range only */}
-          {(club.age_min != null || club.age_max != null) ? (
-            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-1'>
-                <Icon name='Info' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>{t('common.details')}</PulseText>
-              </View>
-              <InfoRow
-                icon='Users'
-                label={t('clubs.dashboard.ageRange')}
-                value={`${club.age_min ?? '—'} – ${club.age_max ?? '—'} ans`}
-              />
-            </View>
-          ) : null}
-          {/* Required level per sport */}
-          {levelRows.length > 0 ? (
-            <View style={{ flexGrow: 1, flexBasis: isWide ? '47%' : '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-2'>
-                <Icon name='Activity' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>Niveau requis</PulseText>
-              </View>
-              {levelRows.map((r) => (
-                <View key={r.sport} className='flex-row items-center justify-between py-2 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0'>
-                  <SportBadge sport={r.sport} />
-                  <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
-                    {r.level}
-                  </PulseText>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          {/* Opening hours */}
-          {sanitizeOpeningHours(club.opening_hours).length > 0 ? (
-            <View style={{ flexGrow: 1, flexBasis: '100%' }} className={'p-4 ' + CARD}>
-              <View className='flex-row items-center gap-2 mb-2'>
-                <Icon name='Clock' size={16} color='primary' />
-                <PulseText variant='overline' className='text-neutral-400'>{t('clubs.hours.title')}</PulseText>
-              </View>
-              <ClubOpeningHoursDisplay slots={club.opening_hours ?? []} />
-            </View>
-          ) : null}
-        </View>
+        <ClubInfoGrid club={club} isWide={isWide} levelRows={levelRows} />
 
         {/* ---- Events: always visible, Upcoming / Past tabs, scrollable list ---- */}
-        <Section title={t('clubs.upcomingEvents')} className='px-4 mb-5'>
-          {eventsLoading ? (
-            <View className={'p-4 items-center ' + CARD}>
-              <ActivityIndicator size='small' color='#3358FF' />
-            </View>
-          ) : (
-            <View>
-              {/* Tab toggle: Upcoming / Past (with counts) */}
-              <View className='flex-row gap-2 mb-3'>
-                {(['upcoming', 'past'] as const).map((tabKey) => {
-                  const count = tabKey === 'upcoming' ? upcomingEvents.length : pastEvents.length;
-                  const active = eventsTab === tabKey;
-                  return (
-                    <PressableScale
-                      key={tabKey}
-                      onPress={() => setEventsTab(tabKey)}
-                      scaleOnPress={0.96}
-                      accessibilityRole='button'
-                      accessibilityLabel={t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')}
-                      className={'flex-row items-center gap-1.5 px-3 rounded-full ' + (active ? 'bg-primary/15' : 'bg-neutral-100 dark:bg-neutral-800')}
-                      style={{ height: 30 }}
-                    >
-                      <Icon name={tabKey === 'upcoming' ? 'Calendar' : 'Clock'} size={14} color={active ? 'primary' : 'text-secondary'} />
-                      <PulseText variant='caption' className={'font-semibold ' + (active ? 'text-primary' : 'text-neutral-500')}>
-                        {t(tabKey === 'upcoming' ? 'events.upcoming' : 'events.past')} ({count})
-                      </PulseText>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-              {/* Scrollable, height-limited event list (or empty state) */}
-              {tabEvents.length > 0 ? (
-                <ScrollView
-                  style={{ maxHeight: 320 }}
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator={false}
-                  className={CARD + ' overflow-hidden'}
-                >
-                  <View className='p-2 gap-2'>
-                    {tabEvents.map((item) => (
-                      <EventCard key={item.id} event={item} compact />
-                    ))}
-                  </View>
-                </ScrollView>
-              ) : (
-                <View className={CARD + ' p-6 items-center'}>
-                  <Icon name='Calendar' size={24} color='text-tertiary' />
-                  <PulseText variant='body' className='text-neutral-500 mt-2 text-center'>
-                    {eventsTab === 'upcoming' ? t('events.emptyUpcoming') : t('events.emptyPast')}
-                  </PulseText>
-                </View>
-              )}
-            </View>
-          )}
-        </Section>
+        <ClubEventsSection
+          upcomingEvents={upcomingEvents}
+          pastEvents={pastEvents}
+          eventsTab={eventsTab}
+          setEventsTab={setEventsTab}
+          eventsLoading={eventsLoading}
+        />
 
         {/* ---- Contact & links (includes social networks) ---- */}
-        {linkRows.length > 0 ? (
-          <Section title='Contact & liens' className='px-4 mb-5'>
-            <View className={CARD + ' overflow-hidden'}>
-              {linkRows.map((row, i) => (
-                <LinkRow
-                  key={row.label}
-                  icon={row.icon}
-                  label={row.label}
-                  value={row.value}
-                  url={row.url}
-                  isLast={i === linkRows.length - 1}
-                />
-              ))}
-            </View>
-          </Section>
-        ) : null}
+        <ClubContactLinks linkRows={linkRows} />
 
         {/* ---- Photo gallery ---- */}
         {club.hero_urls && club.hero_urls.length > 1 ? (
-          <Section title='Galerie photo' className='px-4 mb-5'>
-            <ClubPhotoGallery urls={club.hero_urls} itemWidth={galleryW} itemHeight={Math.min(Math.round(galleryW * 0.42), 200)} />
-          </Section>
+          <ClubPhotoGallery
+            urls={club.hero_urls}
+            itemWidth={galleryW}
+            itemHeight={Math.min(Math.round(galleryW * 0.42), 200)}
+          />
         ) : null}
+
         {/* ---- Members: card chips that wrap, creator highlighted, "see all" ---- */}
-        {!club.is_external && members.length > 0 ? (
-          <Section title={`Membres (${members.length})`} className='px-4 mb-5'>
-            <View className='flex-row flex-wrap gap-2.5'>
-              {members.map((m) => {
-                const isCreatorItem = creator && m.user_id === creator.id;
-                return (
-                  <PressableScale
-                    key={m.user_id}
-                    onPress={() => router.push(`/profile/${m.user_id}`)}
-                    scaleOnPress={0.95}
-                    scaleOnHover={1.04}
-                    accessibilityRole='button'
-                    accessibilityLabel={`Voir le profil de ${m.full_name}`}
-                    className={'flex-row items-center gap-2.5 py-2 pl-2 pr-3.5 rounded-full ' + CARD}
-                  >
-                    <View className='relative'>
-                      <View className={isCreatorItem ? 'p-0.5 rounded-full bg-primary' : ''}>
-                        <Avatar uri={m.avatar_url} size={36} />
-                      </View>
-                      {isCreatorItem ? (
-                        <View className='absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-primary items-center justify-center' style={{ width: 18, height: 18 }}>
-                          <Icon name='Star' size={10} color='white' filled />
-                        </View>
-                      ) : null}
-                    </View>
-                    <View className='min-w-0'>
-                      <PulseText variant='caption' className='text-neutral-800 dark:text-neutral-100 font-medium' numberOfLines={1} style={{ maxWidth: 110 }}>
-                        {m.full_name}
-                      </PulseText>
-                      {isCreatorItem ? (
-                        <PulseText variant='caption' className='text-primary' numberOfLines={1}>
-                          Fondateur
-                        </PulseText>
-                      ) : null}
-                    </View>
-                  </PressableScale>
-                );
-              })}
-            </View>
-            <PressableScale
-              onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)}
-              scaleOnPress={0.97}
-              scaleOnHover={1.03}
-              accessibilityRole='button'
-              accessibilityLabel='Voir tous les membres'
-              className='flex-row items-center gap-2 mt-3 self-start px-4 py-2.5 rounded-full bg-primary/10 dark:bg-primary/15 active:bg-primary/25'
-            >
-              <Icon name='Users' size={16} color='primary' />
-              <PulseText variant='body' className='text-primary font-medium'>
-                Voir tous les membres
-              </PulseText>
-              <Icon name='ChevronRight' size={16} color='primary' />
-            </PressableScale>
-          </Section>
-        ) : null}
-
-
-
+        <ClubMembersPreview club={club} creator={creator} members={members} />
       </ScrollView>
       <LeaveClubSheet
         visible={showLeaveSheet}
@@ -721,254 +308,3 @@ export default function ClubDetailScreen() {
     </SafeScreen>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Subcomponents
-// ---------------------------------------------------------------------------
-
-function Section({
-  title,
-  children,
-  className,
-}: {
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <View className={className}>
-      <PulseText variant='overline' className='text-neutral-400 mb-2'>
-        {title}
-      </PulseText>
-      {children}
-    </View>
-  );
-}
-
-function StatTile({
-  icon,
-  label,
-  value,
-  minWidth,
-  growBasis,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  minWidth: number;
-  growBasis: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={{ flexGrow: 1, flexBasis: growBasis as never, minWidth }}
-      className={'p-3.5 rounded-2xl border ' + (onPress ? 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700' : 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700')}
-    >
-      <View className='flex-row items-center gap-2'>
-        <View className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'>
-          <Icon name={icon as any} size={15} color='primary' />
-        </View>
-        <View className='flex-1 min-w-0'>
-          <PulseText variant='stat' className='text-neutral-900 dark:text-neutral-50' numberOfLines={1}>
-            {value}
-          </PulseText>
-          <PulseText variant='caption' className='text-neutral-400' numberOfLines={1}>
-            {label}
-          </PulseText>
-        </View>
-        {onPress ? <Icon name='ChevronRight' size={16} color='text-tertiary' /> : null}
-      </View>
-    </Pressable>
-  );
-}
-
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <View className='flex-row items-start gap-3 py-2 border-b border-neutral-100 dark:border-neutral-700 last:border-b-0'>
-      <View className='pt-1'>
-        <Icon name={icon as any} size={15} color='text-secondary' />
-      </View>
-      <View className='flex-1 gap-0.5'>
-        <PulseText variant='caption' className='text-neutral-400'>
-          {label}
-        </PulseText>
-        <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100'>
-          {value}
-        </PulseText>
-      </View>
-    </View>
-  );
-}
-
-function LinkRow({
-  icon,
-  label,
-  value,
-  url,
-  isLast,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  url: string;
-  isLast?: boolean;
-}) {
-  return (
-    <PressableScale
-      className={'flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50 ' + (isLast ? '' : DIVIDER)}
-      scaleOnPress={0.98}
-      scaleOnHover={1.02}
-      onPress={() => void WebBrowser.openBrowserAsync(url)}
-      accessibilityRole='link'
-      accessibilityLabel={`${label} : ${value}`}
-    >
-      <View className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center'>
-        <Icon name={icon as any} size={18} color='primary' />
-      </View>
-      <View className='flex-1 min-w-0'>
-        <PulseText variant='body' className='font-medium text-neutral-900 dark:text-neutral-50'>
-          {label}
-        </PulseText>
-        <PulseText variant='caption' className='text-neutral-500' numberOfLines={1}>
-          {value}
-        </PulseText>
-      </View>
-      <Icon name='ArrowRight' size={18} color='text-secondary' />
-    </PressableScale>
-  );
-}
-
-function SportBadge({ sport }: { sport: string }) {
-  const definition = SPORTS.find((s) => s.id === sport);
-  const iconName = definition?.icon ?? 'Trophy';
-  const color = definition?.color ?? '#3358FF';
-  const label = definition?.label ?? sport;
-
-  return (
-    <Pill icon={iconName} label={label} color={color} bgStyle={{ backgroundColor: `${color}15` }} />
-  );
-}
-
-/**
- * Uniform pill used for sport / source / visibility chips:
- * same height, same padding, same icon size and text style for all.
- */
-function Pill({
-  icon,
-  label,
-  color,
-  bgClass,
-  bgStyle,
-}: {
-  icon: string;
-  label: string;
-  color: string;
-  bgClass?: string;
-  bgStyle?: { backgroundColor: string };
-}) {
-  return (
-    <View
-      className={'flex-row items-center gap-1.5 px-3 rounded-full self-start ' + (bgClass ?? '')}
-      style={[{ height: 30 }, bgStyle]}
-    >
-      <Icon name={icon as any} size={14} color={color} />
-      <PulseText variant='caption' className='font-semibold' style={{ color }} numberOfLines={1}>
-        {label}
-      </PulseText>
-    </View>
-  );
-}
-
-/** Source chip (in-app vs external), rendered with the uniform Pill format. */
-function SourcePill({ isExternal }: { isExternal?: boolean }) {
-  return isExternal ? (
-    <Pill icon='Globe' label='Source externe' color='#F59E0B' bgClass='bg-warning/15' />
-  ) : (
-    <Pill icon='Smartphone' label={t('source.inApp')} color='#3358FF' bgClass='bg-primary/10' />
-  );
-}
-
-function ClubPhotoGallery({ urls, itemWidth, itemHeight }: { urls: string[]; itemWidth: number; itemHeight: number }) {
-  const listRef = useRef<FlatList<string>>(null);
-  const [index, setIndex] = useState(0);
-  // Natural aspect ratios, so each photo exactly fits the gallery height.
-  const [ratios, setRatios] = useState<Record<number, number>>({});
-
-  const go = (dir: -1 | 1) => {
-    setIndex((prev) => {
-      const next = Math.max(0, Math.min(urls.length - 1, prev + dir));
-      listRef.current?.scrollToIndex({ index: next, animated: true });
-      return next;
-    });
-  };
-
-  const widthFor = (i: number) => {
-    const ratio = ratios[i];
-    if (!ratio) return Math.round(itemWidth * 0.55);
-    return Math.round(Math.max(120, Math.min(itemWidth, itemHeight * ratio)));
-  };
-
-  return (
-    <View className='relative'>
-      <FlatList
-        ref={listRef}
-        horizontal
-        data={urls}
-        keyExtractor={(u, i) => `${u}-${i}`}
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => {
-          const x = e.nativeEvent.contentOffset.x;
-          const w = e.nativeEvent.layoutMeasurement.width;
-          setIndex(Math.round(x / w));
-        }}
-        renderItem={({ item, index: i }) => (
-          <Image
-            source={{ uri: item }}
-            style={{ width: widthFor(i), height: itemHeight }}
-            className='rounded-2xl mr-3'
-            contentFit='cover'
-            onLoad={(e: any) => {
-              const w = e?.nativeEvent?.source?.width;
-              const h = e?.nativeEvent?.source?.height;
-              if (w && h) {
-                setRatios((prev) => (prev[i] ? prev : { ...prev, [i]: w / h }));
-              }
-            }}
-          />
-        )}
-      />
-      {urls.length > 1 ? (
-        <>
-          {index > 0 ? (
-            <PressableScale
-              className='absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700'
-              scaleOnPress={0.85}
-              scaleOnHover={1.1}
-              onPress={() => go(-1)}
-              accessibilityRole='button'
-              accessibilityLabel='Photo précédente'
-            >
-              <Icon name='ChevronLeft' size={20} color='text-primary' />
-            </PressableScale>
-          ) : null}
-          {index < urls.length - 1 ? (
-            <PressableScale
-              className='absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700'
-              scaleOnPress={0.85}
-              scaleOnHover={1.1}
-              onPress={() => go(1)}
-              accessibilityRole='button'
-              accessibilityLabel='Photo suivante'
-            >
-              <Icon name='ChevronRight' size={20} color='text-primary' />
-            </PressableScale>
-          ) : null}
-        </>
-      ) : null}
-    </View>
-  );
-}
-

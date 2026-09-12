@@ -5,10 +5,10 @@ import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Pill, SportBadge, SourcePill } from './ClubSharedUI';
-import { type Club } from '@/types';
+import type { ClubDetailRow } from '@/hooks/clubProjections';
 
 interface ClubIdentityProps {
-  club: Club;
+  club: ClubDetailRow;
   shortDesc: string | null;
   sports: string[];
 }
@@ -66,3 +66,4 @@ export function ClubIdentity({ club, shortDesc, sports }: ClubIdentityProps) {
     </View>
   );
 }
+

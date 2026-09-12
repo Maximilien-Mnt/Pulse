@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { Club } from "@/types";
+import { CLUB_CARD_SELECT, type ClubCardRow } from "@/hooks/clubProjections";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 const PAGE = 20;
@@ -33,12 +33,12 @@ const defaultFilters: ClubListFilters = {
  */
 export function useClubs(filters: ClubListFilters, userId: string | null) {
   const f = filters ?? defaultFilters;
-  return useInfiniteQuery<Club[]>({
+  return useInfiniteQuery<ClubCardRow[]>({
     queryKey: ["clubs", f, userId],
     initialPageParam: 0 as number,
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < PAGE ? undefined : allPages.length,
-    queryFn: async ({ pageParam }): Promise<Club[]> => {
+    queryFn: async ({ pageParam }): Promise<ClubCardRow[]> => {
       const from = (pageParam as number) * PAGE;
       const to = from + PAGE - 1;
 
@@ -64,7 +64,7 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
                   avatar_url: row.creator.avatar_url ?? null,
                 }
               : undefined,
-          })) as Club[];
+          })) as ClubCardRow[];
 
           if (f.favoritesOnly && userId) {
             const ids = rows.map((c) => c.id);
@@ -89,11 +89,9 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
       // Standard query with PostgREST
       let q = supabase
         .from("clubs")
-        .select(
-          `
-          *
-        `
-        );
+        // Explicit projection: only the fields rendered by the club list cards
+        // (single source of truth in hooks/clubProjections.ts).
+        .select(CLUB_CARD_SELECT)
 
       if (f.sports.length) q = q.in("sport", f.sports);
       if (f.location.trim()) {
@@ -160,7 +158,7 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
       const rows = ((data ?? []) as any).map((row: any) => ({
         ...row,
         creator: row.created_by ? creatorMap.get(row.created_by) ?? undefined : undefined,
-      })) as Club[];
+      })) as ClubCardRow[];
 
       if (f.favoritesOnly && userId) {
         const ids = rows.map((c) => c.id);

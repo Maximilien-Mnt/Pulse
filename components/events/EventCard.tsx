@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { formatPriceFromCents } from "@/utils/format";
-import type { EventRow } from "@/types";
+import type { ClubEventRow } from "@/hooks/clubProjections";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
 import { Image } from "expo-image";
@@ -11,7 +11,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 
-type Props = { event: EventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean; initialIsFavorite?: boolean; initialFavCount?: number };
+type Props = { event: ClubEventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean; initialIsFavorite?: boolean; initialFavCount?: number };
 
 function Stars({ n }: { n: number }) {
   return (

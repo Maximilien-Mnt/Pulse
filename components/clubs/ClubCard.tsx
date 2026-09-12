@@ -3,7 +3,7 @@ import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 import { getCountryDisplay } from "@/utils/countries";
-import type { Club } from "@/types";
+import type { ClubCardRow } from "@/hooks/clubProjections";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Pressable, Share, Text, View } from "react-native";
@@ -11,7 +11,7 @@ import Toast from "react-native-toast-message";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 
-type Props = { club: Club; compact?: boolean; showDelete?: boolean; onDelete?: () => void; initialIsFavorite?: boolean; initialFavCount?: number };
+type Props = { club: ClubCardRow; compact?: boolean; showDelete?: boolean; onDelete?: () => void; initialIsFavorite?: boolean; initialFavCount?: number };
 
 export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
@@ -73,3 +73,4 @@ export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorit
     </Pressable>
   );
 }
+

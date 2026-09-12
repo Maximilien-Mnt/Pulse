@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Icon } from "@/components/ui/Icon";
-import type { Club } from "@/types";
+import type { ClubCardRow } from "@/hooks/clubProjections";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Dimensions, Pressable, Share, Text, View } from "react-native";
@@ -11,7 +11,7 @@ import { formatDateLong } from "@/utils/date";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
 
-type Props = { club: Club; initialIsFavorite?: boolean; initialFavCount?: number };
+type Props = { club: ClubCardRow; initialIsFavorite?: boolean; initialFavCount?: number };
 
 export function ClubCardGrid({ club, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
@@ -59,3 +59,4 @@ export function ClubCardGrid({ club, initialIsFavorite, initialFavCount }: Props
     </Pressable>
   );
 }
+

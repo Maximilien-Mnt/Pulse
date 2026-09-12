@@ -7,7 +7,7 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Section, CARD } from './ClubSharedUI';
 import type { ClubMember } from '@/hooks/useClubMembers';
-import type { Club } from '@/types';
+import type { ClubDetailRow } from '@/hooks/clubProjections';
 
 interface CreatorProfile {
   id: string;
@@ -17,7 +17,7 @@ interface CreatorProfile {
 }
 
 interface ClubMembersPreviewProps {
-  club: Club;
+  club: ClubDetailRow;
   creator: CreatorProfile | undefined;
   members: ClubMember[];
 }

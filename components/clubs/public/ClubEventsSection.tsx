@@ -6,11 +6,11 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Section, CARD } from './ClubSharedUI';
 import { EventCard } from '@/components/events/EventCard';
 import { t } from '@/hooks/useTranslation';
-import type { EventRow } from '@/types';
+import type { ClubEventRow } from '@/hooks/clubProjections';
 
 interface ClubEventsSectionProps {
-  upcomingEvents: EventRow[];
-  pastEvents: EventRow[];
+  upcomingEvents: ClubEventRow[];
+  pastEvents: ClubEventRow[];
   eventsTab: 'upcoming' | 'past';
   setEventsTab: (tab: 'upcoming' | 'past') => void;
   eventsLoading: boolean;
@@ -84,3 +84,4 @@ export function ClubEventsSection({
     </Section>
   );
 }
+

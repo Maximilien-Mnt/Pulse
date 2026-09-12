@@ -7,7 +7,12 @@ import Toast from 'react-native-toast-message';
 import { useClubMembers, type ClubMember } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus, type JoinRequestStatus } from '@/hooks/useJoinRequestStatus';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
-import type { Club, EventRow } from '@/types';
+import {
+  CLUB_DETAIL_SELECT,
+  CLUB_EVENT_SELECT,
+  type ClubDetailRow,
+  type ClubEventRow,
+} from '@/hooks/clubProjections';
 import { t } from '@/hooks/useTranslation';
 import { queryClient } from '@/lib/queryClient';
 
@@ -24,12 +29,12 @@ export interface JoinMutationContract {
 }
 
 export interface ClubDetailData {
-  club: Club | null | undefined;
+  club: ClubDetailRow | null | undefined;
   clubLoading: boolean;
   creator: CreatorProfile | undefined;
   members: ClubMember[];
-  upcomingEvents: EventRow[];
-  pastEvents: EventRow[];
+  upcomingEvents: ClubEventRow[];
+  pastEvents: ClubEventRow[];
   eventsLoading: boolean;
   isCreator: boolean;
   isMember: boolean;
@@ -56,11 +61,12 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clubs')
-        .select('*')
+        // Explicit projection for the club detail header (hooks/clubProjections.ts).
+        .select(CLUB_DETAIL_SELECT)
         .eq('id', clubId!)
         .maybeSingle();
       if (error) throw error;
-      return data as Club | null;
+      return data as ClubDetailRow | null;
     },
   });
 
@@ -92,11 +98,12 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        // Explicit projection for the events rendered in the club detail (EventCard).
+        .select(CLUB_EVENT_SELECT)
         .eq('club_id', clubId!)
         .order('start_date', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as EventRow[];
+      return (data ?? []) as ClubEventRow[];
     },
   });
 

@@ -36,7 +36,7 @@ import {
 } from '@/components/clubs/ClubOpeningHours';
 import type { OpeningHourSlot } from '@/lib/openingHours';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
-import type { Club, EventRow } from '@/types';
+import { CLUB_DETAIL_SELECT, type ClubDetailRow } from '@/hooks/clubProjections';
 import { useTranslation } from '@/hooks/useTranslation';
 import { t } from '@/hooks/useTranslation';
 
@@ -57,11 +57,12 @@ export default function ClubDashboardScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clubs')
-        .select('*')
+        // Explicit projection for the owner dashboard (hooks/clubProjections.ts).
+        .select(CLUB_DETAIL_SELECT)
         .eq('id', clubId!)
         .maybeSingle();
       if (error) throw error;
-      return data as Club | null;
+      return data as ClubDetailRow | null;
     },
   });
 

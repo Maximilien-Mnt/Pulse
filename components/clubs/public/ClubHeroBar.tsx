@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { t } from '@/hooks/useTranslation';
-import type { Club } from '@/types';
+import type { ClubDetailRow } from '@/hooks/clubProjections';
 import type { JoinRequestStatus } from '@/hooks/useJoinRequestStatus';
 
 interface FavoriteToggleContract {
@@ -14,7 +14,7 @@ interface FavoriteToggleContract {
 }
 
 interface ClubHeroBarProps {
-  club: Club;
+  club: ClubDetailRow;
   cover: string | null | undefined;
   coverH: number;
   isFavorited: boolean;

@@ -5,7 +5,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Text as PulseText } from '@/components/ui/Text';
 import { Section, CARD } from './ClubSharedUI';
-import type { Club } from '@/types';
+import type { ClubDetailRow } from '@/hooks/clubProjections';
 
 interface CreatorProfile {
   id: string;
@@ -15,7 +15,7 @@ interface CreatorProfile {
 }
 
 interface ClubDescriptionCardProps {
-  club: Club;
+  club: ClubDetailRow;
   creator: CreatorProfile | undefined;
 }
 
@@ -52,3 +52,4 @@ export function ClubDescriptionCard({ club, creator }: ClubDescriptionCardProps)
     </Section>
   );
 }
+

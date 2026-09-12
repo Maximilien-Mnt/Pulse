@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { SportBadge, InfoRow } from './ClubSharedUI';
-import { type Club } from '@/types';
+import type { ClubDetailRow } from '@/hooks/clubProjections';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
 import { getCountryDisplay } from '@/utils/countries';
 import { ClubOpeningHoursDisplay } from '@/components/clubs/ClubOpeningHours';
@@ -15,7 +15,7 @@ const CARD =
   'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
 
 interface ClubInfoGridProps {
-  club: Club;
+  club: ClubDetailRow;
   isWide: boolean;
   levelRows: LevelRow[];
 }

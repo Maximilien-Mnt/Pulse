@@ -37,13 +37,19 @@ const HOURS = Array.from({ length: 24 - 6 }, (_, i) => 6 + i);
 
 const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
 
-async function uploadAvatar(uri: string, userId: string): Promise<string> {
+async function uploadAvatar(
+  uri: string,
+  userId: string,
+  pickerMeta?: { mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null }
+): Promise<string> {
   return uploadImageToStorage({
     bucket: "avatars",
     path: `${userId}/avatar.jpg`,
     uri,
     upsert: true,
     cacheBust: true,
+    role: "avatar",
+    pickerMeta,
   });
 }
 
@@ -154,6 +160,7 @@ export default function EditProfileScreen() {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarAsset, setAvatarAsset] = useState<{ mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null } | null>(null);
   const [practicedSports, setPracticedSports] = useState<string[]>([]);
   const [interestedSports, setInterestedSports] = useState<string[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
@@ -269,11 +276,18 @@ export default function EditProfileScreen() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
     const res = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.7,
+      quality: 1,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
+      base64: false,
+      exif: false,
     });
-    if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
+    if (!res.canceled && res.assets[0]) {
+      const a = res.assets[0];
+      setAvatarUri(a.uri);
+      setAvatarAsset({ mimeType: a.mimeType, width: a.width, height: a.height, fileSize: a.fileSize });
+    }
   };
 
   const saveMut = useMutation({
@@ -282,7 +296,12 @@ export default function EditProfileScreen() {
       if (!name.trim()) throw new Error("Le nom est requis");
       let avatarUrl = profile.avatar_url;
       if (avatarUri) {
-        avatarUrl = await uploadAvatar(avatarUri, profile.id);
+        avatarUrl = await uploadAvatar(avatarUri, profile.id, {
+          mimeType: avatarAsset?.mimeType,
+          width: avatarAsset?.width,
+          height: avatarAsset?.height,
+          fileSize: avatarAsset?.fileSize,
+        });
       }
 
       const patch: any = {

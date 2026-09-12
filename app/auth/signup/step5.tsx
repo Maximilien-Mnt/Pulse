@@ -24,6 +24,7 @@ import { signupEdgeFunctionUrl } from "@/lib/supabase";
 import { getSignupErrorKey, getSignupMissingFields } from "@/utils/signupChecklist";
 import { buildSignupPayload } from "@/utils/signupPayload";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import { buildPickerImageOptions, MediaNormalizationError, type PickedImage } from "@/lib/mediaPipeline";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
@@ -42,6 +43,7 @@ export default function SignupStep5() {
   const step5 = useSignupStore((s) => s.step5);
   const setStep5 = useSignupStore((s) => s.setStep5);
   const [avatarUri, setAvatarUri] = useState<string | null>(step5?.avatarLocalUri ?? null);
+  const [avatarAsset, setAvatarAsset] = useState<PickedImage | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const mounted = useRef(false);
 
@@ -90,15 +92,26 @@ export default function SignupStep5() {
       Toast.show({ type: "error", text1: t("error.permissionPhotos") });
       return;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true, aspect: [1, 1] });
+    const res = await ImagePicker.launchImageLibraryAsync(
+      buildPickerImageOptions({ allowsEditing: true, aspect: [1, 1] }),
+    );
     if (!res.canceled && res.assets[0]) {
-      setAvatarUri(res.assets[0].uri);
-      setStep5({ bio: watch("bio"), discovery: watch("discovery"), discoveryDetails: watch("discoveryDetails"), avatarLocalUri: res.assets[0].uri });
+      const a = res.assets[0];
+      setAvatarUri(a.uri);
+      setAvatarAsset({
+        uri: a.uri,
+        mimeType: a.mimeType,
+        width: a.width,
+        height: a.height,
+        fileSize: a.fileSize,
+      });
+      setStep5({ bio: watch("bio"), discovery: watch("discovery"), discoveryDetails: watch("discoveryDetails"), avatarLocalUri: a.uri });
     }
   };
 
   const removeImage = () => {
     setAvatarUri(null);
+    setAvatarAsset(null);
     setStep5({ bio: watch("bio"), discovery: watch("discovery"), discoveryDetails: watch("discoveryDetails"), avatarLocalUri: null });
   };
 
@@ -146,9 +159,23 @@ export default function SignupStep5() {
             path: `pending-${Date.now()}.jpg`,
             uri: avatarUri,
             upsert: true,
+            role: "avatar",
+            pickerMeta: {
+              mimeType: avatarAsset?.mimeType,
+              width: avatarAsset?.width,
+              height: avatarAsset?.height,
+              fileSize: avatarAsset?.fileSize,
+            },
           });
         } catch (avatarError) {
-          console.error("[signup] avatar upload failed, continuing without avatar", avatarError);
+          if (avatarError instanceof MediaNormalizationError) {
+            Toast.show({
+              type: "error",
+              text1: t(avatarError.translationKey as never, avatarError.translationParams),
+            });
+          } else {
+            console.error("[signup] avatar upload failed, continuing without avatar", avatarError);
+          }
         }
       }
 

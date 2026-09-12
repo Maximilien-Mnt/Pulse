@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import type { MediaRole } from "@/lib/mediaPipeline";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -61,8 +62,8 @@ export default function CreatePrivateClubScreen() {
     setSports((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   };
 
-  async function uploadImage(uri: string, path: string) {
-    return uploadImageToStorage({ bucket: "clubs", path, uri });
+  async function uploadImage(uri: string, path: string, role: MediaRole = "gallery") {
+    return uploadImageToStorage({ bucket: "clubs", path, uri, upsert: true, role });
   }
 
   const pickLogo = async () => {
@@ -179,19 +180,19 @@ export default function CreatePrivateClubScreen() {
       // Upload logo
       let logoUrl: string | null = null;
       if (logoUri) {
-        logoUrl = await uploadImage(logoUri, `${userId}/${Date.now()}_logo.jpg`);
+        logoUrl = await uploadImage(logoUri, `${userId}/${Date.now()}_logo.jpg`, "avatar");
       }
 
       // Upload cover
       let coverUrl: string | null = null;
       if (coverUri) {
-        coverUrl = await uploadImage(coverUri, `${userId}/${Date.now()}_cover.jpg`);
+        coverUrl = await uploadImage(coverUri, `${userId}/${Date.now()}_cover.jpg`, "cover");
       }
 
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
         heroUrls.push(url);
       }
 

@@ -29,6 +29,7 @@ import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { Image } from "expo-image";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import { MediaNormalizationError, buildPickerImageOptions } from "@/lib/mediaPipeline";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -43,10 +44,6 @@ import { useTranslation , t } from "@/hooks/useTranslation";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function uploadImageToSupabase(uri: string, path: string) {
-  return uploadImageToStorage({ bucket: "posts", path, uri });
-}
 
 // ---------------------------------------------------------------------------
 // Post Form
@@ -64,7 +61,8 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sport, setSport] = useState<SportId | null>(null);
-  const [media, setMedia] = useState<string[]>([]);
+  const [media, setMedia] = useState<{ uri: string; mimeType?: string | null; fileSize?: number | null }[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [tagsInput, setTagsInput] = useState("");
 
   const canPublish = title.trim().length > 0 || body.trim().length > 0 || media.length > 0;
@@ -75,12 +73,14 @@ function PostForm({ onClose }: { onClose: () => void }) {
     if (!p.granted) return;
     const res = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: true,
-      quality: 0.7,
+      quality: 1,
       base64: false,
       exif: false,
     });
     if (!res.canceled) {
-      setMedia((prev) => [...prev, ...res.assets.map((a) => a.uri)].slice(0, 5));
+      setMedia((prev) =>
+        [...prev, ...res.assets.map((a) => ({ uri: a.uri, mimeType: a.mimeType ?? null, fileSize: a.fileSize ?? null }))].slice(0, 5),
+      );
     }
   }, []);
 
@@ -89,11 +89,29 @@ function PostForm({ onClose }: { onClose: () => void }) {
       if (!userId) throw new Error("auth");
       const urls: string[] = [];
       for (let i = 0; i < media.length; i++) {
-        const uri = media[i]!;
-        const path = `${userId}/${Date.now()}_${i}.jpg`;
-        const url = await uploadImageToSupabase(uri, path);
+        const item = media[i]!;
+        const uri = item.uri;
+        const isImage = !item.mimeType || item.mimeType.startsWith("image/");
+        const path = `${userId}/${Date.now()}_${i}.${isImage ? "jpg" : "mp4"}`;
+        setUploadProgress(i / Math.max(media.length, 1));
+        // Images flow through the shared pipeline (validate + resize + quality).
+        // Videos are uploaded as-is — never routed through the image pipeline.
+        const url = await uploadImageToStorage({
+          bucket: "posts",
+          path,
+          uri,
+          upsert: true,
+          role: isImage ? "gallery" : undefined,
+          pickerMeta: isImage
+            ? {
+                mimeType: item.mimeType,
+                fileSize: item.fileSize,
+              }
+            : undefined,
+        });
         urls.push(url);
       }
+      setUploadProgress(1);
       const tags = sport ? [sport, ...parsedTags] : parsedTags;
       const { error } = await supabase.from("posts").insert({
         author_id: userId,
@@ -106,6 +124,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
       if (error) throw error;
     },
     onSuccess: () => {
+      setUploadProgress(0);
       posthog.capture("post_published", { has_media: media.length > 0, media_count: media.length });
       Toast.show({ type: "success", text1: t("post.published") });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
@@ -113,7 +132,8 @@ function PostForm({ onClose }: { onClose: () => void }) {
       router.push("/(tabs)/feed");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Publication impossible";
+      setUploadProgress(0);
+      const message = err instanceof MediaNormalizationError ? t(err.translationKey as never, err.translationParams) : err instanceof Error ? err.message : "Publication impossible";
       Toast.show({ type: "error", text1: message });
     },
   });
@@ -145,12 +165,17 @@ function PostForm({ onClose }: { onClose: () => void }) {
           </Button>
           {media.length > 0 ? (
             <View className="flex-row flex-wrap gap-2 mt-3">
-              {media.map((uri) => (
-                <View key={uri} className="rounded-md overflow-hidden bg-neutral-200">
-                  <Image source={{ uri }} style={{ width: 80, height: 80 }} contentFit="cover" />
+              {media.map((item) => (
+                <View key={item.uri} className="rounded-md overflow-hidden bg-neutral-200">
+                  <Image source={{ uri: item.uri }} style={{ width: 80, height: 80 }} contentFit="cover" cachePolicy="memory-disk" />
                 </View>
               ))}
             </View>
+          ) : null}
+          {publishMut.isPending && uploadProgress > 0 && uploadProgress < 1 ? (
+            <Text variant="caption" className="text-text-secondary mt-2">
+              {t("common.uploading")} — {Math.round(uploadProgress * 100)}%
+            </Text>
           ) : null}
         </View>
 
@@ -218,12 +243,17 @@ function ClubForm({ onClose }: { onClose: () => void }) {
   const [sport, setSport] = useState<SportId | null>(null);
   const [city, setCity] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [coverAsset, setCoverAsset] = useState<{ uri: string; mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null } | null>(null);
 
   const pickCover = useCallback(async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, base64: false, exif: false });
-    if (!res.canceled && res.assets[0]) setCoverUri(res.assets[0].uri);
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    if (!res.canceled && res.assets[0]) {
+      const a = res.assets[0];
+      setCoverUri(a.uri);
+      setCoverAsset({ uri: a.uri, mimeType: a.mimeType, width: a.width, height: a.height, fileSize: a.fileSize });
+    }
   }, []);
 
   const createMut = useMutation({
@@ -232,7 +262,19 @@ function ClubForm({ onClose }: { onClose: () => void }) {
       let coverUrl: string | null = null;
       if (coverUri) {
         const path = `${userId}/clubs/${Date.now()}.jpg`;
-        coverUrl = await uploadImageToSupabase(coverUri, path);
+        coverUrl = await uploadImageToStorage({
+          bucket: "clubs",
+          path,
+          uri: coverUri,
+          upsert: true,
+          role: "cover",
+          pickerMeta: {
+            mimeType: coverAsset?.mimeType,
+            width: coverAsset?.width,
+            height: coverAsset?.height,
+            fileSize: coverAsset?.fileSize,
+          },
+        });
       }
       const { error } = await supabase.from("clubs").insert({
         name: name.trim(),
@@ -347,12 +389,17 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [coverAsset, setCoverAsset] = useState<{ uri: string; mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null } | null>(null);
 
   const pickCover = useCallback(async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, base64: false, exif: false });
-    if (!res.canceled && res.assets[0]) setCoverUri(res.assets[0].uri);
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    if (!res.canceled && res.assets[0]) {
+      const a = res.assets[0];
+      setCoverUri(a.uri);
+      setCoverAsset({ uri: a.uri, mimeType: a.mimeType, width: a.width, height: a.height, fileSize: a.fileSize });
+    }
   }, []);
 
   const createMut = useMutation({
@@ -361,7 +408,19 @@ function EventForm({ onClose }: { onClose: () => void }) {
       let coverUrl: string | null = null;
       if (coverUri) {
         const path = `${userId}/events/${Date.now()}.jpg`;
-        coverUrl = await uploadImageToSupabase(coverUri, path);
+        coverUrl = await uploadImageToStorage({
+          bucket: "events",
+          path,
+          uri: coverUri,
+          upsert: true,
+          role: "cover",
+          pickerMeta: {
+            mimeType: coverAsset?.mimeType,
+            width: coverAsset?.width,
+            height: coverAsset?.height,
+            fileSize: coverAsset?.fileSize,
+          },
+        });
       }
       const { error } = await supabase.from("events").insert({
         name: title.trim(),

@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import type { MediaRole } from "@/lib/mediaPipeline";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -24,8 +25,8 @@ import { t } from "@/hooks/useTranslation";
 import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
 import type { OpeningHourSlot } from "@/lib/openingHours";
 
-async function uploadImage(uri: string, path: string) {
-  return uploadImageToStorage({ bucket: "clubs", path, uri });
+async function uploadImage(uri: string, path: string, role: MediaRole = "gallery") {
+  return uploadImageToStorage({ bucket: "clubs", path, uri, upsert: true, role });
 }
 
 export default function CreatePublicClubScreen() {
@@ -190,7 +191,8 @@ export default function CreatePublicClubScreen() {
       if (logoUri) {
         logoUrl = await uploadImage(
           logoUri,
-          `${userId}/${Date.now()}_logo.jpg`
+          `${userId}/${Date.now()}_logo.jpg`,
+          "avatar"
         );
       }
 
@@ -199,14 +201,15 @@ export default function CreatePublicClubScreen() {
       if (coverUri) {
         coverUrl = await uploadImage(
           coverUri,
-          `${userId}/${Date.now()}_cover.jpg`
+          `${userId}/${Date.now()}_cover.jpg`,
+          "cover"
         );
       }
 
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
         heroUrls.push(url);
       }
 

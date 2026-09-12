@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import type { MediaRole } from "@/lib/mediaPipeline";
 import * as ImagePicker from "expo-image-picker";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -24,8 +25,8 @@ import Slider from "@react-native-community/slider";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { t } from "@/hooks/useTranslation";
 
-async function uploadImage(uri: string, path: string) {
-  return uploadImageToStorage({ bucket: "events", path, uri });
+async function uploadImage(uri: string, path: string, role: MediaRole = "gallery") {
+  return uploadImageToStorage({ bucket: "events", path, uri, upsert: true, role });
 }
 
 function formatEventDateTime(d: Date): string {
@@ -178,7 +179,7 @@ export default function CreatePublicEventScreen() {
       // Upload hero photos
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`);
+        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
         heroUrls.push(url);
       }
 

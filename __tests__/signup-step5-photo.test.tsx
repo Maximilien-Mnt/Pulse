@@ -48,6 +48,21 @@ jest.mock("@/lib/imageUpload", () => ({
   uploadImageToStorage: jest.fn(async () => "https://example.com/avatar.jpg"),
 }));
 
+jest.mock("@/lib/mediaPipeline", () => ({
+  buildPickerImageOptions: (opts: any) => opts ?? {},
+  MediaNormalizationError: class MediaNormalizationError extends Error {
+    code = "invalidType";
+    translationKey = "";
+    translationParams = undefined;
+    constructor(code: string, translationKey: string, translationParams?: Record<string, string | number>) {
+      super(code);
+      this.code = code;
+      this.translationKey = translationKey;
+      this.translationParams = translationParams;
+    }
+  },
+}));
+
 jest.mock("react-native-safe-area-context", () => {
   const ReactMock = require("react");
   const { View } = require("react-native");

@@ -5,6 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { supabase } from "@/lib/supabase";
+import { uploadImageToStorage, removeFromStorageByUrl } from "@/lib/imageUpload";
+import type { MediaRole } from "@/lib/mediaPipeline";
 import { useAuthStore } from "@/stores/authStore";
 import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
 import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
@@ -116,29 +118,31 @@ export default function ClubSettings() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) { Toast.show({ type: "error", text1: t("error.permissionPhotos") }); return null; }
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1,
       allowsMultipleSelection: opts.multiple ?? false,
+      base64: false,
+      exif: false,
     });
     if (res.canceled) return null;
     const uris = res.assets.map((art) => art.uri);
     return opts.multiple ? uris : (uris[0] ?? null);
   }, []);
 
-  const uploadImage = useCallback(async (uri: string, folder: string): Promise<string | null> => {
+  const uploadImage = useCallback(async (uri: string, folder: string, role: MediaRole): Promise<string | null> => {
     try {
       if (!userId) throw new Error("not authenticated");
       // RLS on the "clubs" bucket requires the first path segment to be the
-      // uploader's user id. The file name is also always rebuilt from the blob
-      // MIME type because the picker URI may be a blob:/http: URL on web.
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const mime = blob.type || "image/jpeg";
-      const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : mime.includes("heic") ? "heic" : "jpg";
-      const path = `${userId}/${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from("clubs").upload(path, blob, { contentType: mime });
-      if (error) throw error;
-      const { data } = supabase.storage.from("clubs").getPublicUrl(path);
-      return data.publicUrl;
+      // uploader's user id. The shared pipeline validates type + size, inspects
+      // dimensions and resizes to the role's max edge before upload.
+      const path = `${userId}/${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const url = await uploadImageToStorage({
+        bucket: "clubs",
+        path,
+        uri,
+        upsert: true,
+        role,
+      });
+      return url;
     } catch { Toast.show({ type: "error", text1: t("clubs.settings.uploadFailed") }); return null; }
   }, [userId]);
 
@@ -329,11 +333,11 @@ export default function ClubSettings() {
 
         <View className={`${CARD} p-4`}>
           <View className="flex-row items-center mb-3"><Icon name="Image" size={16} className="mr-2" /><Text className="text-base font-semibold">{t("clubs.settings.photosMedia")}</Text></View>
-          <Pressable onPress={async () => { const u = await pickImage({}) as string | null; if (u) { const url = await uploadImage(u, "logos"); if (url) setLogoUrl(url); } }} className="flex-row items-center p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 mb-3">
+          <Pressable onPress={async () => { const u = await pickImage({}) as string | null; if (u) { const url = await uploadImage(u, "logos", "avatar"); if (url) { void removeFromStorageByUrl(logoUrl, "clubs"); setLogoUrl(url); } } }} className="flex-row items-center p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 mb-3">
             {logoUrl ? <Image source={{ uri: logoUrl }} className="w-16 h-16 rounded-full mr-3" /> : <View className="w-16 h-16 rounded-full mr-3 bg-neutral-200 dark:bg-neutral-700 items-center justify-center"><Icon name="Image" size={20} /></View>}
             <Text className="text-sm text-neutral-500">{t("clubs.settings.clubLogo")}</Text>
           </Pressable>
-          <Pressable onPress={async () => { const u = await pickImage({}) as string | null; if (u) { const url = await uploadImage(u, "covers"); if (url) setCoverUrl(url); } }} className="flex-row items-center p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 mb-3">
+          <Pressable onPress={async () => { const u = await pickImage({}) as string | null; if (u) { const url = await uploadImage(u, "covers", "cover"); if (url) { void removeFromStorageByUrl(coverUrl, "clubs"); setCoverUrl(url); } } }} className="flex-row items-center p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 mb-3">
             {coverUrl ? <Image source={{ uri: coverUrl }} className="w-20 h-12 rounded-lg mr-3" /> : <View className="w-20 h-12 rounded-lg mr-3 bg-neutral-200 dark:bg-neutral-700 items-center justify-center"><Icon name="Image" size={20} /></View>}
             <Text className="text-sm text-neutral-500">{t("clubs.settings.coverImage")}</Text>
           </Pressable>
@@ -341,12 +345,12 @@ export default function ClubSettings() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {heroUrls.map((uri, i) => (
               <View key={i} className="relative"><Image source={{ uri }} className="w-20 h-20 rounded-lg" />
-                <Pressable onPress={() => setHeroUrls((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center"><Text className="text-xs text-white">x</Text></Pressable>
+                <Pressable onPress={() => { const gone = heroUrls[i]; setHeroUrls((prev) => prev.filter((_, idx) => idx !== i)); if (gone) void removeFromStorageByUrl(gone, "clubs"); }} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center"><Text className="text-xs text-white">x</Text></Pressable>
               </View>
             ))}
             {heroUrls.length < 10 && (
               <Pressable onPress={async () => { const usResult = await pickImage({ multiple: true });
-              const us = (Array.isArray(usResult) ? usResult : []) as string[]; if (us && us.length > 0) { const uploaded = await Promise.all(us.slice(0, 10 - heroUrls.length).map((u) => uploadImage(u, "hero"))); setHeroUrls((prev) => [...prev, ...uploaded.filter(Boolean) as string[]]); } }} className="w-20 h-20 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center">
+              const us = (Array.isArray(usResult) ? usResult : []) as string[]; if (us && us.length > 0) { const uploaded = await Promise.all(us.slice(0, 10 - heroUrls.length).map((u) => uploadImage(u, "hero", "gallery"))); setHeroUrls((prev) => [...prev, ...uploaded.filter(Boolean) as string[]]); } }} className="w-20 h-20 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center">
                 <Icon name="Plus" size={20} />
               </Pressable>
             )}

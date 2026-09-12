@@ -299,6 +299,10 @@ export const translations = {
     "error.loading": "Erreur de chargement",
     "error.clubJoin": "Impossible d'envoyer la demande",
     "error.sendMessage": "Envoi impossible",
+    "media.error.invalidType": "Format d'image non supporté",
+    "media.error.oversized": "Image trop volumineuse (max {mb} Mo)",
+    "media.error.resizeFailed": "Impossible de préparer l'image",
+    "common.uploading": "Téléchargement…",
     "toast.confirmEmail": "Vérifie ta boîte mail pour confirmer ton compte",
     "toast.accountCreated": "Compte créé !",
 
@@ -1420,6 +1424,10 @@ export const translations = {
     "error.loading": "Load error",
     "error.clubJoin": "Unable to send request",
     "error.sendMessage": "Unable to send",
+    "media.error.invalidType": "Unsupported image format",
+    "media.error.oversized": "Image too large (max {mb} MB)",
+    "media.error.resizeFailed": "Unable to prepare the image",
+    "common.uploading": "Uploading…",
     "toast.confirmEmail": "Check your inbox to confirm your account",
     "toast.accountCreated": "Account created!",
 

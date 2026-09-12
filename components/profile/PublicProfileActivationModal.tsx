@@ -12,6 +12,8 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
+import { uploadImageToStorage } from "@/lib/imageUpload";
+import { buildPickerImageOptions, MediaNormalizationError } from "@/lib/mediaPipeline";
 
 type Props = {
   visible: boolean;
@@ -28,7 +30,8 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
   const posthog = usePostHog();
   const [step, setStep] = useState<Step>("intro");
   const [statusMap, setStatusMap] = useState<PublicStatusMap>({});
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<{ uri: string; mimeType?: string | null; fileSize?: number | null }[]>([]);
+  const [activateProgress, setActivateProgress] = useState(0);
 
   const sportLabel = (id: string) => SPORTS.find((s) => s.id === id)?.label ?? id;
 
@@ -38,14 +41,14 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
       Toast.show({ type: "error", text1: "Permission galerie requise" });
       return;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      allowsMultipleSelection: true,
-      selectionLimit: 5,
-      quality: 0.7,
-    });
+    const res = await ImagePicker.launchImageLibraryAsync(
+      buildPickerImageOptions({ multiple: true, selectionLimit: 5 }),
+    );
     if (!res.canceled) {
-      const uris = res.assets.map((a) => a.uri).slice(0, 5);
-      setPhotos(uris);
+      const assets = res.assets
+        .slice(0, 5)
+        .map((a) => ({ uri: a.uri, mimeType: a.mimeType ?? null, fileSize: a.fileSize ?? null }));
+      setPhotos(assets);
     }
   };
 
@@ -53,16 +56,20 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
     mutationFn: async () => {
       const urls: string[] = [];
       for (let i = 0; i < photos.length; i++) {
-        const uri = photos[i]!;
-        const blob = await (await fetch(uri)).blob();
+        const item = photos[i]!;
         const path = `${userId}/${Date.now()}_${i}.jpg`;
-        const { error } = await supabase.storage
-          .from("public-profiles")
-          .upload(path, blob, { contentType: "image/jpeg" });
-        if (error) throw error;
-        const { data: pub } = supabase.storage.from("public-profiles").getPublicUrl(path);
-        urls.push(pub.publicUrl);
+        setActivateProgress(i / Math.max(photos.length, 1));
+        const url = await uploadImageToStorage({
+          bucket: "public-profiles",
+          path,
+          uri: item.uri,
+          upsert: true,
+          role: "publicPhoto",
+          pickerMeta: { mimeType: item.mimeType, fileSize: item.fileSize },
+        });
+        urls.push(url);
       }
+      setActivateProgress(1);
 
       const { error } = await supabase
         .from("profiles")
@@ -75,6 +82,7 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
       if (error) throw error;
     },
     onSuccess: () => {
+      setActivateProgress(0);
       posthog.capture("public_profile_activated", { sports_count: sports.length, photos_count: photos.length });
       Toast.show({ type: "success", text1: t("profile.goPublic.done") });
       setStep("intro");
@@ -85,7 +93,10 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
       void queryClient.invalidateQueries({ queryKey: ["profile", userId] });
       void queryClient.invalidateQueries({ queryKey: ["public-profile", userId] });
     },
-    onError: () => Toast.show({ type: "error", text1: "Activation impossible" }),
+    onError: () => {
+      setActivateProgress(0);
+      Toast.show({ type: "error", text1: "Activation impossible" });
+    },
   });
 
   const canNextStatus = sports.every((s) => !!statusMap[s.sport_id]);
@@ -184,8 +195,8 @@ export function PublicProfileActivationModal({ visible, onClose, userId, sports,
                 </Text>
                 <Button title="Choisir des photos" variant="secondary" onPress={pickPhotos} />
                 <View className="flex-row flex-wrap gap-2 mt-4">
-                  {photos.map((uri, i) => (
-                    <Image key={uri} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} />
+                  {photos.map((item, i) => (
+                    <Image key={item.uri} source={{ uri: item.uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" />
                   ))}
                 </View>
                 <Text className="text-sm text-neutral-500 mt-2">{photos.length}/5 photos</Text>

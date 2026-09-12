@@ -22,7 +22,11 @@ type Props = {
   profile: Profile | null;
 };
 
-async function uploadAvatar(uri: string, userId: string): Promise<string> {
+async function uploadAvatar(
+  uri: string,
+  userId: string,
+  pickerMeta?: { mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null }
+): Promise<string> {
   return uploadImageToStorage({
     bucket: "avatars",
     path: `${userId}/avatar.jpg`,
@@ -31,6 +35,8 @@ async function uploadAvatar(uri: string, userId: string): Promise<string> {
     // Append a cache-busting timestamp so expo-image refetches the new image
     // instead of serving the cached one (the storage path never changes).
     cacheBust: true,
+    role: "avatar",
+    pickerMeta,
   });
 }
 
@@ -46,6 +52,7 @@ export function EditProfileSheet({ visible, onClose, profile }: Props) {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarAsset, setAvatarAsset] = useState<{ mimeType?: string | null; width?: number | null; height?: number | null; fileSize?: number | null } | null>(null);
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
   const keyboardHeight = useKeyboardHeight();
 
@@ -80,7 +87,12 @@ export function EditProfileSheet({ visible, onClose, profile }: Props) {
 
       let avatar_url = profile.avatar_url;
       if (avatarUri) {
-        avatar_url = await uploadAvatar(avatarUri, profile.id);
+        avatar_url = await uploadAvatar(avatarUri, profile.id, {
+          mimeType: avatarAsset?.mimeType,
+          width: avatarAsset?.width,
+          height: avatarAsset?.height,
+          fileSize: avatarAsset?.fileSize,
+        });
       }
 
       const patch: ProfileUpdate = {
@@ -126,8 +138,12 @@ export function EditProfileSheet({ visible, onClose, profile }: Props) {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true, aspect: [1, 1] });
-    if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
+    const res = await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], base64: false, exif: false });
+    if (!res.canceled && res.assets[0]) {
+      const a = res.assets[0];
+      setAvatarUri(a.uri);
+      setAvatarAsset({ mimeType: a.mimeType, width: a.width, height: a.height, fileSize: a.fileSize });
+    }
   };
 
   const toggleObjective = (obj: string) => {

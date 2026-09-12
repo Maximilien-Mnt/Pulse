@@ -5,7 +5,7 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
+import { LEGAL_META, type LegalSlug } from "@/lib/legalMeta";
 import { BackButton } from "@/components/ui/BackButton";
 
 
@@ -78,7 +78,7 @@ export default function PublicContactScreen() {
         </View>
 
         <View className="flex-col gap-2">
-          {Object.entries(LEGAL_DOCUMENTS).map(([slug, doc]) => {
+          {Object.entries(LEGAL_META).map(([slug, doc]) => {
             const iconName = iconMap[slug as LegalSlug] ?? "FileText";
 
             return (

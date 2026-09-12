@@ -1,15 +1,30 @@
 import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useEvent } from "expo";
 import { useWindowDimensions } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 import type { PostFormat } from "@/types";
 import { Icon } from "@/components/ui/Icon";
 import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { t } from "@/hooks/useTranslation";
 
 const calculateImageHeight = (width: number) => Math.min(300, Math.max(200, width * 0.35));
+
+// expo-video only ships inside the lazily-loaded VideoPost chunk, so feed
+// readers who never open a video never download the player.
+const VideoPost = lazy(() =>
+  import("@/components/feed/VideoPost").then((m) => ({ default: m.VideoPost }))
+);
+
+function VideoPostFallback({ width, height }: { width: number; height: number }) {
+  return (
+    <View
+      className="mt-2 rounded-lg overflow-hidden bg-black items-center justify-center"
+      style={{ width, height }}
+    >
+      <Icon name="CirclePlay" size={32} color="white" />
+      <Text className="text-white text-xs mt-2">{t("common.loading")}</Text>
+    </View>
+  );
+}
 
 type Props = {
   format: PostFormat;
@@ -25,86 +40,6 @@ function formatDuration(seconds: number | null): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-function VideoPost({
-  videoUrl,
-  videoThumbnail,
-  videoDuration,
-  isActive,
-  width,
-  height,
-}: {
-  videoUrl: string;
-  videoThumbnail?: string | null;
-  videoDuration?: number | null;
-  isActive: boolean;
-  width: number;
-  height: number;
-}) {
-  const viewRef = useRef<VideoView>(null);
-  const player = useVideoPlayer(videoUrl, (p) => {
-    p.loop = true;
-    p.muted = true;
-  });
-
-  const { isPlaying } = useEvent(player, "playingChange", { isPlaying: player.playing });
-  const [muted, setMuted] = useState(true);
-
-  if (isActive) player.play();
-  else player.pause();
-
-  const toggleMute = () => {
-    const next = !muted;
-    player.muted = next;
-    setMuted(next);
-  };
-
-  return (
-    <View className="mt-2 rounded-lg overflow-hidden bg-black">
-      <VideoView
-        ref={viewRef}
-        player={player}
-        style={{ width, height }}
-        contentFit="cover"
-        nativeControls={false}
-        allowsFullscreen
-        allowsPictureInPicture={false}
-      />
-
-      {!isPlaying ? (
-        <Pressable
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          className="justify-center items-center"
-          onPress={() => player.play()}
-        >
-          <Icon name="CirclePlay" size={32} color="white" />
-        </Pressable>
-      ) : null}
-
-      <Pressable
-        className="absolute top-2 right-2 bg-black/60 p-2 rounded-full"
-        onPress={() => viewRef.current?.enterFullscreen()}
-        hitSlop={8}
-      >
-        <Icon name="Expand" size={18} color="white" />
-      </Pressable>
-
-      <Pressable
-        className="absolute bottom-2 right-2 bg-black/60 p-2 rounded-full"
-        onPress={toggleMute}
-        hitSlop={8}
-      >
-        <Icon name={muted ? "VolumeX" : "Volume2"} size={18} color="white" />
-      </Pressable>
-
-      <View className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded">
-        <Text className="text-white text-xs">
-          {videoDuration ? formatDuration(videoDuration) : t("media.video")}
-        </Text>
-      </View>
-    </View>
-  );
 }
 
 export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuration, isActive = true }: Props) {
@@ -143,15 +78,18 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
   if (format === "text" && !videoUrl) return null;
 
   if (format === "video" && videoUrl) {
+    const videoHeight = (width * 9) / 16;
     return (
-      <VideoPost
-        videoUrl={videoUrl}
-        videoThumbnail={videoThumbnail}
-        videoDuration={videoDuration}
-        isActive={isActive}
-        width={width}
-        height={(width * 9) / 16}
-      />
+      <Suspense fallback={<VideoPostFallback width={width} height={videoHeight} />}>
+        <VideoPost
+          videoUrl={videoUrl}
+          videoThumbnail={videoThumbnail}
+          videoDuration={videoDuration}
+          isActive={isActive}
+          width={width}
+          height={videoHeight}
+        />
+      </Suspense>
     );
   }
 
@@ -504,7 +442,10 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
               <Pressable
                 className="flex-1 py-3 rounded-xl bg-primary items-center"
                 onPress={async () => {
-                  if (pdfOpen) await WebBrowser.openBrowserAsync(pdfOpen);
+                  if (pdfOpen) {
+                    const { openBrowserAsync } = await import("expo-web-browser");
+                    await openBrowserAsync(pdfOpen);
+                  }
                   setPdfOpen(null);
                 }}
               >

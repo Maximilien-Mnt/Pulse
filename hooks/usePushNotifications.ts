@@ -1,25 +1,39 @@
 import { useEffect } from "react";
-import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
+import type * as Notifications from "expo-notifications";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+type NotificationsModule = typeof Notifications;
+
+let notificationsModule: NotificationsModule | null = null;
+function getNotifications(): NotificationsModule | null {
+  if (notificationsModule) return notificationsModule;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    notificationsModule = require("expo-notifications") as NotificationsModule;
+    notificationsModule.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    return notificationsModule;
+  } catch {
+    return null;
+  }
+}
 
 export function usePushNotifications() {
   const userId = useAuthStore((s) => s.userId);
 
   useEffect(() => {
     if (!userId) return;
+    const Notifications = getNotifications();
+    if (!Notifications) return;
 
     let subscription: { remove: () => void } | undefined;
 
@@ -49,7 +63,6 @@ export function usePushNotifications() {
     register();
 
     const sub1 = Notifications.addNotificationReceivedListener((notification) => {
-      const data = notification.request.content.data;
       const title = notification.request.content.title;
       const body = notification.request.content.body;
       if (title || body) {
@@ -57,8 +70,7 @@ export function usePushNotifications() {
       }
     });
 
-    const sub2 = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
+    const sub2 = Notifications.addNotificationResponseReceivedListener(() => {
       // Navigation is handled by the screen based on notification press
       // because expo-router handles deep links from notifications if configured.
     });

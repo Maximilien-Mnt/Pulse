@@ -4,7 +4,6 @@ import { Icon, ICON_MAP } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
-import * as WebBrowser from 'expo-web-browser';
 import { SPORTS } from '@/lib/constants';
 import type { SportDefinition } from '@/lib/constants';
 import { t } from '@/hooks/useTranslation';
@@ -194,7 +193,10 @@ export function LinkRow({
       className={'flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50 ' + (isLast ? '' : DIVIDER)}
       scaleOnPress={0.98}
       scaleOnHover={1.02}
-      onPress={() => void WebBrowser.openBrowserAsync(url)}
+      onPress={async () => {
+        const { openBrowserAsync } = await import('expo-web-browser');
+        await openBrowserAsync(url);
+      }}
       accessibilityRole='link'
       accessibilityLabel={`${label} : ${value}`}
     >

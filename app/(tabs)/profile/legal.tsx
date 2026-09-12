@@ -1,20 +1,29 @@
 // ---------------------------------------------------------------------------
-// LEGAL DOCUMENT VIEWER
+// LEGAL DOCUMENT VIEWER (profile tab)
 // ---------------------------------------------------------------------------
 
+import { lazy, Suspense } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { LegalDocumentViewer } from "@/components/legal/LegalDocumentViewer";
-import { LEGAL_DOCUMENTS } from "@/lib/legalDocuments";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
 import { View } from "react-native";
 import { BackButton } from "@/components/ui/BackButton";
+import { LEGAL_META, type LegalSlug } from "@/lib/legalMeta";
+
+// Lazy boundary: LegalBody statically imports the markdown renderer + full
+// content registry, so this pulls both into a separate chunk. The initial
+// tab bundle only carries slugs/titles from legalMeta.
+const LegalBody = lazy(() =>
+  import("@/components/legal/LegalBody").then((m) => ({
+    default: m.LegalBody,
+  }))
+);
 
 export default function LegalScreen() {
   const params = useLocalSearchParams<{ filePath?: string; title?: string }>();
 
-  // Map legacy filePath param to the new registry when possible.
-  const legacyToSlug: Record<string, keyof typeof LEGAL_DOCUMENTS | undefined> = {
+  // Map legacy filePath param to the new slug-based registry when possible.
+  const legacyToSlug: Record<string, LegalSlug | undefined> = {
     "01-conditions-utilisation.md": "terms",
     "02-politique-confidentialite.md": "privacy",
     "04-politique-de-moderation.md": "moderation",
@@ -22,11 +31,10 @@ export default function LegalScreen() {
     "05-mentions-legales.md": "imprint",
   };
 
-  const slug = legacyToSlug[params.filePath ?? ""];
-  const doc = slug ? LEGAL_DOCUMENTS[slug] : undefined;
-  const title = doc?.title ?? params.title ?? "Document juridique";
+  const slug = params.filePath ? legacyToSlug[params.filePath] : undefined;
+  const meta = slug ? LEGAL_META[slug] : undefined;
 
-  if (!doc) {
+  if (!meta || !slug) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
         <View className="flex-1 items-center justify-center gap-4">
@@ -39,5 +47,17 @@ export default function LegalScreen() {
     );
   }
 
-  return <LegalDocumentViewer title={title} content={doc.content} />;
+  return (
+    <Suspense
+      fallback={
+        <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-neutral-500">Chargement…</Text>
+          </View>
+        </SafeScreen>
+      }
+    >
+      <LegalBody slug={slug} title={meta.title} />
+    </Suspense>
+  );
 }

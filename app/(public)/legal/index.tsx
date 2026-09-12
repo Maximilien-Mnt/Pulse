@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { View, Pressable } from "react-native";
-import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
+import { LEGAL_META, type LegalSlug } from "@/lib/legalMeta";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
@@ -20,7 +20,7 @@ export default function PublicLegalHubScreen() {
     imprint: "Info",
   };
 
-  const docs = Object.keys(LEGAL_DOCUMENTS) as LegalSlug[];
+  const docs = Object.keys(LEGAL_META) as LegalSlug[];
 
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
@@ -36,7 +36,7 @@ export default function PublicLegalHubScreen() {
 
       <View className="flex-1 gap-3 p-4">
         {docs.map((slug) => {
-          const doc = LEGAL_DOCUMENTS[slug];
+          const doc = LEGAL_META[slug];
           const iconName = iconMap[slug] ?? "FileText";
 
           return (

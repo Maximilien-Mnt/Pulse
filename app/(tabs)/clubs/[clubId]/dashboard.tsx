@@ -3,7 +3,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, Text, View, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { SafeScreen } from '@/components/shared/SafeScreen';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '@/stores/authStore';
@@ -670,7 +669,10 @@ export default function ClubDashboardScreen() {
                 <Pressable
                   key={row.label}
                   className='flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50'
-                  onPress={() => void WebBrowser.openBrowserAsync(row.url)}
+                  onPress={async () => {
+                    const { openBrowserAsync } = await import("expo-web-browser");
+                    await openBrowserAsync(row.url);
+                  }}
                 >
                   <View className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center'>
                     <Icon name={row.icon as any} size={18} color='primary' />

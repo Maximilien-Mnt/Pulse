@@ -71,10 +71,14 @@ export default function LandingScreen() {
           <View className="flex-1 items-center">
             <View className="flex-row items-center justify-center gap-3">
               <View className="w-20 h-20 rounded-2xl bg-primary items-center justify-center overflow-hidden">
+                {/* Above-the-fold brand mark: eager load, fixed 80×80 box so
+                    layout is stable before the PNG decodes. */}
                 <Image
                   source={require("@/assets/logo/pulse-logo-10-v3-20260828.png")}
-                  style={{ width: "100%", height: "100%" }}
+                  style={{ width: 80, height: 80 }}
                   contentFit="cover"
+                  cachePolicy="memory-disk"
+                  priority="high"
                 />
               </View>
               <Text variant="h1" className="text-neutral-900 dark:text-neutral-50">

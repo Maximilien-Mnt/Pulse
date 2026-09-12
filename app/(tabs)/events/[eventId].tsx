@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
 import { FlatList, RefreshControl, ScrollView, View, Pressable, Share } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
@@ -249,7 +248,10 @@ export default function EventDetailScreen() {
       <Button
         title={t("events.register")}
         icon="Globe"
-        onPress={() => void WebBrowser.openBrowserAsync(event.registration_url!)}
+        onPress={async () => {
+          const { openBrowserAsync } = await import("expo-web-browser");
+          if (event.registration_url) await openBrowserAsync(event.registration_url);
+        }}
       />
     );
   } else if (!isCreator) {

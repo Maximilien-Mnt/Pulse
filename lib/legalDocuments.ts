@@ -1,26 +1,28 @@
 import { LEGAL_CONTENT } from "@/lib/legalContent";
+import { LEGAL_META, type LegalSlug } from "@/lib/legalMeta";
+
+export { LEGAL_META };
+export type { LegalSlug };
 
 export const LEGAL_DOCUMENTS = {
   terms: {
-    title: "Conditions d'utilisation",
+    title: LEGAL_META.terms.title,
     content: LEGAL_CONTENT.terms,
   },
   privacy: {
-    title: "Politique de confidentialité",
+    title: LEGAL_META.privacy.title,
     content: LEGAL_CONTENT.privacy,
   },
   moderation: {
-    title: "Politique de modération",
+    title: LEGAL_META.moderation.title,
     content: LEGAL_CONTENT.moderation,
   },
   "bug-report": {
-    title: "Comment signaler un problème",
+    title: LEGAL_META["bug-report"].title,
     content: LEGAL_CONTENT.bugReport,
   },
   imprint: {
-    title: "Mentions légales",
+    title: LEGAL_META.imprint.title,
     content: LEGAL_CONTENT.imprint,
   },
 } as const;
-
-export type LegalSlug = keyof typeof LEGAL_DOCUMENTS;

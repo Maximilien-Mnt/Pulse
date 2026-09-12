@@ -1,0 +1,35 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY POSTHOG_PROJECT_TOKEN POSTHOG_HOST EXPO_PUBLIC_APP_SCHEME
+Starting Metro Bundler
+Web node_modules\expo-router\entry.js ÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ  0.0% (0/1)
+Web node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæ 72.0% (1093/1288)
+Web Bundled 6794ms node_modules\expo-router\entry.js (3727 modules)
+
+ÔÇ║ Assets (20):
+assets\logo\pulse-logo-10-v3-20260828.c9aafa51dd417d1798d4fd1f1d2be330.png (21.5 kB)
+node_modules\@react-native-vector-icons\material-design-icons\fonts\MaterialDesignIcons.6e435534bd35da5fef04168860a9b8fa.ttf (1.31 MB)
+node_modules\@react-navigation\elements\lib\module\assets\back-icon-mask.0a328cd9c1afd0afe8e3b1ec5165b1b4.png (653 B)
+node_modules\@react-navigation\elements\lib\module\assets\back-icon.35ba0eaec5a4f5ed12ca16fabeae451d.png (207 B)
+node_modules\@react-navigation\elements\lib\module\assets\clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55.png (4 variations | 425 B)
+node_modules\@react-navigation\elements\lib\module\assets\close-icon.808e1b1b9b53114ec2838071a7e6daa7.png (4 variations | 235 B)
+node_modules\@react-navigation\elements\lib\module\assets\search-icon.286d67d3f74808a60a78d3ebf1a5fb57.png (928 B)
+node_modules\expo-router\assets\arrow_down.017bc6ba3fc25503e5eb5e53826d48a8.png (9.46 kB)
+node_modules\expo-router\assets\error.d1ea1496f9057eb392d5bbf3732a61b7.png (469 B)
+node_modules\expo-router\assets\file.19eeb73b9593a38f8e9f418337fc7d10.png (138 B)
+node_modules\expo-router\assets\forward.d8b800c443b8972542883e0b9de2bdc6.png (188 B)
+node_modules\expo-router\assets\pkg.ab19f4cbc543357183a20571f68380a3.png (364 B)
+node_modules\expo-router\assets\sitemap.412dd9275b6b48ad28f5e3d81bb1f626.png (465 B)
+node_modules\expo-router\assets\unmatched.20e71bdf79e3a97bf55fd9e164041578.png (4.75 kB)
+
+ÔÇ║ web bundles (5):
+_expo/static/css/web-007a89d8890d1fa15d230e8d100cce22.css (31.9 kB)
+_expo/static/js/web/entry-2d50267e1d2097366e4f705779e107fe.js (6.37 MB)
+_expo/static/js/web/LegalBody-df7bf57ef59893645f86b5ee83233438.js (488 B)
+_expo/static/js/web/VideoPost-42b7da8480aebc223e885fe7256d5b7b.js (14.9 kB)
+_expo/static/js/web/WebBrowser-cff8c62120a1e99c44280075709eaeb0.js (8.36 kB)
+
+ÔÇ║ Files (2):
+index.html (1.36 kB)
+metadata.json (49 B)
+
+Exported: dist

@@ -14,7 +14,7 @@ import { Pressable, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { LEGAL_DOCUMENTS, type LegalSlug } from "@/lib/legalDocuments";
+import { LEGAL_META, type LegalSlug } from "@/lib/legalMeta";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
 export function LandingFooter() {
@@ -41,7 +41,7 @@ export function LandingFooter() {
 
       {/* Legal document links — dynamically mapped from the registry */}
       <View className="flex-col gap-3 mb-6">
-        {Object.entries(LEGAL_DOCUMENTS).map(([slug, doc]) => {
+        {Object.entries(LEGAL_META).map(([slug, doc]) => {
           const iconName = iconMap[slug as LegalSlug] ?? "FileText";
 
           return (

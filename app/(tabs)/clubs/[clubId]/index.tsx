@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeScreen } from '@/components/shared/SafeScreen';
-import { usePostHog } from 'posthog-react-native';
 import { useClubDetail } from '@/hooks/useClubDetail';
 import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
@@ -27,7 +26,6 @@ export default function ClubDetailScreen() {
   const params = useLocalSearchParams<{ clubId: string; public?: string }>();
   const { clubId } = params;
   const router = useRouter();
-  const posthog = usePostHog();
   const { t } = useTranslation();
   const { width: winWidth } = useWindowDimensions();
 
@@ -52,6 +50,13 @@ export default function ClubDetailScreen() {
   const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+
+  // If the Upcoming tab is empty but past events exist, show Past by default.
+  useEffect(() => {
+    if (!eventsLoading && eventsTab === 'upcoming' && upcomingEvents.length === 0 && pastEvents.length > 0) {
+      setEventsTab('past');
+    }
+  }, [eventsLoading, eventsTab, upcomingEvents.length, pastEvents.length]);
 
   // ── Responsive sizing ─────────────────────────────────────────────────
   const contentMax = winWidth > 900 ? 760 : '100%';
@@ -87,17 +92,8 @@ export default function ClubDetailScreen() {
   ].filter((r): r is LinkRowData => !!r);
 
   // ── Actions ───────────────────────────────────────────────────────────
-  const handleShare = async () => {
-    if (!club) return;
-    try {
-      await Share.share({
-        message: `Découvre ${club.name} sur Pulse`,
-        url: `https://pulse.app/clubs/${club.id}`,
-      });
-      posthog.capture('club_shared', { club_id: club.id });
-    } catch {
-      // User cancelled share — no-op
-    }
+  const handleShare = () => {
+    void Share.share({ message: club ? club.name : '' });
   };
 
   if (clubLoading) return <ClubLoadingSkeleton />;

@@ -7,14 +7,6 @@
 // ............................................................................
 // Design principles
 // ............................................................................
-//
-//  1. Labels describe the *action* and *state*, not the widget type.
-//     ✅ "Favori: activé"   ❌ "Bouton"
-//
-//  2. Icon-only controls get a 44×44 minimum hit area through hitSlop without
-//     changing the visual layout. The contract prefers hitSlop over padding
-//     so layout stays identical for callers that already size the icon at 44px.
-//
 //  3. Disabled and pending states are always exposed to assistive technology
 //     via accessibilityState.disabled and (when applicable) opacity reduction
 //     on the visual layer only.

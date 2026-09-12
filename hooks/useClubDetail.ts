@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { usePostHog } from 'posthog-react-native';
+import Toast from 'react-native-toast-message';
 import { useClubMembers, type ClubMember } from '@/hooks/useClubMembers';
 import { useJoinRequestStatus, type JoinRequestStatus } from '@/hooks/useJoinRequestStatus';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import type { Club, EventRow } from '@/types';
-import Toast from 'react-native-toast-message';
 import { t } from '@/hooks/useTranslation';
+import { queryClient } from '@/lib/queryClient';
 
 export interface CreatorProfile {
   id: string;
@@ -46,7 +48,7 @@ export interface ClubDetailData {
  */
 export function useClubDetail(clubId: string | null): ClubDetailData {
   const userId = useAuthStore((s) => s.userId);
-  const queryClient = useQueryClient();
+  const posthog = usePostHog();
 
   const { data: club, isLoading: clubLoading } = useQuery({
     queryKey: ['club', clubId],
@@ -98,15 +100,12 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
     },
   });
 
-  const now = useMemo(() => new Date(), []);
-  const upcomingEvents = useMemo(
-    () => events.filter((e) => new Date(e.start_date) >= now),
-    [events, now],
-  );
-  const pastEvents = useMemo(
-    () => events.filter((e) => new Date(e.start_date) < now),
-    [events, now],
-  );
+  const nowIso = new Date().toISOString();
+  const upcomingEvents = events.filter((e) => e.start_date >= nowIso);
+  const pastEvents = events
+    .filter((e) => e.start_date < nowIso)
+    .slice()
+    .reverse();
 
   const { data: joinStatus } = useJoinRequestStatus('club', clubId ?? null);
 
@@ -118,7 +117,7 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
   } = useToggleFavorite({
     entityType: 'club',
     id: clubId ?? '',
-    includeCount: true,
+    extraInvalidationKeys: [['club', clubId]],
   });
 
   const isCreator = useMemo(
@@ -129,35 +128,26 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
 
   const joinMut = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error('auth');
-      if (club?.is_private) {
-        const { error } = await supabase.from('club_join_requests').insert({
-          club_id: clubId!,
-          user_id: userId,
-          status: 'pending',
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('club_members').insert({
-          club_id: clubId!,
-          user_id: userId,
-        });
-        if (error) throw error;
-      }
+      if (!userId || !club) return;
+      const { error } = await supabase
+        .from('club_join_requests')
+        .insert({ club_id: club.id, user_id: userId });
+      if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['join-request-status', 'club', clubId] });
-      void queryClient.invalidateQueries({ queryKey: ['club-members', clubId] });
-      void queryClient.invalidateQueries({ queryKey: ['club-all-members', clubId] });
+      posthog.capture('club_join_requested', {
+        club_id: club?.id ?? null,
+        club_name: club?.name ?? null,
+        club_sport: club?.sport ?? null,
+        is_external: club?.is_external ?? null,
+      });
+      Toast.show({ type: 'success', text1: t('clubJoin.requestSent') });
       void queryClient.invalidateQueries({ queryKey: ['club', clubId] });
-      Toast.show({
-        type: 'success',
-        text1: club?.is_private ? t('clubJoin.requestSent') : t('clubs.joinSuccess'),
+      void queryClient.invalidateQueries({
+        queryKey: ['join-request-status', 'club', clubId],
       });
     },
-    onError: () => {
-      Toast.show({ type: 'error', text1: t('common.error') });
-    },
+    onError: () => Toast.show({ type: 'error', text1: t('error.clubJoin') }),
   });
 
   return {

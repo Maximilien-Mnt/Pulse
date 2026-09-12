@@ -55,7 +55,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
         <Text className="text-sm text-neutral-500">{event.city}</Text>
         <View className="flex-row items-center justify-between mt-2">
           <Text className="text-sm font-semibold text-primary">
-            {formatPriceFromCents(event.price_cents, event.is_paid)}
+            {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
           </Text>
           <Stars n={event.difficulty} />
         </View>

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
-import { FlatList, ScrollView, View, Pressable, Share, ActivityIndicator } from "react-native";
+import { FlatList, RefreshControl, ScrollView, View, Pressable, Share } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
@@ -17,6 +17,9 @@ import { ShareButton } from "@/components/shared/ShareButton";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Icon } from "@/components/ui/Icon";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Avatar } from "@/components/ui/Avatar";
@@ -31,6 +34,8 @@ import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
 import { useTranslation , t } from "@/hooks/useTranslation";
+import { isNetworkError } from "@/utils/isNetworkError";
+import { logQueryError } from "@/utils/logQueryError";
 
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -38,8 +43,16 @@ export default function EventDetailScreen() {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
+  const queryClient = useQueryClient();
 
-  const { data: event, isLoading: eventLoading } = useQuery({
+  const {
+    data: event,
+    isLoading: eventLoading,
+    isFetching: eventFetching,
+    isError: eventIsError,
+    error: eventError,
+    refetch: refetchEvent,
+  } = useQuery({
     queryKey: ["event", eventId],
     enabled: !!eventId,
     queryFn: async () => {
@@ -123,8 +136,8 @@ export default function EventDetailScreen() {
         const profile = profileMap.get(row.user_id);
         return {
           user_id: row.user_id,
-          full_name: profile?.full_name ?? "Utilisateur",
-          username: profile?.username ?? "utilisateur",
+          full_name: profile?.full_name ?? t("events.fallbackUserName"),
+          username: profile?.username ?? t("events.fallbackUsername"),
           avatar_url: profile?.avatar_url ?? null,
         };
       }) as Member[];
@@ -134,6 +147,13 @@ export default function EventDetailScreen() {
   const [showMembersList, setShowMembersList] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const updateEvent = useUpdateEvent();
+
+  // Safe, PII-free diagnostics for detail load failures (UI stays non-technical).
+  useEffect(() => {
+    if (eventIsError) logQueryError("event-detail", eventError);
+  }, [eventIsError, eventError]);
+
+  const eventOffline = eventIsError && isNetworkError(eventError);
 
   // An event is full when it has a limited number of places and all are taken
   const isFull = event?.places_total != null && (event?.accepted_count ?? 0) >= event.places_total;
@@ -171,7 +191,7 @@ export default function EventDetailScreen() {
       return (
         <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
           <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            <View className="px-4 pt-4 gap-3">
+            <View className="px-4 pt-4 gap-3" testID="event-detail-skeleton" accessibilityLabel={t("common.loading")}>
               <Skeleton className="w-full h-48 rounded-2xl" />
               <View className="flex-row items-center gap-3">
                 <Skeleton className="w-[72px] h-[72px] rounded-3xl" />
@@ -189,13 +209,31 @@ export default function EventDetailScreen() {
       );
     }
 
+    // Load failure with nothing to show: localized message + retry (no raw error).
+    if (eventIsError) {
+      return (
+        <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+          <ErrorState
+            testID="event-detail-error"
+            title={t("events.list.loadErrorTitle")}
+            message={eventOffline ? t("events.detail.offlineBody") : t("events.detail.loadErrorBody")}
+            onRetry={() => void refetchEvent()}
+          />
+          <Button title={t("common.back")} variant="secondary" className="mx-6" onPress={() => router.back()} />
+        </SafeScreen>
+      );
+    }
+
     return (
       <SafeScreen className="flex-1 items-center justify-center bg-neutral-50 dark:bg-[#0A0F1E]">
-        <Icon name="AlertCircle" size={32} color="text-tertiary" />
-        <PulseText variant="body" className="mt-3 text-neutral-500">
-          {t("events.notFound")}
-        </PulseText>
-        <Button title={t("common.back")} variant="secondary" className="mt-4" onPress={() => router.back()} />
+        <EmptyState
+          testID="event-detail-not-found"
+          icon="Calendar"
+          title={t("events.notFound")}
+          subtitle={t("events.detail.notFoundHint")}
+          ctaLabel={t("common.back")}
+          onCta={() => router.back()}
+        />
       </SafeScreen>
     );
   }
@@ -221,6 +259,7 @@ export default function EventDetailScreen() {
     else {
       actionButton = (
         <Button
+          testID="event-detail-join-button"
           title={event.is_private ? t("events.requestJoin") : t("events.join")}
           icon="CheckCircle2"
           onPress={() => joinMut.mutate()}
@@ -233,8 +272,8 @@ export default function EventDetailScreen() {
 
   const placesLabel =
     event.places_total != null
-      ? `${event.accepted_count ?? 0} / ${event.places_total}${isFull ? " — Complet" : ""}`
-      : `${event.accepted_count ?? 0} inscrit${(event.accepted_count ?? 0) > 1 ? "s" : ""}`;
+      ? `${event.accepted_count ?? 0} / ${event.places_total}${isFull ? t("events.spotsFullSuffix") : ""}`
+      : t("events.spotsRegistered", { count: event.accepted_count ?? 0 });
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -257,7 +296,18 @@ export default function EventDetailScreen() {
         </PulseText>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        testID="event-detail-content"
+        refreshControl={
+          <RefreshControl
+            refreshing={eventFetching && !eventLoading}
+            onRefresh={() => void refetchEvent()}
+            testID="event-detail-refreshing"
+          />
+        }
+      >
         {/* Hero gallery */}
         <View className="px-4">
           {event.hero_urls && event.hero_urls.length > 0 ? (
@@ -326,7 +376,7 @@ export default function EventDetailScreen() {
                   Prix
                 </PulseText>
                 <PulseText variant="subtitle" numberOfLines={1} className="text-primary">
-                  {formatPriceFromCents(event.price_cents, event.is_paid)}
+                  {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
                 </PulseText>
               </View>
 
@@ -446,8 +496,13 @@ export default function EventDetailScreen() {
         ) : null}
 
         {loadingAllParticipants ? (
-          <View className="mx-4 mb-5 items-center py-3">
-            <ActivityIndicator size="small" color="#0F172A" />
+          <View
+            className="mx-4 mb-5 items-center py-3"
+            testID="event-detail-participants-loading"
+            accessible
+            accessibilityLabel={t("common.loading")}
+          >
+            <LoadingSpinner size="small" />
           </View>
         ) : null}
 

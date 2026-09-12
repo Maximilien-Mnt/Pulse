@@ -1,10 +1,8 @@
 import { EventCard } from "@/components/events/EventCard";
 import { EventCardGrid } from "@/components/events/EventCardGrid";
 import { EventFilters } from "@/components/events/EventFilters";
+import { EventsListEmpty, EventsListError, EventsListFooterLoading, EventsListRefreshing, EventsListSkeleton } from "@/components/events/EventsStates";
 import { Header } from "@/components/shared/Header";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
 import type { EventListFilters } from "@/hooks/useEvents";
 import { useEvents } from "@/hooks/useEvents";
 import { useLocation } from "@/hooks/useLocation";
@@ -13,7 +11,10 @@ import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { EventRow } from "@/types";
 import { Icon } from "@/components/ui/Icon";
-import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { isNetworkError } from "@/utils/isNetworkError";
+import { logQueryError } from "@/utils/logQueryError";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { SafeScreen } from "@/components/shared/SafeScreen";
@@ -38,6 +39,7 @@ const defaultFilters: EventListFilters = {
 };
 
 export default function EventsScreen() {
+  const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
   const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
@@ -52,11 +54,49 @@ export default function EventsScreen() {
     }
     return filters;
   }, [filters, latitude, longitude]);
-  
-  const { data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, isRefetching } =
-    useEvents(filtersWithLocation, userId);
+
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isRefetching,
+  } = useEvents(filtersWithLocation, userId);
 
   const events = useMemo(() => (data?.pages.flat() ?? []) as EventRow[], [data]);
+
+  // Whether any filter deviates from the defaults (drives the empty-state CTA).
+  const hasActiveFilters = useMemo(
+    () =>
+      filters.sports.length > 0 ||
+      filters.location.trim() !== "" ||
+      filters.dateFrom != null ||
+      filters.dateTo != null ||
+      filters.requiredLevel.trim() !== "" ||
+      filters.difficultyMin !== defaultFilters.difficultyMin ||
+      filters.difficultyMax !== defaultFilters.difficultyMax ||
+      filters.category.trim() !== "" ||
+      filters.paidOnly != null ||
+      filters.internalOnly ||
+      filters.externalOnly ||
+      filters.favoritesOnly ||
+      filters.sort !== defaultFilters.sort,
+    [filters],
+  );
+
+  const clearFilters = useCallback(() => setFilters(defaultFilters), []);
+
+  // Safe, PII-free diagnostics for initial load failures (UI stays non-technical).
+  useEffect(() => {
+    if (isError) logQueryError("events-list", error);
+  }, [isError, error]);
+
+  const offline = isError && isNetworkError(error);
 
   // ── Batched favorite state (one query per entity type, not per card) ──────
   const eventIds = useMemo(() => events.map((e) => e.id), [events]);
@@ -80,22 +120,26 @@ export default function EventsScreen() {
 
   const onRefresh = useCallback(() => void refetch(), [refetch]);
 
+  // Background refresh with cached data: keep the list on screen.
+  const showStaleRefreshing = !isLoading && !!data && (isRefetching || isFetching) && events.length > 0;
+
+  // Initial loading: layout-matching skeleton (structure is known), never a
+  // full-screen spinner.
   if (isLoading && !data) {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
         <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
-        <View className="px-4 gap-3">
-          <Skeleton height={80} />
-          <Skeleton height={80} />
-        </View>
+        <EventsListSkeleton grid={grid} />
       </SafeScreen>
     );
   }
 
-  if (isError) {
+  // Initial error (nothing cached): localized non-technical message + retry.
+  if (isError && !data) {
     return (
-      <SafeScreen className="flex-1">
-        <ErrorState message={error?.message ?? t("common.error")} onRetry={() => void refetch()} />
+      <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+        <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
+        <EventsListError offline={offline} onRetry={() => void refetch()} />
       </SafeScreen>
     );
   }
@@ -114,6 +158,14 @@ export default function EventsScreen() {
         ) : null}
       </View>
       <EventFilters visible={filterOpen} onClose={() => setFilterOpen(false)} value={filters} onApply={setFilters} isLocationEnabled={isLocationEnabled} />
+      {/* Refreshing with content preserved: inline progress, list stays mounted. */}
+      {showStaleRefreshing ? <EventsListRefreshing /> : null}
+      {/* Error with cached data: keep content (no data loss), offer inline retry. */}
+      {isError && data ? (
+        <View className="mx-4 mb-2" testID="events-list-inline-error">
+          <EventsListError offline={offline} onRetry={() => void refetch()} inline />
+        </View>
+      ) : null}
       <FlashList
         key={grid ? "g" : "l"}
         numColumns={grid ? columns : 1}
@@ -136,7 +188,12 @@ export default function EventsScreen() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
         }}
-        ListEmptyComponent={<EmptyState icon="Calendar" title={t("common.noEvents")} subtitle={t("common.tryOtherFilters")} />}
+        ListFooterComponent={isFetchingNextPage ? <EventsListFooterLoading /> : null}
+        ListEmptyComponent={
+          isLoading || isError ? null : (
+            <EventsListEmpty hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
+          )
+        }
         contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: grid ? 12 : 0 }}
       />
 

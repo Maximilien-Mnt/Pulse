@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { t } from "@/hooks/useTranslation";
 import type { EventRow } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -53,8 +54,8 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
           creator: row.creator
             ? {
                 id: row.creator.id,
-                full_name: row.creator.full_name ?? "Utilisateur",
-                username: row.creator.username ?? "utilisateur",
+                full_name: row.creator.full_name ?? t("events.fallbackUserName"),
+                username: row.creator.username ?? t("events.fallbackUsername"),
                 avatar_url: row.creator.avatar_url ?? null,
               }
             : undefined,
@@ -135,8 +136,8 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
         (creators ?? []).forEach((profile: any) => {
           creatorMap.set(profile.id, {
             id: profile.id,
-            full_name: profile.full_name ?? "Utilisateur",
-            username: profile.username ?? "utilisateur",
+            full_name: profile.full_name ?? t("events.fallbackUserName"),
+            username: profile.username ?? t("events.fallbackUsername"),
             avatar_url: profile.avatar_url ?? null,
           });
         });

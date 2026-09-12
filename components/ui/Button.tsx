@@ -170,6 +170,9 @@ export const Button = React.forwardRef<View, ButtonProps>(
         : {}),
     };
 
+    const effectiveHint = accessibilityHint;
+    const effectiveValue = accessibilityValue;
+
     const containerClasses = cn(
       "flex-row items-center justify-center gap-2 rounded-md",
       sizeClasses[size],

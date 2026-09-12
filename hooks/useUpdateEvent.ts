@@ -57,18 +57,18 @@ export function useUpdateEvent() {
       // Track changes for notification
       const changes: string[] = [];
       const fieldLabels: Record<string, string> = {
-        name: "Nom",
-        description: "Description",
-        venue_address: "Adresse",
-        website_url: "Site web",
-        registration_url: "Lien d'inscription",
-        required_level: "Niveau requis",
+        name: t("updateEvent.nameLabel"),
+        description: t("updateEvent.descriptionLabel"),
+        venue_address: t("updateEvent.venueLabel"),
+        website_url: t("updateEvent.websiteLabel"),
+        registration_url: t("updateEvent.registrationUrlLabel"),
+        required_level: t("updateEvent.requiredLevelLabel"),
         start_date: t("updateEvent.dateLabel"),
-        end_date: "Date de fin",
-        price_cents: "Prix",
+        end_date: t("updateEvent.endDateLabel"),
+        price_cents: t("updateEvent.priceLabel"),
         difficulty: t("updateEvent.difficultyLabel"),
         category: t("updateEvent.categoryLabel"),
-        places_total: "Nombre de places",
+        places_total: t("updateEvent.placesTotalLabel"),
       };
 
       for (const [key, label] of Object.entries(fieldLabels)) {
@@ -90,7 +90,7 @@ export function useUpdateEvent() {
             p_user_id: participant.user_id,
             p_type: "event_updated",
             p_title: t("updateEvent.modified"),
-            p_body: `L'événement "${event.name}" {t("updateEvent.modifiedBodyPrefix")} ${changes.join(", ")}.`,
+            p_body: t("updateEvent.modifiedBodyPrefix", { name: event.name }) + `${changes.join(", ")}.`,
             p_data: { event_id: eventId, changes },
           });
         }
@@ -109,7 +109,7 @@ export function useUpdateEvent() {
     onError: (error: any) => {
       Toast.show({
         type: "error",
-        text1: error.message === "unauthorized" ? t("updateEvent.unauthorized") : "Impossible de mettre à jour l'événement",
+        text1: error.message === "unauthorized" ? t("updateEvent.unauthorized") : t("updateEvent.updateError"),
       });
     },
   });

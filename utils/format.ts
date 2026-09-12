@@ -5,8 +5,12 @@ export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
-export function formatPriceFromCents(cents: number | null | undefined, isPaid: boolean): string {
-  if (!isPaid || cents === null || cents === undefined || cents === 0) return "Gratuit";
+export function formatPriceFromCents(
+  cents: number | null | undefined,
+  isPaid: boolean,
+  freeLabel = "Gratuit",
+): string {
+  if (!isPaid || cents === null || cents === undefined || cents === 0) return freeLabel;
   return `${(cents / 100).toFixed(0)} €`;
 }
 

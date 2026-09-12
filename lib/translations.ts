@@ -580,6 +580,27 @@ export const translations = {
     "events.canceledNotificationWithMessage": "L'événement \"{eventName}\" a été annulé. Message : {message}",
     "events.create": "Créer un événement",
     "events.cancelAction": "Annuler l'événement",
+    "events.list.emptyTitle": "Aucun événement",
+    "events.list.emptyHintFiltered":
+      "Aucun événement ne correspond à ces filtres. Élargis ta recherche pour voir plus d'événements.",
+    "events.list.emptyHintDefault": "Reviens bientôt, de nouveaux événements arrivent.",
+    "events.list.clearFilters": "Effacer les filtres",
+    "events.list.loadErrorTitle": "Oups, un problème est survenu",
+    "events.list.loadErrorBody":
+      "Impossible de charger les événements. Vérifie ta connexion, tes filtres sont conservés.",
+    "events.list.offlineBody":
+      "Tu sembles hors ligne. Tes filtres sont conservés, réessaie quand tu es reconnecté.",
+    "events.list.loadingMore": "Chargement d'événements supplémentaires…",
+    "events.list.refreshing": "Actualisation…",
+    "events.detail.loadErrorBody":
+      "Impossible de charger cet événement. Vérifie ta connexion puis réessaie.",
+    "events.detail.offlineBody":
+      "Tu sembles hors ligne. Tes données sont conservées, réessaie quand tu es reconnecté.",
+    "events.detail.notFoundHint": "Cet événement a peut-être été supprimé ou le lien est invalide.",
+    "events.fallbackUserName": "Utilisateur",
+    "events.fallbackUsername": "utilisateur",
+    "events.spotsFullSuffix": " — Complet",
+    "events.spotsRegistered": "{count} inscrits",
 
     // ── Profile ────────────────────────────────────────────────────────────
     "profile.title": "Modifier le profil",
@@ -855,8 +876,17 @@ export const translations = {
     "updateClub.unauthorized": "Non autorisé",
     "updateClub.updateError": "Impossible de mettre à jour le club",
     "updateEvent.dateLabel": "Date de début",
+    "updateEvent.endDateLabel": "Date de fin",
     "updateEvent.difficultyLabel": "Difficulté",
     "updateEvent.categoryLabel": "Catégorie",
+    "updateEvent.nameLabel": "Nom",
+    "updateEvent.descriptionLabel": "Description",
+    "updateEvent.venueLabel": "Adresse",
+    "updateEvent.websiteLabel": "Site web",
+    "updateEvent.registrationUrlLabel": "Lien d'inscription",
+    "updateEvent.requiredLevelLabel": "Niveau requis",
+    "updateEvent.priceLabel": "Prix",
+    "updateEvent.placesTotalLabel": "Nombre de places",
     "updateEvent.modified": "Événement modifié",
     "updateEvent.modifiedBodyPrefix": "L'événement \"{name}\" a été modifié : ",
     "updateEvent.updated": "Événement mis à jour",
@@ -1670,6 +1700,27 @@ export const translations = {
     "events.canceledNotificationWithMessage": "The event \"{eventName}\" has been cancelled. Message: {message}",
     "events.create": "Create event",
     "events.cancelAction": "Cancel event",
+    "events.list.emptyTitle": "No events",
+    "events.list.emptyHintFiltered":
+      "No events match these filters. Broaden your search to see more events.",
+    "events.list.emptyHintDefault": "Check back soon, new events are on the way.",
+    "events.list.clearFilters": "Clear filters",
+    "events.list.loadErrorTitle": "Oops, something went wrong",
+    "events.list.loadErrorBody":
+      "Unable to load events. Check your connection, your filters are kept.",
+    "events.list.offlineBody":
+      "You seem to be offline. Your filters are kept, retry once you're back online.",
+    "events.list.loadingMore": "Loading more events…",
+    "events.list.refreshing": "Refreshing…",
+    "events.detail.loadErrorBody":
+      "Unable to load this event. Check your connection then retry.",
+    "events.detail.offlineBody":
+      "You seem to be offline. Your data is kept, retry once you're back online.",
+    "events.detail.notFoundHint": "This event may have been deleted or the link is invalid.",
+    "events.fallbackUserName": "User",
+    "events.fallbackUsername": "user",
+    "events.spotsFullSuffix": " — Full",
+    "events.spotsRegistered": "{count} registered",
 
     // ── Profile ────────────────────────────────────────────────────────────
     "profile.title": "Edit profile",
@@ -1945,8 +1996,17 @@ export const translations = {
     "updateClub.unauthorized": "Not authorized",
     "updateClub.updateError": "Unable to update the club",
     "updateEvent.dateLabel": "Start date",
+    "updateEvent.endDateLabel": "End date",
     "updateEvent.difficultyLabel": "Difficulty",
     "updateEvent.categoryLabel": "Category",
+    "updateEvent.nameLabel": "Name",
+    "updateEvent.descriptionLabel": "Description",
+    "updateEvent.venueLabel": "Address",
+    "updateEvent.websiteLabel": "Website",
+    "updateEvent.registrationUrlLabel": "Registration link",
+    "updateEvent.requiredLevelLabel": "Required level",
+    "updateEvent.priceLabel": "Price",
+    "updateEvent.placesTotalLabel": "Number of spots",
     "updateEvent.modified": "Event modified",
     "updateEvent.modifiedBodyPrefix": "The event \"{name}\" has been modified: ",
     "updateEvent.updated": "Event updated",

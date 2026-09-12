@@ -8,6 +8,7 @@ import { Dimensions, Pressable, Share, Text, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
@@ -16,6 +17,7 @@ type Props = { event: EventRow; initialIsFavorite?: boolean; initialFavCount?: n
 
 export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isFavorited, favCount, isPending, toggle } = useToggleFavorite({
     entityType: "event",
     id: event.id,
@@ -44,7 +46,7 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
           <SourceBadge isExternal={event.is_external} variant="chip" />
         </View>
         <Text className="text-xs font-semibold text-primary mt-1">
-          {formatPriceFromCents(event.price_cents, event.is_paid)}
+          {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
         </Text>
         <View className="flex-row justify-end gap-2 mt-2">
           <FavoriteButton

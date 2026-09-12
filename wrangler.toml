@@ -3,4 +3,4 @@
 
 [build]
   command = "npx expo export --platform web"
-  output_dir = "dist"
+  pages_build_output_dir = "dist"

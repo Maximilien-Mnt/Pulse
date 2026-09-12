@@ -22,7 +22,7 @@ export function SearchBar({
   onChangeText,
   onClear,
   onCollapse,
-  placeholder = "Rechercher…",
+  placeholder = t("common.search"),
   onPress,
   expanded,
   onSubmitEditing,
@@ -59,6 +59,9 @@ export function SearchBar({
           "flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2.5",
           className
         )}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={hasQuery ? `Rechercher « ${value} »` : placeholder}
       >
         <Icon name="Search" size={20} color="text-tertiary" />
         <Text
@@ -89,9 +92,19 @@ export function SearchBar({
         autoFocus
         returnKeyType="search"
         onSubmitEditing={onSubmitEditing}
+        accessible
+        accessibilityLabel={placeholder}
+        accessibilityRole="searchbox"
       />
-      {/* Cross / close button */}
-      <Pressable onPress={handleClear} hitSlop={8} className="ml-2">
+      {/* Clear button */}
+      <Pressable
+        onPress={handleClear}
+        hitSlop={8}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Effacer la recherche"
+        className="ml-2"
+      >
         <Icon
           name="XCircle"
           size={20}

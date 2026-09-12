@@ -91,6 +91,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            accessibilityLabel={t(tab.labelKey)}
             className="flex-1 items-center justify-center h-full"
           >
             <View
@@ -114,6 +115,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           onPress={handleCreatePress}
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
+          accessibilityHint="Ouvre le menu de création"
           className="bg-primary rounded-full w-14 h-14 items-center justify-center shadow-sm dark:shadow-none"
           style={{
             // Elevate above the tab bar line
@@ -144,6 +146,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            accessibilityLabel={t(tab.labelKey)}
             className="flex-1 items-center justify-center h-full"
           >
             <View

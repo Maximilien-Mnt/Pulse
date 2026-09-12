@@ -1,8 +1,11 @@
 import { cn } from "@/utils/format";
 import type { ComponentProps, ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import type { AccessibilityLabelProps, AccessibilityHintProps } from "@/src/accessibility";
+import { Icon } from "./Icon";
 
-type Props = {
+type Props = AccessibilityLabelProps &
+  AccessibilityHintProps & {
   children: ReactNode;
   className?: string;
   onPress?: () => void;
@@ -13,6 +16,8 @@ type Props = {
   bordered?: boolean;
   /** Additional padding for better touch target */
   padded?: boolean;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 };
 
 /**
@@ -27,6 +32,9 @@ export function PressableRow({
   borderColor = "#1E6BFF",
   bordered = true,
   padded = true,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }: Props) {
   const containerClass = cn(
     "bg-white dark:bg-neutral-800 rounded-xl overflow-hidden",
@@ -42,6 +50,11 @@ export function PressableRow({
       <Pressable
         onPress={onPress}
         hitSlop={hitSlop}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessible={accessibilityLabel != null}
         className={cn(containerClass, "active:opacity-80")}
         style={style}
       >

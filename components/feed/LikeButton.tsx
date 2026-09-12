@@ -18,6 +18,12 @@ interface FavoriteButtonProps {
   isPending?: boolean;
   onPress: () => void;
   size?: number;
+  /** When provided, used as the accessible hint describing the action. */
+  accessibilityHint?: string;
+  /** When provided, overrides the default accessible label. */
+  accessibilityLabel?: string;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 }
 
 export function FavoriteButton({
@@ -26,6 +32,9 @@ export function FavoriteButton({
   isPending = false,
   onPress,
   size = 20,
+  accessibilityHint,
+  accessibilityLabel,
+  testID,
 }: FavoriteButtonProps) {
   const reduceMotion = useReducedMotion();
   const scale = useRef(new Animated.Value(1)).current;
@@ -51,13 +60,34 @@ export function FavoriteButton({
     }).start();
   }, [isFavorite, reduceMotion, scale]);
 
+  // Default accessible label describes the action and current state.
+  const effectiveLabel =
+    accessibilityLabel ?? (isFavorite ? "Retirer des favoris" : "Ajouter aux favoris");
+
+  // Accessible hint describes what happens next (e.g. updates the count).
+  const effectiveHint =
+    accessibilityHint ??
+    (isFavorite
+      ? "Retire ce contenu de tes favoris"
+      : "Ajoute ce contenu à tes favoris");
+
+  // Accessible value exposes the current like count so AT users hear the
+  // number alongside the action label.
+  const effectiveValue = count !== undefined && count > 0 ? `${count} ${isFavorite ? "favoris" : "j'aime"}` : undefined;
+
   return (
     <Pressable
       onPress={onPress}
       disabled={isPending}
+      testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-      accessibilityState={{ selected: isFavorite, disabled: isPending }}
+      accessibilityLabel={effectiveLabel}
+      accessibilityHint={effectiveHint}
+      accessibilityValue={effectiveValue}
+      accessibilityState={{
+        selected: isFavorite,
+        disabled: isPending,
+      }}
       hitSlop={8}
       className="flex-row items-center gap-1"
       style={{ opacity: isPending ? 0.6 : 1 }}
@@ -68,6 +98,7 @@ export function FavoriteButton({
           size={size}
           color={isFavorite ? "secondary" : "text-secondary"}
           active={isFavorite}
+          decorative
         />
       </Animated.View>
       {count !== undefined && count > 0 && (

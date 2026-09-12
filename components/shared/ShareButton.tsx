@@ -12,6 +12,7 @@ import { Share as RNShare } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { PressableRow } from '@/components/ui/PressableRow';
 import { Text } from '@/components/ui/Text';
+import { hitSlopForIcon } from '@/src/accessibility';
 
 interface ShareButtonProps {
   /** Content to share */
@@ -32,6 +33,8 @@ interface ShareButtonProps {
   onShare?: (result: { action: string }) => void;
   /** Additional className for styling */
   className?: string;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 }
 
 export function ShareButton({
@@ -41,6 +44,7 @@ export function ShareButton({
   label,
   onShare,
   className,
+  testID,
 }: ShareButtonProps) {
   const handleShare = async () => {
     try {
@@ -56,9 +60,25 @@ export function ShareButton({
     }
   };
 
+  // Build an accessible label that describes the action and context.
+  // When a visible label is provided, use it; otherwise synthesize from content.
+  const effectiveLabel =
+    label ??
+    `Partager ${content.title}${content.url ? ` — ${content.url}` : ""}`;
+
+  // For small icons (< 44px), expand the hit area to 44x44 without changing
+  // the visual layout. iconSize 18 → hitSlop 13 → 18 + 26 = 44.
+  const effectiveHitSlop = hitSlopForIcon(iconSize);
+
   return (
-    <PressableRow onPress={handleShare} hitSlop={8} className={`flex-row items-center gap-1 ${className ?? ''}`}>
-      <Icon name={icon as any} size={iconSize} color="text-secondary" />
+    <PressableRow
+      onPress={handleShare}
+      hitSlop={effectiveHitSlop}
+      accessibilityLabel={effectiveLabel}
+      testID={testID}
+      className={`flex-row items-center gap-1 ${className ?? ''}`}
+    >
+      <Icon name={icon as any} size={iconSize} color="text-secondary" decorative />
       {label && <Text variant="caption" className="text-text-secondary">{label}</Text>}
     </PressableRow>
   );

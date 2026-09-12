@@ -21,8 +21,9 @@ import { Animated, Pressable, Platform } from "react-native";
 import type { PressableProps } from "react-native";
 
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import type { AccessibilityHintProps } from "@/src/accessibility";
 
-export interface PressableScaleProps extends PressableProps {
+export interface PressableScaleProps extends PressableProps, AccessibilityHintProps {
   /** Scale applied while pressed. Default 0.94. */
   scaleOnPress?: number;
   /** Scale applied while hovered (web). Default 1 (no hover effect). */

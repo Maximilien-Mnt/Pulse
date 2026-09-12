@@ -19,17 +19,19 @@ import {
 import { cn } from "@/utils/format";
 import { Text } from "@/components/ui/Text";
 import { useDesignTokens } from "@/src/design-tokens/useDesignTokens";
+import type { AccessibilityStateProps } from "@/src/accessibility";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface InputProps extends Omit<RNTextInputProps, "style"> {
-  /** Label displayed above the input */
+  /** Label displayed above the input — also used as the accessible name. */
   label?: string;
-  /** Help text displayed below the input */
+  /** Help text displayed below the input — also used as accessible hint. */
   help?: string;
-  /** Error message — when set, the border turns error-500 and message shows below */
+  /** Error message — when set, the border turns error-500, message shows below,
+   *  and the field is announced as invalid to assistive technology. */
   error?: string;
   /** Additional Tailwind / NativeWind class names for the container */
   className?: string;
@@ -37,6 +39,8 @@ export interface InputProps extends Omit<RNTextInputProps, "style"> {
   inputClassName?: string;
   /** Optional element rendered at the trailing edge of the input */
   rightElement?: React.ReactNode;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +74,7 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
       onFocus,
       onBlur,
       rightElement,
+      testID,
       ...rest
     },
     ref
@@ -102,11 +107,24 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
       inputClassName
     );
 
+    const accessibleName = label;
+    const accessibleHint = help;
+    const accessibleInvalid = error ? true : undefined;
+    const accessibleState = error
+      ? { invalid: true, readonly: false }
+      : undefined;
+
     return (
       <View className={cn("gap-2", className)}>
-        {/* Label */}
+        {/* Label — also serves as the accessible name for the field */}
         {label ? (
-          <Text variant="caption" className="text-text-secondary">
+          <Text
+            variant="caption"
+            className="text-text-secondary"
+            testID={testID ? `${testID}-label` : undefined}
+            accessible
+            accessibilityRole="label"
+          >
             {label}
           </Text>
         ) : null}
@@ -115,12 +133,19 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
         <View className="relative">
           <RNTextInput
             ref={ref}
+            testID={testID}
             multiline={multiline}
             textAlignVertical={multiline ? "top" : "center"}
             placeholderTextColor={tokens.colors["text-tertiary"]}
             onFocus={handleFocus}
             onBlur={handleBlur}
             className={inputClasses}
+            accessible
+            accessibilityLabel={accessibleName}
+            accessibilityHint={accessibleHint}
+            accessibilityState={accessibleState}
+            accessibilityInvalid={accessibleInvalid}
+            accessibilityRole="textbox"
             {...rest}
           />
           {rightElement ? (
@@ -130,16 +155,26 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
           ) : null}
         </View>
 
-        {/* Help text (only when no error) */}
+        {/* Help text (only when no error) — also served as accessible hint */}
         {help && !error ? (
           <Text variant="caption" className="text-text-secondary">
             {help}
           </Text>
         ) : null}
 
-        {/* Error message */}
+        {/* Error message — associated with the field and announced when present.
+         *  In a form flow, errors should be surfaced after submit so AT users
+         *  hear the validation result. The accessibilityInvalid flag on the
+         *  textbox already marks the field; this visible message reinforces it. */}
         {error ? (
-          <Text variant="caption" className="text-error-600">
+          <Text
+            variant="caption"
+            className="text-error-600"
+            testID={testID ? `${testID}-error` : undefined}
+            accessible
+            accessibilityRole="alert"
+            accessibilityLabel={error}
+          >
             {error}
           </Text>
         ) : null}

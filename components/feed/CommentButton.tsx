@@ -44,6 +44,7 @@ export function CommentButton({ commentsCount, onPress }: CommentButtonProps) {
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel="Commenter"
+      accessibilityHint={`Ouvre les commentaires. ${commentsCount} commentaire${commentsCount === 1 ? "" : "s"}`}
       hitSlop={8}
       className="flex-row items-center gap-1.5"
     >

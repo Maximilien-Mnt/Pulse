@@ -21,6 +21,12 @@ import { cn } from "@/utils/format";
 import { Text } from "@/components/ui/Text";
 import { useThemeStore } from "@/stores/themeStore";
 import { Icon, type IconName, type IconColor } from "@/components/ui/Icon";
+import {
+  type AccessibilityLabelProps,
+  type AccessibilityHintProps,
+  type AccessibilityStateProps,
+  type AccessibilityValueProps,
+} from "@/src/accessibility";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,7 +41,11 @@ export type ButtonVariant =
 
 export type ButtonSize = "md" | "lg";
 
-export interface ButtonProps {
+export interface ButtonProps
+  extends AccessibilityLabelProps,
+    AccessibilityHintProps,
+    AccessibilityStateProps,
+    AccessibilityValueProps {
   children?: ReactNode;
   /** Legacy label prop — kept for backward compatibility with existing call sites. */
   title?: string;
@@ -51,6 +61,8 @@ export interface ButtonProps {
   size?: ButtonSize;
   /** Additional Tailwind / NativeWind class names */
   className?: string;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,29 +124,51 @@ export const Button = React.forwardRef<View, ButtonProps>(
       iconRight,
       size = "md",
       className,
+      accessibilityLabel,
+      accessibilityHint,
+      accessibilityStateDisabled,
+      accessibilityState,
+      accessibilityValue,
+      testID,
     },
     ref
   ) => {
     const isDark = useThemeStore((s) => s.isDark);
     const scale = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = useCallback(() => {
-    Animated.timing(scale, {
-      toValue: 0.98,
-      duration: 150,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-  }, [scale]);
+    const handlePressIn = useCallback(() => {
+      Animated.timing(scale, {
+        toValue: 0.98,
+        duration: 150,
+        useNativeDriver: Platform.OS !== "web",
+      }).start();
+    }, [scale]);
 
-  const handlePressOut = useCallback(() => {
-    Animated.timing(scale, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-  }, [scale]);
+    const handlePressOut = useCallback(() => {
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: Platform.OS !== "web",
+      }).start();
+    }, [scale]);
 
     const isDisabled = disabled || loading;
+
+    // Build accessibility props. User-provided values take precedence; when
+    // absent we synthesize sensible defaults from visible content so that AT
+    // still gets a meaningful announcement without requiring every call site
+    // to pass a label.
+    const effectiveLabel =
+      accessibilityLabel ??
+      (title ??
+        (typeof children === "string" ? (children as string) : undefined));
+
+    const effectiveState = {
+      disabled: isDisabled || accessibilityStateDisabled,
+      ...(accessibilityState && !isDisabled && !accessibilityStateDisabled
+        ? accessibilityState
+        : {}),
+    };
 
     const containerClasses = cn(
       "flex-row items-center justify-center gap-2 rounded-md",
@@ -156,8 +190,13 @@ export const Button = React.forwardRef<View, ButtonProps>(
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
           ref={ref}
+          testID={testID}
           accessibilityRole="button"
-          accessibilityState={{ disabled: isDisabled }}
+          accessibilityLabel={effectiveLabel}
+          accessibilityHint={effectiveHint}
+          accessibilityState={effectiveState}
+          accessibilityValue={isDisabled ? undefined : effectiveValue}
+          accessible={effectiveLabel != null || effectiveHint != null}
           disabled={isDisabled}
           onPress={onPress}
           onPressIn={handlePressIn}

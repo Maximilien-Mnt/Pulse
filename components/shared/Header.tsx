@@ -116,6 +116,7 @@ export function Header({
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={isDark ? t("theme.light") : t("theme.dark")}
+            accessibilityHint={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
             className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
           >
             <Icon name={isDark ? "Sun" : "Moon"} size={24} color="primary" />

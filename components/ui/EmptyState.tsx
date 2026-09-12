@@ -11,13 +11,19 @@ type Props = {
   ctaLabel?: string;
   onCta?: () => void;
   children?: ReactNode;
+  testID?: string;
 };
 
-export function EmptyState({ icon, title, subtitle, ctaLabel, onCta, children }: Props) {
+export function EmptyState({ icon, title, subtitle, ctaLabel, onCta, children, testID }: Props) {
   return (
-    <View className="items-center justify-center py-12 px-6">
-      <Icon name={icon} size={32} color="text-tertiary" />
-      <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50 mt-4 text-center">
+    <View className="items-center justify-center py-12 px-6" testID={testID}>
+      <Icon name={icon} size={32} color="text-tertiary" decorative />
+      <Text
+        className="text-xl font-semibold text-neutral-900 dark:text-neutral-50 mt-4 text-center"
+        role="heading"
+        accessibilityRole="header"
+        accessibilityLevel={2}
+      >
         {title}
       </Text>
       {subtitle ? (

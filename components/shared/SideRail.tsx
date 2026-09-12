@@ -86,11 +86,16 @@ export function SideRail() {
                   // Always navigate for non-profile tabs when not active
                   // For profile, always navigate to root even if in a sub-screen
                   if (!active || tabName === "profile") {
-                    router.replace(tab.route as any);
+                    if (tabName === "profile") {
+                      router.replace("/(tabs)/profile");
+                    } else {
+                      router.push(tab.route);
+                    }
                   }
                 }}
-                accessibilityRole="tab"
+                accessibilityRole="button"
                 accessibilityState={{ selected: active }}
+                accessibilityLabel={tab.label}
                 className={`rounded-lg py-3 ${expanded ? "px-3 flex-row items-center gap-3" : "items-center justify-center"} ${
                   active ? "bg-primary-tint dark:bg-primary-tint-dark" : ""
                 }`}

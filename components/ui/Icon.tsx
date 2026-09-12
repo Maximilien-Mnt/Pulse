@@ -277,31 +277,31 @@ export type IconColor =
 export interface IconProps {
   /** Icon name from the Pulse icon set */
   name: IconName;
-  /**
-   * Size in pixels. Prefer the standard set in `IconSize`
-   * (10, 12, 14, 15, 16, 18, 20, 22, 24, 28, 32, 40, 48). Default: 24.
-   * Any number is accepted so dynamic sizes (e.g. Avatar rest scaling) work.
-   */
+  /** Size in pixels. Default: 24. Any number accepted for dynamic sizing. */
   size?: number;
-  /**
-   * Semantic color token, or a raw hex string (used for per-sport colors).
-   * Default: "text-secondary" (neutral-600 light / #A7ACB5 dark).
-   * When `active` is true, this is overridden to "primary".
-   */
+  /** Semantic color token, or a raw hex string. Default: "text-secondary". */
   color?: IconColor;
-  /**
-   * When true, the icon switches to its "active" visual state:
-   * color → "primary", and fill is applied to simulate a filled variant.
-   */
+  /** When true, switches to "primary" color and fills with it. */
   active?: boolean;
-  /**
-   * When true, the icon is filled with the effective `color` (stroke color).
-   * Unlike `active`, it does not override the color to "primary" — useful
-   * for things like filled star ratings (`color="warning-500" filled`).
-   */
+  /** When true, fills the icon with the effective color (keeps provided color). */
   filled?: boolean;
   /** Optional NativeWind class name forwarded to the underlying SVG. */
   className?: string;
+  /**
+   * When provided, the icon is treated as informative and gets an accessible
+   * label. When omitted, the icon is decorative (ignored by AT) unless it is
+   * wrapped in an accessible parent (e.g. a Button or PressableRow with a
+   * label). Prefer wrapping for icon-only actions; use this prop only when the
+   * icon itself must carry meaning (e.g. an info/status icon inside a row).
+   */
+  accessibilityLabel?: string;
+  /** When provided and the icon is informative, this hint describes the icon. */
+  accessibilityHint?: string;
+  /** When true, the icon is explicitly rendered as decorative (ignored by AT).
+   *  Overrides the default behavior where an icon with no label is decorative. */
+  decorative?: boolean;
+  /** Test identifier for E2E and unit tests. */
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +309,18 @@ export interface IconProps {
 // ---------------------------------------------------------------------------
 
 export const Icon = React.memo<IconProps>(
-  ({ name, size = 24, color = "text-secondary", active = false, filled = false, ...rest }) => {
+  ({
+    name,
+    size = 24,
+    color = "text-secondary",
+    active = false,
+    filled = false,
+    accessibilityLabel,
+    accessibilityHint,
+    decorative = true,
+    testID,
+    ...rest
+  }) => {
     const tokens = useDesignTokens();
 
     // Resolve the effective color: semantic token → hex, raw hex → passthrough
@@ -331,6 +342,14 @@ export const Icon = React.memo<IconProps>(
 
     const LucideComponent = ICON_MAP[name] ?? Info;
 
+    // Accessibility: an Icon is decorative by default (ignored by AT).
+    // When a label is provided, treat it as informative. When explicitly
+    // marked decorative, ensure accessible=false even if a label exists
+    // (rare, but allows overriding).
+    const effectiveAccessible = !decorative;
+    const effectiveLabel = decorative ? undefined : accessibilityLabel;
+    const effectiveHint = decorative ? undefined : accessibilityHint;
+
     return (
       <LucideComponent
         size={size}
@@ -338,7 +357,10 @@ export const Icon = React.memo<IconProps>(
         fill={fill}
         strokeWidth={1.75}
         absoluteStrokeWidth
-        {...rest}
+        testID={testID}
+        accessible={effectiveAccessible}
+        accessibilityLabel={effectiveLabel}
+        accessibilityHint={effectiveHint}
       />
     );
   }

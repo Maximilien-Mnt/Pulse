@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/ui/Avatar";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Icon } from "@/components/ui/Icon";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Pressable, ScrollView, View } from "react-native";
@@ -23,6 +24,7 @@ export function EventMembersStrip({
   count,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const total = count ?? participants.length;
 
   if (!participants.length) return null;
@@ -48,7 +50,7 @@ export function EventMembersStrip({
             <PulseText
               variant="caption"
               numberOfLines={1}
-              className="mt-1 text-neutral-700 dark:text-neutral-200 max-w-[64px]"
+              className="mt-1 text-text-secondary dark:text-text-secondary-dark max-w-[64px]"
             >
               {p.full_name}
             </PulseText>
@@ -58,7 +60,7 @@ export function EventMembersStrip({
           onPress={seeAll}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Voir tous les participants"
+          accessibilityLabel={t("events.members.seeAll")}
           className="w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center"
         >
           <Icon name="ChevronRight" size={20} color="primary" />

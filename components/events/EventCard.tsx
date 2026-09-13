@@ -5,7 +5,8 @@ import type { ClubEventRow } from "@/hooks/clubProjections";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
 import { Image } from "expo-image";
-import { Pressable, Share, Text, View } from "react-native";
+import { Pressable, Share, View } from "react-native";
+import { Text } from "@/components/ui/Text";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
@@ -36,7 +37,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
   return (
     <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
-      className="flex-row bg-white dark:bg-neutral-800 rounded-2xl p-3 mb-3 border border-neutral-100 dark:border-neutral-700"
+      className="flex-row bg-surface dark:bg-neutral-800 rounded-2xl p-3 mb-3 border border-border dark:border-neutral-700"
     >
       <Image
         source={{ uri: event.logo_url ?? "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=200" }}
@@ -44,17 +45,17 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
         contentFit="cover"
       />
       <View className="flex-1 ml-3">
-        <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50" numberOfLines={2}>
+        <Text variant="body" className="font-semibold text-text-primary dark:text-text-primary-dark" numberOfLines={2}>
           {event.name}
         </Text>
         <View className="flex-row flex-wrap gap-2 mt-1 items-center">
           <Badge>{event.sport}</Badge>
           <SourceBadge isExternal={event.is_external} variant="chip" className="self-center" />
         </View>
-        <Text className="text-sm text-neutral-500 mt-1">{formatDateLong(event.start_date)}</Text>
-        <Text className="text-sm text-neutral-500">{event.city}</Text>
+        <Text variant="caption" className="mt-1">{formatDateLong(event.start_date)}</Text>
+        <Text variant="caption">{event.city}</Text>
         <View className="flex-row items-center justify-between mt-2">
-          <Text className="text-sm font-semibold text-primary">
+          <Text variant="caption" className="font-semibold text-primary">
             {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
           </Text>
           <Stars n={event.difficulty} />

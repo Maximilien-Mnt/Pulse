@@ -4,7 +4,8 @@ import { formatPriceFromCents } from "@/utils/format";
 import type { EventRow } from "@/types";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Dimensions, Pressable, Share, Text, View } from "react-native";
+import { Dimensions, Pressable, Share, View } from "react-native";
+import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
@@ -28,7 +29,7 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
   return (
     <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
-      className="bg-white dark:bg-neutral-800 rounded-2xl overflow-hidden mb-3 border border-neutral-100 dark:border-neutral-700"
+      className="bg-surface dark:bg-neutral-800 rounded-2xl overflow-hidden mb-3 border border-border dark:border-neutral-700"
       style={{ width: COL_W }}
     >
       <Image
@@ -37,15 +38,15 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
         contentFit="cover"
       />
       <View className="p-2">
-        <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50" numberOfLines={2}>
+        <Text variant="caption" className="font-semibold text-text-primary dark:text-text-primary-dark" numberOfLines={2}>
           {event.name}
         </Text>
         <Badge>{event.sport}</Badge>
         <View className="flex-row items-center justify-between mt-1">
-          <Text className="text-xs text-neutral-500">{formatDateLong(event.start_date)}</Text>
+          <Text variant="caption">{formatDateLong(event.start_date)}</Text>
           <SourceBadge isExternal={event.is_external} variant="chip" />
         </View>
-        <Text className="text-xs font-semibold text-primary mt-1">
+        <Text variant="caption" className="font-semibold text-primary mt-1">
           {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
         </Text>
         <View className="flex-row justify-end gap-2 mt-2">

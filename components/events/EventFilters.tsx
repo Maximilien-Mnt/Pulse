@@ -6,8 +6,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
 import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
-import { t } from "@/hooks/useTranslation";
+import { Modal, Platform, Pressable, ScrollView, Switch, View } from "react-native";
+import { Text } from "@/components/ui/Text";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Props = {
   visible: boolean;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function EventFilters({ visible, onClose, value, onApply, isLocationEnabled = false }: Props) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<EventListFilters>(value);
   const [showFrom, setShowFrom] = useState(false);
   const [showTo, setShowTo] = useState(false);
@@ -37,17 +39,21 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
           className="absolute inset-0 bg-black/40"
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t("common.close")}
         />
-        <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-3xl max-h-[90%] px-4 pt-4 pb-8">
+        <View className="absolute bottom-0 left-0 right-0 bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[90%] px-4 pt-4 pb-8">
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Filtres événements</Text>
+            <Text variant="h2" className="text-text-primary dark:text-text-primary-dark">
+              {t("events.filterTitle")}
+            </Text>
             <Pressable onPress={onClose}>
               <Icon name="X" size={28} color="text-secondary" />
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text className="text-sm font-medium mb-2">Sports</Text>
+            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+              {t("events.filters.sports")}
+            </Text>
             <View className="flex-row flex-wrap">
               {SPORTS.map((s) => (
                 <Pressable
@@ -55,7 +61,10 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                   onPress={() => toggleSport(s.id)}
                   className={`px-4 py-3 rounded-full mr-2 mb-2 active:opacity-80 ${draft.sports.includes(s.id) ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
                 >
-                  <Text className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}>
+                  <Text
+                    variant="body"
+                    className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}
+                  >
                     {s.label}
                   </Text>
                 </Pressable>
@@ -63,13 +72,17 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
             </View>
 
             <Input
-              label="Pays / ville"
+              label={t("events.filters.location")}
               value={draft.location}
               onChangeText={(location) => setDraft((d) => ({ ...d, location }))}
             />
-            <Text className="text-sm font-medium mb-2">Date début</Text>
-            <Pressable onPress={() => setShowFrom(true)} className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-3 mb-2">
-              <Text>{draft.dateFrom ?? "Choisir"}</Text>
+            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+              {t("events.filters.dateStart")}
+            </Text>
+            <Pressable onPress={() => setShowFrom(true)} className="border-2 border-border dark:border-border-dark rounded-xl p-3 mb-2">
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {draft.dateFrom ?? t("events.filters.choose")}
+              </Text>
             </Pressable>
             {showFrom ? (
               <DateTimePicker
@@ -82,9 +95,13 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 }}
               />
             ) : null}
-            <Text className="text-sm font-medium mb-2">Date fin</Text>
-            <Pressable onPress={() => setShowTo(true)} className="border-2 border-neutral-200 dark:border-neutral-700 rounded-xl p-3 mb-2">
-              <Text>{draft.dateTo ?? "Choisir"}</Text>
+            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+              {t("events.filters.dateEnd")}
+            </Text>
+            <Pressable onPress={() => setShowTo(true)} className="border-2 border-border dark:border-border-dark rounded-xl p-3 mb-2">
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {draft.dateTo ?? t("events.filters.choose")}
+              </Text>
             </Pressable>
             {showTo ? (
               <DateTimePicker
@@ -98,11 +115,13 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             ) : null}
             <Input
-              label="Niveau requis"
+              label={t("events.requiredLevel")}
               value={draft.requiredLevel}
               onChangeText={(requiredLevel) => setDraft((d) => ({ ...d, requiredLevel }))}
             />
-            <Text className="text-sm font-medium mt-2">Difficulté ({draft.difficultyMin}–{draft.difficultyMax})</Text>
+            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mt-2">
+              {t("events.filters.difficulty")} ({draft.difficultyMin}–{draft.difficultyMax})
+            </Text>
             <Slider
               minimumValue={1}
               maximumValue={5}
@@ -110,7 +129,9 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               value={draft.difficultyMax}
               onValueChange={(v) => setDraft((d) => ({ ...d, difficultyMin: 1, difficultyMax: Math.round(v) }))}
             />
-            <Text className="text-sm font-medium mb-2">Catégorie</Text>
+            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+              {t("events.filters.categories")}
+            </Text>
             <View className="flex-row flex-wrap mb-2">
               {EVENT_CATEGORIES.map((c) => (
                 <Pressable
@@ -118,26 +139,37 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                   onPress={() => setDraft((d) => ({ ...d, category: d.category === c ? "" : c }))}
                   className={`px-3 py-2 rounded-full mr-2 mb-2 ${draft.category === c ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
                 >
-                  <Text className={draft.category === c ? "text-white" : "text-neutral-800 dark:text-neutral-100"}>{c}</Text>
+                  <Text
+                    variant="body"
+                    className={draft.category === c ? "text-white" : "text-neutral-800 dark:text-neutral-100"}
+                  >
+                    {c}
+                  </Text>
                 </Pressable>
               ))}
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Payant uniquement</Text>
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {t("events.filters.paidOnly")}
+              </Text>
               <Switch
                 value={draft.paidOnly === true}
                 onValueChange={(on) => setDraft((d) => ({ ...d, paidOnly: on ? true : null }))}
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Gratuit uniquement</Text>
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {t("events.filters.freeOnly")}
+              </Text>
               <Switch
                 value={draft.paidOnly === false}
                 onValueChange={(on) => setDraft((d) => ({ ...d, paidOnly: on ? false : null }))}
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Internes uniquement</Text>
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {t("events.filters.internalOnly")}
+              </Text>
               <Switch
                 value={draft.internalOnly}
                 onValueChange={(internalOnly) =>
@@ -146,7 +178,9 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Externes uniquement</Text>
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {t("events.filters.externalOnly")}
+              </Text>
               <Switch
                 value={draft.externalOnly}
                 onValueChange={(externalOnly) =>
@@ -155,7 +189,9 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2 mb-2">
-              <Text className="text-neutral-800 dark:text-neutral-100">Favoris uniquement</Text>
+              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+                {t("events.filters.favoritesOnly")}
+              </Text>
               <Switch
                 value={draft.favoritesOnly}
                 onValueChange={(favoritesOnly) => setDraft((d) => ({ ...d, favoritesOnly }))}
@@ -163,7 +199,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
             </View>
             <View className="mt-6 gap-3">
               <Button
-                title="Appliquer"
+                title={t("common.apply")}
                 onPress={() => {
                   onApply(draft);
                   onClose();

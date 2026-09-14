@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/authStore";
 import type { BlockedUser } from "@/types";
 import Toast from "react-native-toast-message";
 import { t } from "@/hooks/useTranslation";
+import { useOnlineStatus } from "@/lib/offline/useOnlineStatus";
 
 type BlockUserParams = {
   userId: string;
@@ -66,10 +67,15 @@ async function fetchBlockedUserIds(userId: string): Promise<string[]> {
 export function useBlockUser() {
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
+  const { online } = useOnlineStatus();
 
   return useMutation({
-    mutationFn: ({ userId: targetId, onSuccess, onError }: BlockUserParams) =>
-      blockUserApi({ blockerId: userId!, blockedId: targetId }).then(async (data) => {
+    mutationFn: ({ userId: targetId, onSuccess, onError }: BlockUserParams) => {
+      if (!online) {
+        throw new Error(t("offline.blockUser"));
+      }
+      return blockUserApi({ blockerId: userId!, blockedId: targetId }).then(
+        async (data) => {
         // Unfollow if following
         const following = await checkIsFollowing(userId, targetId);
         if (following) {
@@ -94,7 +100,9 @@ export function useBlockUser() {
 
         onSuccess?.();
         return data;
-      }),
+        }
+      );
+    },
     onError: (err: any) => {
       Toast.show({
         type: "error",

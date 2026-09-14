@@ -13,6 +13,37 @@ export const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Per-query-key stale-time presets for read-only content.
+ *
+ * These are applied lazily by individual hooks via their own `staleTime`
+ * option so the defaults stay visible and explicit in each hook. The values
+ * below are the conservative targets we align to.
+ *
+ *   - feed        : 2 min  — refreshed by pagination + realtime; heavy read.
+ *   - clubs       : 2 min  — list changes infrequently.
+ *   - events      : 2 min  — list + detail; detail already inactive offline.
+ *   - profile     : 5 min  — profiles change rarely.
+ *   - public-profile: 5 min
+ *
+ * Destructive / write paths are NOT cached for longer — they rely on the
+ * global gcTime (24h) only so cached reads survive offline, but writes are
+ * always attempted live and refused when offline (see hooks that guard
+ * useOnlineStatus).
+ */
+export const STALE_BY_QUERY_PREFIX: Record<string, number> = {
+  feed: 2 * 60 * 1000,
+  clubs: 2 * 60 * 1000,
+  events: 2 * 60 * 1000,
+  profile: 5 * 60 * 1000,
+  "public-profile": 5 * 60 * 1000,
+};
+
+/** Conservative stale-time lookup for a read-only query prefix. */
+export function staleForPrefix(prefix: string): number {
+  return STALE_BY_QUERY_PREFIX[prefix] ?? 30_000;
+}
+
 const CACHE_KEY = "pulse:rq-cache";
 const CACHE_VERSION = "v1";
 // Max age of a persisted cache before we discard it (24h).

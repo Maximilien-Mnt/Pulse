@@ -684,6 +684,24 @@ export const translations = {
     "settings.securityChanged": "Mot de passe mis à jour",
     "settings.languageAndRegion": "Langue et région",
 
+    // ── Offline ──────────────────────────────────────────────────────────────
+    "offline.banner.title": "Tu es hors ligne",
+    "offline.banner.body":
+      "Certaines fonctionnalités sont indisponibles. Reviens quand ta connexion est rétablie.",
+    "offline.banner.retryLabel": "Réessayer",
+    "offline.mutationBlocked":
+      "Hors ligne — cette action nécessite une connexion active.",
+    "offline.deleteClub":
+      "Hors ligne — impossible de supprimer le club maintenant. Réessaie quand tu es reconnecté.",
+    "offline.leaveClub":
+      "Hors ligne — impossible de quitter le club maintenant. Réessaie quand tu es reconnecté.",
+    "offline.blockUser":
+      "Hors ligne — impossible de bloquer cet utilisateur maintenant. Réessaie quand tu es reconnecté.",
+    "offline.report":
+      "Hors ligne — impossible de signaler maintenant. Réessaie quand tu es reconnecté.",
+    "offline.deleteAccount":
+      "Hors ligne — impossible de supprimer ton compte maintenant. Réessaie quand tu es reconnecté.",
+
     // ── Public profile ────────────────────────────────────────────────────
     "publicProfile.intro":
       "Ce profil sera visible par tous les utilisateurs pour t'inviter à des clubs et événements.",
@@ -1857,6 +1875,24 @@ export const translations = {
     "settings.confirmPasswordPlaceholder": "Confirm the password",
     "settings.securityChanged": "Password updated",
     "settings.languageAndRegion": "Language and region",
+
+    // ── Offline ──────────────────────────────────────────────────────────────
+    "offline.banner.title": "You're offline",
+    "offline.banner.body":
+      "Some features are unavailable. Come back when your connection is restored.",
+    "offline.banner.retryLabel": "Retry",
+    "offline.mutationBlocked":
+      "Offline — this action requires an active connection.",
+    "offline.deleteClub":
+      "Offline — unable to delete the club right now. Retry when you're reconnected.",
+    "offline.leaveClub":
+      "Offline — unable to leave the club right now. Retry when you're reconnected.",
+    "offline.blockUser":
+      "Offline — unable to block this user right now. Retry when you're reconnected.",
+    "offline.report":
+      "Offline — unable to report right now. Retry when you're reconnected.",
+    "offline.deleteAccount":
+      "Offline — unable to delete your account right now. Retry when you're reconnected.",
 
     // ── Public profile ────────────────────────────────────────────────────
     "publicProfile.intro":

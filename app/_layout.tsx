@@ -22,6 +22,7 @@ import { PostHogProvider } from "posthog-react-native";
 import { posthog } from "@/src/config/posthog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { markNavigatedInSession, recordRouteChange } from "@/lib/navigationSession";
 
 SplashScreen.preventAutoHideAsync();
@@ -179,6 +180,7 @@ export default function RootLayout() {
             <PushNotificationsGate>
               <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
                 <StatusBar style={isDark ? "light" : "dark"} />
+                <OfflineBanner />
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(public)" />
                   <Stack.Screen name="auth" />

@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { useMutation } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
+import { useOnlineStatus } from "@/lib/offline/useOnlineStatus";
+import { t } from "@/hooks/useTranslation";
 
 /**
  * Password-gated HARD delete of the caller's account.
@@ -12,10 +14,19 @@ import Toast from "react-native-toast-message";
  * deleting the auth user server-side does not emit a client auth event — the
  * current session must be invalidated locally so the user is logged out
  * immediately.
+ *
+ * This mutation NEVER runs offline: account deletion is a permanent,
+ * hard-to-reverse action and must not be silently queued. The caller is
+ * expected to disable the UI when `!online`.
  */
 export function useDeleteAccount() {
+  const { online } = useOnlineStatus();
+
   return useMutation({
     mutationFn: async (password: string) => {
+      if (!online) {
+        throw new Error(t("offline.deleteAccount"));
+      }
       const { error } = await supabase.rpc("delete_my_account", {
         p_password: password,
       });

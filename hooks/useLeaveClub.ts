@@ -4,11 +4,13 @@ import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
+import { useOnlineStatus } from "@/lib/offline/useOnlineStatus";
 
 export function useLeaveClub() {
   const qc = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
   const posthog = usePostHog();
+  const { online } = useOnlineStatus();
 
   return useMutation({
     mutationFn: async ({
@@ -22,6 +24,9 @@ export function useLeaveClub() {
       creatorId: string;
       reason?: string;
     }) => {
+      if (!online) {
+        throw new Error(t("offline.leaveClub"));
+      }
       if (!userId) throw new Error("auth");
 
       // Remove the member from the club

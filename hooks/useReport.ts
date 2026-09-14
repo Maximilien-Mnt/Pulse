@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { t } from "@/hooks/useTranslation";
+import { useOnlineStatus } from "@/lib/offline/useOnlineStatus";
 
 /**
  * What kind of entity is being reported. Maps directly to the `target_type`
@@ -48,9 +49,13 @@ export interface UseReportPayload {
 export function useReport() {
   const userId = useAuthStore((s) => s.userId);
   const qc = useQueryClient();
+  const { online } = useOnlineStatus();
 
   return useMutation({
     mutationFn: async (payload: UseReportPayload) => {
+      if (!online) {
+        throw new Error(t("offline.report"));
+      }
       if (!userId) throw new Error(t("report.notConnected"));
 
       const { targetType, targetId, targetAuthorId, reason, message } = payload;

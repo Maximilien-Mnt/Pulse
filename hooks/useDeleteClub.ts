@@ -3,6 +3,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import type { Club } from "@/types";
 import { t } from "@/hooks/useTranslation";
+import { useOnlineStatus } from "@/lib/offline/useOnlineStatus";
 
 /**
  * Deletes a club, all its events and all related data, and notifies everyone:
@@ -17,9 +18,13 @@ import { t } from "@/hooks/useTranslation";
 export function useDeleteClub() {
   const qc = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
+  const { online } = useOnlineStatus();
 
   return useMutation({
     mutationFn: async ([clubId, clubName]: [string, string]) => {
+      if (!online) {
+        throw new Error(t("offline.deleteClub"));
+      }
       if (!userId) throw new Error("Not authenticated");
 
       const { error } = await supabase.rpc("delete_club_full", {

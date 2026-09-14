@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
+import { getSportLabel } from "@/lib/i18n";
 import type { EventListFilters } from "@/hooks/useEvents";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
@@ -43,15 +44,15 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
         />
         <View className="absolute bottom-0 left-0 right-0 bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[90%] px-4 pt-4 pb-8">
           <View className="flex-row justify-between items-center mb-4">
-            <Text variant="h2" className="text-text-primary dark:text-text-primary-dark">
+            <Text variant="h2" className="text-text-primary">
               {t("events.filterTitle")}
             </Text>
-            <Pressable onPress={onClose}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Icon name="X" size={28} color="text-secondary" />
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+            <Text variant="caption" className="font-medium text-text-secondary mb-2">
               {t("events.filters.sports")}
             </Text>
             <View className="flex-row flex-wrap">
@@ -59,13 +60,13 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 <Pressable
                   key={s.id}
                   onPress={() => toggleSport(s.id)}
-                  className={`px-4 py-3 rounded-full mr-2 mb-2 active:opacity-80 ${draft.sports.includes(s.id) ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
+                  className={`px-4 py-3 rounded-full mr-2 mb-2 active:opacity-80 ${draft.sports.includes(s.id) ? "bg-primary" : "bg-chip dark:bg-chip-dark"}`}
                 >
                   <Text
                     variant="body"
-                    className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}
+                    className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-chip-text dark:text-chip-text-dark"}
                   >
-                    {s.label}
+                    {getSportLabel(s.id)}
                   </Text>
                 </Pressable>
               ))}
@@ -76,11 +77,11 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               value={draft.location}
               onChangeText={(location) => setDraft((d) => ({ ...d, location }))}
             />
-            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+            <Text variant="caption" className="font-medium text-text-secondary mb-2">
               {t("events.filters.dateStart")}
             </Text>
             <Pressable onPress={() => setShowFrom(true)} className="border-2 border-border dark:border-border-dark rounded-xl p-3 mb-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {draft.dateFrom ?? t("events.filters.choose")}
               </Text>
             </Pressable>
@@ -95,11 +96,11 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 }}
               />
             ) : null}
-            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+            <Text variant="caption" className="font-medium text-text-secondary mb-2">
               {t("events.filters.dateEnd")}
             </Text>
             <Pressable onPress={() => setShowTo(true)} className="border-2 border-border dark:border-border-dark rounded-xl p-3 mb-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {draft.dateTo ?? t("events.filters.choose")}
               </Text>
             </Pressable>
@@ -119,7 +120,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               value={draft.requiredLevel}
               onChangeText={(requiredLevel) => setDraft((d) => ({ ...d, requiredLevel }))}
             />
-            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mt-2">
+            <Text variant="caption" className="font-medium text-text-secondary mt-2">
               {t("events.filters.difficulty")} ({draft.difficultyMin}–{draft.difficultyMax})
             </Text>
             <Slider
@@ -129,7 +130,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               value={draft.difficultyMax}
               onValueChange={(v) => setDraft((d) => ({ ...d, difficultyMin: 1, difficultyMax: Math.round(v) }))}
             />
-            <Text variant="caption" className="font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+            <Text variant="caption" className="font-medium text-text-secondary mb-2">
               {t("events.filters.categories")}
             </Text>
             <View className="flex-row flex-wrap mb-2">
@@ -137,11 +138,11 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 <Pressable
                   key={c}
                   onPress={() => setDraft((d) => ({ ...d, category: d.category === c ? "" : c }))}
-                  className={`px-3 py-2 rounded-full mr-2 mb-2 ${draft.category === c ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
+                  className={`px-3 py-2 rounded-full mr-2 mb-2 ${draft.category === c ? "bg-primary" : "bg-chip dark:bg-chip-dark"}`}
                 >
                   <Text
                     variant="body"
-                    className={draft.category === c ? "text-white" : "text-neutral-800 dark:text-neutral-100"}
+                    className={draft.category === c ? "text-white" : "text-chip-text dark:text-chip-text-dark"}
                   >
                     {c}
                   </Text>
@@ -149,7 +150,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               ))}
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {t("events.filters.paidOnly")}
               </Text>
               <Switch
@@ -158,7 +159,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {t("events.filters.freeOnly")}
               </Text>
               <Switch
@@ -167,7 +168,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {t("events.filters.internalOnly")}
               </Text>
               <Switch
@@ -178,7 +179,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {t("events.filters.externalOnly")}
               </Text>
               <Switch
@@ -189,7 +190,7 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
               />
             </View>
             <View className="flex-row items-center justify-between py-2 mb-2">
-              <Text variant="body" className="text-text-primary dark:text-text-primary-dark">
+              <Text variant="body" className="text-text-primary">
                 {t("events.filters.favoritesOnly")}
               </Text>
               <Switch

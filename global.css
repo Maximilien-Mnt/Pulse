@@ -19,6 +19,8 @@
   --color-bg: #FAFBFC;
   --color-surface: #FFFFFF;
   --color-border: #E5E7EB;
+  --color-chip: #E8EAED;
+  --color-chip-text: #23262C;
   --color-text-primary: #111827;
   --color-text-secondary: #4B5563;
   --color-text-tertiary: #9CA3AF;
@@ -39,9 +41,11 @@
 
 /* Dark mode */
 :root.dark {
-  --color-bg: #0E1015;
+  --color-bg: #0A0F1E;
   --color-surface: #171A20;
   --color-border: #262A32;
+  --color-chip: #171A20;
+  --color-chip-text: #E8EAED;
   --color-text-primary: #F5F6F8;
   --color-text-secondary: #A7ACB5;
   --color-text-tertiary: #767C87;

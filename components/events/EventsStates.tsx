@@ -75,7 +75,7 @@ export function EventsListRefreshing() {
       accessibilityLabel={t("events.list.refreshing")}
     >
       <LoadingSpinner size="small" accessibilityLabel={t("events.list.refreshing")} />
-      <PulseText variant="caption" className="text-neutral-500 ml-1">
+      <PulseText variant="caption" className="text-text-tertiary ml-1">
         {t("events.list.refreshing")}
       </PulseText>
     </View>

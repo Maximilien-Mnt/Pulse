@@ -584,6 +584,7 @@ export const translations = {
     "events.canceledNotificationWithMessage": "L'événement \"{eventName}\" a été annulé. Message : {message}",
     "events.create": "Créer un événement",
     "events.cancelAction": "Annuler l'événement",
+    "events.shareAction": "Partager l'événement",
     "events.list.emptyTitle": "Aucun événement",
     "events.list.emptyHintFiltered":
       "Aucun événement ne correspond à ces filtres. Élargis ta recherche pour voir plus d'événements.",
@@ -1125,6 +1126,7 @@ export const translations = {
     "signup.slot.many": "créneaux",
     "signup.underageMessage": "PULSE est réservé aux utilisateurs de 16 ans et plus.",
     "source.inApp": "Dans l'app",
+    "source.external": "Recommandation externe",
     "time.daysAgo": "{days} j",
     "time.hoursAgo": "{hours} h",
     "time.justNow": "À l'instant",
@@ -1729,6 +1731,7 @@ export const translations = {
     "events.canceledNotificationWithMessage": "The event \"{eventName}\" has been cancelled. Message: {message}",
     "events.create": "Create event",
     "events.cancelAction": "Cancel event",
+    "events.shareAction": "Share event",
     "events.list.emptyTitle": "No events",
     "events.list.emptyHintFiltered":
       "No events match these filters. Broaden your search to see more events.",
@@ -2271,6 +2274,8 @@ export const translations = {
     "signup.slot.many": "slots",
     "signup.underageMessage": "PULSE is available to users aged 16 and over.",
     "source.inApp": "In app",
+    "source.external": "External recommendation",
+
     "time.daysAgo": "{days}d ago",
     "time.hoursAgo": "{hours}h ago",
     "time.justNow": "Just now",

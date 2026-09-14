@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { formatPriceFromCents } from "@/utils/format";
+import { getSportLabel } from "@/lib/i18n";
 import type { ClubEventRow } from "@/hooks/clubProjections";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
@@ -37,7 +38,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
   return (
     <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
-      className="flex-row bg-surface dark:bg-neutral-800 rounded-2xl p-3 mb-3 border border-border dark:border-neutral-700"
+      className="flex-row bg-surface dark:bg-surface-dark rounded-2xl p-3 mb-3 border border-border dark:border-border-dark"
     >
       <Image
         source={{ uri: event.logo_url ?? "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=200" }}
@@ -45,11 +46,11 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
         contentFit="cover"
       />
       <View className="flex-1 ml-3">
-        <Text variant="body" className="font-semibold text-text-primary dark:text-text-primary-dark" numberOfLines={2}>
+        <Text variant="body" className="font-semibold text-text-primary" numberOfLines={2}>
           {event.name}
         </Text>
         <View className="flex-row flex-wrap gap-2 mt-1 items-center">
-          <Badge>{event.sport}</Badge>
+          <Badge>{getSportLabel(event.sport)}</Badge>
           <SourceBadge isExternal={event.is_external} variant="chip" className="self-center" />
         </View>
         <Text variant="caption" className="mt-1">{formatDateLong(event.start_date)}</Text>
@@ -72,6 +73,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
               className="w-8 h-8 rounded-full bg-error-500/10 items-center justify-center mb-1"
               accessibilityRole="button"
               accessibilityLabel={t("events.cancelAction")}
+              accessibilityHint={t("events.cancelAction")}
             >
               <Icon name="X" size={16} color="error-500" />
             </Pressable>
@@ -82,7 +84,13 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
             isPending={isPending}
             onPress={toggle}
           />
-        <Pressable onPress={() => Share.share({ message: event.name })} hitSlop={8}>
+        <Pressable
+          onPress={() => Share.share({ message: event.name })}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("events.share")}
+          accessibilityHint={t("events.shareAction")}
+        >
           <Icon name="Share2" size={22} color="text-secondary" />
         </Pressable>
       </View>

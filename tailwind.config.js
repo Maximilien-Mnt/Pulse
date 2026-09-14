@@ -97,6 +97,16 @@ module.exports = {
           DEFAULT: semanticColors.light.border,
           dark: semanticColors.dark.border,
         },
+
+        // ── Unselected filter/sport chips (documented semantic pair) ──
+        chip: {
+          DEFAULT: semanticColors.light.chip,
+          dark: semanticColors.dark.chip,
+        },
+        "chip-text": {
+          DEFAULT: semanticColors.light["chip-text"],
+          dark: semanticColors.dark["chip-text"],
+        },
         
         // ── Text colors with dark mode support ────────────────────
         "text-primary": {

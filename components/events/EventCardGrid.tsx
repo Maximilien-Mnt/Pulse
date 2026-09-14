@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { formatPriceFromCents } from "@/utils/format";
+import { getSportLabel } from "@/lib/i18n";
 import type { EventRow } from "@/types";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -29,7 +30,7 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
   return (
     <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
-      className="bg-surface dark:bg-neutral-800 rounded-2xl overflow-hidden mb-3 border border-border dark:border-neutral-700"
+      className="bg-surface dark:bg-surface-dark rounded-2xl overflow-hidden mb-3 border border-border dark:border-border-dark"
       style={{ width: COL_W }}
     >
       <Image
@@ -38,10 +39,10 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
         contentFit="cover"
       />
       <View className="p-2">
-        <Text variant="caption" className="font-semibold text-text-primary dark:text-text-primary-dark" numberOfLines={2}>
+        <Text variant="caption" className="font-semibold text-text-primary" numberOfLines={2}>
           {event.name}
         </Text>
-        <Badge>{event.sport}</Badge>
+        <Badge>{getSportLabel(event.sport)}</Badge>
         <View className="flex-row items-center justify-between mt-1">
           <Text variant="caption">{formatDateLong(event.start_date)}</Text>
           <SourceBadge isExternal={event.is_external} variant="chip" />
@@ -56,7 +57,12 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
             isPending={isPending}
             onPress={toggle}
           />
-          <Pressable onPress={() => Share.share({ message: event.name })}>
+          <Pressable
+            onPress={() => Share.share({ message: event.name })}
+            accessibilityRole="button"
+            accessibilityLabel={t("events.share")}
+            accessibilityHint={t("events.shareAction")}
+          >
             <Icon name="Share2" size={20} color="text-secondary" />
           </Pressable>
         </View>

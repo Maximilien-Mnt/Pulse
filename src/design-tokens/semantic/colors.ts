@@ -18,6 +18,11 @@ export const semanticColors = {
     bg: neutral[25],
     surface: neutral[0],
     border: neutral[100],
+    // Unselected filter/sport chips: distinct from card surfaces in light mode,
+    // pairs with `chip-text` below. Mirrors the previous raw `neutral-100` /
+    // `surface-dark` usage (dark chip = surface color for exact equivalence).
+    chip: neutral[100],
+    "chip-text": neutral[800],
 
     // Text hierarchy
     "text-primary": neutral[900],
@@ -41,9 +46,14 @@ export const semanticColors = {
   },
   dark: {
     // Backgrounds — custom values per the spec
-    bg: "#0E1015",
+    bg: "#0A0F1E",
     surface: "#171A20",
     border: "#262A32",
+    // Unselected filter/sport chips: distinct from card surfaces, pairs with
+    // `chip-text` below. Chip = surface color so dark mode output matches the
+    // previous `dark:bg-surface-dark` usage exactly.
+    chip: "#171A20",
+    "chip-text": "#E8EAED",
 
     // Text hierarchy
     "text-primary": "#F5F6F8",

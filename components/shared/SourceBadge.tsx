@@ -1,8 +1,8 @@
 import { Icon, type IconColor } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
 import { View, Text } from "react-native";
-import { t } from "@/hooks/useTranslation";
-
+import { useTranslation } from "@/hooks/useTranslation";
+import type { TranslationKey } from "@/lib/translations";
 type SourceState = "inApp" | "external";
 
 type Props = {
@@ -13,17 +13,17 @@ type Props = {
   className?: string;
 };
 
-const STATE: Record<SourceState, { icon: "Smartphone" | "Globe"; label: string; chip: string; text: string; color: IconColor }> = {
+const STATE: Record<SourceState, { icon: "Smartphone" | "Globe"; labelKey: TranslationKey; chip: string; text: string; color: IconColor }> = {
   inApp: {
     icon: "Smartphone",
-    label: t("source.inApp"),
+    labelKey: "source.inApp",
     chip: "bg-primary/10",
     text: "text-primary",
     color: "primary",
   },
   external: {
     icon: "Globe",
-    label: "Source externe",
+    labelKey: "source.external",
     chip: "bg-warning/15",
     text: "text-warning",
     color: "warning-500",
@@ -35,6 +35,7 @@ const STATE: Record<SourceState, { icon: "Smartphone" | "Globe"; label: string; 
  * or imported from an external source (API/website sync).
  */
 export function SourceBadge({ isExternal, variant = "full", className }: Props) {
+  const { t } = useTranslation();
   const state = STATE[isExternal ? "external" : "inApp"];
 
   if (variant === "chip") {
@@ -48,7 +49,7 @@ export function SourceBadge({ isExternal, variant = "full", className }: Props) 
   return (
     <View className={cn("flex-row items-center gap-1.5 px-2.5 py-1 rounded-full self-start", state.chip, className)}>
       <Icon name={state.icon} size={16} color={state.color} />
-      <Text className={cn("text-xs font-semibold", state.text)}>{state.label}</Text>
+      <Text className={cn("text-xs font-semibold", state.text)}>{t(state.labelKey)}</Text>
     </View>
   );
 }

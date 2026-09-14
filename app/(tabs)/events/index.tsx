@@ -127,7 +127,7 @@ export default function EventsScreen() {
   // full-screen spinner.
   if (isLoading && !data) {
     return (
-      <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+      <SafeScreen className="flex-1 bg-bg dark:bg-bg-dark">
         <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
         <EventsListSkeleton grid={grid} />
       </SafeScreen>
@@ -137,7 +137,7 @@ export default function EventsScreen() {
   // Initial error (nothing cached): localized non-technical message + retry.
   if (isError && !data) {
     return (
-      <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
+      <SafeScreen className="flex-1 bg-bg dark:bg-bg-dark">
         <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
         <EventsListError offline={offline} onRetry={() => void refetch()} />
       </SafeScreen>
@@ -145,7 +145,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
+    <SafeScreen className="flex-1 bg-bg dark:bg-bg-dark" edges={["top"]}>
       <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between py-2">
         <Pressable onPress={() => setFilterOpen(true)}>

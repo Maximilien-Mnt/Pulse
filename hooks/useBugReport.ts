@@ -37,11 +37,8 @@ export function useBugReport() {
   return useMutation({
     mutationFn: async (payload: BugReportPayload) => {
       if (!userId) {
-        console.error("[BugReport] No user ID found in auth store");
         throw new Error(t("report.notConnected"));
       }
-
-      console.log("[BugReport] Attempting to submit bug report for user:", userId);
 
       const context = await collectDeviceContext();
 
@@ -57,20 +54,14 @@ export function useBugReport() {
         timezone: context.timezone,
       };
 
-      console.log("[BugReport] Insert data:", insertData);
-
       const { data, error } = await supabase
         .from("bug_reports")
         .insert(insertData)
         .select();
 
       if (error) {
-        console.error("[BugReport] Insert failed with error:", error);
-        console.error("[BugReport] Error details:", JSON.stringify(error, null, 2));
         throw error;
       }
-
-      console.log("[BugReport] Insert succeeded, returned data:", data);
 
       // Verify the insert actually persisted
       const { data: verifyData, error: verifyError } = await supabase
@@ -81,22 +72,15 @@ export function useBugReport() {
         .limit(1);
 
       if (verifyError) {
-        console.error("[BugReport] Verification query failed:", verifyError);
-      } else if (!verifyData || verifyData.length === 0) {
-        console.error("[BugReport] WARNING: Insert returned success but verification found no data!");
-        console.error("[BugReport] This suggests the insert may have been rolled back.");
-      } else if (verifyData[0]) {
-        console.log("[BugReport] Verification successful, latest report ID:", verifyData[0].id);
+        // Verification is best-effort; the insert already succeeded.
       }
 
       return data;
     },
-    onSuccess: (data) => {
-      console.log("[BugReport] Mutation success, data:", data);
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["bug_reports"] });
     },
     onError: (error) => {
-      console.error("[BugReport] Mutation onError caught:", error);
       throw error;
     },
   });

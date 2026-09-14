@@ -14,6 +14,7 @@
 
 import { translations, type TranslationKey } from "@/lib/translations";
 import { useLanguageStore, type Language } from "@/stores/languageStore";
+import { logger } from "@/lib/reporting/logger";
 import { EN_LABELS } from "@/lib/localizedData";
 import { getCountryLabel, getCountryDisplay } from "@/utils/countries";
 import { SPORTS, CLUB_SORT_OPTIONS, EVENT_SORT_OPTIONS } from "@/lib/constants";
@@ -28,7 +29,7 @@ function resolve(lang: Language, key: string): string {
   cache.set(cacheKey, template);
   // Dev-time safety net: any key rendered in English must exist in the EN block.
   if (__DEV__ && lang === "en" && !(translations.en as Record<string, string>)[key]) {
-    console.warn(`[i18n] Missing "en" translation for key "${key}".`);
+    logger.warn("i18n", `Missing "en" translation for key "${key}".`);
   }
   return template;
 }

@@ -4,6 +4,9 @@ import { setStoredPassword } from "@/lib/passwordStorage";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { t } from "@/hooks/useTranslation";
+import { logger } from "@/lib/reporting/logger";
+import { reportError } from "@/lib/reporting/errorReport";
+import { userFacingMessageFor } from "@/lib/reporting/userMessage";
 
 /**
  * Hook to change the user's password.
@@ -28,9 +31,11 @@ export function useChangePassword() {
       });
 
       if (supabaseError) {
+        reportError(supabaseError, { operation: "auth.changePassword" });
         Toast.show({
           type: "error",
-          text1: supabaseError.message || "Erreur lors du changement de mot de passe",
+          text1: t("common.error"),
+          text2: userFacingMessageFor(supabaseError),
         });
         setIsLoading(false);
         return false;
@@ -40,7 +45,7 @@ export function useChangePassword() {
       try {
         await setStoredPassword(userId, newPassword);
       } catch (storageError) {
-        console.error("Failed to update secure password storage:", storageError);
+        logger.warn("auth", "failed to update secure password storage");
         // Don't fail the operation if storage fails - password is still changed in Supabase
       }
 
@@ -48,8 +53,8 @@ export function useChangePassword() {
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error("Password change error:", error);
-      Toast.show({ type: "error", text1: "Erreur lors du changement de mot de passe" });
+      reportError(error, { operation: "auth.changePassword" });
+      Toast.show({ type: "error", text1: t("common.error"), text2: userFacingMessageFor(error) });
       setIsLoading(false);
       return false;
     }

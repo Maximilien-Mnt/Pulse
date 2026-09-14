@@ -3,6 +3,7 @@ import type { FeedPost } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import type { FeedFilter } from "@/stores/feedStore";
+import { logger } from "@/lib/reporting/logger";
 
 async function fetchBlockedIds(userId: string): Promise<string[]> {
   // Never let a blocked_users failure break the whole feed.
@@ -73,9 +74,7 @@ async function fetchFollowingIds(userId: string | null): Promise<string[]> {
     .select("following_id")
     .eq("follower_id", userId);
   if (error) {
-    if (__DEV__) {
-      console.error("[useFeed] fetchFollowingIds error", { userId, error });
-    }
+    logger.warn("useFeed", "fetchFollowingIds failed");
     throw error;
   }
   return (data ?? []).map((row) => row.following_id);
@@ -148,9 +147,7 @@ async function fetchFeedPage(
   if (filter.type === "following") {
     const followingIds = await fetchFollowingIds(userId);
     if (followingIds.length === 0) {
-      if (__DEV__) {
-        console.warn("[useFeed] following filter: no followed users found", { userId });
-      }
+      logger.debug("useFeed", "following filter: no followed users found");
       // No followed users → empty feed
       return { items: [], nextCursor: null };
     }
@@ -182,16 +179,12 @@ async function fetchFeedPage(
         .in("post_id", postIds);
 
       if (likesError) {
-        if (__DEV__) {
-          console.warn("[useFeed] Failed to load liked status", { userId, error: likesError });
-        }
+        logger.warn("useFeed", "failed to load liked status");
       } else if (likesData && likesData.length > 0) {
         likedByMeSet = new Set(likesData.map((like) => like.post_id));
       }
     } catch (e) {
-      if (__DEV__) {
-        console.warn("[useFeed] Failed to load liked status", e);
-      }
+      logger.warn("useFeed", "failed to load liked status");
     }
   }
 

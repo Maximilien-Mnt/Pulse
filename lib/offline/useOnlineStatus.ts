@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { queryClient } from "@/lib/queryClient";
+import { logger } from "@/lib/reporting/logger";
 
 type OnlineStatus = {
   online: boolean;
@@ -57,9 +58,7 @@ export function useOnlineStatus(): OnlineStatus {
           void queryClient.invalidateQueries({ queryKey: ["events"] });
           void queryClient.invalidateQueries({ queryKey: ["profile"] });
           void queryClient.invalidateQueries({ queryKey: ["public-profile"] });
-          console.log(
-            "[useOnlineStatus] Reconnected — invalidated read-only query prefixes",
-          );
+          logger.info("useOnlineStatus", "reconnected — invalidated read-only query prefixes");
         }
       };
 
@@ -69,7 +68,7 @@ export function useOnlineStatus(): OnlineStatus {
           online: false,
           transitionedAt: Date.now(),
         }));
-        console.log("[useOnlineStatus] Went offline");
+        logger.info("useOnlineStatus", "went offline");
       };
 
       window.addEventListener("online", onOnline);
@@ -92,7 +91,7 @@ export function useOnlineStatus(): OnlineStatus {
         transitionedAt: Date.now(),
       });
       if (!online) {
-        console.log("[useOnlineStatus] Went offline");
+        logger.info("useOnlineStatus", "went offline");
       } else if (wasOffline) {
         // Reconnected on native: refresh read-only prefixes. Refused
         // destructive mutations are NOT auto-retried here.
@@ -101,9 +100,7 @@ export function useOnlineStatus(): OnlineStatus {
         void queryClient.invalidateQueries({ queryKey: ["events"] });
         void queryClient.invalidateQueries({ queryKey: ["profile"] });
         void queryClient.invalidateQueries({ queryKey: ["public-profile"] });
-        console.log(
-          "[useOnlineStatus] Reconnected — invalidated read-only query prefixes"
-        );
+        logger.info("useOnlineStatus", "reconnected — invalidated read-only query prefixes");
       }
     };
 

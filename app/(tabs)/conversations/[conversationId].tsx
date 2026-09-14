@@ -25,6 +25,7 @@ import { SafeScreen } from '@/components/shared/SafeScreen';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import Toast from 'react-native-toast-message';
+import { reportError } from '@/lib/reporting/errorReport';
 
 const MESSAGES_PAGE_SIZE = 20;
 
@@ -92,7 +93,7 @@ export default function ConversationScreen() {
     },
   });
 
-  if (otherError) console.error('Error fetching other user:', otherError);
+  if (otherError) reportError(otherError, { operation: "conversations.otherUser", route: "/conversations" });
 
   const other = otherFromParams || otherFromQuery;
   const title = other?.full_name ?? otherName ?? 'Messages';
@@ -118,9 +119,7 @@ export default function ConversationScreen() {
   const effectiveTitle = isGroupChat && groupName ? groupName : title;
   const effectiveAvatarUrl = isGroupChat && groupPhotoUrl ? groupPhotoUrl : avatarUrl;
 
-  if (__DEV__) {
-    console.log('Conversation Screen Debug:', { conversationId, userId, other, isGroupChat, groupName, title });
-  }
+  // Debug state is inspected via React DevTools; never log payloads here.
 
   const { data: pinned = false } = useQuery({
     queryKey: ['conv-pinned', conversationId, userId],

@@ -77,6 +77,16 @@ export const translations = {
     "common.viewAll": "Tout voir",
     "common.eventPlanned": "Événement programmé",
 
+    // ── Errors (privacy-safe, non-technical) ──────────────────────────
+    "errors.generic": "Une erreur est survenue. Réessaie plus tard.",
+    "errors.network": "Problème de connexion. Vérifie ta connexion puis réessaie.",
+    "errors.offline": "Tu es hors ligne. Reconnecte-toi puis réessaie.",
+    "errors.unauthorized": "Ta session a expiré. Reconnecte-toi.",
+    "errors.notFound": "Contenu introuvable.",
+    "errors.crash.title": "Une erreur est survenue",
+    "errors.crash.body": "Quelque chose s'est mal passé. Réessaie.",
+    "errors.crash.retry": "Réessayer",
+
     // ── Landing ───────────────────────────────────────────────────────────
     "landing.hero.title": "Le réseau social du sport",
     "landing.hero.subtitle":
@@ -1270,6 +1280,16 @@ export const translations = {
     "common.justNow": "Just now",
     "common.viewAll": "View all",
     "common.eventPlanned": "Scheduled event",
+
+    // ── Errors (privacy-safe, non-technical) ──────────────────────────
+    "errors.generic": "Something went wrong. Please try again later.",
+    "errors.network": "Connection issue. Check your connection and try again.",
+    "errors.offline": "You are offline. Reconnect and try again.",
+    "errors.unauthorized": "Your session expired. Please sign in again.",
+    "errors.notFound": "Content not found.",
+    "errors.crash.title": "Something went wrong",
+    "errors.crash.body": "Something went wrong. Please try again.",
+    "errors.crash.retry": "Retry",
 
     // ── Landing ───────────────────────────────────────────────────────────
     "landing.hero.title": "The social network for sports",

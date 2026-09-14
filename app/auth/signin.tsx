@@ -14,8 +14,10 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation , t } from "@/hooks/useTranslation";
+import { useTranslation, t } from "@/hooks/useTranslation";
 import { useState } from "react";
+import { reportError } from "@/lib/reporting/errorReport";
+import { userFacingMessageFor } from "@/lib/reporting/userMessage";
 
 type Form = z.infer<typeof signInSchema>;
 
@@ -35,9 +37,11 @@ export default function SignInScreen() {
       password: values.password,
     });
     if (error) {
+      reportError(error, { operation: "auth.signIn", route: "/auth/signin" });
       Toast.show({
         type: "error",
-        text1: error.message.includes("fetch") ? t("common.no") : error.message,
+        text1: t("common.error"),
+        text2: userFacingMessageFor(error),
       });
       return;
     }
@@ -45,7 +49,6 @@ export default function SignInScreen() {
     if (userId) {
       await setStoredPassword(userId, values.password);
       posthog.identify(userId, {
-        $set: { email: values.email.trim() },
         $set_once: { first_sign_in_date: new Date().toISOString() },
       });
     }

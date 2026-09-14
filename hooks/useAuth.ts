@@ -4,6 +4,8 @@ import { posthog } from "@/src/config/posthog";
 import { queryClient, removePersistedQueryCache } from "@/lib/queryClient";
 import { useEffect, useRef } from "react";
 import { loadPendingSignup, completeSignup } from "@/utils/signup";
+import { logger } from "@/lib/reporting/logger";
+import { reportError } from "@/lib/reporting/errorReport";
 
 /**
  * Initialise la session Supabase et synchronise le store auth local.
@@ -93,9 +95,9 @@ export function useAuth() {
             const profile = { ...pending.profile, id: user.id };
             const payload = { ...pending, profile };
             await completeSignup(payload);
-            console.log("Pending signup replayed for", user.email);
+            logger.info("auth", "pending signup replayed");
           } catch (err) {
-            console.error("Failed to replay pending signup:", err);
+            reportError(err, { operation: "auth.replayPendingSignup" });
           }
         }
       }

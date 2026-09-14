@@ -20,6 +20,9 @@ import { View } from "react-native";
 import { useColorScheme } from "nativewind";
 import { PostHogProvider } from "posthog-react-native";
 import { posthog } from "@/src/config/posthog";
+import { useAnalyticsConsentStore } from "@/lib/reporting/analyticsConsent";
+import { AppErrorBoundary } from "@/components/reporting/AppErrorBoundary";
+import { logger } from "@/lib/reporting/logger";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
@@ -56,6 +59,7 @@ export default function RootLayout() {
   const pathname = usePathname();
   const params = useGlobalSearchParams();
   const previousPathname = useRef<string | undefined>(undefined);
+  const analyticsEnabled = useAnalyticsConsentStore((s) => s.enabled);
 
   const [loaded, fontError] = usePulseFonts();
 
@@ -70,10 +74,7 @@ export default function RootLayout() {
       return;
     }
     if (Platform.OS === "web" && fontError) {
-      console.warn(
-        "[RootLayout] Font loading failed on web; falling back to system fonts:",
-        String(fontError),
-      );
+      logger.warn("RootLayout", "font loading failed on web; falling back to system fonts");
       void SplashScreen.hideAsync();
     }
   }, [loaded, fontError]);
@@ -83,9 +84,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== "web" || loaded || fontError) return;
     const timer = setTimeout(() => {
-      console.warn(
-        "[RootLayout] Font loading timed out on web; falling back to system fonts",
-      );
+      logger.warn("RootLayout", "font loading timed out on web; falling back to system fonts");
       void SplashScreen.hideAsync();
     }, 10_000);
     return () => clearTimeout(timer);
@@ -96,6 +95,7 @@ export default function RootLayout() {
     void useThemeStore.getState().hydrate();
     void useNavbarStore.getState().hydrate();
     void useLanguageStore.getState().hydrate();
+    void useAnalyticsConsentStore.getState().hydrate();
     // Rehydrate a sanitized in-progress signup draft so valid progress is
     // restored on restart/deep link instead of being silently discarded.
     void useSignupStore.getState().hydrate();
@@ -148,13 +148,16 @@ export default function RootLayout() {
       // exact screen the user came from (cross-tab), instead of a hardcoded
       // fallback or the wrong tab root.
       recordRouteChange(previousPathname.current, pathname);
-      posthog.screen(pathname, {
-        previous_screen: previousPathname.current ?? null,
-        ...params,
-      });
+      // Privacy-safe screen tracking: only the route + previous route.
+      // Never spread route params (they may contain user-generated content).
+      if (analyticsEnabled) {
+        posthog.screen(pathname, {
+          previous_screen: previousPathname.current ?? null,
+        });
+      }
       previousPathname.current = pathname;
     }
-  }, [pathname, params]);
+  }, [pathname, params, analyticsEnabled]);
 
   // On native, block rendering until fonts are fully loaded.
   if (!loaded && Platform.OS !== "web") return null;
@@ -176,6 +179,7 @@ export default function RootLayout() {
               propsToCapture: ["testID"],
             }}
           >
+            <AppErrorBoundary route={pathname}>
             <AuthGate />
             <PushNotificationsGate>
               <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
@@ -193,6 +197,7 @@ export default function RootLayout() {
                 <Toast />
               </View>
             </PushNotificationsGate>
+            </AppErrorBoundary>
           </PostHogProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

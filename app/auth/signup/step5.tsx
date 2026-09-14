@@ -18,7 +18,9 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, Te
 import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
-import { useTranslation , t } from "@/hooks/useTranslation";
+import { useTranslation, t } from "@/hooks/useTranslation";
+import { logger } from "@/lib/reporting/logger";
+import { reportError } from "@/lib/reporting/errorReport";
 import { Icon } from "@/components/ui/Icon";
 import { signupEdgeFunctionUrl } from "@/lib/supabase";
 import { getSignupErrorKey, getSignupMissingFields } from "@/utils/signupChecklist";
@@ -232,7 +234,7 @@ export default function SignupStep5() {
               text1: t(avatarError.translationKey as never, avatarError.translationParams),
             });
           } else {
-            console.error("[signup] avatar upload failed, continuing without avatar", avatarError);
+            logger.warn("signup", "avatar upload failed, continuing without avatar");
           }
         }
       }
@@ -280,12 +282,11 @@ export default function SignupStep5() {
           router.replace("/auth/signup/under16");
           return;
         }
-        // Log the machine code + server detail so the failure is never
-        // invisible again (the toast itself is user-facing and generic).
-        console.error("[signup] rejected by server", {
-          code: json.error,
-          detail: json.detail,
-          status: res.status,
+        // Log the machine code only (never user data) — the toast stays generic.
+        reportError(new Error(json.error ?? "signup_failed"), {
+          operation: "signup.submit",
+          route: "/auth/signup/step5",
+          extra: { code: json.error, status: res.status },
         });
         throw new Error(json.error ?? "signup_failed");
       }
@@ -303,8 +304,8 @@ export default function SignupStep5() {
       });
       if (signInError) throw signInError;
 
-      posthog.identify(json.userId ?? step1.email, {
-        $set: { username: step1.username, language: step1.language },
+      posthog.identify(json.userId ?? step1.username, {
+        $set: { language: step1.language },
         $set_once: { signup_date: new Date().toISOString(), discovery_source: discoverySource },
       });
       posthog.capture("user_signed_up", {
@@ -321,14 +322,8 @@ export default function SignupStep5() {
     } catch (e: unknown) {
       setSubmitState("error");
       const msg = e instanceof Error ? e.message : "signup_failed";
-      // Always surface the real reason in logs — never let a signup failure
-      // be invisible again.
-      console.error("[signup] failed", {
-        error: msg,
-        detail: e instanceof Error ? e?.stack ?? e : e,
-        email: step1?.email,
-        username: step1?.username,
-      });
+      // Privacy-safe: never log emails/usernames/stacks from signup.
+      reportError(e, { operation: "signup.submit", route: "/auth/signup/step5" });
       Toast.show({ type: "error", text1: t(getSignupErrorKey(msg)) });
     } finally {
       // Return to idle so the action is retryable after any failure.

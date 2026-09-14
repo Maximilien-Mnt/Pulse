@@ -75,7 +75,6 @@ export function useConversations(userId: string | null, publicList?: boolean) {
       });
 
       if (error) {
-        console.log("Error fetching conversations via RPC:", error);
         throw error;
       }
 

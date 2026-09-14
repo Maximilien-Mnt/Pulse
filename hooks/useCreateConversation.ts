@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
 import { useMutation } from "@tanstack/react-query";
+import { logger } from "@/lib/reporting/logger";
+import { reportError } from "@/lib/reporting/errorReport";
 
 /**
  * Creates a new 1:1 conversation with another user.
@@ -57,23 +59,25 @@ export function useCreateConversation() {
       );
 
       if (createError || !conversationId) {
-        console.error("Failed to create conversation:", createError);
+        reportError(createError ?? new Error("failed_to_create_conversation"), {
+          operation: "conversations.create",
+        });
         throw createError ?? new Error("failed_to_create_conversation");
       }
 
       return conversationId as string;
     },
-    onSuccess: (conversationId: string) => {
+    onSuccess: () => {
       // Clear all conversation queries to force fresh fetch
       queryClient.removeQueries({ queryKey: ["conversations"] });
-      
+
       // Also trigger a global refetch
       queryClient.invalidateQueries();
-      
-      console.log("Conversation created successfully:", conversationId);
+
+      logger.debug("conversations", "conversation created");
     },
     onError: (error: Error) => {
-      console.error("Error creating conversation:", error);
+      reportError(error, { operation: "conversations.create" });
     },
   });
 }

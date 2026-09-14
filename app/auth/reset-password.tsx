@@ -16,7 +16,10 @@ import { usePostHog } from "posthog-react-native";
 import Toast from "react-native-toast-message";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { useTranslation , t } from "@/hooks/useTranslation";
+import { useTranslation, t } from "@/hooks/useTranslation";
+import { logger } from "@/lib/reporting/logger";
+import { reportError } from "@/lib/reporting/errorReport";
+import { userFacingMessageFor } from "@/lib/reporting/userMessage";
 
 type Form = z.infer<typeof resetPasswordSchema>;
 
@@ -147,12 +150,13 @@ export default function ResetPasswordScreen() {
     });
 
     if (updateError) {
+      reportError(updateError, { operation: "auth.resetPassword", route: "/auth/reset-password" });
       Toast.show({
         type: "error",
-        text1: "Erreur",
-        text2: updateError.message,
+        text1: t("common.error"),
+        text2: userFacingMessageFor(updateError),
       });
-      posthog.capture("password_reset_completed", { success: false, error: updateError.message });
+      posthog.capture("password_reset_completed", { success: false });
       return;
     }
 
@@ -162,7 +166,7 @@ export default function ResetPasswordScreen() {
       try {
         await setStoredPassword(data.user.id, values.password);
       } catch (storageError) {
-        console.error("Failed to store new password securely:", storageError);
+        logger.warn("auth", "failed to store new password securely");
       }
     }
 

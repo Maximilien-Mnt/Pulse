@@ -30,7 +30,7 @@ export function usePassword() {
       const storedPassword = await getStoredPassword(userId);
       setPassword(storedPassword);
     } catch (error) {
-      console.error("Failed to load password:", error);
+      logger.warn("password", "failed to load password");
       setPassword(null);
     } finally {
       setIsLoading(false);

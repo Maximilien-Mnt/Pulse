@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger } from '@/lib/reporting/logger';
 
 type MessageChangeHandler = {
   onNewMessage?: (message: any) => void;
@@ -41,10 +42,8 @@ export function useConversationRealtime({ conversationId, handlers, enabled = tr
     // Subscribe and handle errors via channel state
     ch.subscribe();
     // Note: Supabase Realtime handles errors internally; we monitor via the
-    // channel's state changes if needed. For now, we log subscription attempts.
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Realtime] Subscribed to conversation:', conversationId);
-    }
+    // channel's state changes if needed.
+    logger.debug('Realtime', 'subscribed to conversation');
 
     return () => {
       ch.unsubscribe();

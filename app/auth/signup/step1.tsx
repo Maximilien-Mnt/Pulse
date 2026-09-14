@@ -121,7 +121,7 @@ export default function SignupStep1() {
             name="fullName"
             render={({ field: { value, onChange } }) => (
               <Input
-                label={t("signup.step1.fullName")}
+                label={`${t("signup.step1.fullName")} ${t("signup.required")}`}
                 value={value}
                 onChangeText={onChange}
                 textContentType="name"
@@ -137,7 +137,7 @@ export default function SignupStep1() {
             render={({ field: { value, onChange } }) => (
               <View className="mb-4">
                 <Input
-                  label={t("signup.step1.username")}
+                  label={`${t("signup.step1.username")} ${t("signup.required")}`}
                   value={value}
                   onChangeText={onChange}
                   autoCapitalize="none"
@@ -160,7 +160,7 @@ export default function SignupStep1() {
             name="email"
             render={({ field: { value, onChange } }) => (
               <Input
-                label={t("signup.step1.email")}
+                label={`${t("signup.step1.email")} ${t("signup.required")}`}
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
@@ -178,7 +178,7 @@ export default function SignupStep1() {
             name="password"
             render={({ field: { value, onChange } }) => (
               <Input
-                label={t("signup.step1.password")}
+                label={`${t("signup.step1.password")} ${t("signup.required")}`}
                 value={value}
                 onChangeText={onChange}
                 secureTextEntry={!showPassword}
@@ -209,7 +209,7 @@ export default function SignupStep1() {
             name="confirmPassword"
             render={({ field: { value, onChange } }) => (
               <Input
-                label={t("signup.step1.confirmPassword")}
+                label={`${t("signup.step1.confirmPassword")} ${t("signup.required")}`}
                 value={value}
                 onChangeText={onChange}
                 secureTextEntry={!showConfirmPassword}

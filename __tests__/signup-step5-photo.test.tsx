@@ -53,7 +53,7 @@ jest.mock("@/lib/mediaPipeline", () => ({
   MediaNormalizationError: class MediaNormalizationError extends Error {
     code = "invalidType";
     translationKey = "";
-    translationParams = undefined;
+    translationParams: Record<string, string | number> | undefined = undefined;
     constructor(code: string, translationKey: string, translationParams?: Record<string, string | number>) {
       super(code);
       this.code = code;

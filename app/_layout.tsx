@@ -4,6 +4,7 @@ import { useLanguageStore } from "@/stores/languageStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavbarStore } from "@/stores/navbarStore";
+import { useSignupStore } from "@/stores/signupStore";
 import { usePulseFonts } from "@/lib/usePulseFonts";
 
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -94,6 +95,9 @@ export default function RootLayout() {
     void useThemeStore.getState().hydrate();
     void useNavbarStore.getState().hydrate();
     void useLanguageStore.getState().hydrate();
+    // Rehydrate a sanitized in-progress signup draft so valid progress is
+    // restored on restart/deep link instead of being silently discarded.
+    void useSignupStore.getState().hydrate();
   }, []);
 
   // Web: apply the `dark` class + color-scheme to <html> so Tailwind's

@@ -83,7 +83,8 @@ describe('normalizeImageForRole', () => {
       height: 384,
     });
 
-    const result = await normalizeImageForRole(picked, 'avatar');
+    // Success path always returns NormalizedImage; widen for assertion ergonomics.
+    const result: any = await normalizeImageForRole(picked, 'avatar');
 
     expect(result.uri).toBe('file:///tmp/photo_normalized.jpg');
     expect(result.width).toBe(512);

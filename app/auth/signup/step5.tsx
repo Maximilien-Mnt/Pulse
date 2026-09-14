@@ -31,6 +31,65 @@ type Form = z.infer<typeof signupStep5Schema>;
 /** Discovery option key that reveals a free-text details field. */
 const OTHER_KEY = "other";
 
+/** Distinct phases of the final account-creation action. */
+type SubmitState = "idle" | "uploading" | "submitting" | "success" | "error";
+
+const UPLOAD_MAX_RETRIES = 2;
+const UPLOAD_RETRY_DELAY_MS = 800;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Session-stable unique id (crypto.randomUUID is not available everywhere). */
+function makeRequestId(): string {
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Upload the avatar with a bounded number of retries for transient failures.
+ *
+ * Business rule (unchanged): a failed upload must NEVER block account
+ * creation. Transient errors are retried here; a hard validation error
+ * (`MediaNormalizationError`) is rethrown immediately since retrying can never
+ * fix it. The caller still treats any rejection as "continue without avatar".
+ *
+ * The storage path is stable per mount (`pending-${requestId}.jpg`) and the
+ * upload is upsert, so retries and re-submits overwrite the same object instead
+ * of orphaning a new file every attempt.
+ */
+async function uploadAvatarWithRetry(opts: {
+  uri: string;
+  asset: PickedImage | null;
+  requestId: string;
+}): Promise<string> {
+  const { uri, asset, requestId } = opts;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt <= UPLOAD_MAX_RETRIES; attempt += 1) {
+    if (attempt > 0) await sleep(UPLOAD_RETRY_DELAY_MS * attempt);
+    try {
+      return await uploadImageToStorage({
+        bucket: "avatars",
+        path: `pending-${requestId}.jpg`,
+        uri,
+        upsert: true,
+        role: "avatar",
+        pickerMeta: {
+          mimeType: asset?.mimeType,
+          width: asset?.width,
+          height: asset?.height,
+          fileSize: asset?.fileSize,
+        },
+      });
+    } catch (e) {
+      lastError = e;
+      // A hard type/validation error will never succeed by retrying.
+      if (e instanceof MediaNormalizationError) throw e;
+    }
+  }
+  throw lastError;
+}
+
 export default function SignupStep5() {
   const router = useRouter();
   const posthog = usePostHog();
@@ -44,8 +103,13 @@ export default function SignupStep5() {
   const setStep5 = useSignupStore((s) => s.setStep5);
   const [avatarUri, setAvatarUri] = useState<string | null>(step5?.avatarLocalUri ?? null);
   const [avatarAsset, setAvatarAsset] = useState<PickedImage | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const mounted = useRef(false);
+  // Stable per-mount id so retries/re-submits overwrite the same avatar file
+  // instead of orphaning new objects (idempotency for the upload).
+  const requestIdRef = useRef<string>(makeRequestId());
+  // Re-entrancy guard against double-submits of the final action.
+  const submissionRef = useRef(false);
 
   const {
     control,
@@ -134,6 +198,10 @@ export default function SignupStep5() {
       return;
     }
 
+    // Idempotency / duplicate-submit guard for the final action.
+    if (submissionRef.current) return;
+    submissionRef.current = true;
+
     let discoverySource: string | null = null;
     if (values.discovery) {
       if (values.discovery === OTHER_KEY) {
@@ -145,27 +213,17 @@ export default function SignupStep5() {
       }
     }
 
-    setSubmitting(true);
-
     try {
-      // Upload the avatar BEFORE calling the edge function so the public URL
-      // can be stored on the profile. A failed upload must NEVER block account
-      // creation: the account is created anyway and the avatar is just unset.
+      // Phase 1 — upload the avatar (retryable). A failed upload must NEVER
+      // block account creation: the account is created anyway, avatar unset.
+      setSubmitState("uploading");
       let avatar_url: string | null = null;
       if (avatarUri) {
         try {
-          avatar_url = await uploadImageToStorage({
-            bucket: "avatars",
-            path: `pending-${Date.now()}.jpg`,
+          avatar_url = await uploadAvatarWithRetry({
             uri: avatarUri,
-            upsert: true,
-            role: "avatar",
-            pickerMeta: {
-              mimeType: avatarAsset?.mimeType,
-              width: avatarAsset?.width,
-              height: avatarAsset?.height,
-              fileSize: avatarAsset?.fileSize,
-            },
+            asset: avatarAsset,
+            requestId: requestIdRef.current,
           });
         } catch (avatarError) {
           if (avatarError instanceof MediaNormalizationError) {
@@ -178,6 +236,9 @@ export default function SignupStep5() {
           }
         }
       }
+
+      // Phase 2 — submit to the edge function.
+      setSubmitState("submitting");
 
       const payload = buildSignupPayload({
         step1,
@@ -254,9 +315,11 @@ export default function SignupStep5() {
       });
 
       resetSignup();
+      setSubmitState("success");
       Toast.show({ type: "success", text1: t("toast.accountCreated") });
       router.replace("/(tabs)/feed");
     } catch (e: unknown) {
+      setSubmitState("error");
       const msg = e instanceof Error ? e.message : "signup_failed";
       // Always surface the real reason in logs — never let a signup failure
       // be invisible again.
@@ -268,11 +331,16 @@ export default function SignupStep5() {
       });
       Toast.show({ type: "error", text1: t(getSignupErrorKey(msg)) });
     } finally {
-      setSubmitting(false);
+      // Return to idle so the action is retryable after any failure.
+      setSubmitState("idle");
+      submissionRef.current = false;
     }
   });
 
   const handleCreateAccountPress = () => {
+    // Duplicate-submit guard: ignore presses while an upload/submit is in
+    // flight (fast double-taps must not fire a second auth.signUp).
+    if (submissionRef.current) return;
     const issues = getSignupMissingFields({
       acceptTerms: watch("acceptTerms"),
       acceptPrivacy: watch("acceptPrivacy"),
@@ -504,11 +572,18 @@ export default function SignupStep5() {
 />
 
             <Button
-              title={t("signup.step5.createAccount")}
+              title={
+                submitState === "uploading"
+                  ? t("signup.step5.uploading")
+                  : submitState === "submitting"
+                    ? t("signup.step5.submitting")
+                    : t("signup.step5.createAccount")
+              }
               size="lg"
               iconRight="ChevronRight"
               onPress={handleCreateAccountPress}
-              loading={submitting}
+              loading={submitState === "uploading" || submitState === "submitting"}
+              disabled={submitState === "uploading" || submitState === "submitting"}
             />
           </View>
       </ScrollView>

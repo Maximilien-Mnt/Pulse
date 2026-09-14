@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isUnderageFromISO, isValidBirthDateISO, toBirthDateISO } from "@/utils/signupDate";
 
 export const emailSchema = z.string().email("validation.invalidEmail");
 
@@ -55,13 +56,33 @@ export const signupStep2Schema = z
     city: z.string().optional(),
   })
   .superRefine((d, ctx) => {
-    const bd = new Date(d.birthDate);
-    const now = new Date();
-    let age = now.getFullYear() - bd.getFullYear();
-    const m = now.getMonth() - bd.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) age -= 1;
-    if (age < 16) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "signup.underageMessage", path: ["birthDate"] });
+    // Normalize the picker date to the exact `YYYY-MM-DD` the edge function
+    // receives, and validate it with the SAME rules as the edge function
+    // (invalid calendar dates, UTC age math). Keeping the client and server
+    // on one implementation prevents timezone/calendar-date mismatches.
+    const iso = toBirthDateISO(d.birthDate);
+    if (!iso) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "signup.birthdateRequired",
+        path: ["birthDate"],
+      });
+      return;
+    }
+    if (!isValidBirthDateISO(iso)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "signup.step2.birthDateInvalid",
+        path: ["birthDate"],
+      });
+      return;
+    }
+    if (isUnderageFromISO(iso)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "signup.underageMessage",
+        path: ["birthDate"],
+      });
     }
   });
 

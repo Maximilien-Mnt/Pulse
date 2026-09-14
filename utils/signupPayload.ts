@@ -1,6 +1,6 @@
-import dayjs from "dayjs";
 import type { SignupStep1, SignupStep2, SignupStep4 } from "@/stores/signupStore";
 import type { SignupSportSelection } from "@/types";
+import { toBirthDateISO } from "@/utils/signupDate";
 
 /**
  * Pure builder for the signup edge-function payload.
@@ -64,7 +64,7 @@ export function buildSignupPayload(input: SignupPayloadInput): SignupPayload {
     password: step1.password,
     full_name: step1.fullName,
     username: step1.username,
-    birth_date: dayjs(step2.birthDate).format("YYYY-MM-DD"),
+    birth_date: toBirthDateISO(step2.birthDate),
     country: step2.country,
     city: step2.city ?? null,
     language: step1.language,

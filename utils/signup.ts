@@ -2,34 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import type { SignupSportSelection } from "@/types";
 import { uploadImageToStorage } from "@/lib/imageUpload";
+import { isUnderageFromISO, isValidBirthDateISO } from "@/utils/signupDate";
 
 const PENDING_SIGNUP_KEY = "pulse:pending-signup";
-
-const MIN_AGE = 16;
-
-function isValidDate(dateStr: string): boolean {
-  const d = new Date(dateStr + "T00:00:00Z");
-  if (isNaN(d.getTime())) return false;
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return false;
-  const y = parseInt(parts[0]!, 10);
-  const m = parseInt(parts[1]!, 10);
-  const day = parseInt(parts[2]!, 10);
-  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) return false;
-  if (m < 1 || m > 12) return false;
-  const daysInMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
-  if (day < 1 || day > daysInMonth) return false;
-  return true;
-}
-
-function calculateAge(birthDateStr: string): number {
-  const bd = new Date(birthDateStr + "T00:00:00Z");
-  const now = new Date();
-  let age = now.getUTCFullYear() - bd.getUTCFullYear();
-  const m = now.getUTCMonth() - bd.getUTCMonth();
-  if (m < 0 || (m === 0 && now.getUTCDate() < bd.getUTCDate())) age -= 1;
-  return age;
-}
 
 export type PendingSignupData = {
   profile: {
@@ -81,12 +56,11 @@ export async function loadPendingSignup(): Promise<PendingSignupData | null> {
 export async function completeSignup(data: PendingSignupData): Promise<void> {
   const { profile, sports, objectives } = data;
 
-  if (!isValidDate(profile.birth_date)) {
+  if (!isValidBirthDateISO(profile.birth_date)) {
     throw new Error("INVALID_DATE");
   }
 
-  const age = calculateAge(profile.birth_date);
-  if (age < MIN_AGE) {
+  if (isUnderageFromISO(profile.birth_date)) {
     throw new Error("UNDERAGE");
   }
 

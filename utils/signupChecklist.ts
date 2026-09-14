@@ -39,12 +39,26 @@ export function getSignupMissingFields(input: MissingFieldInput): SignupIssue[] 
   return issues;
 }
 
-const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
+/**
+ * Stable, machine-readable error → localized UI-copy mapping.
+ *
+ * This is the CLIENT authoritative contract for the codes returned by
+ * `supabase/functions/signup/index.ts`. Every new code the edge function
+ * emits must be added here with a friendly, localized label, so a server
+ * rejection is never collapsed into the generic toast.
+ */
+export const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
   // Machine-readable codes returned by supabase/functions/signup/index.ts.
   INVALID_PAYLOAD: "signup.error.invalidPayload",
+  INVALID_DATE: "signup.error.invalidDate",
   EMAIL_TAKEN: "signup.error.emailTaken",
   USERNAME_TAKEN: "signup.error.usernameTaken",
   UNDERAGE: "signup.error.underage",
+  AUTH_SIGNUP_FAILED: "signup.error.authFailed",
+  PROFILE_INSERT_FAILED: "signup.error.profileInsert",
+  SPORTS_INSERT_FAILED: "signup.error.sportsInsert",
+  OBJECTIVES_INSERT_FAILED: "signup.error.objectivesInsert",
+  INTERNAL: "signup.error.generic",
   // Legacy raw messages (older deployed functions) — still mapped so the
   // client degrades gracefully if the server lags behind.
   "Invalid payload": "signup.error.invalidPayload",
@@ -52,10 +66,10 @@ const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
   // Client-side network failures.
   "Failed to fetch": "signup.error.network",
   "Network request failed": "signup.error.network",
-  // Fallback markers thrown by the client when the response isn't JSON.
-  signup_failed: "signup.error.generic",
-  signup_invalid_response: "signup.error.generic",
-};
+  "signup_failed": "signup.error.generic",
+  "signup_invalid_response": "signup.error.generic",
+  "signup_invalid_response (HTTP 0)": "signup.error.generic",
+} as const;
 
 /** Maps a server/edge-function error message to a friendly, localized label. */
 export function getSignupErrorKey(message: string): TranslationKey {

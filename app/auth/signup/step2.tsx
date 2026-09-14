@@ -65,7 +65,7 @@ export default function SignupStep2() {
           />
           <SignupStepProgress step={2} />
 
-          <Text className="text-sm text-neutral-500 mb-2">{t("signup.step2.birthDate")}</Text>
+          <Text className="text-sm text-neutral-500 mb-2">{t("signup.step2.birthDate")} {t("signup.required")}</Text>
           <Controller
             control={control}
             name="birthDate"
@@ -103,7 +103,7 @@ export default function SignupStep2() {
             )}
           />
 
-          <Text className="text-sm text-neutral-500 mb-2">{t("signup.step2.country")}</Text>
+          <Text className="text-sm text-neutral-500 mb-2">{t("signup.step2.country")} {t("signup.required")}</Text>
           <Controller
             control={control}
             name="country"

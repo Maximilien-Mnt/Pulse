@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Animated, Pressable, Text, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/utils/format";
+import { t } from "@/hooks/useTranslation";
 
 type Props = {
   value: string;
@@ -94,7 +95,7 @@ export function SearchBar({
         onSubmitEditing={onSubmitEditing}
         accessible
         accessibilityLabel={placeholder}
-        accessibilityRole="searchbox"
+        accessibilityRole="search"
       />
       {/* Clear button */}
       <Pressable

@@ -73,7 +73,7 @@ export function useBatchFavoriteIds(
   const key = userId ? batchFavoriteIdsKey(type, userId) : null;
 
   const query = useQuery({
-    queryKey: key,
+    queryKey: key!,
     queryFn: async () => {
       if (!userId) return new Set<string>();
       const { data, error } = await supabase
@@ -91,7 +91,7 @@ export function useBatchFavoriteIds(
   });
 
   return {
-    favoriteIds: (query.data ?? new Set<string>()) as ReadonlySet<string>,
+    favoriteIds: query.data ?? new Set<string>(),
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -149,7 +149,7 @@ export function useBatchFavoriteCounts(
       if (error) throw error;
 
       const counts = new Map<string, number>();
-      for (const row of data ?? []) {
+      for (const row of (data ?? []) as unknown as Array<Record<string, unknown>>) {
         const id = row[entityIdColumn(type)] as string;
         counts.set(id, (counts.get(id) ?? 0) + 1);
       }

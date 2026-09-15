@@ -36,7 +36,7 @@ import {
 } from '@/components/clubs/ClubOpeningHours';
 import type { OpeningHourSlot } from '@/lib/openingHours';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
-import { CLUB_DETAIL_SELECT, type ClubDetailRow } from '@/hooks/clubProjections';
+import { CLUB_DETAIL_SELECT, type ClubDetailRow, type ClubEventRow } from '@/hooks/clubProjections';
 import { useTranslation } from '@/hooks/useTranslation';
 import { t } from '@/hooks/useTranslation';
 
@@ -163,7 +163,7 @@ export default function ClubDashboardScreen() {
     }
   }, [loadingEvents, eventsTab, upcomingEvents.length, pastEvents.length]);
   const [showHoursSheet, setShowHoursSheet] = useState(false);
-  const [cancelEvent, setCancelEvent] = useState<EventRow | null>(null);
+  const [cancelEvent, setCancelEvent] = useState<ClubEventRow | null>(null);
   const cancelEventMut = useCancelEvent();
   const [refuseRequest, setRefuseRequest] = useState<ClubJoinRequest | null>(null);
   const updateClub = useUpdateClub();

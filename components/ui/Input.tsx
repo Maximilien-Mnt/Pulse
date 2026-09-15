@@ -109,10 +109,6 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
 
     const accessibleName = label;
     const accessibleHint = help;
-    const accessibleInvalid = error ? true : undefined;
-    const accessibleState = error
-      ? { invalid: true, readonly: false }
-      : undefined;
 
     return (
       <View className={cn("gap-2", className)}>
@@ -123,7 +119,7 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
             className="text-text-secondary"
             testID={testID ? `${testID}-label` : undefined}
             accessible
-            accessibilityRole="label"
+            accessibilityRole="text"
           >
             {label}
           </Text>
@@ -143,9 +139,6 @@ export const Input = React.forwardRef<RNTextInput, InputProps>(
             accessible
             accessibilityLabel={accessibleName}
             accessibilityHint={accessibleHint}
-            accessibilityState={accessibleState}
-            accessibilityInvalid={accessibleInvalid}
-            accessibilityRole="textbox"
             {...rest}
           />
           {rightElement ? (

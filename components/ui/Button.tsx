@@ -61,6 +61,14 @@ export interface ButtonProps
   size?: ButtonSize;
   /** Additional Tailwind / NativeWind class names */
   className?: string;
+  /** Raw RN accessibility state (merged with the derived disabled state). */
+  accessibilityState?: {
+    disabled?: boolean;
+    selected?: boolean;
+    checked?: boolean | "mixed";
+    busy?: boolean;
+    expanded?: boolean;
+  };
   /** Test identifier for E2E and unit tests. */
   testID?: string;
 }
@@ -198,7 +206,9 @@ export const Button = React.forwardRef<View, ButtonProps>(
           accessibilityLabel={effectiveLabel}
           accessibilityHint={effectiveHint}
           accessibilityState={effectiveState}
-          accessibilityValue={isDisabled ? undefined : effectiveValue}
+          accessibilityValue={
+            isDisabled || effectiveValue == null ? undefined : { text: effectiveValue }
+          }
           accessible={effectiveLabel != null || effectiveHint != null}
           disabled={isDisabled}
           onPress={onPress}

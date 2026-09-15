@@ -22,7 +22,6 @@ export function EmptyState({ icon, title, subtitle, ctaLabel, onCta, children, t
         className="text-xl font-semibold text-neutral-900 dark:text-neutral-50 mt-4 text-center"
         role="heading"
         accessibilityRole="header"
-        accessibilityLevel={2}
       >
         {title}
       </Text>

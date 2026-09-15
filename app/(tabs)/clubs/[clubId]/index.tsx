@@ -65,10 +65,18 @@ export default function ClubDetailScreen() {
   const coverH = winWidth > 500 ? 240 : 180;
   const galleryW = winWidth > 500 ? winWidth - 32 : winWidth - 16;
 
-  // ── Derived display values ────────────────────────────────────────────
-  const cover = club?.cover_url ?? club?.hero_urls?.[0];
-  const shortDesc = club?.short_description ?? null;
-  const sports = club?.sports ?? [];
+  // ── Actions ───────────────────────────────────────────────────────────
+  const handleShare = () => {
+    void Share.share({ message: club ? club.name : '' });
+  };
+
+  if (clubLoading) return <ClubLoadingSkeleton />;
+  if (!club) return <ClubNotFoundState onBack={() => router.back()} />;
+
+  // ── Derived display values (require a loaded club — see guard above) ──
+  const cover = club.cover_url ?? club.hero_urls?.[0];
+  const shortDesc = club.short_description ?? null;
+  const sports = club.sports ?? [];
 
   const stats: StatData[] = [
     { icon: 'Users', label: 'Membres', value: String(club.member_count ?? members.length), onPress: 'members' },
@@ -90,14 +98,6 @@ export default function ClubDetailScreen() {
     club.tiktok_url && { icon: 'Music', label: 'TikTok', value: club.tiktok_url, url: club.tiktok_url },
     club.extra_link && { icon: 'Share2', label: 'Autre lien', value: club.extra_link, url: club.extra_link },
   ].filter((r): r is LinkRowData => !!r);
-
-  // ── Actions ───────────────────────────────────────────────────────────
-  const handleShare = () => {
-    void Share.share({ message: club ? club.name : '' });
-  };
-
-  if (clubLoading) return <ClubLoadingSkeleton />;
-  if (!club) return <ClubNotFoundState onBack={() => router.back()} />;
 
   return (
     <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]' edges={['top']}>

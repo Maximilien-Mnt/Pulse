@@ -386,7 +386,7 @@ export default function EventDetailScreen() {
               <View className="flex-row items-center gap-1.5 mt-3">
                 <FavoriteButton
                   isFavorite={!!isFavorited}
-                  count={favoritesCount}
+                  count={favCount ?? 0}
                   isPending={isPending}
                   onPress={handleToggleFavorite}
                   size={16}

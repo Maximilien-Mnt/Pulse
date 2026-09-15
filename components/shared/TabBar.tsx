@@ -19,6 +19,7 @@ import { useNavbarStore } from "@/stores/navbarStore";
 import { useIsWebWide } from "@/components/shared/SideRail";
 import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
 import { t } from "@/hooks/useTranslation";
+import type { TranslationKey } from "@/lib/translations";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -27,7 +28,7 @@ import { t } from "@/hooks/useTranslation";
 interface TabItem {
   route: string;      // expo-router path
   icon: IconName;
-  labelKey: string;   // translation key (tabs.*)
+  labelKey: TranslationKey;   // translation key (tabs.*)
 }
 
 const MAIN_TABS: TabItem[] = [
@@ -115,7 +116,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           onPress={handleCreatePress}
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
-          accessibilityHint="Ouvre le menu de création"
+          accessibilityHint={t("tabs.createHint")}
           className="bg-primary rounded-full w-14 h-14 items-center justify-center shadow-sm dark:shadow-none"
           style={{
             // Elevate above the tab bar line

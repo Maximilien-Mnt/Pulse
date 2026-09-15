@@ -129,7 +129,7 @@ export function useToggleFavorite({
     });
 
   // ── favCount query ──────────────────────────────────────────────────────
-  const favCountQuery = useQuery({
+  const { data: favCountQueryData, isLoading: isLoadingCount, refetch: refetchCount } = useQuery({
     queryKey: countKey!,
     queryFn: async () => {
       if (!userId) return 0;
@@ -146,7 +146,7 @@ export function useToggleFavorite({
   const favCountRaw =
     skipCountQuery || !includeCount
       ? initialFavCount ?? undefined
-      : favCountQuery.data ?? 0;
+      : favCountQueryData ?? 0;
 
   const favCount = includeCount ? (favCountRaw ?? 0) : undefined;
 
@@ -182,7 +182,7 @@ export function useToggleFavorite({
         await queryClient.cancelQueries({ queryKey: countKey });
       }
       for (const key of extraInvalidationKeys) {
-        await queryClient.cancelQueries({ queryKey: key });
+        await queryClient.cancelQueries({ queryKey: key as unknown as readonly unknown[] });
       }
 
       const prevIsFav = queryClient.getQueryData<boolean | undefined>(favKey);
@@ -224,10 +224,10 @@ export function useToggleFavorite({
         void queryClient.invalidateQueries({ queryKey: countKey });
       }
       for (const key of listInvalidationKey(entityType)) {
-        void queryClient.invalidateQueries({ queryKey: key as readonly unknown[] });
+        void queryClient.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
       }
       for (const key of extraInvalidationKeys) {
-        void queryClient.invalidateQueries({ queryKey: key as readonly unknown[] });
+        void queryClient.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
       }
     },
   });
@@ -247,7 +247,7 @@ export function useToggleFavorite({
   return {
     isFavorited: isFavorited ?? false,
     favCount,
-    isLoading: isLoadingFav || (includeCount && !skipCountQuery ? favCountQuery.isLoading : false),
+    isLoading: isLoadingFav || (includeCount && !skipCountQuery ? isLoadingCount : false),
     isPending: mutation.isPending,
     error: mutation.error,
     toggle,

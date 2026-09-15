@@ -129,8 +129,10 @@ async function probeFileSize(uri: string): Promise<number | null> {
     return null;
   }
   try {
-    const info = await FileSystem.getInfoAsync(uri, { size: true });
-    if (info.exists && typeof info.size === "number") return info.size;
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists && typeof (info as { size?: unknown }).size === "number") {
+      return (info as { size: number }).size;
+    }
   } catch {
     // fall through
   }

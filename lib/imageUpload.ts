@@ -137,8 +137,8 @@ export async function uploadImageToStorage({
       },
       role,
     );
-    uploadUri = normalized.uri;
-    uploadContentType = normalized.contentType;
+    uploadUri = "canceled" in normalized ? uri : normalized.uri;
+    uploadContentType = "canceled" in normalized ? contentType : normalized.contentType;
   }
 
   const arrayBuffer = await uriToArrayBuffer(uploadUri);

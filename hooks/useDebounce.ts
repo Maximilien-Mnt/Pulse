@@ -38,6 +38,8 @@ export function useDebounce<T>(
   isSettled: boolean;
   /** Force `debouncedValue` to equal `value` right now, cancelling the timer. */
   flush: () => void;
+  /** Cancel the pending timer without settling. */
+  cancel: () => void;
 } {
   const [debouncedValue, setDebouncedValue] = useState(value);
   const [isSettled, setIsSettled] = useState(true);

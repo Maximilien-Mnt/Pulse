@@ -83,7 +83,7 @@ export function FavoriteButton({
       accessibilityRole="button"
       accessibilityLabel={effectiveLabel}
       accessibilityHint={effectiveHint}
-      accessibilityValue={effectiveValue}
+      accessibilityValue={effectiveValue != null ? { text: effectiveValue } : undefined}
       accessibilityState={{
         selected: isFavorite,
         disabled: isPending,

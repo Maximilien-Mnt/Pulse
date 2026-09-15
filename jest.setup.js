@@ -1,4 +1,9 @@
 // Mock expo-modules-core before jest-expo preset loads
+// Test-env defaults so suites that import the real lib/supabase.ts can build
+// its client (real suites mock "@/lib/supabase" and never use these values).
+process.env.EXPO_PUBLIC_SUPABASE_URL ??= "https://test.supabase.co";
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??= "test-anon-key";
+
 jest.mock('expo-modules-core', () => ({
   EventEmitter: jest.fn().mockImplementation(() => ({
     addListener: jest.fn(),
@@ -8,6 +13,16 @@ jest.mock('expo-modules-core', () => ({
   SharedObject: {},
   SharedRef: {},
   requireNativeModule: jest.fn(() => ({})),
+  // expo-constants (and other Expo SDK modules) import this at module scope;
+  // returning null means "module not available", which the SDK degrades from.
+  requireOptionalNativeModule: jest.fn(() => null),
+  CodedError: class CodedError extends Error {
+    code;
+    constructor(code, message) {
+      super(message);
+      this.code = code;
+    }
+  },
 }), { virtual: true });
 
 // Mock lucide-react-native (ESM-only, can't be transformed by babel-jest)

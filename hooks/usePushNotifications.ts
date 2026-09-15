@@ -5,14 +5,18 @@ import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
 import * as NotificationsModule from "expo-notifications";
+import type * as NotificationsModuleType from "expo-notifications";
 
-let notificationsModule: typeof NotificationsModule | null = null;
-function getNotifications(): NotificationsModule | null {
+type NotificationsNamespace = typeof NotificationsModuleType;
+
+let notificationsModule: NotificationsNamespace | null = null;
+function getNotifications(): NotificationsNamespace | null {
   if (notificationsModule) return notificationsModule;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    notificationsModule = require("expo-notifications") as NotificationsModule;
-    notificationsModule.setNotificationHandler({
+    notificationsModule = require("expo-notifications") as NotificationsNamespace;
+    const mod = notificationsModule;
+    mod.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
@@ -21,7 +25,7 @@ function getNotifications(): NotificationsModule | null {
         shouldShowList: true,
       }),
     });
-    return notificationsModule;
+    return mod;
   } catch {
     return null;
   }
@@ -71,7 +75,7 @@ export function usePushNotifications() {
     });
 
     const sub2 = Notifications.addNotificationResponseReceivedListener(async (response) => {
-      const data = response.request.content.data;
+      const data = response.notification.request.content.data;
       
       // Extract navigation target from payload
       if (data?.club_id) {
@@ -88,8 +92,8 @@ export function usePushNotifications() {
         await Linking.openURL(url);
       } else {
         // No navigation target, just show notification
-        const title = response.request.content.title;
-        const body = response.request.content.body;
+        const title = response.notification.request.content.title;
+        const body = response.notification.request.content.body;
         if (title || body) {
           Toast.show({ type: "info", text1: title ?? "", text2: body ?? "" });
         }

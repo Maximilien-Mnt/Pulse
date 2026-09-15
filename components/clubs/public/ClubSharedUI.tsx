@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import type { DimensionValue, ViewStyle } from 'react-native';
 import { Icon, ICON_MAP } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
@@ -115,7 +116,13 @@ export function StatTile({ icon, label, value, minWidth, growBasis, onPress }: S
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      style={{ flexGrow: 1, flexBasis: growBasis, minWidth }}
+      style={
+        {
+          flexGrow: 1,
+          flexBasis: growBasis as DimensionValue,
+          minWidth,
+        } as ViewStyle
+      }
       className={
         'p-3.5 rounded-2xl border ' +
         'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700'

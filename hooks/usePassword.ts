@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/lib/reporting/logger";
 import {
   getStoredPassword,
   setStoredPassword,

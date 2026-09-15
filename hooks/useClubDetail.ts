@@ -103,7 +103,7 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
         .eq('club_id', clubId!)
         .order('start_date', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as ClubEventRow[];
+      return (data ?? []) as unknown as ClubEventRow[];
     },
   });
 
@@ -124,7 +124,7 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
   } = useToggleFavorite({
     entityType: 'club',
     id: clubId ?? '',
-    extraInvalidationKeys: [['club', clubId]],
+    extraInvalidationKeys: [['club', clubId ?? '']],
   });
 
   const isCreator = useMemo(
@@ -168,8 +168,8 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
     isCreator,
     isMember,
     joinStatus,
-    isFavorited,
-    favCount,
+    isFavorited: isFavorited ?? false,
+    favCount: favCount ?? 0,
     isFavPending,
     toggleFavorite,
     joinMut: {

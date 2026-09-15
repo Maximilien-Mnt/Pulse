@@ -1,6 +1,9 @@
 # Cloudflare Pages configuration
 # https://developers.cloudflare.com/pages/
 
+name = "pulse"
+compatibility_date = "2026-09-15"
+pages_build_output_dir = "dist"
+
 [build]
   command = "npx expo export --platform web"
-  pages_build_output_dir = "dist"

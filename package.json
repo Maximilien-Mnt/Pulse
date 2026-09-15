@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "expo:doctor": "expo-doctor",
-    "build:web": "expo export --platform web",
+    "build:web": "node scripts/check-web-env.mjs && expo export --platform web",
     "test": "jest",
     "test:watch": "jest --watch",
     "smoke:signup": "node scripts/smoke-signup.mjs",

@@ -1,12 +1,12 @@
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
-import type * as Notifications from "expo-notifications";
+import * as Linking from "expo-linking";
+import * as NotificationsModule from "expo-notifications";
 
-type NotificationsModule = typeof Notifications;
-
-let notificationsModule: NotificationsModule | null = null;
+let notificationsModule: typeof NotificationsModule | null = null;
 function getNotifications(): NotificationsModule | null {
   if (notificationsModule) return notificationsModule;
   try {
@@ -70,9 +70,30 @@ export function usePushNotifications() {
       }
     });
 
-    const sub2 = Notifications.addNotificationResponseReceivedListener(() => {
-      // Navigation is handled by the screen based on notification press
-      // because expo-router handles deep links from notifications if configured.
+    const sub2 = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const data = response.request.content.data;
+      
+      // Extract navigation target from payload
+      if (data?.club_id) {
+        const url = `pulse:///(tabs)/clubs/${data.club_id}`;
+        await Linking.openURL(url);
+      } else if (data?.event_id) {
+        const url = `pulse:///(tabs)/events/${data.event_id}`;
+        await Linking.openURL(url);
+      } else if (data?.conversation_id) {
+        const url = `pulse:///(tabs)/conversations/${data.conversation_id}`;
+        await Linking.openURL(url);
+      } else if (data?.type === 'join_request' && data?.club_id) {
+        const url = `pulse:///(tabs)/clubs/${data.club_id}/members`;
+        await Linking.openURL(url);
+      } else {
+        // No navigation target, just show notification
+        const title = response.request.content.title;
+        const body = response.request.content.body;
+        if (title || body) {
+          Toast.show({ type: "info", text1: title ?? "", text2: body ?? "" });
+        }
+      }
     });
 
     subscription = {

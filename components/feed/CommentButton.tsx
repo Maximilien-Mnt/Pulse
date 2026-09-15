@@ -11,6 +11,7 @@ import { Animated, Pressable } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface CommentButtonProps {
   commentsCount: number;
@@ -19,6 +20,7 @@ interface CommentButtonProps {
 
 export function CommentButton({ commentsCount, onPress }: CommentButtonProps) {
   const reduceMotion = useReducedMotion();
+  const { t, tp } = useTranslation();
   const scale = useRef(new Animated.Value(1)).current;
   const animatingRef = useRef(false);
 
@@ -43,8 +45,8 @@ export function CommentButton({ commentsCount, onPress }: CommentButtonProps) {
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel="Commenter"
-      accessibilityHint={`Ouvre les commentaires. ${commentsCount} commentaire${commentsCount === 1 ? "" : "s"}`}
+      accessibilityLabel={t("common.comment")}
+      accessibilityHint={`${t("comments.openHint")} ${tp("comments.count", commentsCount)}`}
       hitSlop={8}
       className="flex-row items-center gap-1.5"
     >

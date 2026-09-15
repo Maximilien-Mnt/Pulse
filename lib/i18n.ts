@@ -18,6 +18,7 @@ import { logger } from "@/lib/reporting/logger";
 import { EN_LABELS } from "@/lib/localizedData";
 import { getCountryLabel, getCountryDisplay } from "@/utils/countries";
 import { SPORTS, CLUB_SORT_OPTIONS, EVENT_SORT_OPTIONS } from "@/lib/constants";
+import { formatCount } from "@/utils/format";
 
 const cache = new Map<string, string>();
 
@@ -34,26 +35,109 @@ function resolve(lang: Language, key: string): string {
   return template;
 }
 
+function interpolate(
+  template: string,
+  variables?: Record<string, string | number>
+): string {
+  if (!variables) return template;
+  return Object.entries(variables).reduce(
+    (str, [k, v]) => str.replaceAll(`{${k}}`, String(v)),
+    template
+  );
+}
+
+export function translateFor(
+  lang: Language,
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+): string {
+  return interpolate(resolve(lang, key as string), variables);
+}
+
 export function translate(
   key: TranslationKey,
   variables?: Record<string, string | number>
 ): string {
-  const lang = useLanguageStore.getState().language;
-  const template = resolve(lang, key as string);
-
-  if (variables) {
-    return Object.entries(variables).reduce(
-      (str, [k, v]) => str.replaceAll(`{${k}}`, String(v)),
-      template
-    );
-  }
-
-  return template;
+  return translateFor(useLanguageStore.getState().language, key, variables);
 }
 
 /** Current interface language (non-reactive — read the store in components). */
 export function getCurrentLanguage(): Language {
   return useLanguageStore.getState().language;
+}
+
+// ---------------------------------------------------------------------------
+// Plural-aware translations
+//
+// Forms are declared with a dotted suffix directly in lib/translations.ts:
+//   "comments.count.zero" / "comments.count.one" / "comments.count.other"
+// The category is selected with `Intl.PluralRules` when the runtime provides
+// it, otherwise with a language-aware fallback (French treats 0 as singular —
+// "0 non lue" — English does not). `{count}` is interpolated with a
+// locale-aware number so quantities are grouped per language.
+// ---------------------------------------------------------------------------
+
+/** Base keys that have plural forms declared in lib/translations.ts. */
+export type PluralBaseKey =
+  | "notifications.unread"
+  | "members.count"
+  | "comments.count"
+  | "time.minutesAgo"
+  | "time.hoursAgo"
+  | "time.daysAgo";
+
+const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
+type PluralCategory = (typeof PLURAL_CATEGORIES)[number];
+
+function pluralCategory(lang: Language, count: number): PluralCategory {
+  try {
+    if (typeof Intl !== "undefined" && typeof Intl.PluralRules === "function") {
+      const category = new Intl.PluralRules(lang).select(count) as PluralCategory;
+      if (PLURAL_CATEGORIES.includes(category)) return category;
+    }
+  } catch {
+    // Intl.PluralRules unavailable — use the fallback below.
+  }
+  if (lang === "fr") return count <= 1 ? "one" : "other";
+  return count === 1 ? "one" : "other";
+}
+
+function pluralTemplate(lang: Language, key: PluralBaseKey, count: number): string {
+  const table = translations[lang] as Record<string, string>;
+  const candidates = [
+    ...(count === 0 ? [`${key}.zero`] : []),
+    `${key}.${pluralCategory(lang, count)}`,
+    `${key}.other`,
+    key,
+  ];
+  for (const candidate of candidates) {
+    const template = table[candidate];
+    if (typeof template === "string") return template;
+  }
+  return key;
+}
+
+/** Plural-aware translation for an explicit language. */
+export function translatePluralFor(
+  lang: Language,
+  key: PluralBaseKey,
+  count: number,
+  variables?: Record<string, string | number>
+): string {
+  const safeCount = Number.isFinite(count) ? count : 0;
+  return interpolate(pluralTemplate(lang, key, safeCount), {
+    ...variables,
+    count: formatCount(safeCount, lang),
+  });
+}
+
+/** Plural-aware translation for the active interface language. */
+export function translatePlural(
+  key: PluralBaseKey,
+  count: number,
+  variables?: Record<string, string | number>
+): string {
+  return translatePluralFor(getCurrentLanguage(), key, count, variables);
 }
 
 // ---------------------------------------------------------------------------

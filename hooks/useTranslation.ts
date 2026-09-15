@@ -1,8 +1,21 @@
 import { useLanguageStore } from "@/stores/languageStore";
 import { translations, TranslationKey } from "@/lib/translations";
+import { translatePluralFor, type PluralBaseKey } from "@/lib/i18n";
 
 const cache = new Map<string, string>();
 
+/**
+ * Reactive translator for React components.
+ *
+ * Returns:
+ *   - `t(key, variables?)`  — flat key lookup (existing behaviour),
+ *   - `tp(baseKey, count)`   — plural-aware lookup (`<baseKey>.zero|one|other`),
+ *   - `language`             — active language, so callers can format
+ *                              dates/numbers with the matching Intl locale.
+ *
+ * Both translators are re-created on language change, which re-renders the
+ * component with the new strings.
+ */
 export function useTranslation() {
   const language = useLanguageStore((s) => s.language);
 
@@ -22,7 +35,13 @@ export function useTranslation() {
     return template;
   };
 
-  return { t, language };
+  const tp = (
+    baseKey: PluralBaseKey,
+    count: number,
+    variables?: Record<string, string | number>
+  ) => translatePluralFor(language, baseKey, count, variables);
+
+  return { t, tp, language };
 }
 
 /**

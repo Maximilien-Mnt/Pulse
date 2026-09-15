@@ -19,6 +19,7 @@ import { CommentItem, type CommentRow } from "./CommentItem";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { usePostComment } from "@/hooks/usePostComment";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type CommentPanelProps = {
   postId: string | null;
@@ -28,6 +29,7 @@ type CommentPanelProps = {
 
 export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
   const userId = useAuthStore((s) => s.userId);
+  const { tp } = useTranslation();
   const queryClient = useQueryClient();
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
@@ -96,7 +98,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     },
   });
 
-  const title = useMemo(() => `Commentaires (${comments.length})`, [comments.length]);
+  const title = useMemo(() => tp("comments.count", comments.length), [comments.length, tp]);
 
   if (!postId) return null;
 

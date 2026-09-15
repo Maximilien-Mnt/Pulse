@@ -8,6 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Section, CARD } from './ClubSharedUI';
 import type { ClubMember } from '@/hooks/useClubMembers';
 import type { ClubDetailRow } from '@/hooks/clubProjections';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CreatorProfile {
   id: string;
@@ -25,11 +26,12 @@ interface ClubMembersPreviewProps {
 /** Club members that wrap as chips, creator highlighted, with a see-all button. */
 export function ClubMembersPreview({ club, creator, members }: ClubMembersPreviewProps) {
   const router = useRouter();
+  const { tp } = useTranslation();
 
   if (club.is_external || members.length === 0) return null;
 
   return (
-    <Section title={`Membres (${members.length})`} className='px-4 mb-5'>
+    <Section title={tp("members.count", members.length)} className='px-4 mb-5'>
       <View className='flex-row flex-wrap gap-2.5'>
         {members.map((m) => {
           const isCreatorItem = !!creator && m.user_id === creator.id;

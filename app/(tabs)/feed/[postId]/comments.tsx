@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { usePostComment } from "@/hooks/usePostComment";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function PostCommentsModal() {
   const { postId } = useLocalSearchParams<{ postId: string }>();
@@ -16,6 +17,7 @@ export default function PostCommentsModal() {
   const userId = useAuthStore((s) => s.userId);
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
+  const { tp } = useTranslation();
 
   const {
     isPending,
@@ -64,7 +66,7 @@ export default function PostCommentsModal() {
     },
   });
 
-  const title = useMemo(() => `Commentaires (${comments.length})`, [comments.length]);
+  const title = useMemo(() => tp("comments.count", comments.length), [comments.length, tp]);
 
   return (
     <SafeScreen className="flex-1 bg-white dark:bg-neutral-900" edges={["top", "bottom"]}>

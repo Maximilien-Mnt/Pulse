@@ -45,6 +45,7 @@ import { CommentPanel } from "@/components/feed/CommentPanel";
 import { CommentCenteredModal } from "@/components/feed/CommentCenteredModal";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useTranslation , t } from "@/hooks/useTranslation";
+import { formatCount } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder
@@ -627,6 +628,7 @@ function FeedTopBar({
 }: FeedTopBarProps) {
   const router = useRouter();
   const { t } = useTranslation();
+  const { tp } = useTranslation();
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-bg dark:bg-bg-dark gap-3">
@@ -673,14 +675,14 @@ function FeedTopBar({
         <Pressable
           onPress={() => router.push("/(tabs)/profile/notifications" as any)}
           accessibilityRole="button"
-          accessibilityLabel={t("common.notifications") + (unreadCount > 0 ? `, ${unreadCount} non lues` : "")}
+          accessibilityLabel={unreadCount > 0 ? `${t("common.notifications")}, ${tp("notifications.unread", unreadCount)}` : t("common.notifications")}
           className="relative"
         >
           <Icon name="Bell" size={24} color="text-secondary" />
           {unreadCount > 0 ? (
             <View className="absolute -top-1 -right-1 bg-coral-600 rounded-full min-w-[18px] h-[18px] items-center justify-center px-1">
               <Text variant="caption" className="text-white text-[10px] leading-none">
-                {unreadCount > 99 ? "99+" : unreadCount}
+                {unreadCount > 99 ? "99+" : formatCount(unreadCount)}
               </Text>
             </View>
           ) : null}

@@ -16,6 +16,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { ShareButton } from "@/components/shared/ShareButton";
+import { formatCount } from "@/utils/format";
 import { supabase } from "@/lib/supabase";
 
 import { Card } from "@/components/ui/Card";
@@ -174,7 +175,7 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
             <View className="flex-row items-center gap-1">
               <Icon name="Users" size={16} color="text-tertiary" />
               <Text variant="caption" className="text-text-tertiary tabular-nums">
-                {memberCount}
+                {formatCount(memberCount)}
               </Text>
             </View>
             {sportLabel ? (
@@ -237,7 +238,7 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
-                  {memberCount}
+                  {formatCount(memberCount)}
                 </Text>
               </View>
               {sportLabel ? (
@@ -332,7 +333,7 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
-                  {memberCount}
+                  {formatCount(memberCount)}
                 </Text>
               </View>
               {sportLabel ? (

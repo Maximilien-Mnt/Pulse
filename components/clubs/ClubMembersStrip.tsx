@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/ui/Avatar";
+import { useTranslation } from "@/hooks/useTranslation";
 import type { ClubMember } from "@/hooks/useClubMembers";
 import { FlatList, Text, View } from "react-native";
 
@@ -10,12 +11,13 @@ type Props = {
  * Horizontal FlatList of avatar + name, non-clickable (V1 spec).
  */
 export function ClubMembersStrip({ members }: Props) {
+  const { tp } = useTranslation();
   if (!members.length) return null;
 
   return (
     <View className="mt-4">
       <Text className="text-sm font-semibold text-neutral-500 mb-2 uppercase tracking-wide">
-        Membres ({members.length})
+        {tp("members.count", members.length)}
       </Text>
       <FlatList
         horizontal

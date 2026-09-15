@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "npm": "10.9.2"
+  },
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {

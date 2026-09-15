@@ -1,9 +1,9 @@
 # Cloudflare Pages configuration
 # https://developers.cloudflare.com/pages/
+# NOTE: Pages wrangler.toml does NOT support a [build] section.
+# The build command ("npx expo export --platform web") is configured
+# in the Cloudflare Pages dashboard (Settings > Build > Build command).
 
 name = "pulse"
 compatibility_date = "2026-09-15"
 pages_build_output_dir = "dist"
-
-[build]
-  command = "npx expo export --platform web"

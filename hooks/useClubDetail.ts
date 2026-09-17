@@ -100,7 +100,9 @@ export function useClubDetail(clubId: string | null): ClubDetailData {
         .from('events')
         // Explicit projection for the events rendered in the club detail (EventCard).
         .select(CLUB_EVENT_SELECT)
-        .eq('club_id', clubId!)
+        // Publisher identity, not the `club_id` link: an event merely attached
+        // to the club must not appear in the club's events section (048).
+        .eq('publisher_club_id', clubId!)
         .order('start_date', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as ClubEventRow[];

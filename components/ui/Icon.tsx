@@ -340,30 +340,42 @@ export const Icon = React.memo<IconProps>(
     // For React Native, we need to pass the color as a hex value
     const iconColorHex = typeof resolvedColor === "string" ? resolvedColor : "#000000";
 
-    const LucideComponent = ICON_MAP[name] ?? Info;
+        const LucideComponent = ICON_MAP[name] ?? Info;
 
     // Accessibility: an Icon is decorative by default (ignored by AT).
     // When a label is provided, treat it as informative. When explicitly
     // marked decorative, ensure accessible=false even if a label exists
     // (rare, but allows overriding).
-    const effectiveAccessible = !decorative;
+    //
+    // On web, Lucide renders an inline SVG. Passing `accessible={false}`
+    // or undefined-valued `accessibilityLabel`/`accessibilityHint` to a DOM
+    // element triggers React warnings. We therefore only attach these props
+    // when the icon is genuinely informative (non-decorative) and the value
+    // is meaningful.
     const effectiveLabel = decorative ? undefined : accessibilityLabel;
     const effectiveHint = decorative ? undefined : accessibilityHint;
 
-    return (
-      <LucideComponent
-        size={size}
-        color={iconColorHex}
-        fill={fill}
-        strokeWidth={1.75}
-        absoluteStrokeWidth
-        testID={testID}
-        accessible={effectiveAccessible}
-        accessibilityLabel={effectiveLabel}
-        accessibilityHint={effectiveHint}
-      />
-    );
+    const absoluteStrokeWidth = false;
+    const iconProps: Record<string, unknown> = {
+      size,
+      color: iconColorHex,
+      fill,
+      strokeWidth: 1.75,
+      absoluteStrokeWidth,
+      ...(testID ? { testID } : null),
+    };
+
+    // Only attach accessibility props for non-decorative icons to avoid
+    // React DOM warnings about unknown attributes on SVG elements.
+    if (!decorative) {
+      iconProps.accessible = true;
+      if (effectiveLabel) iconProps.accessibilityLabel = effectiveLabel;
+      if (effectiveHint) iconProps.accessibilityHint = effectiveHint;
+    }
+
+    return <LucideComponent {...iconProps} />;
   }
 );
+
 
 Icon.displayName = "Icon";

@@ -14,6 +14,8 @@ interface ClubEventsSectionProps {
   eventsTab: 'upcoming' | 'past';
   setEventsTab: (tab: 'upcoming' | 'past') => void;
   eventsLoading: boolean;
+  canCreateEvent?: boolean;
+  onCreateEvent?: () => void;
 }
 
 /** Upcoming / Past events section with tab toggle and scrollable list. */
@@ -23,8 +25,11 @@ export function ClubEventsSection({
   eventsTab,
   setEventsTab,
   eventsLoading,
+  canCreateEvent = false,
+  onCreateEvent,
 }: ClubEventsSectionProps) {
   const tabEvents = eventsTab === 'upcoming' ? upcomingEvents : pastEvents;
+  const showCreate = canCreateEvent && !!onCreateEvent;
 
   return (
     <Section title={t('clubs.upcomingEvents')} className='px-4 mb-5'>
@@ -34,8 +39,9 @@ export function ClubEventsSection({
         </View>
       ) : (
         <View>
-          {/* Tab toggle: Upcoming / Past (with counts) */}
-          <View className='flex-row gap-2 mb-3'>
+          {/* Tab toggle: Upcoming / Past (with counts) + create button for owner/admins */}
+          <View className='flex-row gap-2 mb-3 justify-between'>
+            <View className='flex-row gap-2'>
             {(['upcoming', 'past'] as const).map((tabKey) => {
               const count = tabKey === 'upcoming' ? upcomingEvents.length : pastEvents.length;
               const active = eventsTab === tabKey;
@@ -56,6 +62,19 @@ export function ClubEventsSection({
                 </PressableScale>
               );
             })}
+            </View>
+            {showCreate ? (
+              <PressableScale
+                onPress={onCreateEvent}
+                hitSlop={8}
+                scaleOnPress={0.96}
+                accessibilityRole='button'
+                accessibilityLabel={t('events.create')}
+                className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'
+              >
+                <Icon name='Plus' size={18} color='primary' />
+              </PressableScale>
+            ) : null}
           </View>
           {/* Scrollable, height-limited event list (or empty state) */}
           {tabEvents.length > 0 ? (

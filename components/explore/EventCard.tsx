@@ -46,6 +46,7 @@ interface EventCardProps {
     is_external?: boolean;
     creator?: {
       id: string;
+      kind?: "person" | "club";
       full_name: string;
       username: string;
       avatar_url?: string | null;
@@ -107,7 +108,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
 
   const handleCreatorPress = () => {
     if (creator?.id) {
-      router.push(`/profile/${creator.id}` as any);
+      router.push(creator.kind === "club" ? `/(tabs)/clubs/${creator.id}` : `/profile/${creator.id}`);
     }
   };
 
@@ -138,7 +139,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
         </Text>
       </Pressable>
       <Text variant="caption" className="text-text-tertiary">
-        @{authorUsername}
+        {creator?.kind === "club" ? "Club" : `@${authorUsername}`}
       </Text>
     </View>
   );

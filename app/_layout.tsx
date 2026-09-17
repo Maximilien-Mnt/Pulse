@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { default as toastConfig } from "@/components/shared/ToastConfig";
 import { View } from "react-native";
 import { useColorScheme } from "nativewind";
 import { PostHogProvider } from "posthog-react-native";
@@ -194,7 +195,7 @@ export default function RootLayout() {
                   <Stack.Screen name="create" />
                 </Stack>
 
-                <Toast />
+                <Toast config={toastConfig} />
               </View>
             </PushNotificationsGate>
             </AppErrorBoundary>

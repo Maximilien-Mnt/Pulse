@@ -75,7 +75,7 @@ const VISIBILITY_OPTIONS: Record<Exclude<VisibilityStep, null>, VisibilityOption
     {
       key: "public",
       label: t("create.event.public"),
-      description: t("create.event.publicHint"),
+      description: t("create.event.publicIdentityHint"),
       icon: "Globe",
       route: "/create/event/public",
     },

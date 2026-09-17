@@ -81,7 +81,7 @@ export function NativePicker<V extends string | number>({
   if (Platform.OS === "web") {
     return (
       <View style={styles.host}>
-        <View style={styles.trigger} pointerEvents="none">
+        <View style={[styles.trigger, { pointerEvents: "none" }]}>
           {renderTrigger(selectedLabel)}
         </View>
         <select
@@ -124,7 +124,7 @@ export function NativePicker<V extends string | number>({
   if (Platform.OS === "android") {
     return (
       <View style={styles.host}>
-        <View style={styles.trigger} pointerEvents="none">
+        <View style={[styles.trigger, { pointerEvents: "none" }]}>
           {renderTrigger(selectedLabel)}
         </View>
         <View style={styles.androidOverlay}>

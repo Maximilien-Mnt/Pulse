@@ -35,6 +35,7 @@ export const EVENT_CARD_FIELDS = [
   "price_cents",
   "difficulty",
   "created_by",
+  "publisher_club_id",
 ] as const;
 
 export const EVENT_CARD_SELECT = EVENT_CARD_FIELDS.join(", ");

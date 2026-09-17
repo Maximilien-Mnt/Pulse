@@ -13,6 +13,8 @@ import { ClubStatTiles } from '@/components/clubs/public/ClubStatTiles';
 import { ClubDescriptionCard } from '@/components/clubs/public/ClubDescriptionCard';
 import { ClubInfoGrid } from '@/components/clubs/public/ClubInfoGrid';
 import { ClubEventsSection } from '@/components/clubs/public/ClubEventsSection';
+import { ClubCreateEventSheet } from '@/components/clubs/public/ClubCreateEventSheet';
+import { useCanCreateClubEvent } from '@/hooks/useCanCreateClubEvent';
 import { ClubContactLinks } from '@/components/clubs/public/ClubContactLinks';
 import { ClubPhotoGallery } from '@/components/clubs/public/ClubPhotoGallery';
 import { ClubMembersPreview } from '@/components/clubs/public/ClubMembersPreview';
@@ -50,6 +52,8 @@ export default function ClubDetailScreen() {
   const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+  const [showCreateEventSheet, setShowCreateEventSheet] = useState(false);
+  const canCreateEvent = useCanCreateClubEvent(clubId ?? null, club?.created_by);
 
   // If the Upcoming tab is empty but past events exist, show Past by default.
   useEffect(() => {
@@ -149,6 +153,8 @@ export default function ClubDetailScreen() {
           eventsTab={eventsTab}
           setEventsTab={setEventsTab}
           eventsLoading={eventsLoading}
+          canCreateEvent={canCreateEvent}
+          onCreateEvent={() => setShowCreateEventSheet(true)}
         />
 
         {/* ---- Contact & links (includes social networks) ---- */}
@@ -178,6 +184,14 @@ export default function ClubDetailScreen() {
         onClose={() => setShowDeleteSheet(false)}
         clubId={club.id}
         clubName={club.name}
+      />
+      <ClubCreateEventSheet
+        visible={showCreateEventSheet}
+        onClose={() => setShowCreateEventSheet(false)}
+        onSelect={(visibility) => {
+          setShowCreateEventSheet(false);
+          router.push(`/create/event/${visibility}?clubId=${club.id}`);
+        }}
       />
     </SafeScreen>
   );

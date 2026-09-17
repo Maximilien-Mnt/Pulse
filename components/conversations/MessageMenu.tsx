@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Platform,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
@@ -261,9 +262,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+        ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      web: {
+        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
+      },
+    }),
   },
 });

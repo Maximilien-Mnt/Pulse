@@ -299,6 +299,7 @@ export type Database = {
           accepted_count: number;
           required_level: string | null;
           club_id: string | null;
+          publisher_club_id: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -335,6 +336,7 @@ export type Database = {
           accepted_count?: number;
           required_level?: string | null;
           club_id?: string | null;
+          publisher_club_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -841,6 +843,14 @@ export type Database = {
           likes_count: number;
         }>;
       };
+      get_event_publishing_clubs: {
+        Args: Record<string, never>;
+        Returns: { id: string; name: string; logo_url: string | null }[];
+      };
+      get_event_club_publishers: {
+        Args: { p_event_ids: string[] };
+        Returns: { event_id: string; id: string; name: string; logo_url: string | null }[];
+      };
       delete_my_account: {
         Args: {
           p_password: string;
@@ -862,7 +872,7 @@ export type Club = Tables<"clubs"> & {
   creator?: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
 };
 export type EventRow = Tables<"events"> & {
-  creator?: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
+  creator?: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> & { kind?: "person" | "club" };
 };
 export type Conversation = Tables<"conversations">;
 export type Message = Tables<"messages">;

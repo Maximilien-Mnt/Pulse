@@ -1,4 +1,5 @@
-import { Avatar } from "@/components/ui/Avatar";
+import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
+import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -55,31 +56,11 @@ export default function CreatePublicEventScreen() {
     },
   });
 
-  // Guard: redirect if no public profile
-  if (profile && !profile.is_public_profile) {
-    Toast.show({
-      type: "info",
-      text1: t("create.event.activatePublicHint"),
-    });
-    router.replace("/(tabs)/profile");
-    return null;
-  }
-
-  // Get user's clubs for linking
-  const { data: myClubs } = useQuery({
-    queryKey: ["my-clubs", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("clubs")
-        .select("id, name")
-        .eq("created_by", userId!)
-        .eq("is_private", false);
-      return data ?? [];
-    },
-  });
+  const identity = useEventPublishingIdentity(userId, clubIdParam);
+  const clubId = identity.publisherClubId;
 
   const [name, setName] = useState("");
+
   const [sport, setSport] = useState("");
   const [description, setDescription] = useState("");
   const [country, setCountry] = useState("");
@@ -101,19 +82,13 @@ export default function CreatePublicEventScreen() {
   const [difficulty, setDifficulty] = useState(3);
   const [category, setCategory] = useState("");
   const [placesTotal, setPlacesTotal] = useState("");
-  const [clubId, setClubId] = useState("");
   const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // +7 days
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Pre-fill club from URL param (e.g. when navigating from club dashboard)
-  useEffect(() => {
-    if (clubIdParam) {
-      setClubId(clubIdParam);
-    }
-  }, [clubIdParam]);
+  // Club deep links are validated against the authorized publishing identities.
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -142,6 +117,8 @@ export default function CreatePublicEventScreen() {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+      if (!identity.isValid) throw new Error(t("create.event.identityError"));
+      if (!clubId && !profile?.is_public_profile) throw new Error(t("create.event.activatePublicHint"));
 
       const priceCents = Math.round((parseFloat(priceInput) || 0) * 100);
 
@@ -209,6 +186,7 @@ export default function CreatePublicEventScreen() {
           end_date: endDate?.toISOString() || null,
           is_private: false,
           club_id: clubId || null,
+          publisher_club_id: clubId || null,
           created_by: userId,
         } as any)
         .select("id")
@@ -255,7 +233,7 @@ export default function CreatePublicEventScreen() {
     },
   });
 
-  const isValid = name.trim().length > 0 && sport.length > 0 && description.length >= 50 && country && city;
+  const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && name.trim().length > 0 && sport.length > 0 && description.length >= 50 && !!country && !!city;
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -273,9 +251,15 @@ export default function CreatePublicEventScreen() {
       >
         <Card className="p-4 mb-4">
           <Text className="text-sm text-neutral-500 mb-4">
-            Crée un événement public visible par tous. Tu dois avoir un profil public activé.
+            {t("create.event.publicIdentityHint")}
           </Text>
 
+          <EventIdentitySelector profile={profile} clubs={identity.clubs} value={identity.publisherClubId}
+            onChange={identity.setPublisherClubId} loading={identity.isPending} error={identity.isError}
+            retry={() => { void identity.refetch(); }} disabled={createMut.isPending} />
+          {!clubId && profile && !profile.is_public_profile && (
+            <Text className="text-error mb-3">{t("create.event.activatePublicHint")}</Text>
+          )}
           <Input
             label="Nom de l'événement *"
             value={name}
@@ -484,30 +468,6 @@ export default function CreatePublicEventScreen() {
             placeholder={t("events.unlimitedIfEmpty")}
           />
 
-          {myClubs && myClubs.length > 0 && (
-            <>
-              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                Club lié (optionnel)
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-                {myClubs.map((club) => (
-                  <Pressable
-                    key={club.id}
-                    onPress={() => setClubId(clubId === club.id ? "" : club.id)}
-                    className={`px-4 py-2 rounded-full mr-2 ${
-                      clubId === club.id ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                    }`}
-                  >
-                    <Text
-                      className={clubId === club.id ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
-                    >
-                      {club.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          )}
           {!isValid && (
             <View className="mt-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
               <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">

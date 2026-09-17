@@ -140,7 +140,7 @@ export function NativeDateField({
 
     return (
       <View style={styles.hostWeb}>
-        <View style={styles.trigger} pointerEvents="none">
+        <View style={[styles.trigger, { pointerEvents: "none" }]}>
           {renderTrigger(value)}
         </View>
         <input
@@ -201,7 +201,7 @@ export function NativeDateField({
   if (Platform.OS === "android") {
     return (
       <View style={styles.host}>
-        <View style={styles.trigger} pointerEvents="none">
+        <View style={[styles.trigger, { pointerEvents: "none" }]}>
           {renderTrigger(value)}
         </View>
         <Pressable
@@ -218,7 +218,7 @@ export function NativeDateField({
   // iOS ── bottom-sheet wheel (the platform-standard picker presentation).
   return (
     <View style={styles.host}>
-      <View style={styles.trigger} pointerEvents="none">
+      <View style={[styles.trigger, { pointerEvents: "none" }]}>
         {renderTrigger(value)}
       </View>
       <Pressable

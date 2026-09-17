@@ -182,12 +182,16 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
             ],
             borderRadius,
             overflow: "hidden",
-            // Enhanced shadow for depth
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 12,
+            // Enhanced shadow for depth — native props on mobile, box-shadow on web
+            ...(Platform.OS === "web"
+              ? { boxShadow: "0 8px 16px rgba(0,0,0,0.3)" }
+              : {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 12,
+                }),
           }}
         >
          <View className="flex-1 bg-surface dark:bg-surface-dark" style={{ paddingHorizontal: framePadding }}>

@@ -117,10 +117,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
           accessibilityHint={t("tabs.createHint")}
-          className="bg-primary rounded-full w-14 h-14 items-center justify-center shadow-sm dark:shadow-none"
+          className="bg-primary rounded-full w-14 h-14 items-center justify-center dark:shadow-none"
           style={{
             // Elevate above the tab bar line
             transform: [{ translateY: Platform.OS === "web" ? -8 : -12 }],
+            ...(Platform.OS === "web" ? { boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } : {}),
           }}
         >
           <Icon name="Plus" size={24} color="text-inverse" />

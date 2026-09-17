@@ -1,4 +1,6 @@
 import { Avatar } from "@/components/ui/Avatar";
+import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
+import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -8,7 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { eventPrivateSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
 import { Icon } from "@/components/ui/Icon";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
@@ -32,8 +34,11 @@ function formatEventDateTime(d: Date): string {
 
 export default function CreatePrivateEventScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ clubId?: string }>();
+  const initialClubId = Array.isArray(params.clubId) ? params.clubId[0] : params.clubId;
   const userId = useAuthStore((s) => s.userId);
   const keyboardHeight = useKeyboardHeight();
+  const identity = useEventPublishingIdentity(userId, initialClubId);
 
   const [name, setName] = useState("");
   const [sport, setSport] = useState("");
@@ -84,6 +89,7 @@ export default function CreatePrivateEventScreen() {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+      if (!identity.isValid) throw new Error(t("create.event.identityError"));
 
       const data = {
         name,
@@ -114,6 +120,8 @@ export default function CreatePrivateEventScreen() {
           country: profile?.country ?? "",
           city: profile?.city ?? "",
           created_by: userId,
+          club_id: identity.publisherClubId,
+          publisher_club_id: identity.publisherClubId,
         } as any)
         .select("id")
         .single();
@@ -134,7 +142,7 @@ export default function CreatePrivateEventScreen() {
           p_user_id: inviteeId,
           p_type: "event_invitation",
           p_title: t("events.create.invitation"),
-          p_body: t("events.inviteBody", { name: profile?.full_name ?? "Someone", event: name }),
+          p_body: t("events.inviteBody", { name: identity.selectedClub?.name ?? profile?.full_name ?? "Someone", event: name }),
           p_data: { event_id: event.id, inviter_id: userId },
         });
       }
@@ -151,7 +159,7 @@ export default function CreatePrivateEventScreen() {
     },
   });
 
-  const isValid = name.trim().length > 0 && sport.length > 0;
+  const isValid = identity.isValid && !!profile && name.trim().length > 0 && sport.length > 0;
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -172,6 +180,9 @@ export default function CreatePrivateEventScreen() {
             Crée un événement privé pour inviter tes amis.
           </Text>
 
+          <EventIdentitySelector profile={profile} clubs={identity.clubs} value={identity.publisherClubId}
+            onChange={identity.setPublisherClubId} loading={identity.isPending} error={identity.isError}
+            retry={() => { void identity.refetch(); }} disabled={createMut.isPending} />
           <Input
             label="Nom de l'événement *"
             value={name}

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { t } from "@/hooks/useTranslation";
+import { attachEventCreators } from "@/lib/eventIdentity";
 import type { EventRow } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -49,18 +49,14 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
         });
 
         if (error) throw error;
-        let rows = ((data ?? []) as any).map((row: any) => ({
-          ...row,
-          creator: row.creator
-            ? {
-                id: row.creator.id,
-                full_name: row.creator.full_name ?? t("events.fallbackUserName"),
-                username: row.creator.username ?? t("events.fallbackUsername"),
-                avatar_url: row.creator.avatar_url ?? null,
-              }
-            : undefined,
-        })) as EventRow[];
-        return rows;
+        const ids = ((data ?? []) as { id: string }[]).map((row) => row.id);
+        if (!ids.length) return [];
+        // The distance RPC returns a partial/legacy row. Hydrate current event
+        // fields while preserving its distance order and the table's RLS.
+        const { data: events, error: eventsError } = await supabase.from("events").select("*").in("id", ids);
+        if (eventsError) throw eventsError;
+        const byId = new Map((events ?? []).map((event) => [event.id, event]));
+        return attachEventCreators(ids.flatMap((id) => byId.has(id) ? [byId.get(id)! as EventRow] : []));
       }
 
       // Standard query with PostgREST
@@ -123,31 +119,7 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
 
       const { data, error } = await q.range(from, to);
       if (error) throw error;
-      const creatorIds = Array.from(
-        new Set((data ?? []).map((row: any) => row.created_by).filter((id: any): id is string => typeof id === "string" && !!id))
-      );
-      const creatorMap = new Map<string, any>();
-      if (creatorIds.length) {
-        const { data: creators, error: creatorsError } = await supabase
-          .from("profiles")
-          .select("id, full_name, username, avatar_url")
-          .in("id", creatorIds);
-        if (creatorsError) throw creatorsError;
-        (creators ?? []).forEach((profile: any) => {
-          creatorMap.set(profile.id, {
-            id: profile.id,
-            full_name: profile.full_name ?? t("events.fallbackUserName"),
-            username: profile.username ?? t("events.fallbackUsername"),
-            avatar_url: profile.avatar_url ?? null,
-          });
-        });
-      }
-      const rows = ((data ?? []) as any).map((row: any) => ({
-        ...row,
-        creator: row.created_by ? creatorMap.get(row.created_by) ?? undefined : undefined,
-      })) as EventRow[];
-
-      return rows;
+      return attachEventCreators((data ?? []) as EventRow[]);
     },
   });
 }

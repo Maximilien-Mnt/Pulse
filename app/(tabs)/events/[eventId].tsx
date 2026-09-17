@@ -28,6 +28,7 @@ import { EditClubEventSheet } from "@/components/shared/EditClubEventSheet";
 import { useJoinRequestStatus } from "@/hooks/useJoinRequestStatus";
 import { useUpdateEvent } from "@/hooks/useUpdateEvent";
 import { EventMembersStrip } from "@/components/events/EventMembersStrip";
+import { attachEventCreators } from "@/lib/eventIdentity";
 import { supabase } from "@/lib/supabase";
 import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
@@ -67,22 +68,11 @@ export default function EventDetailScreen() {
   });
 
   const { data: eventCreator } = useQuery({
-    queryKey: ["event-creator", event?.created_by],
-    enabled: !!event?.created_by,
+    queryKey: ["event-creator", eventId, event?.created_by, event?.publisher_club_id, userId],
+    enabled: !!event,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, username, avatar_url")
-        .eq("id", event!.created_by as string)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return undefined;
-      return {
-        id: data.id,
-        full_name: data.full_name ?? t("common.userNotFound"),
-        username: data.username ?? "user",
-        avatar_url: data.avatar_url ?? null,
-      };
+      const [resolved] = await attachEventCreators([event!]);
+      return resolved?.creator ?? null;
     },
   });
 
@@ -401,7 +391,7 @@ export default function EventDetailScreen() {
         {event.created_by ? (
           eventCreator ? (
             <Pressable
-              onPress={() => router.push(`/profile/${eventCreator.id}`)}
+              onPress={() => router.push(eventCreator.kind === "club" ? `/(tabs)/clubs/${eventCreator.id}` : `/profile/${eventCreator.id}`)}
               className="flex-row items-center gap-3 p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700 active:opacity-90"
             >
               <Avatar size={48} uri={eventCreator.avatar_url} />
@@ -414,12 +404,12 @@ export default function EventDetailScreen() {
                   {eventCreator.full_name}
                 </PulseText>
                 <PulseText variant="caption" className="text-neutral-500" numberOfLines={1}>
-                  @{eventCreator.username}
+                  {eventCreator.kind === "club" ? t("create.event.clubAccount") : `@${eventCreator.username}`}
                 </PulseText>
               </View>
               <View className="px-2.5 py-1 rounded-full bg-primary/10">
                 <PulseText variant="overline" className="text-primary">
-                  t("members.creator")
+                  {t("members.creator")}
                 </PulseText>
               </View>
             </Pressable>

@@ -5,11 +5,25 @@
 #   npm run build:web
 # (It runs scripts/check-web-env.mjs first so a build without the
 # required EXPO_PUBLIC_* env vars fails instead of shipping a broken bundle.)
-# Required env vars (Settings > Variables and Secrets, Production AND Preview):
-#   EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
-# Optional: POSTHOG_PROJECT_TOKEN, POSTHOG_HOST, EXPO_PUBLIC_APP_SCHEME
-# These are inlined at build time — changing them requires a rebuild.
+#
+# Build-time variables live in [vars] below. Cloudflare's Pages builder reads
+# them via "wrangler pages functions build-env" BEFORE the build command runs
+# and reports them in the build log as "Build environment variables".
+# Settings > Environment variables (named "Variables and Secrets" in the
+# current dashboard) is not reliably injected into builds, so the values must
+# live here (see cloudflare-docs issue #30714).
+#
+# These values are inlined into the public JS bundle by Expo, so they are NOT
+# secrets: never put a service-role key or any real secret in this file.
+# Changing them requires a rebuild.
 
 name = "pulse"
 compatibility_date = "2026-09-15"
 pages_build_output_dir = "dist"
+
+[vars]
+EXPO_PUBLIC_SUPABASE_URL = "https://eqrhjmuaaaarjxuprjaj.supabase.co"
+EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxcmhqbXVhYWFhcmp4dXByamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzYxNDUsImV4cCI6MjA5ODkxMjE0NX0.FZJmLKAzRh8gFgqMJr61KcbsGG1DBDnVW2IKMAVXWzA"
+POSTHOG_PROJECT_TOKEN = "phc_nckqkVQixU8ExpCaSY7Aq2CwffYxwgTZyVZ8w38QEXUi"
+POSTHOG_HOST = "https://eu.i.posthog.com"
+EXPO_PUBLIC_APP_SCHEME = "pulse"

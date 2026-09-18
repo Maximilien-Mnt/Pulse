@@ -11,7 +11,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- profiles
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
   email text NOT NULL,
   full_name text NOT NULL,
@@ -33,8 +33,9 @@ CREATE TABLE public.profiles (
   CONSTRAINT profiles_username_len CHECK (char_length(username) BETWEEN 3 AND 30)
 );
 
-CREATE UNIQUE INDEX idx_profiles_username_lower ON public.profiles (lower(username));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username_lower ON public.profiles (lower(username));
 
+DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
 CREATE TRIGGER trg_profiles_updated_at
 BEFORE UPDATE ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -60,7 +61,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.check_username_available(text) TO anon, authenticated;
 
 -- user_sports
-CREATE TABLE public.user_sports (
+CREATE TABLE IF NOT EXISTS public.user_sports (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   sport_id text NOT NULL,
@@ -71,20 +72,20 @@ CREATE TABLE public.user_sports (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_user_sports_user ON public.user_sports (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sports_user ON public.user_sports (user_id);
 
 -- user_objectives
-CREATE TABLE public.user_objectives (
+CREATE TABLE IF NOT EXISTS public.user_objectives (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   objective text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_user_objectives_user ON public.user_objectives (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_objectives_user ON public.user_objectives (user_id);
 
 -- follows
-CREATE TABLE public.follows (
+CREATE TABLE IF NOT EXISTS public.follows (
   follower_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   following_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -93,7 +94,7 @@ CREATE TABLE public.follows (
 );
 
 -- clubs
-CREATE TABLE public.clubs (
+CREATE TABLE IF NOT EXISTS public.clubs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   sport text NOT NULL,
@@ -122,16 +123,17 @@ CREATE TABLE public.clubs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_clubs_sport ON public.clubs (sport);
-CREATE INDEX idx_clubs_city ON public.clubs (city);
-CREATE INDEX idx_clubs_country ON public.clubs (country);
+CREATE INDEX IF NOT EXISTS idx_clubs_sport ON public.clubs (sport);
+CREATE INDEX IF NOT EXISTS idx_clubs_city ON public.clubs (city);
+CREATE INDEX IF NOT EXISTS idx_clubs_country ON public.clubs (country);
 
+DROP TRIGGER IF EXISTS trg_clubs_updated_at ON public.clubs;
 CREATE TRIGGER trg_clubs_updated_at
 BEFORE UPDATE ON public.clubs
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- club_members
-CREATE TABLE public.club_members (
+CREATE TABLE IF NOT EXISTS public.club_members (
   club_id uuid NOT NULL REFERENCES public.clubs (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   role text NOT NULL DEFAULT 'member',
@@ -152,16 +154,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_club_members_ai ON public.club_members;
 CREATE TRIGGER trg_club_members_ai
 AFTER INSERT ON public.club_members
 FOR EACH ROW EXECUTE FUNCTION public.refresh_club_member_count();
 
+DROP TRIGGER IF EXISTS trg_club_members_ad ON public.club_members;
 CREATE TRIGGER trg_club_members_ad
 AFTER DELETE ON public.club_members
 FOR EACH ROW EXECUTE FUNCTION public.refresh_club_member_count();
 
 -- club_favorites
-CREATE TABLE public.club_favorites (
+CREATE TABLE IF NOT EXISTS public.club_favorites (
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   club_id uuid NOT NULL REFERENCES public.clubs (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -169,7 +173,7 @@ CREATE TABLE public.club_favorites (
 );
 
 -- club_join_requests
-CREATE TABLE public.club_join_requests (
+CREATE TABLE IF NOT EXISTS public.club_join_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   club_id uuid NOT NULL REFERENCES public.clubs (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -179,7 +183,7 @@ CREATE TABLE public.club_join_requests (
 );
 
 -- events
-CREATE TABLE public.events (
+CREATE TABLE IF NOT EXISTS public.events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   sport text NOT NULL,
@@ -211,16 +215,17 @@ CREATE TABLE public.events (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_events_sport ON public.events (sport);
-CREATE INDEX idx_events_city ON public.events (city);
-CREATE INDEX idx_events_start_date ON public.events (start_date);
+CREATE INDEX IF NOT EXISTS idx_events_sport ON public.events (sport);
+CREATE INDEX IF NOT EXISTS idx_events_city ON public.events (city);
+CREATE INDEX IF NOT EXISTS idx_events_start_date ON public.events (start_date);
 
+DROP TRIGGER IF EXISTS trg_events_updated_at ON public.events;
 CREATE TRIGGER trg_events_updated_at
 BEFORE UPDATE ON public.events
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- event_participants
-CREATE TABLE public.event_participants (
+CREATE TABLE IF NOT EXISTS public.event_participants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES public.events (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -230,7 +235,7 @@ CREATE TABLE public.event_participants (
 );
 
 -- event_favorites
-CREATE TABLE public.event_favorites (
+CREATE TABLE IF NOT EXISTS public.event_favorites (
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   event_id uuid NOT NULL REFERENCES public.events (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -238,7 +243,7 @@ CREATE TABLE public.event_favorites (
 );
 
 -- event_join_requests
-CREATE TABLE public.event_join_requests (
+CREATE TABLE IF NOT EXISTS public.event_join_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES public.events (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -248,7 +253,7 @@ CREATE TABLE public.event_join_requests (
 );
 
 -- posts
-CREATE TABLE public.posts (
+CREATE TABLE IF NOT EXISTS public.posts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   author_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   title text NOT NULL,
@@ -263,15 +268,16 @@ CREATE TABLE public.posts (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_posts_author ON public.posts (author_id);
-CREATE INDEX idx_posts_created_at ON public.posts (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_author ON public.posts (author_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts (created_at DESC);
 
+DROP TRIGGER IF EXISTS trg_posts_updated_at ON public.posts;
 CREATE TRIGGER trg_posts_updated_at
 BEFORE UPDATE ON public.posts
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- post_likes
-CREATE TABLE public.post_likes (
+CREATE TABLE IF NOT EXISTS public.post_likes (
   post_id uuid NOT NULL REFERENCES public.posts (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -290,16 +296,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_post_likes_ai ON public.post_likes;
 CREATE TRIGGER trg_post_likes_ai
 AFTER INSERT ON public.post_likes
 FOR EACH ROW EXECUTE FUNCTION public.adjust_post_likes_count();
 
+DROP TRIGGER IF EXISTS trg_post_likes_ad ON public.post_likes;
 CREATE TRIGGER trg_post_likes_ad
 AFTER DELETE ON public.post_likes
 FOR EACH ROW EXECUTE FUNCTION public.adjust_post_likes_count();
 
 -- post_comments
-CREATE TABLE public.post_comments (
+CREATE TABLE IF NOT EXISTS public.post_comments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id uuid NOT NULL REFERENCES public.posts (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -308,7 +316,7 @@ CREATE TABLE public.post_comments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_post_comments_post ON public.post_comments (post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_post ON public.post_comments (post_id);
 
 CREATE OR REPLACE FUNCTION public.adjust_post_comments_count()
 RETURNS TRIGGER AS $$
@@ -322,16 +330,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_post_comments_ai ON public.post_comments;
 CREATE TRIGGER trg_post_comments_ai
 AFTER INSERT ON public.post_comments
 FOR EACH ROW EXECUTE FUNCTION public.adjust_post_comments_count();
 
+DROP TRIGGER IF EXISTS trg_post_comments_ad ON public.post_comments;
 CREATE TRIGGER trg_post_comments_ad
 AFTER DELETE ON public.post_comments
 FOR EACH ROW EXECUTE FUNCTION public.adjust_post_comments_count();
 
 -- comment_likes
-CREATE TABLE public.comment_likes (
+CREATE TABLE IF NOT EXISTS public.comment_likes (
   comment_id uuid NOT NULL REFERENCES public.post_comments (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -350,16 +360,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_comment_likes_ai ON public.comment_likes;
 CREATE TRIGGER trg_comment_likes_ai
 AFTER INSERT ON public.comment_likes
 FOR EACH ROW EXECUTE FUNCTION public.adjust_comment_likes_count();
 
+DROP TRIGGER IF EXISTS trg_comment_likes_ad ON public.comment_likes;
 CREATE TRIGGER trg_comment_likes_ad
 AFTER DELETE ON public.comment_likes
 FOR EACH ROW EXECUTE FUNCTION public.adjust_comment_likes_count();
 
 -- conversations
-CREATE TABLE public.conversations (
+CREATE TABLE IF NOT EXISTS public.conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -367,12 +379,13 @@ CREATE TABLE public.conversations (
   last_message_preview text
 );
 
+DROP TRIGGER IF EXISTS trg_conversations_updated_at ON public.conversations;
 CREATE TRIGGER trg_conversations_updated_at
 BEFORE UPDATE ON public.conversations
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- conversation_participants
-CREATE TABLE public.conversation_participants (
+CREATE TABLE IF NOT EXISTS public.conversation_participants (
   conversation_id uuid NOT NULL REFERENCES public.conversations (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   pinned boolean NOT NULL DEFAULT false,
@@ -384,7 +397,7 @@ CREATE TABLE public.conversation_participants (
 );
 
 -- messages
-CREATE TABLE public.messages (
+CREATE TABLE IF NOT EXISTS public.messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL REFERENCES public.conversations (id) ON DELETE CASCADE,
   sender_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -394,8 +407,8 @@ CREATE TABLE public.messages (
   is_deleted boolean NOT NULL DEFAULT false
 );
 
-CREATE INDEX idx_messages_conversation ON public.messages (conversation_id);
-CREATE INDEX idx_messages_created_at ON public.messages (conversation_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON public.messages (conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages (conversation_id, created_at DESC);
 
 CREATE OR REPLACE FUNCTION public.touch_conversation_on_message()
 RETURNS TRIGGER AS $$
@@ -409,12 +422,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_messages_touch_conversation ON public.messages;
 CREATE TRIGGER trg_messages_touch_conversation
 AFTER INSERT ON public.messages
 FOR EACH ROW EXECUTE FUNCTION public.touch_conversation_on_message();
 
 -- message_reactions
-CREATE TABLE public.message_reactions (
+CREATE TABLE IF NOT EXISTS public.message_reactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id uuid NOT NULL REFERENCES public.messages (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -424,7 +438,7 @@ CREATE TABLE public.message_reactions (
 );
 
 -- message_hidden
-CREATE TABLE public.message_hidden (
+CREATE TABLE IF NOT EXISTS public.message_hidden (
   message_id uuid NOT NULL REFERENCES public.messages (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -432,7 +446,7 @@ CREATE TABLE public.message_hidden (
 );
 
 -- reports
-CREATE TABLE public.reports (
+CREATE TABLE IF NOT EXISTS public.reports (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   reporter_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   target_type text NOT NULL,
@@ -443,7 +457,7 @@ CREATE TABLE public.reports (
 );
 
 -- notifications
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   type text NOT NULL,
@@ -454,10 +468,10 @@ CREATE TABLE public.notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_notifications_user ON public.notifications (user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications (user_id);
 
 -- user_stats
-CREATE TABLE public.user_stats (
+CREATE TABLE IF NOT EXISTS public.user_stats (
   user_id uuid PRIMARY KEY REFERENCES public.profiles (id) ON DELETE CASCADE,
   followers_count integer NOT NULL DEFAULT 0,
   following_count integer NOT NULL DEFAULT 0,
@@ -466,7 +480,7 @@ CREATE TABLE public.user_stats (
 );
 
 -- feed_interactions
-CREATE TABLE public.feed_interactions (
+CREATE TABLE IF NOT EXISTS public.feed_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   post_id uuid NOT NULL REFERENCES public.posts (id) ON DELETE CASCADE,
@@ -474,7 +488,7 @@ CREATE TABLE public.feed_interactions (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_feed_interactions_user ON public.feed_interactions (user_id);
+CREATE INDEX IF NOT EXISTS idx_feed_interactions_user ON public.feed_interactions (user_id);
 
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
@@ -484,22 +498,27 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true), ('posts', 'posts', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Avatars public read" ON storage.objects;
 CREATE POLICY "Avatars public read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'avatars');
 
+DROP POLICY IF EXISTS "Avatars authenticated upload" ON storage.objects;
 CREATE POLICY "Avatars authenticated upload"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Avatars owner update" ON storage.objects;
 CREATE POLICY "Avatars owner update"
 ON storage.objects FOR UPDATE TO authenticated
 USING (bucket_id = 'avatars' AND owner = auth.uid());
 
+DROP POLICY IF EXISTS "Posts public read" ON storage.objects;
 CREATE POLICY "Posts public read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'posts');
 
+DROP POLICY IF EXISTS "Posts authenticated upload" ON storage.objects;
 CREATE POLICY "Posts authenticated upload"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'posts' AND (storage.foldername(name))[1] = auth.uid()::text);
@@ -532,77 +551,94 @@ ALTER TABLE public.user_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feed_interactions ENABLE ROW LEVEL SECURITY;
 
 -- profiles policies
+DROP POLICY IF EXISTS "profiles_select_authenticated" ON public.profiles;
 CREATE POLICY "profiles_select_authenticated"
 ON public.profiles FOR SELECT TO authenticated
 USING (deleted_at IS NULL);
 
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 CREATE POLICY "profiles_insert_own"
 ON public.profiles FOR INSERT TO authenticated
 WITH CHECK (id = auth.uid());
 
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own"
 ON public.profiles FOR UPDATE TO authenticated
 USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
 -- user_sports
+DROP POLICY IF EXISTS "user_sports_select" ON public.user_sports;
 CREATE POLICY "user_sports_select"
 ON public.user_sports FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "user_sports_mutate_own" ON public.user_sports;
 CREATE POLICY "user_sports_mutate_own"
 ON public.user_sports FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- user_objectives
+DROP POLICY IF EXISTS "user_objectives_select" ON public.user_objectives;
 CREATE POLICY "user_objectives_select"
 ON public.user_objectives FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "user_objectives_mutate_own" ON public.user_objectives;
 CREATE POLICY "user_objectives_mutate_own"
 ON public.user_objectives FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- follows
+DROP POLICY IF EXISTS "follows_select" ON public.follows;
 CREATE POLICY "follows_select"
 ON public.follows FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "follows_mutate_own" ON public.follows;
 CREATE POLICY "follows_mutate_own"
 ON public.follows FOR ALL TO authenticated
 USING (follower_id = auth.uid()) WITH CHECK (follower_id = auth.uid());
 
 -- clubs public read
+DROP POLICY IF EXISTS "clubs_select" ON public.clubs;
 CREATE POLICY "clubs_select"
 ON public.clubs FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "clubs_write_creator" ON public.clubs;
 CREATE POLICY "clubs_write_creator"
 ON public.clubs FOR INSERT TO authenticated
 WITH CHECK (created_by = auth.uid() OR created_by IS NULL);
 
+DROP POLICY IF EXISTS "clubs_update_creator" ON public.clubs;
 CREATE POLICY "clubs_update_creator"
 ON public.clubs FOR UPDATE TO authenticated
 USING (created_by = auth.uid());
 
 -- club_members
+DROP POLICY IF EXISTS "club_members_select" ON public.club_members;
 CREATE POLICY "club_members_select"
 ON public.club_members FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "club_members_insert_self" ON public.club_members;
 CREATE POLICY "club_members_insert_self"
 ON public.club_members FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "club_members_delete_self" ON public.club_members;
 CREATE POLICY "club_members_delete_self"
 ON public.club_members FOR DELETE TO authenticated
 USING (user_id = auth.uid());
 
 -- club_favorites
+DROP POLICY IF EXISTS "club_favorites_all_own" ON public.club_favorites;
 CREATE POLICY "club_favorites_all_own"
 ON public.club_favorites FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- club_join_requests
+DROP POLICY IF EXISTS "club_join_requests_select" ON public.club_join_requests;
 CREATE POLICY "club_join_requests_select"
 ON public.club_join_requests FOR SELECT TO authenticated
 USING (user_id = auth.uid() OR EXISTS (
@@ -610,10 +646,12 @@ USING (user_id = auth.uid() OR EXISTS (
   WHERE c.id = club_join_requests.club_id AND c.created_by = auth.uid()
 ));
 
+DROP POLICY IF EXISTS "club_join_requests_insert" ON public.club_join_requests;
 CREATE POLICY "club_join_requests_insert"
 ON public.club_join_requests FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "club_join_requests_update" ON public.club_join_requests;
 CREATE POLICY "club_join_requests_update"
 ON public.club_join_requests FOR UPDATE TO authenticated
 USING (user_id = auth.uid() OR EXISTS (
@@ -621,43 +659,52 @@ USING (user_id = auth.uid() OR EXISTS (
 ));
 
 -- events
+DROP POLICY IF EXISTS "events_select" ON public.events;
 CREATE POLICY "events_select"
 ON public.events FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "events_insert" ON public.events;
 CREATE POLICY "events_insert"
 ON public.events FOR INSERT TO authenticated
 WITH CHECK (created_by = auth.uid() OR created_by IS NULL);
 
+DROP POLICY IF EXISTS "events_update_own" ON public.events;
 CREATE POLICY "events_update_own"
 ON public.events FOR UPDATE TO authenticated
 USING (created_by = auth.uid());
 
 -- event_participants
+DROP POLICY IF EXISTS "event_participants_select" ON public.event_participants;
 CREATE POLICY "event_participants_select"
 ON public.event_participants FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "event_participants_mutate_own" ON public.event_participants;
 CREATE POLICY "event_participants_mutate_own"
 ON public.event_participants FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- event_favorites
+DROP POLICY IF EXISTS "event_favorites_own" ON public.event_favorites;
 CREATE POLICY "event_favorites_own"
 ON public.event_favorites FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- event_join_requests
+DROP POLICY IF EXISTS "event_join_requests_select" ON public.event_join_requests;
 CREATE POLICY "event_join_requests_select"
 ON public.event_join_requests FOR SELECT TO authenticated
 USING (user_id = auth.uid() OR EXISTS (
   SELECT 1 FROM public.events e WHERE e.id = event_id AND e.created_by = auth.uid()
 ));
 
+DROP POLICY IF EXISTS "event_join_requests_insert" ON public.event_join_requests;
 CREATE POLICY "event_join_requests_insert"
 ON public.event_join_requests FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "event_join_requests_update" ON public.event_join_requests;
 CREATE POLICY "event_join_requests_update"
 ON public.event_join_requests FOR UPDATE TO authenticated
 USING (user_id = auth.uid() OR EXISTS (
@@ -665,54 +712,66 @@ USING (user_id = auth.uid() OR EXISTS (
 ));
 
 -- posts
+DROP POLICY IF EXISTS "posts_select" ON public.posts;
 CREATE POLICY "posts_select"
 ON public.posts FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "posts_insert_own" ON public.posts;
 CREATE POLICY "posts_insert_own"
 ON public.posts FOR INSERT TO authenticated
 WITH CHECK (author_id = auth.uid());
 
+DROP POLICY IF EXISTS "posts_update_own" ON public.posts;
 CREATE POLICY "posts_update_own"
 ON public.posts FOR UPDATE TO authenticated
 USING (author_id = auth.uid());
 
+DROP POLICY IF EXISTS "posts_delete_own" ON public.posts;
 CREATE POLICY "posts_delete_own"
 ON public.posts FOR DELETE TO authenticated
 USING (author_id = auth.uid());
 
 -- post_likes
+DROP POLICY IF EXISTS "post_likes_select" ON public.post_likes;
 CREATE POLICY "post_likes_select"
 ON public.post_likes FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "post_likes_mutate_own" ON public.post_likes;
 CREATE POLICY "post_likes_mutate_own"
 ON public.post_likes FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- post_comments
+DROP POLICY IF EXISTS "post_comments_select" ON public.post_comments;
 CREATE POLICY "post_comments_select"
 ON public.post_comments FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "post_comments_insert" ON public.post_comments;
 CREATE POLICY "post_comments_insert"
 ON public.post_comments FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "post_comments_update_own" ON public.post_comments;
 CREATE POLICY "post_comments_update_own"
 ON public.post_comments FOR UPDATE TO authenticated
 USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "post_comments_delete_own" ON public.post_comments;
 CREATE POLICY "post_comments_delete_own"
 ON public.post_comments FOR DELETE TO authenticated
 USING (user_id = auth.uid());
 
 -- comment_likes
+DROP POLICY IF EXISTS "comment_likes_all_own" ON public.comment_likes;
 CREATE POLICY "comment_likes_all_own"
 ON public.comment_likes FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- conversations: visible si participant actif
+DROP POLICY IF EXISTS "conversations_select_participant" ON public.conversations;
 CREATE POLICY "conversations_select_participant"
 ON public.conversations FOR SELECT TO authenticated
 USING (EXISTS (
@@ -720,10 +779,12 @@ USING (EXISTS (
   WHERE cp.conversation_id = id AND cp.user_id = auth.uid() AND cp.left_at IS NULL
 ));
 
+DROP POLICY IF EXISTS "conversations_insert" ON public.conversations;
 CREATE POLICY "conversations_insert"
 ON public.conversations FOR INSERT TO authenticated
 WITH CHECK (true);
 
+DROP POLICY IF EXISTS "conversations_update_participant" ON public.conversations;
 CREATE POLICY "conversations_update_participant"
 ON public.conversations FOR UPDATE TO authenticated
 USING (EXISTS (
@@ -732,6 +793,7 @@ USING (EXISTS (
 ));
 
 -- conversation_participants
+DROP POLICY IF EXISTS "conversation_participants_select" ON public.conversation_participants;
 CREATE POLICY "conversation_participants_select"
 ON public.conversation_participants FOR SELECT TO authenticated
 USING (
@@ -744,15 +806,18 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "conversation_participants_insert" ON public.conversation_participants;
 CREATE POLICY "conversation_participants_insert"
 ON public.conversation_participants FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "conversation_participants_update_own" ON public.conversation_participants;
 CREATE POLICY "conversation_participants_update_own"
 ON public.conversation_participants FOR UPDATE TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- messages
+DROP POLICY IF EXISTS "messages_select" ON public.messages;
 CREATE POLICY "messages_select"
 ON public.messages FOR SELECT TO authenticated
 USING (EXISTS (
@@ -765,6 +830,7 @@ USING (EXISTS (
   WHERE mh.message_id = messages.id AND mh.user_id = auth.uid()
 ));
 
+DROP POLICY IF EXISTS "messages_insert" ON public.messages;
 CREATE POLICY "messages_insert"
 ON public.messages FOR INSERT TO authenticated
 WITH CHECK (
@@ -775,44 +841,53 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "messages_update_own" ON public.messages;
 CREATE POLICY "messages_update_own"
 ON public.messages FOR UPDATE TO authenticated
 USING (sender_id = auth.uid());
 
 -- message_reactions
+DROP POLICY IF EXISTS "message_reactions_own" ON public.message_reactions;
 CREATE POLICY "message_reactions_own"
 ON public.message_reactions FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- message_hidden
+DROP POLICY IF EXISTS "message_hidden_own" ON public.message_hidden;
 CREATE POLICY "message_hidden_own"
 ON public.message_hidden FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- reports
+DROP POLICY IF EXISTS "reports_insert_own" ON public.reports;
 CREATE POLICY "reports_insert_own"
 ON public.reports FOR INSERT TO authenticated
 WITH CHECK (reporter_id = auth.uid());
 
+DROP POLICY IF EXISTS "reports_select_own" ON public.reports;
 CREATE POLICY "reports_select_own"
 ON public.reports FOR SELECT TO authenticated
 USING (reporter_id = auth.uid());
 
 -- notifications
+DROP POLICY IF EXISTS "notifications_own" ON public.notifications;
 CREATE POLICY "notifications_own"
 ON public.notifications FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- user_stats
+DROP POLICY IF EXISTS "user_stats_select" ON public.user_stats;
 CREATE POLICY "user_stats_select"
 ON public.user_stats FOR SELECT TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "user_stats_own_write" ON public.user_stats;
 CREATE POLICY "user_stats_own_write"
 ON public.user_stats FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- feed_interactions
+DROP POLICY IF EXISTS "feed_interactions_own" ON public.feed_interactions;
 CREATE POLICY "feed_interactions_own"
 ON public.feed_interactions FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
@@ -826,6 +901,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_profiles_user_stats ON public.profiles;
 CREATE TRIGGER trg_profiles_user_stats
 AFTER INSERT ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.create_user_stats_for_profile();

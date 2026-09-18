@@ -239,63 +239,77 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- public-profiles
+DROP POLICY IF EXISTS "Public profiles read" ON storage.objects;
 CREATE POLICY "Public profiles read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'public-profiles');
 
+DROP POLICY IF EXISTS "Public profiles upload own" ON storage.objects;
 CREATE POLICY "Public profiles upload own"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'public-profiles' AND (storage.foldername(name))[1] = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Public profiles update own" ON storage.objects;
 CREATE POLICY "Public profiles update own"
 ON storage.objects FOR UPDATE TO authenticated
 USING (bucket_id = 'public-profiles' AND owner = auth.uid());
 
 -- conversation-files (participants only — vérifié côté app)
+DROP POLICY IF EXISTS "Conversation files read participant" ON storage.objects;
 CREATE POLICY "Conversation files read participant"
 ON storage.objects FOR SELECT TO authenticated
 USING (bucket_id = 'conversation-files');
 
+DROP POLICY IF EXISTS "Conversation files upload" ON storage.objects;
 CREATE POLICY "Conversation files upload"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'conversation-files' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- group-photos
+DROP POLICY IF EXISTS "Group photos read" ON storage.objects;
 CREATE POLICY "Group photos read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'group-photos');
 
+DROP POLICY IF EXISTS "Group photos upload" ON storage.objects;
 CREATE POLICY "Group photos upload"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'group-photos' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- clubs bucket policies
+DROP POLICY IF EXISTS "Clubs read" ON storage.objects;
 CREATE POLICY "Clubs read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'clubs');
 
+DROP POLICY IF EXISTS "Clubs upload own" ON storage.objects;
 CREATE POLICY "Clubs upload own"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'clubs' AND (storage.foldername(name))[1] = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Clubs update own" ON storage.objects;
 CREATE POLICY "Clubs update own"
 ON storage.objects FOR UPDATE TO authenticated
 USING (bucket_id = 'clubs' AND owner = auth.uid());
 
 -- events bucket policies
+DROP POLICY IF EXISTS "Events read" ON storage.objects;
 CREATE POLICY "Events read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'events');
 
+DROP POLICY IF EXISTS "Events upload own" ON storage.objects;
 CREATE POLICY "Events upload own"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'events' AND (storage.foldername(name))[1] = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Events update own" ON storage.objects;
 CREATE POLICY "Events update own"
 ON storage.objects FOR UPDATE TO authenticated
 USING (bucket_id = 'events' AND owner = auth.uid());
 
 -- ─── RLS : profils publics lisibles ─────────────────────────────────────────
+DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
 CREATE POLICY "profiles_select_public"
 ON public.profiles FOR SELECT TO authenticated
 USING (is_public_profile = true AND deleted_at IS NULL);

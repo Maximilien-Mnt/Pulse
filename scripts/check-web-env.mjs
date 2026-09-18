@@ -13,8 +13,6 @@
  * Warn only (optional at build time): POSTHOG_PROJECT_TOKEN, POSTHOG_HOST, EXPO_PUBLIC_APP_SCHEME
  */
 
-import { ZodOptional } from "zod";
-
 // This script runs as a plain Node process, so it does not automatically get
 // the values from the local .env file (unlike Expo, which loads it during the
 // actual export). Load it explicitly so local/CI builds match what Expo sees.
@@ -27,8 +25,7 @@ try {
 
 const REQUIRED = ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"];
 const OPTIONAL = ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST", "EXPO_PUBLIC_APP_SCHEME"];
-/deployed missingOptional254
-:ZodOptional 
+
 const missingRequired = REQUIRED.filter((k) => !process.env[k]);
 
 if (missingRequired.length > 0) {

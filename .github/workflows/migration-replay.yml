@@ -85,6 +85,8 @@ jobs:
           fi
           echo "pass 2 (replay): FAILED as expected" >> /tmp/finding-a.txt
           grep -E 'ERROR|already exists' /tmp/pass2-before.log | head -3 >> /tmp/finding-a.txt || true
+          FIRST_ERR=$(grep -E 'ERROR' /tmp/pass2-before.log | head -1)
+          echo "::notice title=Scenario A - pre-hardening 001 (expected to fail on replay)::pass 1 on an empty database: OK | pass 2 (replay): FAILED as expected | first error: ${FIRST_ERR}"
           echo "::endgroup::"
           echo "FINDING A: pre-hardening 001 cannot be replayed (as expected)"
 
@@ -117,6 +119,9 @@ jobs:
           done
 
           echo "::group::compare object counts between the two passes"
+          C1=$(tr '\n' ';' < /tmp/counts-1.txt)
+          C2=$(tr '\n' ';' < /tmp/counts-2.txt)
+          echo "::notice title=Scenario B - hardened 001 + 002 (both passes succeeded)::after pass 1: ${C1} || after pass 2: ${C2} || $(cat /tmp/sanity.txt 2>/dev/null)"
           if diff -u /tmp/counts-1.txt /tmp/counts-2.txt; then
             echo "FINDING B: object counts identical after pass 1 and pass 2 (no drift)"
           else

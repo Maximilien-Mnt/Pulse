@@ -18,7 +18,7 @@ name: Migration replay (scratch DB)
 
 on:
   push:
-    branches: [chore/migration-replay-test]
+    branches: [main]
   workflow_dispatch:
 
 jobs:

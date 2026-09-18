@@ -1,0 +1,112 @@
+# Proves that the migration scripts can be REPLAYED on an already-migrated
+# database. That is the property that failed in production with:
+#     ERROR: relation "profiles" already exists (SQLSTATE 42P07)
+#     At statement: 2
+#
+# Runs against a throw-away PostgreSQL service container -- never against a real
+# Supabase project. Two scenarios:
+#
+#   A. PRE-hardening 001 (from git 6eda9cc^): pass 1 on an empty database must
+#      succeed, pass 2 must FAIL. Demonstrates the bug is real and reproducible.
+#   B. HARDENED 001 + 002: both passes must succeed, and the object counts after
+#      pass 2 must be identical to after pass 1 (no drift, no duplicates).
+#
+# The scratch instance has no auth/storage schemas, no anon/authenticated roles
+# and no supabase_realtime publication, so .github/sql/scratch-supabase-stubs.sql
+# creates stand-ins for them first.
+name: Migration replay (scratch DB)
+
+on:
+  push:
+    branches: [chore/migration-replay-test]
+  workflow_dispatch:
+
+jobs:
+  replay:
+    name: Replay 001 + 002 twice on a scratch PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGPORT: 5432
+
+    steps:
+      - name: Checkout (full history - scenario A needs the pre-hardening file)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure psql is available
+        run: psql --version || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+
+      - name: Scenario A - pre-hardening 001 (pass 1 OK, pass 2 must fail)
+        run: |
+          set -uo pipefail
+          createdb pulse_before
+          psql -q -d pulse_before -v ON_ERROR_STOP=1 -f .github/sql/scratch-supabase-stubs.sql
+
+          git show 6eda9cc^:supabase/migrations/001_initial.sql > /tmp/001-before.sql
+          echo "pre-hardening file: $(wc -l < /tmp/001-before.sql) lines"
+
+          echo "::group::pass 1 on an empty database"
+          if psql -q -d pulse_before -v ON_ERROR_STOP=1 -f /tmp/001-before.sql; then
+            echo "pass 1 on an empty database: OK"
+          else
+            echo "::error::pass 1 failed - the scratch stub is probably incomplete"
+            exit 1
+          fi
+          echo "::endgroup::"
+
+          echo "::group::pass 2 (replay onto the migrated database)"
+          if psql -d pulse_before -v ON_ERROR_STOP=1 -f /tmp/001-before.sql > /tmp/pass2-before.log 2>&1; then
+            echo "::error::FINDING A FAILED - the pre-hardening file replayed cleanly, so this test proves nothing"
+            exit 1
+          fi
+          grep -E 'ERROR|already exists' /tmp/pass2-before.log | head -5 || true
+          echo "::endgroup::"
+          echo "FINDING A: pre-hardening 001 cannot be replayed (as expected)"
+
+      - name: Scenario B - hardened 001 + 002 (both passes must succeed)
+        run: |
+          set -euo pipefail
+          createdb pulse_after
+          psql -q -d pulse_after -v ON_ERROR_STOP=1 -f .github/sql/scratch-supabase-stubs.sql
+
+          for pass in 1 2; do
+            echo "::group::pass $pass"
+            psql -q -d pulse_after -v ON_ERROR_STOP=1 -f supabase/migrations/001_initial.sql
+            echo "001_initial.sql pass $pass: OK"
+            psql -q -d pulse_after -v ON_ERROR_STOP=1 -f supabase/migrations/002_v2.sql
+            echo "002_v2.sql pass $pass: OK"
+            psql -d pulse_after -f .github/sql/object-counts.sql > "/tmp/counts-$pass.txt"
+            cat "/tmp/counts-$pass.txt"
+            echo "::endgroup::"
+          done
+
+          echo "::group::compare object counts between the two passes"
+          if diff -u /tmp/counts-1.txt /tmp/counts-2.txt; then
+            echo "FINDING B: object counts identical after pass 1 and pass 2 (no drift)"
+          else
+            echo "::error::FINDING B FAILED - object counts changed between passes"
+            exit 1
+          fi
+          echo "::endgroup::"
+          echo "RESULT: the hardened migrations are replayable"

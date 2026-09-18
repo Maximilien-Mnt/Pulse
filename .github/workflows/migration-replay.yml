@@ -66,9 +66,12 @@ jobs:
           git show 6eda9cc^:supabase/migrations/001_initial.sql > /tmp/001-before.sql
           echo "pre-hardening file: $(wc -l < /tmp/001-before.sql) lines"
 
+          echo "pre-hardening 001 (git 6eda9cc^): $(wc -l < /tmp/001-before.sql) lines" > /tmp/finding-a.txt
+
           echo "::group::pass 1 on an empty database"
           if psql -q -d pulse_before -v ON_ERROR_STOP=1 -f /tmp/001-before.sql; then
             echo "pass 1 on an empty database: OK"
+            echo "pass 1 (empty database): OK" >> /tmp/finding-a.txt
           else
             echo "::error::pass 1 failed - the scratch stub is probably incomplete"
             exit 1
@@ -80,7 +83,8 @@ jobs:
             echo "::error::FINDING A FAILED - the pre-hardening file replayed cleanly, so this test proves nothing"
             exit 1
           fi
-          grep -E 'ERROR|already exists' /tmp/pass2-before.log | head -5 || true
+          echo "pass 2 (replay): FAILED as expected" >> /tmp/finding-a.txt
+          grep -E 'ERROR|already exists' /tmp/pass2-before.log | head -3 >> /tmp/finding-a.txt || true
           echo "::endgroup::"
           echo "FINDING A: pre-hardening 001 cannot be replayed (as expected)"
 
@@ -98,6 +102,17 @@ jobs:
             echo "002_v2.sql pass $pass: OK"
             psql -d pulse_after -f .github/sql/object-counts.sql > "/tmp/counts-$pass.txt"
             cat "/tmp/counts-$pass.txt"
+
+            if [ "$pass" = "1" ]; then
+              # Guard against a degenerate run (empty or unapplied file), which
+              # would otherwise make the pass-1/pass-2 comparison meaningless.
+              tables=$(psql -tA -d pulse_after -c "select count(*) from pg_tables where schemaname = 'public'")
+              policies=$(psql -tA -d pulse_after -c "select count(*) from pg_policies where schemaname = 'public'")
+              [ "$tables" -ge 25 ] || { echo "::error::only $tables public tables after pass 1 (expected >= 25)"; exit 1; }
+              [ "$policies" -ge 40 ] || { echo "::error::only $policies public policies after pass 1 (expected >= 40)"; exit 1; }
+              echo "sanity after pass 1: $tables public tables, $policies public policies"
+              echo "sanity after pass 1: $tables public tables, $policies public policies" >> /tmp/sanity.txt
+            fi
             echo "::endgroup::"
           done
 
@@ -110,3 +125,24 @@ jobs:
           fi
           echo "::endgroup::"
           echo "RESULT: the hardened migrations are replayable"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Migration replay (scratch DB)"
+            echo ""
+            echo "\`Scenario A\` - pre-hardening 001: pass 1 expected OK, pass 2 expected FAIL"
+            echo '```'
+            cat /tmp/finding-a.txt 2>/dev/null || echo "(no data)"
+            echo '```'
+            echo ""
+            echo "\`Scenario B\` - hardened 001 + 002: both passes expected OK"
+            echo '```'
+            echo "after pass 1:"
+            cat /tmp/counts-1.txt 2>/dev/null || echo "(no data)"
+            echo "after pass 2:"
+            cat /tmp/counts-2.txt 2>/dev/null || echo "(no data)"
+            cat /tmp/sanity.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -33,6 +33,28 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   CONSTRAINT profiles_username_len CHECK (char_length(username) BETWEEN 3 AND 30)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS birth_date date;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS country text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS language text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS height_cm integer;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS weight_kg numeric(5,2);
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS discovery_source text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS interested_sports text[];
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_public_profile boolean;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username_lower ON public.profiles (lower(username));
 
 DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
@@ -72,6 +94,18 @@ CREATE TABLE IF NOT EXISTS public.user_sports (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS sport_id text;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS level text;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS practice text;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS weekdays smallint[];
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS times_per_week integer;
+ALTER TABLE public.user_sports ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_user_sports_user ON public.user_sports (user_id);
 
 -- user_objectives
@@ -81,6 +115,14 @@ CREATE TABLE IF NOT EXISTS public.user_objectives (
   objective text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.user_objectives ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.user_objectives ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.user_objectives ADD COLUMN IF NOT EXISTS objective text;
+ALTER TABLE public.user_objectives ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 CREATE INDEX IF NOT EXISTS idx_user_objectives_user ON public.user_objectives (user_id);
 
@@ -92,6 +134,13 @@ CREATE TABLE IF NOT EXISTS public.follows (
   PRIMARY KEY (follower_id, following_id),
   CONSTRAINT follows_no_self CHECK (follower_id <> following_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.follows ADD COLUMN IF NOT EXISTS follower_id uuid;
+ALTER TABLE public.follows ADD COLUMN IF NOT EXISTS following_id uuid;
+ALTER TABLE public.follows ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- clubs
 CREATE TABLE IF NOT EXISTS public.clubs (
@@ -123,12 +172,36 @@ CREATE TABLE IF NOT EXISTS public.clubs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Some pre-existing environments (e.g. the Supabase preview branch) hold a
--- `clubs` table created before `country` was part of the schema, so the
--- CREATE TABLE above is skipped by IF NOT EXISTS and the index below would
--- fail with 42703. Ensure the column exists first; this is a no-op on a
--- fresh database. Nullable so it also works if the table already has rows.
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS sport text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS short_description text;
 ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS country text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS address text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS latitude double precision;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS longitude double precision;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS logo_url text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS hero_urls text[];
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS registration_url text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS is_external boolean;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS source_url text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS source_name text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS member_count integer;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS founded_date date;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS league text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS age_min integer;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS age_max integer;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS required_level text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS contact_email text;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
 
 CREATE INDEX IF NOT EXISTS idx_clubs_sport ON public.clubs (sport);
 CREATE INDEX IF NOT EXISTS idx_clubs_city ON public.clubs (city);
@@ -147,6 +220,14 @@ CREATE TABLE IF NOT EXISTS public.club_members (
   joined_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (club_id, user_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.club_members ADD COLUMN IF NOT EXISTS club_id uuid;
+ALTER TABLE public.club_members ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.club_members ADD COLUMN IF NOT EXISTS role text;
+ALTER TABLE public.club_members ADD COLUMN IF NOT EXISTS joined_at timestamptz;
 
 CREATE OR REPLACE FUNCTION public.refresh_club_member_count()
 RETURNS TRIGGER AS $$
@@ -179,6 +260,13 @@ CREATE TABLE IF NOT EXISTS public.club_favorites (
   PRIMARY KEY (user_id, club_id)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.club_favorites ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.club_favorites ADD COLUMN IF NOT EXISTS club_id uuid;
+ALTER TABLE public.club_favorites ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 -- club_join_requests
 CREATE TABLE IF NOT EXISTS public.club_join_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -188,6 +276,15 @@ CREATE TABLE IF NOT EXISTS public.club_join_requests (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (club_id, user_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.club_join_requests ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.club_join_requests ADD COLUMN IF NOT EXISTS club_id uuid;
+ALTER TABLE public.club_join_requests ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.club_join_requests ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE public.club_join_requests ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- events
 CREATE TABLE IF NOT EXISTS public.events (
@@ -222,6 +319,39 @@ CREATE TABLE IF NOT EXISTS public.events (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS sport text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS short_description text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS country text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS venue_address text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS latitude double precision;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS longitude double precision;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS start_date timestamptz;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date timestamptz;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS price_cents integer;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_paid boolean;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS difficulty smallint;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS category text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS logo_url text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS hero_urls text[];
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_url text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_external boolean;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS source_url text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS source_name text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS places_total integer;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS places_left integer;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS required_level text;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS club_id uuid;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_events_sport ON public.events (sport);
 CREATE INDEX IF NOT EXISTS idx_events_city ON public.events (city);
 CREATE INDEX IF NOT EXISTS idx_events_start_date ON public.events (start_date);
@@ -241,6 +371,15 @@ CREATE TABLE IF NOT EXISTS public.event_participants (
   UNIQUE (event_id, user_id)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.event_participants ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.event_participants ADD COLUMN IF NOT EXISTS event_id uuid;
+ALTER TABLE public.event_participants ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.event_participants ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE public.event_participants ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 -- event_favorites
 CREATE TABLE IF NOT EXISTS public.event_favorites (
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
@@ -248,6 +387,13 @@ CREATE TABLE IF NOT EXISTS public.event_favorites (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, event_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.event_favorites ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.event_favorites ADD COLUMN IF NOT EXISTS event_id uuid;
+ALTER TABLE public.event_favorites ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- event_join_requests
 CREATE TABLE IF NOT EXISTS public.event_join_requests (
@@ -258,6 +404,15 @@ CREATE TABLE IF NOT EXISTS public.event_join_requests (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (event_id, user_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.event_join_requests ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.event_join_requests ADD COLUMN IF NOT EXISTS event_id uuid;
+ALTER TABLE public.event_join_requests ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.event_join_requests ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE public.event_join_requests ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- posts
 CREATE TABLE IF NOT EXISTS public.posts (
@@ -275,6 +430,22 @@ CREATE TABLE IF NOT EXISTS public.posts (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS author_id uuid;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS format text;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS media_urls text[];
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS tags text[];
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS likes_count integer;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS comments_count integer;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS shares_count integer;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_posts_author ON public.posts (author_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts (created_at DESC);
 
@@ -290,6 +461,13 @@ CREATE TABLE IF NOT EXISTS public.post_likes (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (post_id, user_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.post_likes ADD COLUMN IF NOT EXISTS post_id uuid;
+ALTER TABLE public.post_likes ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.post_likes ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 CREATE OR REPLACE FUNCTION public.adjust_post_likes_count()
 RETURNS TRIGGER AS $$
@@ -323,6 +501,16 @@ CREATE TABLE IF NOT EXISTS public.post_comments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS post_id uuid;
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS likes_count integer;
+ALTER TABLE public.post_comments ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_post_comments_post ON public.post_comments (post_id);
 
 CREATE OR REPLACE FUNCTION public.adjust_post_comments_count()
@@ -355,6 +543,13 @@ CREATE TABLE IF NOT EXISTS public.comment_likes (
   PRIMARY KEY (comment_id, user_id)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.comment_likes ADD COLUMN IF NOT EXISTS comment_id uuid;
+ALTER TABLE public.comment_likes ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.comment_likes ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 CREATE OR REPLACE FUNCTION public.adjust_comment_likes_count()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -386,6 +581,15 @@ CREATE TABLE IF NOT EXISTS public.conversations (
   last_message_preview text
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS last_message_at timestamptz;
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS last_message_preview text;
+
 DROP TRIGGER IF EXISTS trg_conversations_updated_at ON public.conversations;
 CREATE TRIGGER trg_conversations_updated_at
 BEFORE UPDATE ON public.conversations
@@ -403,6 +607,17 @@ CREATE TABLE IF NOT EXISTS public.conversation_participants (
   PRIMARY KEY (conversation_id, user_id)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS conversation_id uuid;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS pinned boolean;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS left_at timestamptz;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS unread_count integer;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS last_read_at timestamptz;
+ALTER TABLE public.conversation_participants ADD COLUMN IF NOT EXISTS joined_at timestamptz;
+
 -- messages
 CREATE TABLE IF NOT EXISTS public.messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -413,6 +628,17 @@ CREATE TABLE IF NOT EXISTS public.messages (
   deleted_at timestamptz,
   is_deleted boolean NOT NULL DEFAULT false
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS conversation_id uuid;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS sender_id uuid;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS is_deleted boolean;
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON public.messages (conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages (conversation_id, created_at DESC);
@@ -444,6 +670,15 @@ CREATE TABLE IF NOT EXISTS public.message_reactions (
   UNIQUE (message_id, user_id, emoji)
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.message_reactions ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.message_reactions ADD COLUMN IF NOT EXISTS message_id uuid;
+ALTER TABLE public.message_reactions ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.message_reactions ADD COLUMN IF NOT EXISTS emoji text;
+ALTER TABLE public.message_reactions ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 -- message_hidden
 CREATE TABLE IF NOT EXISTS public.message_hidden (
   message_id uuid NOT NULL REFERENCES public.messages (id) ON DELETE CASCADE,
@@ -451,6 +686,13 @@ CREATE TABLE IF NOT EXISTS public.message_hidden (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (message_id, user_id)
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.message_hidden ADD COLUMN IF NOT EXISTS message_id uuid;
+ALTER TABLE public.message_hidden ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.message_hidden ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- reports
 CREATE TABLE IF NOT EXISTS public.reports (
@@ -462,6 +704,17 @@ CREATE TABLE IF NOT EXISTS public.reports (
   metadata jsonb NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS reporter_id uuid;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS target_type text;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS target_id uuid;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS message text;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS metadata jsonb;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 -- notifications
 CREATE TABLE IF NOT EXISTS public.notifications (
@@ -475,6 +728,18 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type text;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS data jsonb;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS read_at timestamptz;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS created_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications (user_id);
 
 -- user_stats
@@ -486,6 +751,15 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS followers_count integer;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS following_count integer;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS posts_count integer;
+ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
 -- feed_interactions
 CREATE TABLE IF NOT EXISTS public.feed_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -494,6 +768,15 @@ CREATE TABLE IF NOT EXISTS public.feed_interactions (
   action text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Drift guards: ensure every column 001 declares exists even when an older
+-- version of this table predates the repo (e.g. a preview environment
+-- seeded from an older schema snapshot). No-ops on fresh databases.
+ALTER TABLE public.feed_interactions ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE public.feed_interactions ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.feed_interactions ADD COLUMN IF NOT EXISTS post_id uuid;
+ALTER TABLE public.feed_interactions ADD COLUMN IF NOT EXISTS action text;
+ALTER TABLE public.feed_interactions ADD COLUMN IF NOT EXISTS created_at timestamptz;
 
 CREATE INDEX IF NOT EXISTS idx_feed_interactions_user ON public.feed_interactions (user_id);
 
@@ -929,3 +1212,4 @@ FOR EACH ROW EXECUTE FUNCTION public.create_user_stats_for_profile();
 -- Fonction handle_updated_at messages (pas de colonne updated_at sur messages — skip)
 
 COMMENT ON TABLE public.profiles IS 'Profils utilisateurs Pulse';
+

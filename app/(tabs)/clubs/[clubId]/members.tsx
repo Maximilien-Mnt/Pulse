@@ -7,12 +7,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { BackButton } from "@/components/ui/BackButton";
 import { Text } from "@/components/ui/Text";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RemoveMemberSheet } from "@/components/shared/RemoveMemberSheet";
@@ -28,6 +29,7 @@ export default function ClubMembersScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
+  const router = useRouter();
 
   const { data: club, isLoading: clubLoading } = useQuery({
     queryKey: ["club", clubId],
@@ -115,7 +117,12 @@ export default function ClubMembersScreen() {
             const contactPending = contactingId === item.user_id;
 
             return (
-              <View className="flex-row items-center gap-3 px-4 py-3 mx-0.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+              <PressableScale
+                onPress={() => router.push(`/profile/${item.user_id}`)}
+                scaleOnPress={0.97}
+                accessibilityRole="button"
+                accessibilityLabel={`Voir le profil de ${item.full_name}`}
+                className="flex-row items-center gap-3 px-4 py-3 mx-0.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
                 <Avatar uri={item.avatar_url} size={48} />
 
                 <View className="flex-1 min-w-0 items-start">
@@ -173,7 +180,7 @@ export default function ClubMembersScreen() {
                     <Icon name="Trash2" size={20} color="error-500" />
                   </Pressable>
                 ) : null}
-              </View>
+              </PressableScale>
             );
           }}
         />

@@ -123,6 +123,13 @@ CREATE TABLE IF NOT EXISTS public.clubs (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Some pre-existing environments (e.g. the Supabase preview branch) hold a
+-- `clubs` table created before `country` was part of the schema, so the
+-- CREATE TABLE above is skipped by IF NOT EXISTS and the index below would
+-- fail with 42703. Ensure the column exists first; this is a no-op on a
+-- fresh database. Nullable so it also works if the table already has rows.
+ALTER TABLE public.clubs ADD COLUMN IF NOT EXISTS country text;
+
 CREATE INDEX IF NOT EXISTS idx_clubs_sport ON public.clubs (sport);
 CREATE INDEX IF NOT EXISTS idx_clubs_city ON public.clubs (city);
 CREATE INDEX IF NOT EXISTS idx_clubs_country ON public.clubs (country);

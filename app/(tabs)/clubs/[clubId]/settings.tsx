@@ -18,13 +18,16 @@ import { Icon } from "@/components/ui/Icon";
 import type { Club } from "@/types";
 import type { OpeningHourSlot } from "@/lib/openingHours";
 import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
-import { t } from "@/hooks/useTranslation";
+import { useDeleteClub } from "@/hooks/useDeleteClub";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const CARD = "rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800";
 
 export default function ClubSettings() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
+  const deleteClub = useDeleteClub();
   const userId = useAuthStore((s) => s.userId);
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +102,7 @@ export default function ClubSettings() {
         setExtraLink((data as any).extra_link || "");
       } catch { } finally { setLoading(false); setHydrated(true); setInitialized(true); }
     })();
-  }, [clubId]);
+  }, [clubId, club, deleteClub]);
 
   const toggleSport = useCallback((sp: string) => {
     setSports((prev) => prev.includes(sp) ? prev.filter((x) => x !== sp) : [...prev, sp]);
@@ -200,20 +203,14 @@ export default function ClubSettings() {
       { text: t("common.delete"), style: "destructive", onPress: async () => {
         setSaving(true);
         try {
-          const { error } = await supabase.rpc("delete_club_full", {
-            p_club_id: clubId,
-            p_club_title: t("clubs.settings.deleteNotifyClubTitle"),
-            p_club_body: t("clubs.settings.deleteNotifyClubBody"),
-            p_event_title: t("clubs.settings.deleteNotifyEventTitle"),
-            p_event_body: t("clubs.settings.deleteNotifyEventBody"),
-          });
-          if (error) throw error;
+          if (!club) return;
+          await deleteClub.mutateAsync([club.id, club.name ?? ""]);
           Toast.show({ type: "success", text1: t("clubs.deleted") });
           router.replace("/(tabs)/profile");
         } catch { Toast.show({ type: "error", text1: t("clubs.deleteFailed") }); setSaving(false); }
       }},
     ]);
-  }, [clubId]);
+  }, [clubId, club, deleteClub]);
 
   if (loading || !hydrated) {
     return (

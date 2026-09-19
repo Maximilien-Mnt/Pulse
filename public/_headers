@@ -1,5 +1,6 @@
 /*
   X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co https://*.posthog.com https://eu.posthog.com https://eu.i.posthog.com wss://*.supabase.co; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; object-src 'none';
 
 /assets/*.ttf
   Content-Type: font/ttf

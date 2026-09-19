@@ -102,7 +102,8 @@ export default function ClubSettings() {
         setExtraLink((data as any).extra_link || "");
       } catch { } finally { setLoading(false); setHydrated(true); setInitialized(true); }
     })();
-  }, [clubId, club, deleteClub]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId]);
 
   const toggleSport = useCallback((sp: string) => {
     setSports((prev) => prev.includes(sp) ? prev.filter((x) => x !== sp) : [...prev, sp]);
@@ -210,7 +211,8 @@ export default function ClubSettings() {
         } catch { Toast.show({ type: "error", text1: t("clubs.deleteFailed") }); setSaving(false); }
       }},
     ]);
-  }, [clubId, club, deleteClub]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, club?.id]);
 
   if (loading || !hydrated) {
     return (

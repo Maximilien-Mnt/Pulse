@@ -1,48 +1,33 @@
 // ---------------------------------------------------------------------------
 // PULSE FEED — Comment Menu
 //
-// A native-style context menu that appears anchored to a pressable button.
-// It measures the button's on-screen position and places a small popover
-// menu right next to it, with smart positioning to stay within screen bounds.
+// Options for a comment (Modifier / Supprimer), presented through the
+// **native OS options menu**:
+//   - iOS     -> the system action sheet (ActionSheetIOS).
+//   - Android -> the shared in-app bottom sheet (ActionMenuSheet) — RN has no
+//                native list-style menu without a native module.
+//   - web     -> same shared bottom sheet.
+// Deleting is an irreversible action, so it always goes through a native
+// confirmation dialog first.
 //
-// Features:
-//   - Anchored positioning via measureInWindow()
-//   - Auto-flips above/below and left/right based on available space
-//   - Backdrop overlay that blocks touches on background content
-//   - Spring-scale + fade animation
-//   - Close on backdrop tap or Escape (web)
+// The anchor props are kept in the interface for API compatibility with
+// CommentItem; they are unused on the native iOS path and irrelevant for the
+// bottom-sheet fallback.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActionMenuSheet } from "@/components/shared/ActionMenuSheet";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-
-import { Icon, type IconName } from "@/components/ui/Icon";
-import { Text } from "@/components/ui/Text";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type MenuItem = {
-  key: string;
-  label: string;
-  icon: IconName;
-  iconColor?: "error-600" | "text-secondary";
-  destructive?: boolean;
-  onPress: () => void;
-};
+  confirmAction,
+  hasNativeActionMenu,
+  showNativeActionMenu,
+  type ActionMenuDescriptor,
+} from "@/components/shared/nativeActionMenu";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export interface CommentMenuProps {
   visible: boolean;
+  /** Kept for API compatibility; unused on the native iOS path. */
   anchorX: number;
   anchorY: number;
   anchorWidth: number;
@@ -53,229 +38,87 @@ export interface CommentMenuProps {
   isDeleting?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MENU_WIDTH = 192;
-const MENU_MARGIN = 8;
-const MENU_PADDING = 8;
-const SCREEN = Dimensions.get("window");
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function cn(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function CommentMenu({
   visible,
-  anchorX,
-  anchorY,
-  anchorWidth,
-  anchorHeight,
   onClose,
   onEdit,
   onDelete,
   isDeleting = false,
 }: CommentMenuProps) {
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [position, setPosition] = useState<{ top: number; left: number }>({
-    top: 0,
-    left: 0,
-  });
+  const { t } = useTranslation();
+  const [fallback, setFallback] = useState<ActionMenuDescriptor | null>(null);
 
-  const items: MenuItem[] = useMemo(
-    () => [
+  const handleDelete = useCallback(() => {
+    confirmAction(
       {
-        key: "edit",
-        label: "Modifier",
-        icon: "Pen",
-        onPress: onEdit,
-      },
-      {
-        key: "delete",
-        label: "Supprimer",
-        icon: "Trash2",
-        iconColor: "error-600",
+        title: t("comments.deleteTitle"),
+        message: t("comments.deleteBody"),
+        confirmLabel: t("common.delete"),
+        cancelLabel: t("common.cancel"),
         destructive: true,
-        onPress: onDelete,
+        isDark: false,
       },
-    ],
-    [onEdit, onDelete]
+      onDelete
+    );
+  }, [onDelete, t]);
+
+  const handlers = useCallback(
+    (key: string) => {
+      onClose();
+      if (key === "edit") onEdit();
+      if (key === "delete") handleDelete();
+    },
+    [handleDelete, onEdit, onClose]
   );
 
-  // Calculate position when the menu becomes visible
-  useEffect(() => {
-    if (!visible) return;
+  const descriptor = useCallback(
+    () => ({
+      options: [
+        { key: "edit", label: t("common.edit") },
+        { key: "delete", label: t("common.delete"), destructive: true, disabled: isDeleting },
+      ],
+      cancelLabel: t("common.cancel"),
+      isDark: false,
+    }),
+    [isDeleting, t]
+  );
 
-    const anchorCenterX = anchorX + anchorWidth / 2;
-    const menuHeightEstimate = items.length * 48;
+  const runOption = useCallback(
+    (key: string) => {
+      setFallback(null);
+      onClose();
+      handlers(key);
+    },
+    [handlers, onClose]
+  );
 
-    // Horizontal: center under the anchor, clamp to screen bounds
-    let left = anchorCenterX - MENU_WIDTH / 2;
-    if (left < MENU_MARGIN) left = MENU_MARGIN;
-    if (left + MENU_WIDTH > SCREEN.width - MENU_MARGIN) {
-      left = SCREEN.width - MENU_WIDTH - MENU_MARGIN;
-    }
-
-    // Vertical: place below if there's enough space, otherwise above
-    const spaceBelow = SCREEN.height - anchorY - anchorHeight - MENU_MARGIN;
-    const spaceAbove = anchorY - MENU_MARGIN;
-
-    let top: number;
-    if (spaceBelow >= menuHeightEstimate || spaceBelow >= spaceAbove) {
-      top = anchorY + anchorHeight + 4;
-    } else {
-      top = anchorY - menuHeightEstimate - 4;
-      if (top < MENU_MARGIN) top = MENU_MARGIN;
-    }
-
-    setPosition({ top, left });
-
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 12,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [
-    visible,
-    anchorX,
-    anchorY,
-    anchorWidth,
-    anchorHeight,
-    items.length,
-    scaleAnim,
-    opacityAnim,
-  ]);
-
-  // Animate out when hiding
+  // Present the menu once per opening (whatever the number of re-renders).
+  const shownRef = useRef(false);
   useEffect(() => {
     if (!visible) {
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 0.9,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      shownRef.current = false;
+      return;
     }
-  }, [visible, scaleAnim, opacityAnim]);
+    if (shownRef.current) return;
+    shownRef.current = true;
+
+    if (hasNativeActionMenu) {
+      showNativeActionMenu(descriptor(), runOption);
+    } else {
+      setFallback(descriptor());
+    }
+  }, [descriptor, runOption, visible]);
 
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent
-      visible
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      hardwareAccelerated
-    >
-      {/* Backdrop — covers everything, dismisses on tap */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.backdrop, { opacity: opacityAnim }]} />
-      </TouchableWithoutFeedback>
-
-      {/* Menu */}
-      <Animated.View
-        style={[
-          styles.menuContainer,
-          {
-            top: position.top,
-            left: position.left,
-            width: MENU_WIDTH,
-            transform: [{ scale: scaleAnim }],
-            opacity: opacityAnim,
-          },
-        ]}
-        pointerEvents="box-none"
-      >
-        {items.map((item, idx) => (
-          <Pressable
-            key={item.key}
-            onPress={item.onPress}
-            disabled={isDeleting && item.key === "delete"}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            className={cn(
-              "flex-row items-center gap-3 px-4 py-3",
-              idx === 0 ? "rounded-t-xl" : "",
-              idx === items.length - 1 ? "rounded-b-xl" : "",
-              "bg-surface dark:bg-neutral-800",
-              item.destructive
-                ? "active:bg-error-50 dark:active:bg-neutral-900"
-                : "active:bg-neutral-100 dark:active:bg-neutral-700"
-            )}
-          >
-            <Icon
-              name={item.icon}
-              size={18}
-              color={item.iconColor ?? "text-secondary"}
-            />
-            <Text
-              className={cn(
-                "flex-1 text-sm font-medium",
-                item.destructive
-                  ? "text-error-600"
-                  : "text-neutral-700 dark:text-neutral-200"
-              )}
-            >
-              {item.label}
-            </Text>
-            {isDeleting && item.key === "delete" && (
-              <View className="w-4 h-4 rounded-full border-2 border-error-600 border-t-transparent animate-spin" />
-            )}
-          </Pressable>
-        ))}
-      </Animated.View>
-    </Modal>
+    <ActionMenuSheet
+      visible={!!fallback}
+      descriptor={fallback}
+      onSelect={(key) => runOption(key)}
+      onClose={() => {
+        setFallback(null);
+      }}
+    />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-    menuContainer: {
-    position: "absolute",
-    elevation: 8,
-        ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      web: {
-        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
-      },
-    }),
-  },
-});

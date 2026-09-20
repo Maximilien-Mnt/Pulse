@@ -2,7 +2,7 @@
 // PULSE CONVERSATIONS - Message Bubble
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Platform, Pressable, View, Linking, Text as RNText } from 'react-native';
 import { cn } from '@/utils/format';
 import {Text} from '@/components/ui/Text';
@@ -35,32 +35,25 @@ export function MessageBubble({
   onEdit,
   onDelete,
 }: MessageBubbleProps) {
-  const bubbleRef = useRef<any>(null);
-  const buttonRef = useRef<any>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [anchorMetrics, setAnchorMetrics] = useState<{x: number; y: number; width: number; height: number} | null>(null);
   const isWeb = Platform.OS === 'web';
 
+  // Options are presented by the OS / shared action menu, so there is no
+  // anchor to measure anymore.
   const openMenu = useCallback(() => {
     if (!canModify) return;
-    const anchor = buttonRef.current ?? bubbleRef.current;
-    if (!anchor) return;
-    anchor.measureInWindow((x: number, y: number, width: number, height: number) => {
-      if (x === 0 && y === 0) {
-        const fallback = buttonRef.current === anchor ? bubbleRef.current : buttonRef.current;
-        if (fallback && fallback !== anchor) {
-          fallback.measureInWindow((fx: number, fy: number, fw: number, fh: number) => {
-            setAnchorMetrics({x: fx, y: fy, width: fw, height: fh});
-            setMenuVisible(true);
-          });
-          return;
-        }
-      }
-      setAnchorMetrics({x, y, width, height});
-      setMenuVisible(true);
-    });
+    setMenuVisible(true);
   }, [canModify]);
+
+  const handleLinkPress = useCallback(async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+    } catch {
+      console.warn('Could not open link:', url);
+    }
+  }, []);
 
   if (type === 'system') {
     return (
@@ -71,15 +64,6 @@ export function MessageBubble({
       </View>
     );
   }
-
-  const handleLinkPress = useCallback(async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) await Linking.openURL(url);
-    } catch {
-      console.warn('Could not open link:', url);
-    }
-  }, []);
 
   const renderContent = () => {
     if (type === 'image' && text) {
@@ -131,12 +115,10 @@ export function MessageBubble({
   return (
     <>
       <View
-        collapsable={false}
         className={cn('self-stretch flex-row items-center my-1', isMine ? 'justify-end' : 'justify-start')}
       >
         {isWeb && canModify && (
           <Pressable
-            ref={buttonRef}
             onPress={openMenu}
             accessibilityRole='button'
             accessibilityLabel='Message options'
@@ -154,8 +136,6 @@ export function MessageBubble({
         )}
 
         <Pressable
-          ref={bubbleRef}
-          collapsable={false}
           onLongPress={isWeb ? undefined : openMenu}
           delayLongPress={300}
           disabled={!canModify}
@@ -171,21 +151,14 @@ export function MessageBubble({
         </Pressable>
       </View>
 
-      {anchorMetrics && (
-        <MessageMenu
-          visible={menuVisible}
-          anchorX={anchorMetrics.x}
-          anchorY={anchorMetrics.y}
-          anchorWidth={anchorMetrics.width}
-          anchorHeight={anchorMetrics.height}
-          hugSide={isMine ? 'left' : 'right'}
-          onClose={() => setMenuVisible(false)}
-          onCopy={() => { setMenuVisible(false); onCopy?.(); }}
-          onEdit={() => { setMenuVisible(false); onEdit?.(); }}
-          onDelete={() => { setMenuVisible(false); onDelete?.(); }}
-          isDeleting={isDeleting}
-        />
-      )}
+      <MessageMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onCopy={() => { setMenuVisible(false); onCopy?.(); }}
+        onEdit={() => { setMenuVisible(false); onEdit?.(); }}
+        onDelete={() => { setMenuVisible(false); onDelete?.(); }}
+        isDeleting={isDeleting}
+      />
     </>
   );
 }

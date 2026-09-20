@@ -1,17 +1,37 @@
 // ---------------------------------------------------------------------------
-// PULSE CONVERSATIONS — Conversation Action Sheet
+// PULSE CONVERSATIONS — Conversation Action Menu
 //
-// Bottom sheet with conversation options (Pin / Unpin / Delete / Signal)
-// and a confirmation phase for the destructive delete action.
+// Conversation options (Pin / Rename / Leave / Delete / Delete and block /
+// Report) presented through the **native OS options menu**:
+//
+//   - iOS     -> the real system action sheet (ActionSheetIOS), with a
+//                separated Cancel button and red destructive rows.
+//   - Android -> the shared in-app sheet (ActionMenuSheet), because React
+//                Native exposes no native list-style menu without a native
+//                module (which would break the managed / Expo Go workflow).
+//   - web     -> same shared sheet (react-native-web has no native menu).
+//
+// Confirmations are native dialogs too (`confirmAction`), and the group rename
+// uses the native text prompt on iOS.
+//
+// The public props are unchanged, so both call sites (the conversations list
+// long-press and the chat header "⋯" button) keep working as-is.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Modal, Platform, Pressable, TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/Button";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import { ActionMenuSheet } from "@/components/shared/ActionMenuSheet";
 import { ReportSheet } from "@/components/shared/ReportSheet";
+import {
+  confirmAction,
+  hasNativeActionMenu,
+  showNativeActionMenu,
+  type ActionMenuDescriptor,
+} from "@/components/shared/nativeActionMenu";
 import {
   useDeleteConversation,
   usePinConversation,
@@ -20,21 +40,13 @@ import {
   useRenameGroupConversation,
 } from "@/hooks/useConversationActions";
 import { useBlockUser } from "@/hooks/useBlockUser";
+import { useDesignTokens } from "@/src/design-tokens/useDesignTokens";
 import Toast from "react-native-toast-message";
-import { useTranslation , t } from "@/hooks/useTranslation";
-import { TextInput } from "react-native";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-type Option = {
-  key: string;
-  label: string;
-  icon: IconName;
-  iconColor?: "text-primary" | "text-secondary" | "error-600";
-  onPress: () => void;
-};
 
 interface Props {
   visible: boolean;
@@ -56,6 +68,17 @@ interface Props {
   onRenamed?: (newName: string) => void;
 }
 
+/** Icons used by the in-app fallback (Android / web); the OS sheet has none. */
+const FALLBACK_ICONS: Partial<Record<string, IconName>> = {
+  pin: "Pin",
+  unpin: "PinOff",
+  rename: "Pen",
+  leave: "LogOut",
+  delete: "Trash2",
+  "delete-and-block": "Shield",
+  signal: "Flag",
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -74,17 +97,27 @@ export function ConversationActionSheet({
   onRenamed,
 }: Props) {
   const { t } = useTranslation();
-  const [confirming, setConfirming] = useState(false);
+  const { colors, mode } = useDesignTokens();
+  const isDark = mode === "dark";
+
+  // Optimistic pin state, re-synced whenever the server value (or the target
+  // conversation) changes.
   const [isPinned, setIsPinned] = useState(pinned);
+  // Descriptor rendered by the fallback sheet on Android / web.
+  const [fallback, setFallback] = useState<ActionMenuDescriptor | null>(null);
+  // Rename sheet state (Android / web — iOS uses the native prompt).
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
-  // Capture the report target while the action sheet is open. When the action
-  // sheet closes, the parent clears its conversation state (e.g. menuItem →
-  // null), so we must hold onto the values locally for the ReportSheet.
+  // Capture the report target while the menu is open: the parent clears its
+  // conversation state on close (menuItem → null), so the values are held
+  // locally for the ReportSheet.
   const [reportTarget, setReportTarget] = useState<{
     conversationId: string;
     targetAuthorId?: string;
     label: string;
   }>({ conversationId: "", targetAuthorId: undefined, label: "" });
+
   const pinMut = usePinConversation();
   const unpinMut = useUnpinConversation();
   const deleteMut = useDeleteConversation();
@@ -92,325 +125,304 @@ export function ConversationActionSheet({
   const leaveMut = useLeaveGroupConversation();
   const renameMut = useRenameGroupConversation();
 
-  const [confirmingBlock, setConfirmingBlock] = useState(false);
-  const [confirmingLeave, setConfirmingLeave] = useState(false);
-  const [confirmingRename, setConfirmingRename] = useState(false);
-  const [newGroupName, setNewGroupName] = useState(groupName ?? "");
-
-  // Reset local state each time the sheet opens for a conversation
   useEffect(() => {
-    if (visible) {
-      setIsPinned(pinned);
-      setConfirming(false);
-      setConfirmingBlock(false);
-      setConfirmingLeave(false);
-      setConfirmingRename(false);
-      setNewGroupName(groupName ?? "");
-    }
-  }, [visible, pinned, groupName]);
+    setIsPinned(pinned);
+  }, [pinned, conversationId]);
 
-  const handleClose = () => {
-    setConfirming(false);
-    setConfirmingBlock(false);
-    setConfirmingLeave(false);
-    setConfirmingRename(false);
-    onClose();
-  };
-
-  const handleTogglePin = () => {
+  // ── Actions ────────────────────────────────────────────────────────────
+  const handleTogglePin = useCallback(() => {
     const next = !isPinned;
     setIsPinned(next); // mise à jour instantanée et optimiste
-    const mut = next ? pinMut : unpinMut;
-    mut.mutate(conversationId, {
+    const mutation = next ? pinMut.mutate : unpinMut.mutate;
+    mutation(conversationId, {
       onError: () => setIsPinned(!next), // annule l'optimisme en cas d'échec
     });
-  };
+  }, [conversationId, isPinned, pinMut.mutate, unpinMut.mutate]);
 
-  const handleSignal = () => {
-    // Snapshot the target before the action sheet closes (the parent clears
-    // its conversation state on close), then open the report sheet modal.
-    setReportTarget({
-      conversationId,
-      targetAuthorId,
-      label: name,
-    });
+  const handleSignal = useCallback(() => {
+    // Snapshot the target before the menu closes, then open the report sheet.
+    setReportTarget({ conversationId, targetAuthorId, label: name });
     setReportSheetVisible(true);
     onClose();
-  };
+  }, [conversationId, name, onClose, targetAuthorId]);
 
-  // ── Group-chat handlers ────────────────────────────────────────────────
-  const handleLeave = () => {
-    leaveMut.mutate(conversationId, {
-      onSuccess: () => {
-        setConfirmingLeave(false);
-        Toast.show({ type: "success", text1: t("conv.leftGroup") });
-        onLeft?.();
+  const handleDelete = useCallback(() => {
+    confirmAction(
+      {
+        title: t("conv.deleteConfirmTitle"),
+        message: t("conv.deleteConfirmBody"),
+        confirmLabel: t("common.delete"),
+        cancelLabel: t("common.cancel"),
+        destructive: true,
+        isDark,
       },
-    });
-  };
+      () => {
+        deleteMut.mutate(conversationId, {
+          onSuccess: () => {
+            Toast.show({ type: "success", text1: t("conv.deleted") });
+            onDeleted?.();
+          },
+        });
+      }
+    );
+  }, [conversationId, deleteMut, isDark, onDeleted, t]);
 
-  const handleRename = () => {
-    if (!newGroupName.trim()) {
-      Toast.show({ type: "error", text1: t("conv.nameRequired") });
+  const handleDeleteAndBlock = useCallback(() => {
+    const otherUserId = targetAuthorId;
+    if (!otherUserId) {
+      Toast.show({ type: "error", text1: t("conv.blockError") });
       return;
     }
-    renameMut.mutate(
-      { conversationId, groupName: newGroupName.trim() },
-      {
-        onSuccess: (data) => {
-          setConfirmingRename(false);
-          Toast.show({ type: "success", text1: t("conv.groupRenamed") });
-          onRenamed?.(data?.groupName ?? newGroupName.trim());
-        },
-      },
-    );
-  };
 
-  // ── Options (conditional for groups vs 1:1) ────────────────────────────
-  const buildOptions = (): Option[] => {
-    const base: Option[] = [
+    confirmAction(
+      {
+        title: t("conv.deleteBlockTitle"),
+        message: t("conv.deleteBlockBody"),
+        confirmLabel: t("common.deleteAndBlock"),
+        cancelLabel: t("common.cancel"),
+        destructive: true,
+        isDark,
+      },
+      () => {
+        deleteMut.mutate(conversationId, {
+          onSuccess: () => {
+            blockMut.mutate(
+              { userId: otherUserId },
+              {
+                onSuccess: () => {
+                  Toast.show({ type: "success", text1: t("conv.blockedUser") });
+                  onDeleted?.();
+                },
+              }
+            );
+          },
+        });
+      }
+    );
+  }, [blockMut, conversationId, deleteMut, isDark, onDeleted, t, targetAuthorId]);
+
+  const handleLeave = useCallback(() => {
+    confirmAction(
+      {
+        title: t("conv.leaveGroup"),
+        message: t("conv.leaveConfirm"),
+        confirmLabel: t("conv.leaveGroup"),
+        cancelLabel: t("common.cancel"),
+        destructive: true,
+        isDark,
+      },
+      () => {
+        leaveMut.mutate(conversationId, {
+          onSuccess: () => {
+            Toast.show({ type: "success", text1: t("conv.leftGroup") });
+            onLeft?.();
+          },
+        });
+      }
+    );
+  }, [conversationId, isDark, leaveMut, onLeft, t]);
+
+  const applyRename = useCallback(
+    (raw: string) => {
+      const next = raw.trim();
+      if (!next) {
+        Toast.show({ type: "error", text1: t("conv.nameRequired") });
+        return;
+      }
+      renameMut.mutate(
+        { conversationId, groupName: next },
+        {
+          onSuccess: (data) => {
+            setRenameOpen(false);
+            Toast.show({ type: "success", text1: t("conv.groupRenamed") });
+            onRenamed?.(data?.groupName ?? next);
+          },
+        }
+      );
+    },
+    [conversationId, onRenamed, renameMut, t]
+  );
+
+  const handleRename = useCallback(() => {
+    // iOS gets the system text prompt; Android and web have no native prompt,
+    // so they use a small in-app sheet.
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        t("conv.renameGroup"),
+        undefined,
+        (text) => applyRename(text ?? ""),
+        "plain-text",
+        groupName ?? ""
+      );
+      return;
+    }
+    setNewGroupName(groupName ?? "");
+    setRenameOpen(true);
+  }, [applyRename, groupName, t]);
+
+  // ── Option key → handler ────────────────────────────────────────────────
+  const handlers = useMemo<Record<string, () => void>>(
+    () => ({
+      pin: handleTogglePin,
+      unpin: handleTogglePin,
+      rename: handleRename,
+      leave: handleLeave,
+      delete: handleDelete,
+      "delete-and-block": handleDeleteAndBlock,
+      signal: handleSignal,
+    }),
+    [
+      handleDelete,
+      handleDeleteAndBlock,
+      handleLeave,
+      handleRename,
+      handleSignal,
+      handleTogglePin,
+    ]
+  );
+
+  // ── Descriptor (identical options on every platform) ────────────────────
+  const descriptor = useMemo<ActionMenuDescriptor>(() => {
+    const options: ActionMenuDescriptor["options"] = [
       {
         key: isPinned ? "unpin" : "pin",
         label: isPinned ? t("common.unpinned") : t("common.pinned"),
-        icon: isPinned ? "PinOff" : "Pin",
-        onPress: handleTogglePin,
       },
     ];
 
     if (isGroup) {
-      base.push(
+      options.push(
         {
           key: "rename",
           label: t("conv.renameGroup"),
-          icon: "Pen",
-          onPress: () => setConfirmingRename(true),
+          disabled: renameMut.isPending,
         },
         {
           key: "leave",
           label: t("conv.leaveGroup"),
-          icon: "LogOut",
-          iconColor: "error-600",
-          onPress: () => setConfirmingLeave(true),
-        },
+          destructive: true,
+          disabled: leaveMut.isPending,
+        }
       );
     } else {
-      base.push(
-        {
-          key: "delete",
-          label: t("common.delete"),
-          icon: "Trash2",
-          iconColor: "error-600",
-          onPress: () => setConfirming(true),
-        },
+      options.push(
+        { key: "delete", label: t("common.delete"), destructive: true },
         {
           key: "delete-and-block",
           label: t("common.deleteAndBlock"),
-          icon: "Shield",
-          iconColor: "error-600",
-          onPress: () => setConfirmingBlock(true),
+          destructive: true,
         },
-        {
-          key: "signal",
-          label: "Signaler",
-          icon: "Flag",
-          onPress: handleSignal,
-        },
+        { key: "signal", label: t("common.report") }
       );
     }
 
-    return base;
-  };
+    return {
+      title: name,
+      options,
+      cancelLabel: t("common.cancel"),
+      tintColor: colors.primary,
+      isDark,
+    };
+  }, [
+    colors.primary,
+    isDark,
+    isGroup,
+    isPinned,
+    leaveMut.isPending,
+    name,
+    renameMut.isPending,
+    t,
+  ]);
 
-  const options = buildOptions();
+  const runOption = useCallback(
+    (key: string) => {
+      setFallback(null);
+      onClose();
+      handlers[key]?.();
+    },
+    [handlers, onClose]
+  );
 
-  const handleConfirmDelete = () => {
-    deleteMut.mutate(conversationId, {
-      onSuccess: () => {
-        setConfirming(false);
-        onDeleted?.();
-      },
-    });
-  };
-
-  const handleConfirmDeleteAndBlock = () => {
-    const otherUserId = targetAuthorId;
-    if (!otherUserId) {
-      Toast.show({ type: "error", text1: "Impossible de bloquer cet utilisateur" });
+  // Present the menu as soon as a conversation is opened for it (and only
+  // once per opening, whatever the number of re-renders).
+  const shownForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!visible) {
+      shownForRef.current = null;
       return;
     }
+    if (shownForRef.current === conversationId) return;
+    shownForRef.current = conversationId;
 
-    deleteMut.mutate(conversationId, {
-      onSuccess: () => {
-        blockMut.mutate(
-          { userId: otherUserId },
-          {
-            onSuccess: () => {
-              setConfirmingBlock(false);
-              onDeleted?.();
-              Toast.show({ type: "success", text1: "Conversation supprimée et utilisateur bloqué" });
-            },
-          }
-        );
-      },
-    });
-  };
+    if (hasNativeActionMenu) {
+      showNativeActionMenu(descriptor, runOption);
+    } else {
+      setFallback(descriptor);
+    }
+  }, [conversationId, descriptor, runOption, visible]);
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      {/* Android / web: in-app sheet built from the very same descriptor. */}
+      <ActionMenuSheet
+        visible={!!fallback}
+        descriptor={fallback}
+        icons={FALLBACK_ICONS}
+        onClose={() => {
+          setFallback(null);
+          onClose();
+        }}
+        onSelect={runOption}
+      />
+
+      {/* Group rename (Android / web — iOS uses the native prompt). */}
+      <Modal
+        visible={renameOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRenameOpen(false)}
+      >
         <View className="flex-1 bg-black/50 justify-end">
-          {/* Tap outside the sheet to close */}
           <Pressable
             className="flex-1"
-            onPress={handleClose}
-            accessibilityLabel="Fermer le menu"
+            onPress={() => setRenameOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
           />
-          <View className="bg-white dark:bg-neutral-900 rounded-t-3xl p-4 pb-8">
-            {confirming ? (
-              <>
-                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
-                  Supprimer la conversation ?
-                </Text>
-                <Text className="text-sm text-text-secondary mb-6">
-                  Cette conversation sera supprimée de ton côté. Cette action est irréversible.
-                </Text>
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Button
-                      title="Annuler"
-                      variant="ghost"
-                      onPress={() => setConfirming(false)}
-                      disabled={deleteMut.isPending}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title="Supprimer"
-                      variant="destructive"
-                      onPress={handleConfirmDelete}
-                      loading={deleteMut.isPending}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : confirmingBlock ? (
-              <>
-                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
-                  Supprimer et bloquer ?
-                </Text>
-                <Text className="text-sm text-text-secondary mb-6">
-                  En bloquant cet utilisateur, il ne pourra plus te contacter ni démarrer de nouvelle conversation avec toi. Tu peux toujours le débloquer depuis ta liste des profils bloqués dans les paramètres.
-                </Text>
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Button
-                      title="Annuler"
-                      variant="ghost"
-                      onPress={() => setConfirmingBlock(false)}
-                      disabled={deleteMut.isPending || blockMut.isPending}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title="Supprimer et bloquer"
-                      variant="destructive"
-                      onPress={handleConfirmDeleteAndBlock}
-                      loading={deleteMut.isPending || blockMut.isPending}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : confirmingLeave ? (
-              <>
-                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
-                  {t("conv.leaveGroup")} ?
-                </Text>
-                <Text className="text-sm text-text-secondary mb-6">
-                  {t("conv.leaveConfirm")}
-                </Text>
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Button
-                      title={t("common.cancel")}
-                      variant="ghost"
-                      onPress={() => setConfirmingLeave(false)}
-                      disabled={leaveMut.isPending}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={t("common.delete")}
-                      variant="destructive"
-                      onPress={handleLeave}
-                      loading={leaveMut.isPending}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : confirmingRename ? (
-              <>
-                <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
-                  {t("conv.renameGroup")}
-                </Text>
-                <TextInput
-                  className="w-full border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-base text-neutral-900 dark:text-neutral-50 mb-6"
-                  value={newGroupName}
-                  onChangeText={setNewGroupName}
-                  placeholder={t("conv.enterNewName")}
-                  autoFocus
+          <View className="bg-surface dark:bg-surface-dark rounded-t-3xl px-4 pt-4 pb-8">
+            <View className="self-center w-10 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600 mb-4" />
+            <Text className="text-lg font-['Inter_600SemiBold'] text-text-primary mb-2">
+              {t("conv.renameGroup")}
+            </Text>
+            <TextInput
+              className="w-full border-2 border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-base text-text-primary mb-6"
+              value={newGroupName}
+              onChangeText={setNewGroupName}
+              placeholder={t("conv.enterNewName")}
+              placeholderTextColor="#888D97"
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={() => applyRename(newGroupName)}
+              editable={!renameMut.isPending}
+            />
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Button
+                  title={t("common.cancel")}
+                  variant="ghost"
+                  onPress={() => setRenameOpen(false)}
+                  disabled={renameMut.isPending}
                 />
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Button
-                      title={t("common.cancel")}
-                      variant="ghost"
-                      onPress={() => setConfirmingRename(false)}
-                      disabled={renameMut.isPending}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={t("common.save")}
-                      variant="secondary"
-                      onPress={handleRename}
-                      loading={renameMut.isPending}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                {/* Handle indicator */}
-                <View className="self-center w-10 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600 mb-4" />
-
-                {/* Title */}
-                <Text variant="subtitle" className="text-text-primary mb-4" numberOfLines={1}>
-                  {name}
-                </Text>
-
-                {/* Options */}
-                <View className="gap-1">
-                  {options.map((opt) => (
-                    <Pressable
-                      key={opt.key}
-                      onPress={opt.onPress}
-                      accessibilityRole="button"
-                  className="flex-row items-center gap-4 py-4 px-3 rounded-lg active:bg-primary-tint dark:active:bg-primary-tint-dark"
-                    >
-                      <View className="w-10 h-10 rounded-full bg-neutral-50 dark:bg-neutral-800 items-center justify-center">
-                        <Icon name={opt.icon} size={20} color={opt.iconColor ?? "text-secondary"} />
-                      </View>
-                      <Text
-                        variant="bodyLarge"
-                        className={opt.iconColor === "error-600" ? "text-error-600 flex-1" : "text-text-primary flex-1"}
-                      >
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </>
-            )}
+              </View>
+              <View className="flex-1">
+                <Button
+                  title={t("common.save")}
+                  variant="secondary"
+                  onPress={() => applyRename(newGroupName)}
+                  loading={renameMut.isPending}
+                />
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
@@ -427,3 +439,4 @@ export function ConversationActionSheet({
     </>
   );
 }
+

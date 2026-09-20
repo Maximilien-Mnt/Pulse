@@ -1,277 +1,128 @@
 // ---------------------------------------------------------------------------
 // PULSE CONVERSATIONS — Message Menu
 //
-// Anchored context menu for a chat message, reusing the exact design of the
-// feed CommentMenu (spring-scale popover, backdrop, destructive styling).
-//
-// Options: Copier / Modifier / Supprimer
+// Options for a chat message (Copier / Modifier / Supprimer), presented through
+// the **native OS options menu**:
+//   - iOS     -> the system action sheet (ActionSheetIOS).
+//   - Android -> the shared in-app sheet (ActionMenuSheet) — RN has no native
+//                list-style menu without a native module.
+//   - web     -> same shared sheet.
+// Deleting is an irreversible action, so it always goes through a native
+// confirmation dialog first.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { ActionMenuSheet } from "@/components/shared/ActionMenuSheet";
+import type { IconName } from "@/components/ui/Icon";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Platform,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-
-import { Icon, type IconName } from "@/components/ui/Icon";
-import { Text } from "@/components/ui/Text";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type MenuItem = {
-  key: string;
-  label: string;
-  icon: IconName;
-  iconColor?: "error-600" | "text-secondary";
-  destructive?: boolean;
-  onPress: () => void;
-};
+  confirmAction,
+  hasNativeActionMenu,
+  showNativeActionMenu,
+  type ActionMenuDescriptor,
+} from "@/components/shared/nativeActionMenu";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useDesignTokens } from "@/src/design-tokens/useDesignTokens";
 
 export interface MessageMenuProps {
   visible: boolean;
-  anchorX: number;
-  anchorY: number;
-  anchorWidth: number;
-  anchorHeight: number;
-  /** Which anchor edge the menu should hug horizontally ("left" = menu's
-   *  left edge aligns with the anchor's left edge; "right" = menu's right
-   *  edge aligns with the anchor's right edge). Defaults to centered. */
-  hugSide?: "left" | "right";
   onClose: () => void;
   onCopy: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  /** A message action is in flight: the destructive option is shown disabled. */
   isDeleting?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MENU_WIDTH = 192;
-const MENU_MARGIN = 8;
-const MENU_PADDING = 8;
-
-function cn(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+/** Icons used by the in-app fallback (Android / web); the OS sheet has none. */
+const FALLBACK_ICONS: Partial<Record<string, IconName>> = {
+  copy: "FileText",
+  edit: "Pen",
+  delete: "Trash2",
+};
 
 export function MessageMenu({
   visible,
-  anchorX,
-  anchorY,
-  anchorWidth,
-  anchorHeight,
-  hugSide,
   onClose,
   onCopy,
   onEdit,
   onDelete,
   isDeleting = false,
 }: MessageMenuProps) {
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [position, setPosition] = useState<{ top: number; left: number }>({
-    top: 0,
-    left: 0,
-  });
+  const { t } = useTranslation();
+  const { colors, mode } = useDesignTokens();
+  const isDark = mode === "dark";
+  const [fallback, setFallback] = useState<ActionMenuDescriptor | null>(null);
 
-  const items: MenuItem[] = useMemo(
-    () => [
-      { key: "copy", label: "Copier", icon: "FileText", onPress: onCopy },
-      { key: "edit", label: "Modifier", icon: "Pen", onPress: onEdit },
+  const handleDelete = useCallback(() => {
+    confirmAction(
       {
-        key: "delete",
-        label: "Supprimer",
-        icon: "Trash2",
-        iconColor: "error-600",
+        title: t("conv.messageDeleteTitle"),
+        message: t("conv.messageDeleteBody"),
+        confirmLabel: t("common.delete"),
+        cancelLabel: t("common.cancel"),
         destructive: true,
-        onPress: onDelete,
+        isDark,
       },
-    ],
-    [onCopy, onEdit, onDelete]
+      onDelete
+    );
+  }, [isDark, onDelete, t]);
+
+  const handlers = useMemo<Record<string, () => void>>(
+    () => ({ copy: onCopy, edit: onEdit, delete: handleDelete }),
+    [handleDelete, onCopy, onEdit]
   );
 
-  // Calculate position when the menu becomes visible (same smart flip logic
-  // as the feed CommentMenu). Screen bounds are read fresh so the placement
-  // stays correct on any screen size / orientation.
-  useEffect(() => {
-    if (!visible) return;
+  const descriptor = useMemo<ActionMenuDescriptor>(
+    () => ({
+      options: [
+        { key: "copy", label: t("common.copy") },
+        { key: "edit", label: t("common.edit") },
+        { key: "delete", label: t("common.delete"), destructive: true, disabled: isDeleting },
+      ],
+      cancelLabel: t("common.cancel"),
+      tintColor: colors.primary,
+      isDark,
+    }),
+    [colors.primary, isDark, isDeleting, t]
+  );
 
-    const screen = Dimensions.get("window");
-    const anchorCenterX = anchorX + anchorWidth / 2;
-    const menuHeightEstimate = items.length * 44 + MENU_PADDING * 2;
+  const runOption = useCallback(
+    (key: string) => {
+      setFallback(null);
+      onClose();
+      handlers[key]?.();
+    },
+    [handlers, onClose]
+  );
 
-    // Hug the anchor edge nearest the ⋮ button so the menu stays close to
-    // the message and its options button; fall back to centered.
-    let left: number;
-    if (hugSide === "left") {
-      left = anchorX;
-    } else if (hugSide === "right") {
-      left = anchorX + anchorWidth - MENU_WIDTH;
-    } else {
-      left = anchorCenterX - MENU_WIDTH / 2;
-    }
-    left = Math.max(MENU_MARGIN, Math.min(left, screen.width - MENU_WIDTH - MENU_MARGIN));
-
-    let top = anchorY + anchorHeight + MENU_MARGIN;
-    if (top + menuHeightEstimate > screen.height - MENU_MARGIN) {
-      top = anchorY - menuHeightEstimate - MENU_MARGIN;
-    }
-    top = Math.max(MENU_MARGIN, top);
-
-    setPosition({ top, left });
-    top = Math.max(MENU_MARGIN, top);
-
-    setPosition({ top, left });
-
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 7,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [
-    visible,
-    anchorX,
-    anchorY,
-    anchorWidth,
-    anchorHeight,
-    hugSide,
-    items.length,
-    scaleAnim,
-    opacityAnim,
-  ]);
-
-  // Animate out when hiding
+  // Present the menu once per opening (whatever the number of re-renders).
+  const shownRef = useRef(false);
   useEffect(() => {
     if (!visible) {
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 0.9,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      shownRef.current = false;
+      return;
     }
-  }, [visible, scaleAnim, opacityAnim]);
+    if (shownRef.current) return;
+    shownRef.current = true;
 
-  if (!visible) return null;
+    if (hasNativeActionMenu) {
+      showNativeActionMenu(descriptor, runOption);
+    } else {
+      setFallback(descriptor);
+    }
+  }, [descriptor, runOption, visible]);
 
   return (
-    <Modal
-      transparent
-      visible
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      hardwareAccelerated
-    >
-      {/* Backdrop — covers everything, dismisses on tap */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.backdrop, { opacity: opacityAnim }]} />
-      </TouchableWithoutFeedback>
-
-      {/* Menu */}
-      <Animated.View
-        style={[
-          styles.menuContainer,
-          {
-            top: position.top,
-            left: position.left,
-            width: MENU_WIDTH,
-            transform: [{ scale: scaleAnim }],
-            opacity: opacityAnim,
-          },
-        ]}
-        pointerEvents="box-none"
-      >
-        {items.map((item, idx) => (
-          <Pressable
-            key={item.key}
-            onPress={item.onPress}
-            disabled={isDeleting && item.key === "delete"}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            className={cn(
-              "flex-row items-center gap-3 px-4 py-3",
-              idx === 0 ? "rounded-t-xl" : "",
-              idx === items.length - 1 ? "rounded-b-xl" : "",
-              "bg-surface dark:bg-neutral-800",
-              item.destructive
-                ? "active:bg-error-50 dark:active:bg-neutral-900"
-                : "active:bg-neutral-100 dark:active:bg-neutral-700"
-            )}
-          >
-            <Icon name={item.icon} size={18} color={item.iconColor ?? "text-secondary"} />
-            <Text
-              className={cn(
-                "flex-1 text-sm font-medium",
-                item.destructive
-                  ? "text-error-600"
-                  : "text-neutral-700 dark:text-neutral-200"
-              )}
-            >
-              {item.label}
-            </Text>
-            {isDeleting && item.key === "delete" && (
-              <View className="w-4 h-4 rounded-full border-2 border-error-600 border-t-transparent animate-spin" />
-            )}
-          </Pressable>
-        ))}
-      </Animated.View>
-    </Modal>
+    <ActionMenuSheet
+      visible={!!fallback}
+      descriptor={fallback}
+      icons={FALLBACK_ICONS}
+      onClose={() => {
+        setFallback(null);
+        onClose();
+      }}
+      onSelect={runOption}
+    />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-  menuContainer: {
-    position: "absolute",
-    borderRadius: 12,
-    overflow: "hidden",
-    elevation: 8,
-        ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      web: {
-        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)",
-      },
-    }),
-  },
-});

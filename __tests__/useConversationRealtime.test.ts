@@ -132,6 +132,67 @@ describe('useConversationRealtime', () => {
       expect(handlers.onNewMessage).not.toHaveBeenCalled();
     }
   });
+
+  // --- Conversation row (club chat rename) --------------------------------
+
+  it('subscribes to conversation row updates for the open conversation', () => {
+    const handlers = { onConversationUpdate: jest.fn() };
+
+    renderHook(() =>
+      useConversationRealtime({ conversationId: 'conv-rename', handlers })
+    );
+
+    const registration = mockChannel.on.mock.calls.find(
+      (call: any[]) => call[1]?.table === 'conversations'
+    );
+
+    expect(registration).toBeDefined();
+    if (!registration) throw new Error('conversations listener not registered');
+    expect(registration[0]).toBe('postgres_changes');
+    expect(registration[1]).toEqual({
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'conversations',
+      filter: 'id=eq.conv-rename',
+    });
+  });
+
+  it('forwards conversation rename events to onConversationUpdate', () => {
+    const handlers = { onConversationUpdate: jest.fn() };
+
+    renderHook(() =>
+      useConversationRealtime({ conversationId: 'conv-rename-2', handlers })
+    );
+
+    // Listener order: INSERT messages, UPDATE messages, DELETE messages,
+    // UPDATE conversations.
+    const convCallback = storedCallbacks[3];
+    expect(convCallback).toBeDefined();
+    if (!convCallback) throw new Error('conversations listener not registered');
+
+    convCallback({
+      new: { id: 'conv-rename-2', group_name: 'New club name', group_photo_url: null },
+    });
+
+    expect(handlers.onConversationUpdate).toHaveBeenCalledTimes(1);
+    expect(handlers.onConversationUpdate).toHaveBeenCalledWith({
+      id: 'conv-rename-2',
+      group_name: 'New club name',
+      group_photo_url: null,
+    });
+  });
+
+  it('does not throw on conversation updates when no handler is provided', () => {
+    renderHook(() =>
+      useConversationRealtime({ conversationId: 'conv-no-handler', handlers: {} })
+    );
+
+    const convCallback = storedCallbacks[3];
+    expect(convCallback).toBeDefined();
+    if (!convCallback) throw new Error('conversations listener not registered');
+
+    expect(() => convCallback({ new: { id: 'conv-no-handler' } })).not.toThrow();
+  });
 });
 
 describe('mergeNewMessage', () => {

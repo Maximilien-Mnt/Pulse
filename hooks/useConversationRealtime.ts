@@ -7,6 +7,7 @@ type MessageChangeHandler = {
   onNewMessage?: (message: any) => void;
   onEdit?: (message: any) => void;
   onDelete?: (messageId: string) => void;
+  onConversationUpdate?: (conversation: any) => void;
   onError?: (error: Error) => void;
 };
 
@@ -37,6 +38,13 @@ export function useConversationRealtime({ conversationId, handlers, enabled = tr
     
     ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + conversationId }, (payload) => {
       handlers.onDelete?.(payload.old.id);
+    });
+
+    // Conversation row changes (club chat rename, group photo) — pushed to
+    // every active participant so the header title and the conversations list
+    // update without a manual refresh.
+    ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations', filter: 'id=eq.' + conversationId }, (payload) => {
+      handlers.onConversationUpdate?.(payload.new);
     });
 
     // Subscribe and handle errors via channel state

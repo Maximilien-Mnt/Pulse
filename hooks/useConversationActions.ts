@@ -130,9 +130,42 @@ export function useRenameGroupConversation() {
         .update({ group_name: name })
         .eq("id", conversationId);
       if (error) throw error;
+      return { conversationId, groupName: name };
     },
-    onSuccess: () => {
+    onMutate: async ({ conversationId, groupName }) => {
+      const name = groupName.trim();
+      const queryKey = ["conv-row", conversationId];
+      await qc.cancelQueries({ queryKey });
+      const previous = qc.getQueryData<{
+        is_group: boolean;
+        group_name: string | null;
+        group_photo_url: string | null;
+      } | null>(queryKey);
+      if (previous) {
+        qc.setQueryData(queryKey, { ...previous, group_name: name });
+      }
+      return { previous, queryKey };
+    },
+    onError: (_e, _v, context) => {
+      if (context?.previous !== undefined) {
+        qc.setQueryData(context.queryKey, context.previous);
+      }
+    },
+    onSuccess: (data) => {
+      // Patch the header synchronously so the title changes on the spot,
+      // before the background refetch below resolves.
+      qc.setQueryData<{ group_name?: string | null } | null>(
+        ["conv-row", data.conversationId],
+        (old) => (old ? { ...old, group_name: data.groupName } : old),
+      );
+    },
+    onSettled: (_d, _e, variables) => {
+      // Refresh the conversations tab list and reconcile the header with the
+      // server value (or restore the truth after a failure).
       void qc.invalidateQueries({ queryKey: ["conversations"] });
+      if (variables?.conversationId) {
+        void qc.invalidateQueries({ queryKey: ["conv-row", variables.conversationId] });
+      }
     },
   });
 }

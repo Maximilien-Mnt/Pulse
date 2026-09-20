@@ -52,6 +52,8 @@ interface Props {
   onLeft?: () => void;
   /** Current group name (shown in rename input). */
   groupName?: string;
+  /** Called with the new name after a successful group rename. */
+  onRenamed?: (newName: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,7 @@ export function ConversationActionSheet({
   isGroup = false,
   onLeft,
   groupName,
+  onRenamed,
 }: Props) {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
@@ -154,9 +157,10 @@ export function ConversationActionSheet({
     renameMut.mutate(
       { conversationId, groupName: newGroupName.trim() },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setConfirmingRename(false);
           Toast.show({ type: "success", text1: t("conv.groupRenamed") });
+          onRenamed?.(data?.groupName ?? newGroupName.trim());
         },
       },
     );

@@ -212,14 +212,67 @@ export default function ConversationScreen() {
     });
   }, [conversationId, qc]);
 
-  useConversationRealtime({
-    conversationId: conversationId ?? '',
-    enabled: !!conversationId,
-    handlers: {
+  // Broadcast handler: another participant renamed the chat (or changed the
+  // group photo). Patch the caches so this client never needs a refresh.
+  //
+  // NOTE: public.conversations is also UPDATEd on *every* message insert by
+  // touch_conversation_on_message() (last_message_at, last_message_preview,
+  // updated_at). Most events that reach this handler are therefore irrelevant,
+  // so each cache updater returns the previous reference untouched unless the
+  // fields we render actually changed — otherwise the header (and lists) would
+  // re-render on every incoming message.
+  const handleConversationUpdate = useCallback((row: any) => {
+    if (!row?.id) return;
+    // Header of the open chat — instant title/photo update.
+    void qc.setQueryData(['conv-row', conversationId], (old: any) => {
+      if (!old) return old;
+      const nextName = row.group_name ?? old.group_name;
+      const nextPhoto = row.group_photo_url ?? old.group_photo_url;
+      if (nextName === old.group_name && nextPhoto === old.group_photo_url) return old;
+      return { ...old, group_name: nextName, group_photo_url: nextPhoto };
+    });
+    // Every cached conversations list (private/public variants) so the rename
+    // is already applied when the user navigates back to the tab.
+    qc.setQueriesData({ queryKey: ['conversations'] }, (old: any) => {
+      if (!Array.isArray(old)) return old;
+      let changed = false;
+      const next = old.map((item: any) => {
+        if (item?.conversation?.id !== row.id) return item;
+        const nextName = row.group_name ?? item.conversation.group_name;
+        const nextPhoto = row.group_photo_url ?? item.conversation.group_photo_url;
+        if (
+          nextName === item.conversation.group_name &&
+          nextPhoto === item.conversation.group_photo_url
+        ) {
+          return item;
+        }
+        changed = true;
+        return {
+          ...item,
+          conversation: { ...item.conversation, group_name: nextName, group_photo_url: nextPhoto },
+        };
+      });
+      return changed ? next : old;
+    });
+  }, [conversationId, qc]);
+
+  // Memoized: the hook lists `handlers` in its effect dependencies, so an
+  // inline object would tear down and re-create the realtime channel on every
+  // render.
+  const realtimeHandlers = useMemo(
+    () => ({
       onNewMessage: handleNewMessage,
       onEdit: handleEdit,
       onDelete: handleDelete,
-    },
+      onConversationUpdate: handleConversationUpdate,
+    }),
+    [handleNewMessage, handleEdit, handleDelete, handleConversationUpdate],
+  );
+
+  useConversationRealtime({
+    conversationId: conversationId ?? '',
+    enabled: !!conversationId,
+    handlers: realtimeHandlers,
   });
 
   const sendMut = useMutation({
@@ -397,6 +450,14 @@ export default function ConversationScreen() {
         isGroup={isGroupChat}
         groupName={groupName ?? undefined}
         onLeft={() => router.back()}
+        onRenamed={(newName) => {
+          // Belt-and-braces: the mutation already updates this cache key
+          // optimistically, but this guarantees the header reflects the new
+          // name instantly even if the mutation ran before conv-row loaded.
+          qc.setQueryData(['conv-row', conversationId], (old: any) =>
+            old ? { ...old, group_name: newName } : old,
+          );
+        }}
       />
 
       <MessageEditModal

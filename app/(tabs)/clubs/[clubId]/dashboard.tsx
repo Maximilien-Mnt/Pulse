@@ -10,6 +10,7 @@ import { queryClient } from '@/lib/queryClient';
 import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
+import { ClubBottomBar } from '@/components/clubs/public/ClubBottomBar';
 import { Button } from '@/components/ui/Button';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -713,77 +714,43 @@ export default function ClubDashboardScreen() {
           </View>
         ) : null}
 
-                {/* ---- Action buttons ---- */}
+                {/* ---- Invite action (secondary; invite sheet opens share) ---- */}
         <View className='px-4 mb-5'>
           <View className='gap-3'>
-            {/* Invitation link + Public access on same row when wide enough */}
-            {isWide ? (
-              <View className='flex-row gap-3 mb-3'>
-                <View style={{ flex: 1 }}>
-                  <InvitationButton type='club' targetId={club.id} visible={true} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title={t('clubs.dashboard.viewPublic')}
-                    icon='Eye'
-                    variant='ghost'
-                    onPress={() => router.push(`/clubs/${club.id}?public=true`)}
-                  />
-                </View>
-              </View>
-            ) : (
-              <>
-                <InvitationButton type='club' targetId={club.id} visible={true} />
-                <Button
-                  title={t('clubs.dashboard.viewPublic')}
-                  icon='Eye'
-                  variant='ghost'
-                  onPress={() => router.push("/clubs?public=true")}
-                />
-              </>
-            )}
-            
-            {/* Delete + Edit buttons - side by side if wide enough */}
-            {isWide ? (
-              <View className='flex-row gap-3'>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title={t('clubs.dashboard.editClub')}
-                    icon='Pen'
-                    variant='secondary'
-                    onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    title={t('clubs.dashboard.deleteClub')}
-                    icon='Trash2'
-                    variant='destructive'
-                    onPress={() => setShowDelete(true)}
-                  />
-                </View>
-              </View>
-            ) : (
-              <>
-                <Button
-                  title={t('clubs.dashboard.editClub')}
-                  icon='Pen'
-                  variant='secondary'
-                  onPress={() => router.push("/clubs/" + clubId + "/settings")}
-                />
-                <Button
-                  title={t('clubs.dashboard.deleteClub')}
-                  icon='Trash2'
-                  variant='destructive'
-                  onPress={() => setShowDelete(true)}
-                />
-              </>
-            )}
+            <InvitationButton type='club' targetId={club.id} visible={true} />
           </View>
         </View>
 
-        <View className='h-8' />
+        {/* Spacer so the last section clears the sticky bottom bar */}
+        <View className='h-3' />
       </ScrollView>
+      {/* ---- Sticky bottom action bar: view / edit / delete with clear hierarchy ---- */}
+      <ClubBottomBar>
+        <Button
+          title={t('clubs.dashboard.viewPublic')}
+          icon='Eye'
+          variant='secondary'
+          onPress={() => router.push(`/(tabs)/clubs/${clubId}?public=1`)}
+          className='flex-1'
+        />
+        <Button
+          title={t('clubs.dashboard.editClub')}
+          icon='Pen'
+          variant='primary'
+          onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
+          className='flex-[1.4]'
+        />
+        <PressableScale
+          onPress={() => setShowDelete(true)}
+          scaleOnPress={0.9}
+          accessibilityRole='button'
+          accessibilityLabel={t('clubs.dashboard.deleteClub')}
+          hitSlop={6}
+          className='w-[52px] h-[52px] rounded-2xl bg-error-600/10 dark:bg-error-dark/15 items-center justify-center active:bg-error-600/20'
+        >
+          <Icon name='Trash2' size={22} color='error-500' />
+        </PressableScale>
+      </ClubBottomBar>
 
       <DeleteClubSheet
         visible={showDelete}

@@ -8,6 +8,10 @@ import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ClubActionHeader } from '@/components/clubs/public/ClubActionHeader';
 import { ClubHeroBar } from '@/components/clubs/public/ClubHeroBar';
+import { ClubBottomBar } from '@/components/clubs/public/ClubBottomBar';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ClubIdentity } from '@/components/clubs/public/ClubIdentity';
 import { ClubStatTiles } from '@/components/clubs/public/ClubStatTiles';
 import { ClubDescriptionCard } from '@/components/clubs/public/ClubDescriptionCard';
@@ -113,9 +117,8 @@ export default function ClubDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ width: '100%', maxWidth: contentMax, alignSelf: 'center' }}
       >
-        {/* ---- Hero cover (like & share straddle its bottom-right edge) ---- */}
+        {/* ---- Hero cover (favorite + share float over the cover) ---- */}
         <ClubHeroBar
-          club={club}
           cover={cover}
           coverH={coverH}
           isFavorited={isFavorited}
@@ -123,10 +126,6 @@ export default function ClubDetailScreen() {
           isFavPending={isFavPending}
           onToggle={toggleFavorite}
           onShare={handleShare}
-          isCreator={isCreator}
-          joinStatus={joinStatus}
-          joinMut={joinMut}
-          onCreatorAction={() => setShowDeleteSheet(true)}
         />
 
         {/* ---- Identity: logo, title, short description, badges ---- */}
@@ -171,7 +170,99 @@ export default function ClubDetailScreen() {
 
         {/* ---- Members: card chips that wrap, creator highlighted, "see all" ---- */}
         <ClubMembersPreview club={club} creator={creator} members={members} />
+        {/* Spacer so the last section clears the sticky bottom bar */}
+        <View style={{ height: 12 }} />
       </ScrollView>
+      {/* ---- Sticky bottom action bar: membership CTA always in the thumb zone ---- */}
+      <ClubBottomBar>
+        {isCreator ? (
+          <>
+            <PressableScale
+              onPress={() => router.push(`/(tabs)/clubs/${clubId}/dashboard`)}
+              scaleOnPress={0.96}
+              accessibilityRole='button'
+              accessibilityLabel={t('clubs.dashboard.title')}
+              hitSlop={6}
+              className='w-[52px] h-[52px] rounded-2xl bg-primary/10 dark:bg-primary/15 items-center justify-center active:bg-primary/20'
+            >
+              <Icon name='Settings' size={22} color='primary' />
+            </PressableScale>
+            <Button
+              title={t('clubs.dashboard.editClub')}
+              variant='secondary'
+              icon='Pen'
+              onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
+              className='flex-1'
+            />
+            <Button
+              title={t('clubs.dashboard.clubEvents')}
+              variant='primary'
+              icon='Plus'
+              onPress={() => setShowCreateEventSheet(true)}
+              className='flex-1'
+            />
+          </>
+        ) : isMember ? (
+          <>
+            <Button
+              title={t('clubs.member')}
+              variant='secondary'
+              icon='Check'
+              disabled
+              className='flex-1 opacity-90'
+            />
+            <Button
+              title={t('clubs.leave')}
+              variant='ghost'
+              icon='LogOut'
+              onPress={() => setShowLeaveSheet(true)}
+              className='flex-1'
+            />
+          </>
+        ) : joinStatus?.isPending ? (
+          <>
+            <PressableScale
+              onPress={handleShare}
+              scaleOnPress={0.94}
+              accessibilityRole='button'
+              accessibilityLabel={t('common.share') ?? 'Partager'}
+              hitSlop={6}
+              className='w-[52px] h-[52px] rounded-2xl bg-neutral-100 dark:bg-neutral-800 items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700'
+            >
+              <Icon name='Share2' size={22} color='text-secondary' />
+            </PressableScale>
+            <Button
+              title={t('clubJoin.requestSent')}
+              variant='secondary'
+              icon='Clock'
+              disabled
+              loading={joinMut.isPending}
+              className='flex-[2]'
+            />
+          </>
+        ) : (
+          <>
+            <PressableScale
+              onPress={handleShare}
+              scaleOnPress={0.94}
+              accessibilityRole='button'
+              accessibilityLabel={t('common.share') ?? 'Partager'}
+              hitSlop={6}
+              className='w-[52px] h-[52px] rounded-2xl bg-neutral-100 dark:bg-neutral-800 items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700'
+            >
+              <Icon name='Share2' size={22} color='text-secondary' />
+            </PressableScale>
+            <Button
+              title={club.is_private ? t('clubs.joinRequest') : t('common.join')}
+              variant='primary'
+              icon='UserPlus'
+              onPress={() => joinMut.mutate()}
+              loading={joinMut.isPending}
+              className='flex-[2]'
+            />
+          </>
+        )}
+      </ClubBottomBar>
       <LeaveClubSheet
         visible={showLeaveSheet}
         onClose={() => setShowLeaveSheet(false)}

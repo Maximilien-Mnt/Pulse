@@ -1106,6 +1106,12 @@ export const translations = {
     "create.event.publicHint": "Visible par tous, nécessite un profil public",
     "create.event.publicSuccess": "Événement public publié !",
     "create.event.registrationUrl": "Lien d'inscription",
+    "create.event.hosting": "Organisation de l'événement",
+    "create.event.hostingInApp": "Dans l'app Pulse",
+    "create.event.hostingExternal": "Via un site externe",
+    "create.event.hostingHint": "Si l'inscription se fait sur un site externe, le lien est obligatoire.",
+    "create.event.externalLink": "Lien externe *",
+    "create.event.externalLinkPlaceholder": "https://…",
     "create.event.requiredLevel": "Niveau requis",
     "create.event.submit": "Créer l'événement",
     "create.event.title": "Créer un événement",
@@ -1276,6 +1282,8 @@ export const translations = {
     "validation.startDateRequired": "La date de début est requise",
     "validation.uppercase": "Au moins une majuscule",
     "validation.usernameChars": "Lettres, chiffres, _ et - uniquement",
+    "validation.invalidUrl": "Lien invalide — vérifie l'adresse (ex. https://example.com)",
+    "validation.externalLinkRequired": "Le lien externe est requis pour un événement organisé via un site externe",
   },
   en: {
     // ── Common ────────────────────────────────────────────────────────────
@@ -2374,6 +2382,12 @@ export const translations = {
     "create.event.publicHint": "Visible to everyone, requires a public profile",
     "create.event.publicSuccess": "Public event published!",
     "create.event.registrationUrl": "Registration link",
+    "create.event.hosting": "Event hosting",
+    "create.event.hostingInApp": "In the Pulse app",
+    "create.event.hostingExternal": "Via an external website",
+    "create.event.hostingHint": "If registration happens on an external website, the link is required.",
+    "create.event.externalLink": "External link *",
+    "create.event.externalLinkPlaceholder": "https://…",
     "create.event.requiredLevel": "Required level",
     "create.event.submit": "Create the event",
     "create.event.title": "Create an event",
@@ -2545,6 +2559,8 @@ export const translations = {
     "validation.startDateRequired": "Start date is required",
     "validation.uppercase": "At least one uppercase letter",
     "validation.usernameChars": "Letters, numbers, _ and - only",
+    "validation.invalidUrl": "Invalid link — check the address (e.g. https://example.com)",
+    "validation.externalLinkRequired": "The external link is required for an event hosted via an external website",
   },
 };
 

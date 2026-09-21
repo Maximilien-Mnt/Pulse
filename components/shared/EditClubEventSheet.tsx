@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { EventHostingSelector } from "@/components/events/EventHostingSelector";
+import { isValidLink, normalizeLink } from "@/utils/links";
+import { localizeError } from "@/utils/localizeError";
 import type { Club, EventRow } from "@/types";
 import { t } from "@/hooks/useTranslation";
 
@@ -17,6 +20,7 @@ type Props = {
 
 export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoading }: Props) {
   const [formData, setFormData] = useState<any>({});
+  const [linkError, setLinkError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (data) {
@@ -27,6 +31,8 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         address: isClub ? (data as Club).address || "" : (data as EventRow).venue_address || "",
         contact_email: isClub ? (data as Club).contact_email || "" : "",
         website_url: data.website_url || "",
+        registration_url: !isClub ? (data as EventRow).registration_url || "" : "",
+        is_external: !isClub ? !!(data as EventRow).is_external : false,
         required_level: data.required_level || "",
         league: isClub ? (data as Club).league || "" : "",
         founded_date: isClub ? (data as Club).founded_date || "" : "",
@@ -83,14 +89,32 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         updateData.venue_address = formData.address || null;
         oldData.venue_address = event.venue_address;
       }
-      if (formData.registration_url !== event.registration_url) {
-        updateData.registration_url = formData.registration_url || null;
+      const nextIsExternal = !!formData.is_external;
+      const nextLink = nextIsExternal ? normalizeLink(String(formData.registration_url ?? "")) : null;
+      if (nextIsExternal && !isValidLink(String(formData.registration_url ?? ""))) {
+        setLinkError(localizeError("validation.invalidUrl") ?? "Invalid link");
+        return;
+      }
+      if (nextIsExternal && !String(formData.registration_url ?? "").trim()) {
+        setLinkError(localizeError("validation.externalLinkRequired") ?? "External link required");
+        return;
+      }
+      if (nextIsExternal !== !!event.is_external) {
+        updateData.is_external = nextIsExternal;
+        oldData.is_external = event.is_external;
+      }
+      if ((nextLink ?? null) !== (event.registration_url ?? null)) {
+        updateData.registration_url = nextLink;
         oldData.registration_url = event.registration_url;
       }
+      if (formData.website_url && !isValidLink(String(formData.website_url))) {
+        setLinkError(localizeError("validation.invalidUrl") ?? "Invalid link");
+        return;
+      }
     }
-    
+
     if (formData.website_url !== data.website_url) {
-      updateData.website_url = formData.website_url || null;
+      updateData.website_url = formData.website_url ? normalizeLink(String(formData.website_url)) : null;
       oldData.website_url = data.website_url;
     }
     if (formData.required_level !== data.required_level) {
@@ -152,15 +176,18 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
             onChangeText={(text) => setFormData({ ...formData, website_url: text })}
             placeholder="https://"
             autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            textContentType="URL"
           />
 
           {type === "event" && (
-            <Input
-              label={t("forms.registrationUrl")}
-              value={formData.registration_url}
-              onChangeText={(text) => setFormData({ ...formData, registration_url: text })}
-              placeholder="https://"
-              autoCapitalize="none"
+            <EventHostingSelector
+              value={formData.is_external ? "external" : "in_app"}
+              onChange={(v) => { setFormData({ ...formData, is_external: v === "external" }); setLinkError(undefined); }}
+              link={formData.registration_url ?? ""}
+              onChangeLink={(text) => setFormData({ ...formData, registration_url: text })}
+              linkError={linkError}
             />
           )}
 

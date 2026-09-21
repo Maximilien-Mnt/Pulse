@@ -1,4 +1,6 @@
+import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
+import { normalizeLink } from "@/utils/links";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
@@ -75,6 +77,7 @@ export default function CreatePublicEventScreen() {
     }
   }, [profile, synced]);
   const [venueAddress, setVenueAddress] = useState("");
+  const [hosting, setHosting] = useState<EventHosting>("in_app");
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [priceInput, setPriceInput] = useState("");
@@ -128,7 +131,8 @@ export default function CreatePublicEventScreen() {
         description,
         country,
         city,
-        registration_url: registrationUrl,
+        hosting,
+        registration_url: hosting === "external" ? normalizeLink(registrationUrl) : "",
         venue_address: venueAddress,
         price_cents: priceCents,
         required_level: requiredLevel,
@@ -138,7 +142,7 @@ export default function CreatePublicEventScreen() {
         age_max: undefined,
         places_total: placesTotal ? parseInt(placesTotal) : undefined,
         club_id: clubId || undefined,
-        website_url: websiteUrl,
+        website_url: websiteUrl ? normalizeLink(websiteUrl) : "",
         start_date: startDate.toISOString(),
         end_date: endDate?.toISOString(),
       };
@@ -160,6 +164,7 @@ export default function CreatePublicEventScreen() {
         heroUrls.push(url);
       }
 
+      const isExternal = hosting === "external";
       // Create event
       const { data: event, error: eventErr } = await supabase
         .from("events")
@@ -171,8 +176,9 @@ export default function CreatePublicEventScreen() {
           country,
           city,
           venue_address: venueAddress || null,
-          registration_url: registrationUrl || null,
-          website_url: websiteUrl || null,
+          registration_url: isExternal ? normalizeLink(registrationUrl) : null,
+          website_url: websiteUrl ? normalizeLink(websiteUrl) : null,
+          is_external: isExternal,
           price_cents: priceCents,
           is_paid: priceCents > 0,
           required_level: requiredLevel || null,
@@ -233,7 +239,8 @@ export default function CreatePublicEventScreen() {
     },
   });
 
-  const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && name.trim().length > 0 && sport.length > 0 && description.length >= 50 && !!country && !!city;
+  const hostingLinkError = errors.registration_url;
+  const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && name.trim().length > 0 && sport.length > 0 && description.length >= 50 && !!country && !!city && (hosting === "in_app" || registrationUrl.trim().length > 0);
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -397,12 +404,13 @@ export default function CreatePublicEventScreen() {
           )}
           <Input label={t("create.event.city")} value={city} onChangeText={setCity} error={errors.city} />
           <Input label={t("create.event.venueAddress")} value={venueAddress} onChangeText={setVenueAddress} />
-          <Input
-            label={t("create.event.registrationUrl")}
-            value={registrationUrl}
-            onChangeText={setRegistrationUrl}
-            placeholder="https://"
-            autoCapitalize="none"
+          <EventHostingSelector
+            value={hosting}
+            onChange={setHosting}
+            link={registrationUrl}
+            onChangeLink={setRegistrationUrl}
+            linkError={hostingLinkError}
+            disabled={createMut.isPending}
           />
           <Input
             label={t("create.event.websiteUrl")}
@@ -410,6 +418,10 @@ export default function CreatePublicEventScreen() {
             onChangeText={setWebsiteUrl}
             placeholder="https://"
             autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            textContentType="URL"
+            error={errors.website_url}
           />
 
           <Input

@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/ui/Avatar";
+import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +9,7 @@ import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPrivateSchema } from "@/utils/validation";
+import { normalizeLink } from "@/utils/links";
 import { localizeError } from "@/utils/localizeError";
 import { Icon } from "@/components/ui/Icon";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -48,6 +50,9 @@ export default function CreatePrivateEventScreen() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
   const [searchQ, setSearchQ] = useState("");
+  const [hosting, setHosting] = useState<EventHosting>("in_app");
+  const [externalLink, setExternalLink] = useState("");
+  const [linkError, setLinkError] = useState<string | undefined>(undefined);
   const [invitees, setInvitees] = useState<string[]>([]);
   const [searchHits, setSearchHits] = useState<
     { id: string; username: string; full_name: string; avatar_url: string | null }[]
@@ -99,12 +104,18 @@ export default function CreatePrivateEventScreen() {
         start_date: startDate.toISOString(),
         end_date: endDate?.toISOString(),
         invitees,
+        hosting,
+        registration_url: hosting === "external" ? normalizeLink(externalLink) : "",
       };
 
       const validation = eventPrivateSchema.safeParse(data);
       if (!validation.success) {
-        throw new Error(localizeError(validation.error.errors[0]?.message) ?? "Validation error");
+        const first = validation.error.errors[0];
+        if (first?.path[0] === "registration_url") setLinkError(localizeError(first.message) ?? first.message);
+        throw new Error(localizeError(first?.message) ?? "Validation error");
       }
+      setLinkError(undefined);
+      const isExternal = hosting === "external";
 
       // Create event
       const { data: event, error: eventErr } = await supabase
@@ -114,6 +125,8 @@ export default function CreatePrivateEventScreen() {
           sport,
           description: description.trim() || '',
           venue_address: venue || null,
+          registration_url: isExternal ? normalizeLink(externalLink) : null,
+          is_external: isExternal,
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
           is_private: true,
@@ -159,7 +172,7 @@ export default function CreatePrivateEventScreen() {
     },
   });
 
-  const isValid = identity.isValid && !!profile && name.trim().length > 0 && sport.length > 0;
+  const isValid = identity.isValid && !!profile && name.trim().length > 0 && sport.length > 0 && (hosting === "in_app" || externalLink.trim().length > 0);
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -284,6 +297,15 @@ export default function CreatePrivateEventScreen() {
             onChangeText={setDescription}
             multiline
             placeholder="Description optionnelle..."
+          />
+
+          <EventHostingSelector
+            value={hosting}
+            onChange={setHosting}
+            link={externalLink}
+            onChangeLink={(v) => { setExternalLink(v); setLinkError(undefined); }}
+            linkError={linkError}
+            disabled={createMut.isPending}
           />
         </Card>
 

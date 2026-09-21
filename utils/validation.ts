@@ -1,5 +1,13 @@
 import { z } from "zod";
+import { isValidLink } from "@/utils/links";
 import { isUnderageFromISO, isValidBirthDateISO, toBirthDateISO } from "@/utils/signupDate";
+
+export const linkSchema = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || isValidLink(v), "validation.invalidUrl");
+
+export const hostingSchema = z.enum(["in_app", "external"]);
 
 export const emailSchema = z.string().email("validation.invalidEmail");
 
@@ -211,6 +219,12 @@ export const eventPrivateSchema = z.object({
   venue: z.string().optional(),
   club_id: z.string().optional(),
   invitees: z.array(z.string()).default([]),
+  hosting: hostingSchema.default("in_app"),
+  registration_url: linkSchema.optional().or(z.literal("")),
+}).superRefine((d, ctx) => {
+  if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
+  }
 }).refine((d) => {
   if (!d.end_date) return true;
   return new Date(d.end_date) > new Date(d.start_date);
@@ -227,7 +241,8 @@ export const eventPublicSchema = z.object({
   description: z.string().min(50, "validation.descriptionMin"),
   country: z.string().min(1, "validation.countryRequired"),
   city: z.string().min(1, "validation.cityRequired"),
-  registration_url: z.string().optional().or(z.literal("")),
+  hosting: hostingSchema.default("in_app"),
+  registration_url: linkSchema.optional().or(z.literal("")),
   venue_address: z.string().optional(),
   price_cents: z.number().min(0).optional(),
   required_level: z.string().optional(),
@@ -237,9 +252,13 @@ export const eventPublicSchema = z.object({
   age_max: z.number().optional(),
   places_total: z.number().optional(),
   club_id: z.string().optional(),
-  website_url: z.string().optional().or(z.literal("")),
+  website_url: linkSchema.optional().or(z.literal("")),
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
+}).superRefine((d, ctx) => {
+  if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
+  }
 }).refine((d) => {
   if (!d.end_date) return true;
   return new Date(d.end_date) > new Date(d.start_date);

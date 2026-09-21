@@ -10,19 +10,15 @@ import { t } from '@/hooks/useTranslation';
 interface ClubActionHeaderProps {
   clubId: string;
   isCreator: boolean;
+  /** Optional right-side actions (round icons / rounded pill). Overrides the default creator settings icon. */
+  right?: React.ReactNode;
 }
 
 /** Top header: back button, title, and settings (for creators). */
-export function ClubActionHeader({ clubId, isCreator }: ClubActionHeaderProps) {
+export function ClubActionHeader({ clubId, isCreator, right }: ClubActionHeaderProps) {
   const router = useRouter();
 
-  return (
-    <View className='flex-row items-center gap-2 px-4 py-2 border-b border-neutral-100 dark:border-neutral-800'>
-      <BackButton useInAppSession fallbackRoute='/(tabs)/profile' />
-      <PulseText variant='h2' className='flex-1' numberOfLines={1}>
-        {t('clubs.public')}
-      </PulseText>
-      {isCreator ? (
+  const fallback = isCreator ? (
         <PressableScale
           onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
           hitSlop={8}
@@ -34,7 +30,15 @@ export function ClubActionHeader({ clubId, isCreator }: ClubActionHeaderProps) {
         >
           <Icon name='Settings' size={22} color='primary' />
         </PressableScale>
-      ) : null}
+      ) : null;
+
+  return (
+    <View className='flex-row items-center gap-2 px-4 py-2 border-b border-neutral-100 dark:border-neutral-800'>
+      <BackButton useInAppSession fallbackRoute='/(tabs)/profile' />
+      <PulseText variant='h2' className='flex-1' numberOfLines={1}>
+        {t('clubs.public')}
+      </PulseText>
+      {right ?? fallback}
     </View>
   );
 }

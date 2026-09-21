@@ -10,7 +10,7 @@ import { queryClient } from '@/lib/queryClient';
 import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
-import { ClubBottomBar } from '@/components/clubs/public/ClubBottomBar';
+import { ClubTopActions, ClubTopIconButton, ClubTopPillButton } from '@/components/clubs/public/ClubTopActions';
 import { Button } from '@/components/ui/Button';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -279,23 +279,30 @@ export default function ClubDashboardScreen() {
     <SafeScreen className='flex-1 bg-neutral-50 dark:bg-[#0A0F1C]' edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header — dashboard has no like/share, only settings */}
-      <View className='flex-row items-center gap-3 px-3 py-2'>
+      {/* Header — view / edit / delete as round icons + rounded pill, near the top */}
+      <View className='flex-row items-center gap-2 px-4 py-2 border-b border-neutral-100 dark:border-neutral-800'>
         <BackButton useInAppSession />
-        <PulseText variant='h2' className='flex-1 text-center' numberOfLines={1}>
+        <PulseText variant='h2' className='flex-1' numberOfLines={1}>
           {t('clubs.dashboard.title')}
         </PulseText>
-        <PressableScale
-          onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
-          hitSlop={8}
-          scaleOnPress={0.9}
-          scaleOnHover={1.08}
-          accessibilityRole='button'
-          accessibilityLabel={t('clubs.edit')}
-          className='w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20'
-        >
-          <Icon name='Settings' size={22} color='primary' />
-        </PressableScale>
+        <ClubTopActions>
+          <ClubTopIconButton
+            icon='Eye'
+            label={t('clubs.dashboard.viewPublic')}
+            onPress={() => router.push(`/(tabs)/clubs/${clubId}?public=1`)}
+          />
+          <ClubTopPillButton
+            label={t('clubs.dashboard.editClub')}
+            icon='Pen'
+            onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
+          />
+          <ClubTopIconButton
+            icon='Trash2'
+            label={t('clubs.dashboard.deleteClub')}
+            tone='danger'
+            onPress={() => setShowDelete(true)}
+          />
+        </ClubTopActions>
       </View>
 
       <ScrollView
@@ -721,36 +728,9 @@ export default function ClubDashboardScreen() {
           </View>
         </View>
 
-        {/* Spacer so the last section clears the sticky bottom bar */}
+        {/* Last section needs no bottom-bar clearance anymore (actions live in the header) */}
         <View className='h-3' />
       </ScrollView>
-      {/* ---- Sticky bottom action bar: view / edit / delete with clear hierarchy ---- */}
-      <ClubBottomBar>
-        <Button
-          title={t('clubs.dashboard.viewPublic')}
-          icon='Eye'
-          variant='secondary'
-          onPress={() => router.push(`/(tabs)/clubs/${clubId}?public=1`)}
-          className='flex-1'
-        />
-        <Button
-          title={t('clubs.dashboard.editClub')}
-          icon='Pen'
-          variant='primary'
-          onPress={() => router.push(`/(tabs)/clubs/${clubId}/settings`)}
-          className='flex-[1.4]'
-        />
-        <PressableScale
-          onPress={() => setShowDelete(true)}
-          scaleOnPress={0.9}
-          accessibilityRole='button'
-          accessibilityLabel={t('clubs.dashboard.deleteClub')}
-          hitSlop={6}
-          className='w-[52px] h-[52px] rounded-2xl bg-error-600/10 dark:bg-error-dark/15 items-center justify-center active:bg-error-600/20'
-        >
-          <Icon name='Trash2' size={22} color='error-500' />
-        </PressableScale>
-      </ClubBottomBar>
 
       <DeleteClubSheet
         visible={showDelete}

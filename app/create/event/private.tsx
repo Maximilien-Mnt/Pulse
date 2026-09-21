@@ -1,11 +1,12 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
+import { EventSectionTitle, SportPicker } from "@/components/events/EventFormSections";
+import { PhotosPicker } from "@/components/events/EventFormPickers";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPrivateSchema } from "@/utils/validation";
@@ -15,6 +16,8 @@ import { Icon } from "@/components/ui/Icon";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImageToStorage } from "@/lib/imageUpload";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -54,6 +57,8 @@ export default function CreatePrivateEventScreen() {
   const [externalLink, setExternalLink] = useState("");
   const [linkError, setLinkError] = useState<string | undefined>(undefined);
   const [invitees, setInvitees] = useState<string[]>([]);
+  const [placesTotal, setPlacesTotal] = useState("");
+  const [heroUris, setHeroUris] = useState<string[]>([]);
   const [searchHits, setSearchHits] = useState<
     { id: string; username: string; full_name: string; avatar_url: string | null }[]
   >([]);
@@ -91,6 +96,13 @@ export default function CreatePrivateEventScreen() {
     return searchHits.filter((u) => invitees.includes(u.id));
   }, [searchHits, invitees]);
 
+  const pickHeroPhotos = useCallback(async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, quality: 0.8, selectionLimit: 5 - heroUris.length });
+    if (!res.canceled) setHeroUris((prev) => [...prev, ...res.assets.map((a) => a.uri)].slice(0, 5));
+  }, [heroUris.length]);
+
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
@@ -106,6 +118,8 @@ export default function CreatePrivateEventScreen() {
         invitees,
         hosting,
         registration_url: hosting === "external" ? normalizeLink(externalLink) : "",
+        places_total: placesTotal.trim() ? Number(placesTotal) : undefined,
+        hero_urls: [] as string[],
       };
 
       const validation = eventPrivateSchema.safeParse(data);
@@ -116,6 +130,17 @@ export default function CreatePrivateEventScreen() {
       }
       setLinkError(undefined);
       const isExternal = hosting === "external";
+      const placesNum = placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null;
+
+      // Upload photos first (0-5, optional)
+      const heroUrls: string[] = [];
+      for (let i = 0; i < heroUris.length; i += 1) {
+        const localUri = heroUris[i];
+        if (!localUri) continue;
+        // eslint-disable-next-line no-await-in-loop
+        const url = await uploadImageToStorage({ bucket: "events", path: `${userId}/${Date.now()}-private-${i}.jpg`, uri: localUri, upsert: true, role: "gallery" });
+        if (url) heroUrls.push(url);
+      }
 
       // Create event
       const { data: event, error: eventErr } = await supabase
@@ -132,6 +157,9 @@ export default function CreatePrivateEventScreen() {
           is_private: true,
           country: profile?.country ?? "",
           city: profile?.city ?? "",
+          hero_urls: heroUrls,
+          places_total: placesNum,
+          places_left: placesNum,
           created_by: userId,
           club_id: identity.publisherClubId,
           publisher_club_id: identity.publisherClubId,
@@ -167,65 +195,59 @@ export default function CreatePrivateEventScreen() {
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      const message =
+        err instanceof Error ? err.message : (err as { message?: string })?.message ?? t("common.unknownError");
       Toast.show({ type: "error", text1: message });
     },
   });
 
-  const isValid = identity.isValid && !!profile && name.trim().length > 0 && sport.length > 0 && (hosting === "in_app" || externalLink.trim().length > 0);
+  const isValid =
+    identity.isValid &&
+    !!profile &&
+    name.trim().length > 0 &&
+    sport.length > 0 &&
+    (hosting === "in_app" || externalLink.trim().length > 0);
+  const missing: string[] = [];
+  if (!name.trim()) missing.push(t("create.event.name"));
+  if (!sport) missing.push(t("create.event.sport"));
+  if (hosting === "external" && !externalLink.trim()) missing.push(t("create.event.externalLink"));
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Événement privé
+          {t("create.event.privateTitle")}
         </Text>
         <View className="w-11" />
       </View>
 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 100 : 100 }}
         keyboardShouldPersistTaps="handled"
+        className="px-4 pt-4"
       >
+        <Text className="text-sm text-neutral-500 mb-4">{t("create.event.privateDesc")}</Text>
         <Card className="p-4 mb-4">
-          <Text className="text-sm text-neutral-500 mb-4">
-            Crée un événement privé pour inviter tes amis.
-          </Text>
-
+          <EventSectionTitle step={1} title={t("create.event.sections.identity")} />
           <EventIdentitySelector profile={profile} clubs={identity.clubs} value={identity.publisherClubId}
             onChange={identity.setPublisherClubId} loading={identity.isPending} error={identity.isError}
             retry={() => { void identity.refetch(); }} disabled={createMut.isPending} />
+        </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={2} title={t("create.event.sections.essentials")} />
           <Input
-            label="Nom de l'événement *"
+            label={`${t("create.event.name")} *`}
             value={name}
             onChangeText={setName}
             placeholder={t("create.event.example")}
+            maxLength={80}
           />
+          <View className="mt-4" />
+          <SportPicker value={sport} onChange={setSport} />
 
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sport *
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-            {SPORTS.map((s) => (
-              <Pressable
-                key={s.id}
-                onPress={() => setSport(s.id)}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  sport === s.id ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                }`}
-              >
-                <Text
-                  className={sport === s.id ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
-                >
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Date de début *
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-2">
+            {t("create.event.startDate")} *
           </Text>
           <NativeDateField
             mode="datetime"
@@ -237,13 +259,13 @@ export default function CreatePrivateEventScreen() {
                 setEndDateError(t("events.endAfterStart"));
               }
             }}
-            title="Date de début"
+            title={t("create.event.startDate")}
             confirmLabel={t("common.ok")}
             cancelLabel={t("common.cancel")}
             renderTrigger={() => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Date de début"
+                accessibilityLabel={t("create.event.startDate")}
                 className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
               >
                 <Text className="text-neutral-900 dark:text-neutral-50">{formatEventDateTime(startDate)}</Text>
@@ -252,7 +274,7 @@ export default function CreatePrivateEventScreen() {
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Date de fin (optionnel)
+            {t("create.event.endDate")}
           </Text>
           <NativeDateField
             mode="datetime"
@@ -265,13 +287,13 @@ export default function CreatePrivateEventScreen() {
                 setEndDate(d);
               }
             }}
-            title="Date de fin"
+            title={t("create.event.endDate")}
             confirmLabel={t("common.ok")}
             cancelLabel={t("common.cancel")}
             renderTrigger={() => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Date de fin"
+                accessibilityLabel={t("create.event.endDate")}
                 className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
               >
                 <Text className="text-neutral-900 dark:text-neutral-50">
@@ -285,20 +307,24 @@ export default function CreatePrivateEventScreen() {
           ) : null}
 
           <Input
-            label="Lieu"
+            label={t("create.event.venueAddress")}
             value={venue}
             onChangeText={setVenue}
-            placeholder="Adresse ou nom du lieu..."
+            placeholder={t("create.event.venueAddress")}
           />
 
+          <View className="mt-4" />
           <Input
-            label="Description"
+            label={t("forms.description")}
             value={description}
             onChangeText={setDescription}
             multiline
-            placeholder="Description optionnelle..."
+            numberOfLines={3}
+            placeholder={t("create.event.descriptionPlaceholder")}
+            help={`${description.trim().length}/2000`}
           />
 
+          <View className="mt-4" />
           <EventHostingSelector
             value={hosting}
             onChange={setHosting}
@@ -308,15 +334,30 @@ export default function CreatePrivateEventScreen() {
             disabled={createMut.isPending}
           />
         </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={3} title={t("create.event.sections.participation")} />
+          <Input
+            label={t("create.event.totalSlots")}
+            value={placesTotal}
+            onChangeText={(v) => setPlacesTotal(v.replace(/[^0-9]/g, ""))}
+            keyboardType="numeric"
+            placeholder={t("events.unlimitedIfEmpty")}
+            help={t("create.event.placesHint")}
+          />
+        </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={4} title={t("create.event.sections.media")} />
+          <PhotosPicker uris={heroUris} onAdd={() => void pickHeroPhotos()} onRemove={(i) => setHeroUris((p) => p.filter((_, j) => j !== i))} />
+        </Card>
 
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Inviter des participants</Text>
+          <EventSectionTitle step={5} title={t("create.event.sections.invitees")} hint={t("create.event.inviteHint")} />
           <Input
-            label="Rechercher par @username"
+            label={t("create.event.inviteSearch")}
             value={searchQ}
-            onChangeText={(t) => {
-              setSearchQ(t);
-              void searchUsers(t);
+            onChangeText={(v) => {
+              setSearchQ(v);
+              void searchUsers(v);
             }}
             autoCapitalize="none"
             placeholder="@username"
@@ -368,12 +409,22 @@ export default function CreatePrivateEventScreen() {
           )}
         </Card>
 
+        {!isValid && missing.length > 0 && (
+          <View className="mt-1 mb-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
+            <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+              {t("create.event.missingFields")}
+            </Text>
+            {missing.map((m) => (
+              <Text key={m} className="text-xs text-neutral-700 dark:text-neutral-300">• {m}</Text>
+            ))}
+          </View>
+        )}
         <Button
-          title={t("create.event.submit")}
+          title={t("create.event.publishPrivate")}
           onPress={() => createMut.mutate()}
           loading={createMut.isPending}
           disabled={!isValid}
-          className="mt-4"
+          className="mt-2"
         />
       </ScrollView>
     </SafeScreen>

@@ -1,13 +1,20 @@
 import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
+import {
+  EventChipRow,
+  EventDifficultyPicker,
+  EventLevelPicker,
+  EventSectionTitle,
+  SportPicker,
+} from "@/components/events/EventFormSections";
+import { CountryPicker, PhotosPicker } from "@/components/events/EventFormPickers";
 import { normalizeLink } from "@/utils/links";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
-import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
+import { EVENT_CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
@@ -18,13 +25,11 @@ import * as ImagePicker from "expo-image-picker";
 import { Icon } from "@/components/ui/Icon";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
-import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { NativeDateField } from "@/components/ui/NativeDateField";
-import Slider from "@react-native-community/slider";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { t } from "@/hooks/useTranslation";
 
@@ -84,6 +89,8 @@ export default function CreatePublicEventScreen() {
   const [requiredLevel, setRequiredLevel] = useState("");
   const [difficulty, setDifficulty] = useState(3);
   const [category, setCategory] = useState("");
+  const [ageMin, setAgeMin] = useState("");
+  const [ageMax, setAgeMax] = useState("");
   const [placesTotal, setPlacesTotal] = useState("");
   const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // +7 days
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -98,7 +105,7 @@ export default function CreatePublicEventScreen() {
     if (!p.granted) return;
     const remaining = 5 - heroUris.length;
     if (remaining <= 0) {
-      Toast.show({ type: "info", text1: "Maximum 5 photos" });
+      Toast.show({ type: "info", text1: t("create.event.maxPhotos") });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -123,7 +130,7 @@ export default function CreatePublicEventScreen() {
       if (!identity.isValid) throw new Error(t("create.event.identityError"));
       if (!clubId && !profile?.is_public_profile) throw new Error(t("create.event.activatePublicHint"));
 
-      const priceCents = Math.round((parseFloat(priceInput) || 0) * 100);
+      const priceCents = Math.round((parseFloat(priceInput.replace(",", ".")) || 0) * 100);
 
       const data = {
         name,
@@ -138,9 +145,9 @@ export default function CreatePublicEventScreen() {
         required_level: requiredLevel,
         difficulty,
         category,
-        age_min: undefined,
-        age_max: undefined,
-        places_total: placesTotal ? parseInt(placesTotal) : undefined,
+        age_min: ageMin.trim() ? Number(ageMin) : undefined,
+        age_max: ageMax.trim() ? Number(ageMax) : undefined,
+        places_total: placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : undefined,
         club_id: clubId || undefined,
         website_url: websiteUrl ? normalizeLink(websiteUrl) : "",
         start_date: startDate.toISOString(),
@@ -184,8 +191,10 @@ export default function CreatePublicEventScreen() {
           required_level: requiredLevel || null,
           difficulty,
           category: category || null,
-          places_total: placesTotal ? parseInt(placesTotal) : null,
-          places_left: placesTotal ? parseInt(placesTotal) : null,
+          age_min: ageMin.trim() ? Number(ageMin) : null,
+          age_max: ageMax.trim() ? Number(ageMax) : null,
+          places_total: placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null,
+          places_left: placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null,
           logo_url: null,
           hero_urls: heroUrls,
           start_date: startDate.toISOString(),
@@ -240,65 +249,54 @@ export default function CreatePublicEventScreen() {
   });
 
   const hostingLinkError = errors.registration_url;
-  const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && name.trim().length > 0 && sport.length > 0 && description.length >= 50 && !!country && !!city && (hosting === "in_app" || registrationUrl.trim().length > 0);
+  const missing: string[] = [];
+  if (!name.trim()) missing.push(t("create.event.name"));
+  if (!sport) missing.push(t("create.event.sport"));
+  if (description.trim().length < 50) missing.push(t("create.event.descriptionMin"));
+  if (!country) missing.push(t("create.event.country"));
+  if (!city.trim()) missing.push(t("create.event.city"));
+  if (hosting === "external" && !registrationUrl.trim()) missing.push(t("create.event.externalLink"));
+  const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && missing.length === 0;
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
         <BackButton />
         <Text className="flex-1 text-lg font-bold text-center text-neutral-900 dark:text-neutral-50">
-          Événement public
+          {t("create.event.publicTitle")}
         </Text>
         <View className="w-11" />
       </View>
 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 20 }}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 100 : 100 }}
         keyboardShouldPersistTaps="handled"
+        className="px-4 pt-4"
       >
+        <Text className="text-sm text-neutral-500 mb-4">{t("create.event.publicDesc")}</Text>
         <Card className="p-4 mb-4">
-          <Text className="text-sm text-neutral-500 mb-4">
-            {t("create.event.publicIdentityHint")}
-          </Text>
-
+          <EventSectionTitle step={1} title={t("create.event.sections.identity")} hint={t("create.event.publicIdentityHint")} />
           <EventIdentitySelector profile={profile} clubs={identity.clubs} value={identity.publisherClubId}
             onChange={identity.setPublisherClubId} loading={identity.isPending} error={identity.isError}
             retry={() => { void identity.refetch(); }} disabled={createMut.isPending} />
           {!clubId && profile && !profile.is_public_profile && (
             <Text className="text-error mb-3">{t("create.event.activatePublicHint")}</Text>
           )}
+        </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={2} title={t("create.event.sections.essentials")} />
           <Input
-            label="Nom de l'événement *"
+            label={`${t("create.event.name")} *`}
             value={name}
             onChangeText={setName}
             error={errors.name}
             placeholder={t("create.event.example")}
+            maxLength={80}
           />
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Sport *
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-            {SPORTS.map((s) => (
-              <Pressable
-                key={s.id}
-                onPress={() => setSport(s.id)}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  sport === s.id ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                }`}
-              >
-                <Text
-                  className={sport === s.id ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
-                >
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-          {errors.sport && <Text className="text-error text-sm mb-2">{errors.sport}</Text>}
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-4">
-            Date de début *
+          <View className="mt-4" />
+          <SportPicker value={sport} onChange={setSport} error={errors.sport} />
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-2">
+            {t("create.event.startDate")} *
           </Text>
           <NativeDateField
             mode="datetime"
@@ -310,13 +308,13 @@ export default function CreatePublicEventScreen() {
                 setEndDateError(t("events.endAfterStart"));
               }
             }}
-            title="Date de début"
+            title={t("create.event.startDate")}
             confirmLabel={t("common.ok")}
             cancelLabel={t("common.cancel")}
             renderTrigger={() => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Date de début"
+                accessibilityLabel={t("create.event.startDate")}
                 className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
               >
                 <Text className="text-neutral-900 dark:text-neutral-50">{formatEventDateTime(startDate)}</Text>
@@ -325,7 +323,7 @@ export default function CreatePublicEventScreen() {
           />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Date de fin
+            {t("create.event.endDate")}
           </Text>
           <NativeDateField
             mode="datetime"
@@ -338,13 +336,13 @@ export default function CreatePublicEventScreen() {
                 setEndDate(d);
               }
             }}
-            title="Date de fin"
+            title={t("create.event.endDate")}
             confirmLabel={t("common.ok")}
             cancelLabel={t("common.cancel")}
             renderTrigger={() => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Date de fin"
+                accessibilityLabel={t("create.event.endDate")}
                 className="border border-neutral-300 dark:border-neutral-700 rounded-xl px-4 py-3 mb-4"
               >
                 <Text className="text-neutral-900 dark:text-neutral-50">
@@ -358,52 +356,29 @@ export default function CreatePublicEventScreen() {
           ) : null}
 
           <Input
-            label={t("create.event.description")}
+            label={`${t("forms.description")} *`}
             value={description}
             onChangeText={setDescription}
             multiline
+            numberOfLines={4}
             error={errors.description}
             placeholder={t("create.event.descriptionPlaceholder")}
           />
-          <Text className="text-xs text-neutral-500">
-            {description.length < 50
-              ? `Encore ${50 - description.length} caractères requis`
-              : "Longueur minimale atteinte"}
+          <Text className="text-xs text-neutral-500 mt-1">
+            {description.trim().length < 50
+              ? `${t("create.event.descriptionMin")} (${description.trim().length}/50)`
+              : `${description.trim().length} ✓`}
           </Text>
-
-          <View className="flex-row gap-3 mt-4">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Pays *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {COMMON_COUNTRIES.map((c) => (
-                  <Pressable
-                    key={c.code}
-                    onPress={() => setCountry(c.code)}
-                    className={`px-3 py-2 rounded-full mr-2 ${
-                      country === c.code ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                    }`}
-                  >
-                    <Text
-                      className={
-                        country === c.code
-                          ? "text-white font-medium text-sm"
-                          : "text-neutral-700 dark:text-neutral-200 text-sm"
-                      }
-                    >
-                      {countryFlag(c.code)} {c.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              {!country && <Text className="text-error text-xs mt-1">{t("create.event.countryPlaceholder")}</Text>}
-            </View>
-          </View>
-
-          {(errors.country || !country) && (
-            <Text className="text-error text-xs mt-1 mb-2">{errors.country || t("create.event.countryRequired")}</Text>
-          )}
-          <Input label={t("create.event.city")} value={city} onChangeText={setCity} error={errors.city} />
-          <Input label={t("create.event.venueAddress")} value={venueAddress} onChangeText={setVenueAddress} />
+        </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={3} title={t("create.event.sections.location")} />
+          <CountryPicker value={country} onChange={setCountry} error={errors.country} />
+          <Input label={`${t("create.event.city")} *`} value={city} onChangeText={setCity} error={errors.city} placeholder={t("create.event.city")} />
+          <View className="mt-4" />
+          <Input label={t("create.event.venueAddress")} value={venueAddress} onChangeText={setVenueAddress} placeholder={t("create.event.venueAddress")} />
+        </Card>
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={4} title={t("create.event.sections.participation")} />
           <EventHostingSelector
             value={hosting}
             onChange={setHosting}
@@ -424,108 +399,64 @@ export default function CreatePublicEventScreen() {
             error={errors.website_url}
           />
 
+          <View className="mt-4" />
           <Input
-            label={t("create.event.priceCents")}
+            label={t("create.event.price")}
             value={priceInput}
-            onChangeText={setPriceInput}
+            onChangeText={(v) => setPriceInput(v.replace(/[^0-9.,]/g, ""))}
             keyboardType="decimal-pad"
             placeholder="0"
+            help={t("create.event.priceHint")}
           />
-
-          <Input label={t("create.event.requiredLevel")} value={requiredLevel} onChangeText={setRequiredLevel} />
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            {t("create.event.difficulty", { difficulty })}
-          </Text>
-          <View className="flex-row items-center gap-3 mb-4">
-            <Slider
-              style={{ flex: 1, height: 40 }}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={difficulty}
-              onValueChange={(v) => setDifficulty(Math.round(v))}
-              minimumTrackTintColor="#1E6BFF"
-              maximumTrackTintColor="#CBD5E1"
-            />
-            <Text className="w-8 text-right text-neutral-900 dark:text-neutral-50">{difficulty}</Text>
-          </View>
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            {t("create.event.category")}
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-            {EVENT_CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat}
-                onPress={() => setCategory(category === cat ? "" : cat)}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  category === cat ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                }`}
-              >
-                <Text
-                  className={category === cat ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
-                >
-                  {cat}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
+          <View className="mt-4" />
           <Input
             label={t("create.event.totalSlots")}
             value={placesTotal}
-            onChangeText={setPlacesTotal}
+            onChangeText={(v) => setPlacesTotal(v.replace(/[^0-9]/g, ""))}
             keyboardType="numeric"
             placeholder={t("events.unlimitedIfEmpty")}
+            help={t("create.event.placesHint")}
           />
-
-          {!isValid && (
-            <View className="mt-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
-              <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
-                Champs requis manquants :
-              </Text>
-              <Text className="text-xs text-neutral-700 dark:text-neutral-300">
-                {name.trim().length === 0 && "• Nom de l'événement\n"}
-                {sport.length === 0 && "• Sport\n"}
-                {description.length < 50 && `• ${t("create.event.descriptionMin")}\n`}
-                {!country && "• Pays\n"}
-                {!city && "• Ville"}
-              </Text>
-            </View>
-          )}
         </Card>
-
         <Card className="p-4 mb-4">
-          <Text className="text-lg font-semibold mb-3">Photos</Text>
-
-          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            Photos ({heroUris.length}/5)
-          </Text>
-          <Button title="Ajouter des photos" variant="secondary" onPress={pickHeroPhotos} />
-          {heroUris.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
-              {heroUris.map((uri, i) => (
-                <View key={uri} className="mr-2 relative">
-                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-                  <Pressable
-                    onPress={() => removeHero(i)}
-                    className="absolute -top-2 -right-2 bg-error rounded-full p-1"
-                  >
-                    <Icon name="X" size={12} color="white" />
-                  </Pressable>
-                </View>
-              ))}
-            </ScrollView>
-          )}
+          <EventSectionTitle step={5} title={t("create.event.sections.details")} />
+          <EventChipRow
+            label={t("create.event.category")}
+            options={EVENT_CATEGORIES}
+            value={category}
+            onChange={setCategory}
+          />
+          <EventLevelPicker sport={sport} value={requiredLevel} onChange={setRequiredLevel} />
+          <EventDifficultyPicker value={difficulty} onChange={setDifficulty} />
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Input label={t("create.event.ageMin")} value={ageMin} onChangeText={(v) => setAgeMin(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="—" />
+            </View>
+            <View className="flex-1">
+              <Input label={t("create.event.ageMax")} value={ageMax} onChangeText={(v) => setAgeMax(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="—" error={errors.age_max} />
+          </View>
+          </View>
         </Card>
-
+        <Card className="p-4 mb-4">
+          <EventSectionTitle step={6} title={t("create.event.sections.media")} />
+          <PhotosPicker uris={heroUris} onAdd={() => void pickHeroPhotos()} onRemove={(i) => removeHero(i)} />
+        </Card>
+        {!isValid && missing.length > 0 && (
+          <View className="mt-1 mb-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">
+            <Text className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+              {t("create.event.missingFields")}
+            </Text>
+            {missing.map((m) => (
+              <Text key={m} className="text-xs text-neutral-700 dark:text-neutral-300">• {m}</Text>
+            ))}
+          </View>
+        )}
         <Button
-          title="Publier l'événement"
+          title={t("create.event.publishPublic")}
           onPress={() => createMut.mutate()}
           loading={createMut.isPending}
           disabled={!isValid}
-          className="mt-4"
+          className="mt-2"
         />
       </ScrollView>
     </SafeScreen>

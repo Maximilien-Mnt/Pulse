@@ -211,16 +211,18 @@ export const clubPublicSchema = z.object({
 
 // Event creation schemas
 export const eventPrivateSchema = z.object({
-  name: z.string().min(1, "validation.nameRequired"),
+  name: z.string().min(1, "validation.nameRequired").max(80),
   sport: z.string().min(1, "validation.sportRequired"),
   start_date: z.string().datetime({ message: "validation.startDateRequired" }),
   end_date: z.string().datetime().optional(),
-  description: z.string().optional(),
-  venue: z.string().optional(),
+  description: z.string().max(2000).optional(),
+  venue: z.string().max(300).optional(),
   club_id: z.string().optional(),
   invitees: z.array(z.string()).default([]),
   hosting: hostingSchema.default("in_app"),
   registration_url: linkSchema.optional().or(z.literal("")),
+  places_total: z.number().int().positive().optional(),
+  hero_urls: z.array(z.string()).max(5).default([]),
 }).superRefine((d, ctx) => {
   if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
@@ -248,9 +250,9 @@ export const eventPublicSchema = z.object({
   required_level: z.string().optional(),
   difficulty: z.number().min(1).max(5).optional(),
   category: z.string().optional(),
-  age_min: z.number().optional(),
-  age_max: z.number().optional(),
-  places_total: z.number().optional(),
+  age_min: z.number().int().min(0).max(99).optional(),
+  age_max: z.number().int().min(0).max(99).optional(),
+  places_total: z.number().int().positive().optional(),
   club_id: z.string().optional(),
   website_url: linkSchema.optional().or(z.literal("")),
   logo_url: z.string().optional(),
@@ -258,6 +260,9 @@ export const eventPublicSchema = z.object({
 }).superRefine((d, ctx) => {
   if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
+  }
+  if (d.age_min != null && d.age_max != null && d.age_min > d.age_max) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.ageRangeInvalid", path: ["age_max"] });
   }
 }).refine((d) => {
   if (!d.end_date) return true;

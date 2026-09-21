@@ -458,7 +458,11 @@ export default function EventDetailScreen() {
             value={event.venue_address ?? `${event.city}, ${getCountryDisplay(event.country)}`}
           />
           <InfoRow icon="Users" label="Places" value={placesLabel} />
-          {event.required_level ? <InfoRow icon="Shield" label="Niveau requis" value={event.required_level} /> : null}
+          {event.required_level ? <InfoRow icon="Shield" label={t("events.requiredLevel")} value={event.required_level} /> : null}
+          {event.category ? <InfoRow icon="Tag" label={t("events.category")} value={event.category} /> : null}
+          {event.difficulty ? <InfoRow icon="Star" label={t("events.difficulty")} value={`${event.difficulty}/5`} /> : null}
+          {event.website_url ? <InfoRow icon="Globe" label={t("forms.website")} value={event.website_url} /> : null}
+          {event.is_external && event.registration_url ? <InfoRow icon="ExternalLink" label={t("create.event.registrationUrl")} value={event.registration_url} /> : null}
           {(event.age_min != null || event.age_max != null) && (
             <InfoRow
               icon="Users"

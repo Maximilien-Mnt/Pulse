@@ -10,9 +10,15 @@ type EventUpdateData = {
   description?: string;
   short_description?: string;
   venue_address?: string | null;
+  postal_code?: string | null;
   website_url?: string | null;
   registration_url?: string | null;
+  contact_email?: string | null;
+  league?: string | null;
+  cover_url?: string | null;
   required_level?: string | null;
+  required_levels?: Record<string, string> | null;
+  sports?: string[];
   start_date?: string;
   end_date?: string | null;
   price_cents?: number;
@@ -59,9 +65,14 @@ export function useUpdateEvent() {
       const fieldLabels: Record<string, string> = {
         name: t("updateEvent.nameLabel"),
         description: t("updateEvent.descriptionLabel"),
+        short_description: t("create.event.shortDescription"),
         venue_address: t("updateEvent.venueLabel"),
+        postal_code: t("create.event.postalCode"),
         website_url: t("updateEvent.websiteLabel"),
         registration_url: t("updateEvent.registrationUrlLabel"),
+        contact_email: t("create.event.contactEmailShort"),
+        league: t("forms.league"),
+        cover_url: t("create.event.coverImage"),
         required_level: t("updateEvent.requiredLevelLabel"),
         start_date: t("updateEvent.dateLabel"),
         end_date: t("updateEvent.endDateLabel"),

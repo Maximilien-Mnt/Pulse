@@ -1,8 +1,14 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
-import { EventSectionTitle, SportPicker } from "@/components/events/EventFormSections";
-import { PhotosPicker } from "@/components/events/EventFormPickers";
+import {
+  EventDescriptionsFields,
+  EventLevelsPerSport,
+  EventSectionTitle,
+  SportPicker,
+} from "@/components/events/EventFormSections";
+import { CoverPicker, PhotosPicker } from "@/components/events/EventFormPickers";
+import { MAX_EVENT_PHOTOS, uploadEventCover, uploadEventPhoto } from "@/lib/eventMedia";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -17,7 +23,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { uploadImageToStorage } from "@/lib/imageUpload";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -46,22 +51,32 @@ export default function CreatePrivateEventScreen() {
   const identity = useEventPublishingIdentity(userId, initialClubId);
 
   const [name, setName] = useState("");
-  const [sport, setSport] = useState("");
+  // Multi-sport: `sports[0]` is the primary sport stored in the `sport` column.
+  const [sports, setSports] = useState<string[]>([]);
+  const [requiredLevels, setRequiredLevels] = useState<Record<string, string>>({});
+  const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
   const [venue, setVenue] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [hosting, setHosting] = useState<EventHosting>("in_app");
-  const [externalLink, setExternalLink] = useState("");
+  const [registrationLink, setRegistrationLink] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [league, setLeague] = useState("");
   const [linkError, setLinkError] = useState<string | undefined>(undefined);
   const [invitees, setInvitees] = useState<string[]>([]);
   const [placesTotal, setPlacesTotal] = useState("");
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [searchHits, setSearchHits] = useState<
     { id: string; username: string; full_name: string; avatar_url: string | null }[]
   >([]);
+
+  const primarySport = sports[0] ?? "";
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -96,28 +111,66 @@ export default function CreatePrivateEventScreen() {
     return searchHits.filter((u) => invitees.includes(u.id));
   }, [searchHits, invitees]);
 
+  const pickCover = useCallback(async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const uri = res.canceled ? null : res.assets[0]?.uri;
+    if (uri) setCoverUri(uri);
+  }, []);
+
   const pickHeroPhotos = useCallback(async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, quality: 0.8, selectionLimit: 5 - heroUris.length });
-    if (!res.canceled) setHeroUris((prev) => [...prev, ...res.assets.map((a) => a.uri)].slice(0, 5));
+    const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, quality: 0.8, selectionLimit: MAX_EVENT_PHOTOS - heroUris.length });
+    if (!res.canceled) setHeroUris((prev) => [...prev, ...res.assets.map((a) => a.uri)].slice(0, MAX_EVENT_PHOTOS));
   }, [heroUris.length]);
+
+  /** Replace one photo in place (before upload, so there is nothing to delete). */
+  const replaceHero = useCallback(async (index: number) => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const uri = res.canceled ? null : res.assets[0]?.uri;
+    if (!uri) return;
+    setHeroUris((prev) => prev.map((u, i) => (i === index ? uri : u)));
+  }, []);
 
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
       if (!identity.isValid) throw new Error(t("create.event.identityError"));
 
+      // Only keep levels for the sports that are still selected.
+      const levelMap = Object.fromEntries(
+        Object.entries(requiredLevels).filter(([id, level]) => !!level && sports.includes(id))
+      );
+
       const data = {
         name,
-        sport,
+        sport: primarySport,
+        sports,
+        required_levels: levelMap,
+        short_description: shortDescription,
         description,
         venue,
+        postal_code: postalCode,
+        contact_email: contactEmail,
+        league,
+        website_url: websiteUrl,
         start_date: startDate.toISOString(),
         end_date: endDate?.toISOString(),
         invitees,
         hosting,
-        registration_url: hosting === "external" ? normalizeLink(externalLink) : "",
+        registration_url: normalizeLink(registrationLink),
         places_total: placesTotal.trim() ? Number(placesTotal) : undefined,
         hero_urls: [] as string[],
       };
@@ -132,13 +185,13 @@ export default function CreatePrivateEventScreen() {
       const isExternal = hosting === "external";
       const placesNum = placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null;
 
-      // Upload photos first (0-5, optional)
+      // Upload the optional cover, then the optional photos (0-5)
+      const coverUrl = coverUri ? await uploadEventCover(userId, coverUri) : null;
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i += 1) {
         const localUri = heroUris[i];
         if (!localUri) continue;
-        // eslint-disable-next-line no-await-in-loop
-        const url = await uploadImageToStorage({ bucket: "events", path: `${userId}/${Date.now()}-private-${i}.jpg`, uri: localUri, upsert: true, role: "gallery" });
+        const url = await uploadEventPhoto(userId, localUri, i);
         if (url) heroUrls.push(url);
       }
 
@@ -147,10 +200,18 @@ export default function CreatePrivateEventScreen() {
         .from("events")
         .insert({
           name: name.trim(),
-          sport,
+          sport: primarySport,
+          sports,
+          required_levels: levelMap,
+          required_level: levelMap[primarySport] ?? null,
+          short_description: shortDescription.trim(),
           description: description.trim() || '',
           venue_address: venue || null,
-          registration_url: isExternal ? normalizeLink(externalLink) : null,
+          postal_code: postalCode.trim() || null,
+          contact_email: contactEmail.trim() || null,
+          league: league.trim() || null,
+          cover_url: coverUrl,
+          registration_url: normalizeLink(registrationLink),
           is_external: isExternal,
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
@@ -205,12 +266,14 @@ export default function CreatePrivateEventScreen() {
     identity.isValid &&
     !!profile &&
     name.trim().length > 0 &&
-    sport.length > 0 &&
-    (hosting === "in_app" || externalLink.trim().length > 0);
+    sports.length > 0 &&
+    shortDescription.trim().length > 0 &&
+    registrationLink.trim().length > 0;
   const missing: string[] = [];
   if (!name.trim()) missing.push(t("create.event.name"));
-  if (!sport) missing.push(t("create.event.sport"));
-  if (hosting === "external" && !externalLink.trim()) missing.push(t("create.event.externalLink"));
+  if (sports.length === 0) missing.push(t("create.event.sports"));
+  if (!shortDescription.trim()) missing.push(t("create.event.shortDescription"));
+  if (!registrationLink.trim()) missing.push(t("create.event.registrationLink"));
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
@@ -244,7 +307,8 @@ export default function CreatePrivateEventScreen() {
             maxLength={80}
           />
           <View className="mt-4" />
-          <SportPicker value={sport} onChange={setSport} />
+          <SportPicker value={sports} onChange={setSports} />
+          <EventLevelsPerSport sports={sports} values={requiredLevels} onChange={setRequiredLevels} />
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-2">
             {t("create.event.startDate")} *
@@ -306,36 +370,73 @@ export default function CreatePrivateEventScreen() {
             <Text className="text-error text-sm mb-4">{endDateError}</Text>
           ) : null}
 
+          <EventDescriptionsFields
+            shortDescription={shortDescription}
+            onChangeShort={setShortDescription}
+            description={description}
+            onChangeDescription={setDescription}
+          />
+
+          <View className="mt-4" />
           <Input
-            label={t("create.event.venueAddress")}
+            label={t("create.event.exactAddress")}
             value={venue}
             onChangeText={setVenue}
-            placeholder={t("create.event.venueAddress")}
+            placeholder={t("create.event.exactAddressPlaceholder")}
+            testID="event-exact-address"
           />
 
           <View className="mt-4" />
           <Input
-            label={t("forms.description")}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-            placeholder={t("create.event.descriptionPlaceholder")}
-            help={`${description.trim().length}/2000`}
-          />
-
-          <View className="mt-4" />
-          <EventHostingSelector
-            value={hosting}
-            onChange={setHosting}
-            link={externalLink}
-            onChangeLink={(v) => { setExternalLink(v); setLinkError(undefined); }}
-            linkError={linkError}
-            disabled={createMut.isPending}
+            label={t("create.event.postalCode")}
+            value={postalCode}
+            onChangeText={setPostalCode}
+            placeholder={t("create.event.postalCodePlaceholder")}
+            keyboardType="number-pad"
+            maxLength={20}
+            testID="event-postal-code"
           />
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={3} title={t("create.event.sections.participation")} />
+          <EventHostingSelector
+            value={hosting}
+            onChange={setHosting}
+            link={registrationLink}
+            onChangeLink={(v) => { setRegistrationLink(v); setLinkError(undefined); }}
+            linkError={linkError}
+            disabled={createMut.isPending}
+          />
+          <Input
+            label={t("create.event.websiteUrl")}
+            value={websiteUrl}
+            onChangeText={setWebsiteUrl}
+            placeholder="https://"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            textContentType="URL"
+            testID="event-website-url"
+          />
+          <View className="mt-4" />
+          <Input
+            label={t("create.event.contactEmail")}
+            value={contactEmail}
+            onChangeText={setContactEmail}
+            placeholder="contact@exemple.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            testID="event-contact-email"
+          />
+          <View className="mt-4" />
+          <Input
+            label={t("create.event.league")}
+            value={league}
+            onChangeText={setLeague}
+            placeholder={t("create.event.leaguePlaceholder")}
+            testID="event-league"
+          />
+          <View className="mt-4" />
           <Input
             label={t("create.event.totalSlots")}
             value={placesTotal}
@@ -347,7 +448,18 @@ export default function CreatePrivateEventScreen() {
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={4} title={t("create.event.sections.media")} />
-          <PhotosPicker uris={heroUris} onAdd={() => void pickHeroPhotos()} onRemove={(i) => setHeroUris((p) => p.filter((_, j) => j !== i))} />
+          <CoverPicker
+            url={coverUri}
+            onPick={() => void pickCover()}
+            onRemove={() => setCoverUri(null)}
+            disabled={createMut.isPending}
+          />
+          <PhotosPicker
+            uris={heroUris}
+            onAdd={() => void pickHeroPhotos()}
+            onChange={(i) => void replaceHero(i)}
+            onRemove={(i) => setHeroUris((p) => p.filter((_, j) => j !== i))}
+          />
         </Card>
 
         <Card className="p-4 mb-4">

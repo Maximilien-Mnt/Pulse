@@ -58,20 +58,19 @@ export function EventHostingSelector({ value, onChange, link, onChangeLink, link
         })}
       </View>
       <Text className="text-xs text-neutral-500 mt-1 mb-2">{t("create.event.hostingHint")}</Text>
-      {value === "external" && (
-        <Input
-          label={t("create.event.externalLink")}
-          value={link}
-          onChangeText={onChangeLink}
-          placeholder={t("create.event.externalLinkPlaceholder")}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          textContentType="URL"
-          error={linkError}
-          testID="event-external-link"
-        />
-      )}
+      <Input
+        label={`${t("create.event.registrationLink")} *`}
+        value={link}
+        onChangeText={onChangeLink}
+        placeholder={t("create.event.registrationLinkPlaceholder")}
+        help={t("create.event.registrationLinkHint")}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        textContentType="URL"
+        error={linkError}
+        testID="event-registration-link"
+      />
     </View>
   );
 }

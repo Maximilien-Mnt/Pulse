@@ -210,41 +210,92 @@ export const clubPublicSchema = z.object({
 });
 
 // Event creation schemas
-export const eventPrivateSchema = z.object({
-  name: z.string().min(1, "validation.nameRequired").max(80),
+
+/**
+ * Mandatory registration link — required in EVERY event creation context
+ * (in-app hosting included). `hosting` only describes where registration
+ * actually happens, it never lifts this requirement.
+ */
+export const requiredLinkSchema = z
+  .string()
+  .trim()
+  .min(1, "validation.registrationLinkRequired")
+  .refine((v) => isValidLink(v), "validation.invalidUrl");
+
+/** Optional e-mail: an empty string means "not provided". */
+export const optionalEmailSchema = z.union([z.literal(""), emailSchema]);
+
+/**
+ * Two description fields, shared by every event creation form:
+ * `short_description` is mandatory (card / lead copy), `description` is the
+ * optional long description (full detail page copy).
+ */
+export const eventDescriptionsSchema = {
+  short_description: z
+    .string()
+    .trim()
+    .min(1, "validation.shortDescriptionRequired")
+    .max(200, "validation.shortDescriptionMax"),
+  description: z.string().max(2000, "validation.longDescriptionMax").optional(),
+};
+
+/**
+ * Multi-sport events: `sports` holds every selected sport, `sport` stays the
+ * primary one (first selected) for cards, filters and search, and
+ * `required_levels` maps each selected sport to its own required level.
+ */
+export const eventSportsSchema = {
   sport: z.string().min(1, "validation.sportRequired"),
+  sports: z.array(z.string()).min(1, "validation.sportRequired"),
+  required_levels: z.record(z.string(), z.string()).optional(),
+};
+
+/** Optional logistics fields shared by both event creation contexts. */
+export const eventOptionalFieldsSchema = {
+  postal_code: z.string().trim().max(20, "validation.maxLength20").optional(),
+  contact_email: optionalEmailSchema.optional(),
+  league: z.string().trim().optional(),
+  website_url: linkSchema.optional().or(z.literal("")),
+  cover_url: z.string().optional(),
+};
+
+const endAfterStart = {
+  check: (d: { start_date: string; end_date?: string }) =>
+    !d.end_date || new Date(d.end_date) > new Date(d.start_date),
+  message: "validation.endAfterStart",
+  path: ["end_date"] as [string],
+};
+
+export const eventPrivateSchema = z.object({
+  ...eventDescriptionsSchema,
+  ...eventSportsSchema,
+  ...eventOptionalFieldsSchema,
+  name: z.string().min(1, "validation.nameRequired").max(80),
   start_date: z.string().datetime({ message: "validation.startDateRequired" }),
   end_date: z.string().datetime().optional(),
-  description: z.string().max(2000).optional(),
   venue: z.string().max(300).optional(),
   club_id: z.string().optional(),
   invitees: z.array(z.string()).default([]),
   hosting: hostingSchema.default("in_app"),
-  registration_url: linkSchema.optional().or(z.literal("")),
+  registration_url: requiredLinkSchema,
   places_total: z.number().int().positive().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
-}).superRefine((d, ctx) => {
-  if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
-  }
-}).refine((d) => {
-  if (!d.end_date) return true;
-  return new Date(d.end_date) > new Date(d.start_date);
-}, {
-  message: "validation.endAfterStart",
-  path: ["end_date"],
+}).refine(endAfterStart.check, {
+  message: endAfterStart.message,
+  path: endAfterStart.path,
 });
 
 export const eventPublicSchema = z.object({
+  ...eventDescriptionsSchema,
+  ...eventSportsSchema,
+  ...eventOptionalFieldsSchema,
   name: z.string().min(1, "validation.nameRequired"),
-  sport: z.string().min(1, "validation.sportRequired"),
   start_date: z.string().datetime({ message: "validation.startDateRequired" }),
   end_date: z.string().datetime().optional(),
-  description: z.string().min(50, "validation.descriptionMin"),
   country: z.string().min(1, "validation.countryRequired"),
   city: z.string().min(1, "validation.cityRequired"),
   hosting: hostingSchema.default("in_app"),
-  registration_url: linkSchema.optional().or(z.literal("")),
+  registration_url: requiredLinkSchema,
   venue_address: z.string().optional(),
   price_cents: z.number().min(0).optional(),
   required_level: z.string().optional(),
@@ -254,13 +305,9 @@ export const eventPublicSchema = z.object({
   age_max: z.number().int().min(0).max(99).optional(),
   places_total: z.number().int().positive().optional(),
   club_id: z.string().optional(),
-  website_url: linkSchema.optional().or(z.literal("")),
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
 }).superRefine((d, ctx) => {
-  if (d.hosting === "external" && !(d.registration_url ?? "").trim()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.externalLinkRequired", path: ["registration_url"] });
-  }
   if (d.age_min != null && d.age_max != null && d.age_min > d.age_max) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.ageRangeInvalid", path: ["age_max"] });
   }

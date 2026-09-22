@@ -307,6 +307,16 @@ export type Database = {
           website_url: string | null;
           age_min: number | null;
           age_max: number | null;
+          /** Every sport the event covers. `sport` stays the primary one. */
+          sports: string[];
+          /** Per-sport required level map: { [sportId]: level }. */
+          required_levels: Json;
+          postal_code: string | null;
+          contact_email: string | null;
+          /** League / division the event belongs to. */
+          league: string | null;
+          /** Dedicated cover image (photos live in `hero_urls`). */
+          cover_url: string | null;
         };
         Insert: {
           id?: string;
@@ -344,6 +354,12 @@ export type Database = {
           website_url?: string | null;
           age_min?: number | null;
           age_max?: number | null;
+          sports?: string[];
+          required_levels?: Json;
+          postal_code?: string | null;
+          contact_email?: string | null;
+          league?: string | null;
+          cover_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
         Relationships: [];

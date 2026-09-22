@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
+import { SPORTS } from "@/lib/constants";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import { isNetworkError } from "@/utils/isNetworkError";
 import { logQueryError } from "@/utils/logQueryError";
@@ -227,13 +228,26 @@ export default function EventDetailScreen() {
     );
   }
 
-  const hero = event.hero_urls?.[0] ?? event.logo_url;
+  const coverImage = event.cover_url ?? event.hero_urls?.[0] ?? event.logo_url;
+  // When no dedicated cover exists the first photo doubles as the cover, so the
+  // gallery only shows the remaining photos.
+  const galleryUrls = event.cover_url ? (event.hero_urls ?? []) : (event.hero_urls ?? []).slice(1);
+  const levelMap = (event.required_levels as Record<string, string> | null) ?? {};
+  const perSportLevels = (event.sports?.length ? event.sports : event.sport ? [event.sport] : [])
+    .map((id) => ({ id, label: SPORTS.find((s) => s.id === id)?.label ?? id, level: levelMap[id] }))
+    .filter((entry): entry is { id: string; label: string; level: string } => !!entry.level);
+  const placeParts = [event.venue_address, event.postal_code, event.city, getCountryDisplay(event.country)].filter(
+    (part): part is string => !!part && part.trim().length > 0
+  );
+  const placeValue = placeParts.join(", ");
   const isCreator = !!userId && event.created_by === userId;
 
-  const isExternalReg = !!event.is_external && !!event.registration_url;
+  const registrationUrl = event.registration_url?.trim() || null;
+  const shortDescription = event.short_description?.trim() || null;
+  const longDescription = event.description?.trim() || null;
 
   let actionButton: React.ReactNode = null;
-  if (isExternalReg) {
+  if (registrationUrl) {
     actionButton = (
       <Button
         title={t("events.register")}
@@ -300,12 +314,19 @@ export default function EventDetailScreen() {
           />
         }
       >
-        {/* Hero gallery */}
+        {/* Cover image + photo gallery */}
         <View className="px-4">
-          {event.hero_urls && event.hero_urls.length > 0 ? (
+          {coverImage ? (
+            <Image source={{ uri: coverImage }} className="w-full h-48 rounded-2xl mb-4" contentFit="cover" />
+          ) : (
+            <View className="w-full h-36 rounded-2xl mb-4 bg-neutral-200 dark:bg-neutral-700 items-center justify-center">
+              <Icon name="Trophy" size={32} color="text-tertiary" />
+            </View>
+          )}
+          {galleryUrls.length > 0 ? (
             <FlatList
               horizontal
-              data={event.hero_urls}
+              data={galleryUrls}
               keyExtractor={(u) => u}
               showsHorizontalScrollIndicator={false}
               className="py-2 mb-2"
@@ -313,13 +334,7 @@ export default function EventDetailScreen() {
                 <Image source={{ uri: item }} className="w-[320px] h-[200px] rounded-2xl mr-3" contentFit="cover" />
               )}
             />
-          ) : hero ? (
-            <Image source={{ uri: hero }} className="w-full h-48 rounded-2xl mb-4" contentFit="cover" />
-          ) : (
-            <View className="w-full h-36 rounded-2xl mb-4 bg-neutral-200 dark:bg-neutral-700 items-center justify-center">
-              <Icon name="Trophy" size={32} color="text-tertiary" />
-            </View>
-          )}
+          ) : null}
         </View>
 
         {/* Title + quick info */}
@@ -341,6 +356,11 @@ export default function EventDetailScreen() {
               <PulseText variant="h1" numberOfLines={2}>
                 {event.name}
               </PulseText>
+              {shortDescription ? (
+                <PulseText variant="body" numberOfLines={2} className="text-neutral-600 dark:text-neutral-300 mt-1.5">
+                  {shortDescription}
+                </PulseText>
+              ) : null}
 
               <View className="flex-row flex-wrap gap-2 mt-3 items-center">
                 <Badge>{event.sport}</Badge>
@@ -427,16 +447,18 @@ export default function EventDetailScreen() {
         ) : null}
 
         {/* Description */}
-        <View className="mx-4 mb-5">
-          <PulseText variant="overline" className="text-neutral-400 mb-2">
-            Description
-          </PulseText>
-          <View className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">
-            <PulseText variant="body" className="text-neutral-800 dark:text-neutral-100 leading-relaxed">
-              {event.description}
+        {longDescription ? (
+          <View className="mx-4 mb-5">
+            <PulseText variant="overline" className="text-neutral-400 mb-2">
+              Description
             </PulseText>
+            <View className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">
+              <PulseText variant="body" className="text-neutral-800 dark:text-neutral-100 leading-relaxed">
+                {longDescription}
+              </PulseText>
+            </View>
           </View>
-        </View>
+        ) : null}
 
         {/* Details */}
         <InfoSection title={t("common.details")} className="mx-4 mb-5">
@@ -455,14 +477,24 @@ export default function EventDetailScreen() {
           <InfoRow
             icon="MapPinned"
             label="Lieu"
-            value={event.venue_address ?? `${event.city}, ${getCountryDisplay(event.country)}`}
+            value={placeValue || `${event.city}, ${getCountryDisplay(event.country)}`}
           />
           <InfoRow icon="Users" label="Places" value={placesLabel} />
-          {event.required_level ? <InfoRow icon="Shield" label={t("events.requiredLevel")} value={event.required_level} /> : null}
+          {perSportLevels.length > 0 ? (
+            <InfoRow
+              icon="Shield"
+              label={t("events.requiredLevel")}
+              value={perSportLevels.map((entry) => `${entry.label} — ${entry.level}`).join(" · ")}
+            />
+          ) : event.required_level ? (
+            <InfoRow icon="Shield" label={t("events.requiredLevel")} value={event.required_level} />
+          ) : null}
+          {event.league ? <InfoRow icon="Trophy" label={t("forms.league")} value={event.league} /> : null}
+          {event.contact_email ? <InfoRow icon="Mail" label={t("create.event.contactEmailShort")} value={event.contact_email} /> : null}
           {event.category ? <InfoRow icon="Tag" label={t("events.category")} value={event.category} /> : null}
           {event.difficulty ? <InfoRow icon="Star" label={t("events.difficulty")} value={`${event.difficulty}/5`} /> : null}
           {event.website_url ? <InfoRow icon="Globe" label={t("forms.website")} value={event.website_url} /> : null}
-          {event.is_external && event.registration_url ? <InfoRow icon="ExternalLink" label={t("create.event.registrationUrl")} value={event.registration_url} /> : null}
+          {registrationUrl ? <InfoRow icon="ExternalLink" label={t("create.event.registrationLink")} value={registrationUrl} /> : null}
           {(event.age_min != null || event.age_max != null) && (
             <InfoRow
               icon="Users"

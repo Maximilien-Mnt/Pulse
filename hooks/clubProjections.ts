@@ -97,6 +97,9 @@ export const CLUB_EVENT_FIELDS = [
   "city",
   "start_date",
   "logo_url",
+  "cover_url",
+  "hero_urls",
+  "short_description",
   "is_external",
   "is_paid",
   "price_cents",
@@ -179,6 +182,9 @@ type RenderedEventFields =
   | "city"
   | "start_date"
   | "logo_url"
+  | "cover_url"
+  | "hero_urls"
+  | "short_description"
   | "is_external"
   | "is_paid"
   | "price_cents"

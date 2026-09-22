@@ -41,7 +41,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
       className="flex-row bg-surface dark:bg-surface-dark rounded-2xl p-3 mb-3 border border-border dark:border-border-dark"
     >
       <Image
-        source={{ uri: event.logo_url ?? "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=200" }}
+        source={{ uri: event.cover_url ?? event.logo_url ?? "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=200" }}
         style={{ width: compact ? 48 : 60, height: compact ? 48 : 60, borderRadius: 12 }}
         contentFit="cover"
       />

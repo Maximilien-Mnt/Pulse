@@ -29,7 +29,9 @@ export const EVENT_CARD_FIELDS = [
   "city",
   "start_date",
   "logo_url",
+  "cover_url",
   "hero_urls",
+  "short_description",
   "is_external",
   "is_paid",
   "price_cents",
@@ -61,7 +63,9 @@ type RenderedExploreEventFields =
   | "sport"
   | "start_date"
   | "logo_url"
+  | "cover_url"
   | "hero_urls"
+  | "short_description"
   | "difficulty"
   | "is_external"
   | "created_by";

@@ -40,6 +40,7 @@ interface EventCardProps {
     sport?: string;
     start_date: string;
     logo_url?: string | null;
+    cover_url?: string | null;
     hero_urls?: string[];
     participant_count?: number;
     difficulty?: number;
@@ -87,7 +88,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
     url: `https://pulse.app/event/${event.id}`,
   };
 
-  const coverUrl = event.hero_urls?.[0] ?? event.logo_url ?? null;
+  const coverUrl = event.cover_url ?? event.hero_urls?.[0] ?? event.logo_url ?? null;
   const participantCount = event.participant_count ?? 0;
   const sportLabel = event.sport ?? null;
   const creator = event.creator;

@@ -25,18 +25,23 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
   useEffect(() => {
     if (data) {
       const isClub = type === "club";
+      const eventRow = !isClub ? (data as EventRow) : null;
       setFormData({
         name: data.name || "",
         description: data.description || "",
-        address: isClub ? (data as Club).address || "" : (data as EventRow).venue_address || "",
-        contact_email: isClub ? (data as Club).contact_email || "" : "",
+        short_description: !isClub ? (eventRow?.short_description || "") : "",
+        address: isClub ? (data as Club).address || "" : eventRow?.venue_address || "",
+        postal_code: !isClub ? eventRow?.postal_code || "" : "",
+        contact_email: isClub ? (data as Club).contact_email || "" : eventRow?.contact_email || "",
         website_url: data.website_url || "",
-        registration_url: !isClub ? (data as EventRow).registration_url || "" : "",
-        is_external: !isClub ? !!(data as EventRow).is_external : false,
+        registration_url: !isClub ? eventRow?.registration_url || "" : "",
+        is_external: !isClub ? !!eventRow?.is_external : false,
         required_level: data.required_level || "",
-        league: isClub ? (data as Club).league || "" : "",
+        required_levels: !isClub ? ((eventRow?.required_levels as Record<string, string> | null) ?? {}) : {},
+        sports: !isClub ? (eventRow?.sports?.length ? eventRow.sports : eventRow?.sport ? [eventRow.sport] : []) : [],
+        league: isClub ? (data as Club).league || "" : eventRow?.league || "",
         founded_date: isClub ? (data as Club).founded_date || "" : "",
-        cover_url: isClub ? (data as Club).cover_url || "" : "",
+        cover_url: isClub ? (data as Club).cover_url || "" : eventRow?.cover_url || "",
         logo_url: isClub ? (data as Club).logo_url || "" : "",
       });
     }
@@ -54,8 +59,52 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
     }
     if (formData.description !== data.description) {
       updateData.description = formData.description;
-      updateData.short_description = formData.description.slice(0, 100);
       oldData.description = data.description;
+    }
+    if (type === "event") {
+      const event = data as EventRow;
+      if (formData.short_description !== (event.short_description ?? "")) {
+        updateData.short_description = formData.short_description;
+        oldData.short_description = event.short_description;
+      }
+      if ((formData.postal_code || null) !== (event.postal_code ?? null)) {
+        updateData.postal_code = formData.postal_code || null;
+        oldData.postal_code = event.postal_code;
+      }
+      if ((formData.contact_email || null) !== (event.contact_email ?? null)) {
+        updateData.contact_email = formData.contact_email || null;
+        oldData.contact_email = event.contact_email;
+      }
+      if ((formData.league || null) !== (event.league ?? null)) {
+        updateData.league = formData.league || null;
+        oldData.league = event.league;
+      }
+      if ((formData.cover_url || null) !== (event.cover_url ?? null)) {
+        updateData.cover_url = formData.cover_url || null;
+        oldData.cover_url = event.cover_url;
+      }
+      const nextSports: string[] = Array.isArray(formData.sports) ? formData.sports : [];
+      if (JSON.stringify(nextSports) !== JSON.stringify(event.sports ?? [])) {
+        updateData.sports = nextSports;
+        oldData.sports = event.sports;
+        if (nextSports.length > 0 && nextSports[0] !== event.sport) {
+          updateData.sport = nextSports[0];
+          oldData.sport = event.sport;
+        }
+      }
+      const nextLevels: Record<string, string> = formData.required_levels ?? {};
+      const trimmedLevels = Object.fromEntries(
+        Object.entries(nextLevels).filter(([id, level]) => !!level && nextSports.includes(id))
+      );
+      if (JSON.stringify(trimmedLevels) !== JSON.stringify(event.required_levels ?? {})) {
+        updateData.required_levels = trimmedLevels;
+        oldData.required_levels = event.required_levels;
+        const nextPrimary = nextSports[0] ? (trimmedLevels[nextSports[0]!] ?? null) : null;
+        if (nextPrimary !== (event.required_level ?? null)) {
+          updateData.required_level = nextPrimary;
+          oldData.required_level = event.required_level;
+        }
+      }
     }
     if (type === "club") {
       const club = data as Club;
@@ -89,23 +138,23 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
         updateData.venue_address = formData.address || null;
         oldData.venue_address = event.venue_address;
       }
-      const nextIsExternal = !!formData.is_external;
-      const nextLink = nextIsExternal ? normalizeLink(String(formData.registration_url ?? "")) : null;
-      if (nextIsExternal && !isValidLink(String(formData.registration_url ?? ""))) {
-        setLinkError(localizeError("validation.invalidUrl") ?? "Invalid link");
+      // Registration link is mandatory for events (any hosting mode).
+      const nextLink = normalizeLink(String(formData.registration_url ?? ""));
+      if (!String(formData.registration_url ?? "").trim() || !isValidLink(String(formData.registration_url ?? ""))) {
+        setLinkError(
+          !String(formData.registration_url ?? "").trim()
+            ? localizeError("validation.registrationLinkRequired") ?? "Registration link required"
+            : localizeError("validation.invalidUrl") ?? "Invalid link"
+        );
         return;
-      }
-      if (nextIsExternal && !String(formData.registration_url ?? "").trim()) {
-        setLinkError(localizeError("validation.externalLinkRequired") ?? "External link required");
-        return;
-      }
-      if (nextIsExternal !== !!event.is_external) {
-        updateData.is_external = nextIsExternal;
-        oldData.is_external = event.is_external;
       }
       if ((nextLink ?? null) !== (event.registration_url ?? null)) {
         updateData.registration_url = nextLink;
         oldData.registration_url = event.registration_url;
+      }
+      if (formData.contact_email !== (event.contact_email ?? "")) {
+        updateData.contact_email = formData.contact_email || null;
+        oldData.contact_email = event.contact_email;
       }
       if (formData.website_url && !isValidLink(String(formData.website_url))) {
         setLinkError(localizeError("validation.invalidUrl") ?? "Invalid link");
@@ -155,20 +204,68 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
           />
 
           <Input
-            label={t("forms.description")}
+            label={type === "event" ? t("create.event.longDescription") : t("forms.description")}
             value={formData.description}
             onChangeText={(text) => setFormData({ ...formData, description: text })}
             multiline
             numberOfLines={4}
-            placeholder={t("forms.description")}
+            placeholder={type === "event" ? t("create.event.longDescriptionPlaceholder") : t("forms.description")}
           />
+
+          {type === "event" && (
+            <Input
+              label={`${t("create.event.shortDescription")} *`}
+              value={formData.short_description}
+              onChangeText={(text) => setFormData({ ...formData, short_description: text })}
+              multiline
+              placeholder={t("create.event.shortDescriptionPlaceholder")}
+              maxLength={200}
+            />
+          )}
 
           <Input
             label={type === "club" ? t("forms.address") : t("forms.venueAddress")}
             value={formData.address}
             onChangeText={(text) => setFormData({ ...formData, address: text })}
-            placeholder={t("forms.address")}
+            placeholder={type === "club" ? t("forms.address") : t("create.event.exactAddressPlaceholder")}
           />
+
+          {type === "event" && (
+            <>
+              <Input
+                label={t("create.event.postalCode")}
+                value={formData.postal_code}
+                onChangeText={(text) => setFormData({ ...formData, postal_code: text })}
+                placeholder={t("create.event.postalCodePlaceholder")}
+                keyboardType="number-pad"
+                maxLength={20}
+              />
+              <Input
+                label={t("create.event.contactEmail")}
+                value={formData.contact_email}
+                onChangeText={(text) => setFormData({ ...formData, contact_email: text })}
+                placeholder="contact@exemple.com"
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <Input
+                label={t("create.event.league")}
+                value={formData.league}
+                onChangeText={(text) => setFormData({ ...formData, league: text })}
+                placeholder={t("create.event.leaguePlaceholder")}
+              />
+              <Input
+                label={t("create.event.coverImage")}
+                value={formData.cover_url}
+                onChangeText={(text) => setFormData({ ...formData, cover_url: text })}
+                placeholder="https://"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                textContentType="URL"
+              />
+            </>
+          )}
 
           <Input
             label={t("forms.website")}

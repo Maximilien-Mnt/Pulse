@@ -2,12 +2,14 @@ import { EventHostingSelector, type EventHosting } from "@/components/events/Eve
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
 import {
   EventChipRow,
+  EventDescriptionsFields,
   EventDifficultyPicker,
-  EventLevelPicker,
+  EventLevelsPerSport,
   EventSectionTitle,
   SportPicker,
 } from "@/components/events/EventFormSections";
-import { CountryPicker, PhotosPicker } from "@/components/events/EventFormPickers";
+import { CountryPicker, CoverPicker, PhotosPicker } from "@/components/events/EventFormPickers";
+import { MAX_EVENT_PHOTOS, uploadEventCover, uploadEventPhoto } from "@/lib/eventMedia";
 import { normalizeLink } from "@/utils/links";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { BackButton } from "@/components/ui/BackButton";
@@ -19,10 +21,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
-import { uploadImageToStorage } from "@/lib/imageUpload";
-import type { MediaRole } from "@/lib/mediaPipeline";
 import * as ImagePicker from "expo-image-picker";
-import { Icon } from "@/components/ui/Icon";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -32,10 +31,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { NativeDateField } from "@/components/ui/NativeDateField";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { t } from "@/hooks/useTranslation";
-
-async function uploadImage(uri: string, path: string, role: MediaRole = "gallery") {
-  return uploadImageToStorage({ bucket: "events", path, uri, upsert: true, role });
-}
 
 function formatEventDateTime(d: Date): string {
   return d.toLocaleDateString("fr-FR", {
@@ -68,7 +63,11 @@ export default function CreatePublicEventScreen() {
 
   const [name, setName] = useState("");
 
-  const [sport, setSport] = useState("");
+  // Multi-sport: `sports` is the full selection, `sports[0]` is the primary
+  // sport stored in the `sport` column (cards, filters, search).
+  const [sports, setSports] = useState<string[]>([]);
+  const [requiredLevels, setRequiredLevels] = useState<Record<string, string>>({});
+  const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
@@ -82,11 +81,13 @@ export default function CreatePublicEventScreen() {
     }
   }, [profile, synced]);
   const [venueAddress, setVenueAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [hosting, setHosting] = useState<EventHosting>("in_app");
   const [registrationUrl, setRegistrationUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [league, setLeague] = useState("");
   const [priceInput, setPriceInput] = useState("");
-  const [requiredLevel, setRequiredLevel] = useState("");
   const [difficulty, setDifficulty] = useState(3);
   const [category, setCategory] = useState("");
   const [ageMin, setAgeMin] = useState("");
@@ -95,15 +96,30 @@ export default function CreatePublicEventScreen() {
   const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // +7 days
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const primarySport = sports[0] ?? "";
+
   // Club deep links are validated against the authorized publishing identities.
+
+  const pickCover = async () => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const uri = res.canceled ? null : res.assets[0]?.uri;
+    if (uri) setCoverUri(uri);
+  };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const remaining = 5 - heroUris.length;
+    const remaining = MAX_EVENT_PHOTOS - heroUris.length;
     if (remaining <= 0) {
       Toast.show({ type: "info", text1: t("create.event.maxPhotos") });
       return;
@@ -116,8 +132,22 @@ export default function CreatePublicEventScreen() {
     });
     if (!res.canceled) {
       const newUris = res.assets.map((a) => a.uri);
-      setHeroUris((prev) => [...prev, ...newUris].slice(0, 5));
+      setHeroUris((prev) => [...prev, ...newUris].slice(0, MAX_EVENT_PHOTOS));
     }
+  };
+
+  /** Replace one photo in place (before upload, so there is nothing to delete). */
+  const replaceHero = async (index: number) => {
+    const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!p.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    const uri = res.canceled ? null : res.assets[0]?.uri;
+    if (!uri) return;
+    setHeroUris((prev) => prev.map((u, i) => (i === index ? uri : u)));
   };
 
   const removeHero = (index: number) => {
@@ -131,18 +161,28 @@ export default function CreatePublicEventScreen() {
       if (!clubId && !profile?.is_public_profile) throw new Error(t("create.event.activatePublicHint"));
 
       const priceCents = Math.round((parseFloat(priceInput.replace(",", ".")) || 0) * 100);
+      // Only keep levels for the sports that are still selected.
+      const levelMap = Object.fromEntries(
+        Object.entries(requiredLevels).filter(([id, level]) => !!level && sports.includes(id))
+      );
 
       const data = {
         name,
-        sport,
+        sport: primarySport,
+        sports,
+        required_levels: levelMap,
+        short_description: shortDescription,
         description,
         country,
         city,
         hosting,
-        registration_url: hosting === "external" ? normalizeLink(registrationUrl) : "",
+        registration_url: normalizeLink(registrationUrl),
         venue_address: venueAddress,
+        postal_code: postalCode,
+        contact_email: contactEmail,
+        league,
         price_cents: priceCents,
-        required_level: requiredLevel,
+        required_level: levelMap[primarySport] ?? "",
         difficulty,
         category,
         age_min: ageMin.trim() ? Number(ageMin) : undefined,
@@ -164,10 +204,11 @@ export default function CreatePublicEventScreen() {
         throw new Error("Validation failed");
       }
 
-      // Upload hero photos
+      // Upload the optional cover, then the optional photos (0–5)
+      const coverUrl = coverUri ? await uploadEventCover(userId, coverUri) : null;
       const heroUrls: string[] = [];
       for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
+        const url = await uploadEventPhoto(userId, heroUris[i]!, i);
         heroUrls.push(url);
       }
 
@@ -177,18 +218,24 @@ export default function CreatePublicEventScreen() {
         .from("events")
         .insert({
           name: name.trim(),
-          sport,
+          sport: primarySport,
+          sports,
+          required_levels: levelMap,
+          short_description: shortDescription.trim(),
           description: description.trim(),
-          short_description: description.trim().slice(0, 100),
           country,
           city,
           venue_address: venueAddress || null,
-          registration_url: isExternal ? normalizeLink(registrationUrl) : null,
+          postal_code: postalCode.trim() || null,
+          contact_email: contactEmail.trim() || null,
+          league: league.trim() || null,
+          cover_url: coverUrl,
+          registration_url: normalizeLink(registrationUrl),
           website_url: websiteUrl ? normalizeLink(websiteUrl) : null,
           is_external: isExternal,
           price_cents: priceCents,
           is_paid: priceCents > 0,
-          required_level: requiredLevel || null,
+          required_level: levelMap[primarySport] ?? null,
           difficulty,
           category: category || null,
           age_min: ageMin.trim() ? Number(ageMin) : null,
@@ -251,11 +298,11 @@ export default function CreatePublicEventScreen() {
   const hostingLinkError = errors.registration_url;
   const missing: string[] = [];
   if (!name.trim()) missing.push(t("create.event.name"));
-  if (!sport) missing.push(t("create.event.sport"));
-  if (description.trim().length < 50) missing.push(t("create.event.descriptionMin"));
+  if (sports.length === 0) missing.push(t("create.event.sports"));
+  if (!shortDescription.trim()) missing.push(t("create.event.shortDescription"));
+  if (!registrationUrl.trim()) missing.push(t("create.event.registrationLink"));
   if (!country) missing.push(t("create.event.country"));
   if (!city.trim()) missing.push(t("create.event.city"));
-  if (hosting === "external" && !registrationUrl.trim()) missing.push(t("create.event.externalLink"));
   const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && missing.length === 0;
 
   return (
@@ -294,7 +341,8 @@ export default function CreatePublicEventScreen() {
             maxLength={80}
           />
           <View className="mt-4" />
-          <SportPicker value={sport} onChange={setSport} error={errors.sport} />
+          <SportPicker value={sports} onChange={setSports} error={errors.sports} />
+          <EventLevelsPerSport sports={sports} values={requiredLevels} onChange={setRequiredLevels} />
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2 mt-2">
             {t("create.event.startDate")} *
           </Text>
@@ -355,27 +403,38 @@ export default function CreatePublicEventScreen() {
             <Text className="text-error text-sm mb-4">{endDateError}</Text>
           ) : null}
 
-          <Input
-            label={`${t("forms.description")} *`}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-            error={errors.description}
-            placeholder={t("create.event.descriptionPlaceholder")}
+          <EventDescriptionsFields
+            shortDescription={shortDescription}
+            onChangeShort={setShortDescription}
+            description={description}
+            onChangeDescription={setDescription}
+            shortError={errors.short_description}
+            longError={errors.description}
           />
-          <Text className="text-xs text-neutral-500 mt-1">
-            {description.trim().length < 50
-              ? `${t("create.event.descriptionMin")} (${description.trim().length}/50)`
-              : `${description.trim().length} ✓`}
-          </Text>
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={3} title={t("create.event.sections.location")} />
           <CountryPicker value={country} onChange={setCountry} error={errors.country} />
           <Input label={`${t("create.event.city")} *`} value={city} onChangeText={setCity} error={errors.city} placeholder={t("create.event.city")} />
           <View className="mt-4" />
-          <Input label={t("create.event.venueAddress")} value={venueAddress} onChangeText={setVenueAddress} placeholder={t("create.event.venueAddress")} />
+          <Input
+            label={t("create.event.exactAddress")}
+            value={venueAddress}
+            onChangeText={setVenueAddress}
+            placeholder={t("create.event.exactAddressPlaceholder")}
+            testID="event-exact-address"
+          />
+          <View className="mt-4" />
+          <Input
+            label={t("create.event.postalCode")}
+            value={postalCode}
+            onChangeText={setPostalCode}
+            placeholder={t("create.event.postalCodePlaceholder")}
+            keyboardType="number-pad"
+            maxLength={20}
+            error={errors.postal_code}
+            testID="event-postal-code"
+          />
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={4} title={t("create.event.sections.participation")} />
@@ -383,7 +442,7 @@ export default function CreatePublicEventScreen() {
             value={hosting}
             onChange={setHosting}
             link={registrationUrl}
-            onChangeLink={setRegistrationUrl}
+            onChangeLink={(v) => { setRegistrationUrl(v); setErrors((prev) => ({ ...prev, registration_url: "" })); }}
             linkError={hostingLinkError}
             disabled={createMut.isPending}
           />
@@ -397,6 +456,26 @@ export default function CreatePublicEventScreen() {
             keyboardType="url"
             textContentType="URL"
             error={errors.website_url}
+            testID="event-website-url"
+          />
+          <View className="mt-4" />
+          <Input
+            label={t("create.event.contactEmail")}
+            value={contactEmail}
+            onChangeText={setContactEmail}
+            placeholder="contact@exemple.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            error={errors.contact_email}
+            testID="event-contact-email"
+          />
+          <View className="mt-4" />
+          <Input
+            label={t("create.event.league")}
+            value={league}
+            onChangeText={setLeague}
+            placeholder={t("create.event.leaguePlaceholder")}
+            testID="event-league"
           />
 
           <View className="mt-4" />
@@ -426,7 +505,6 @@ export default function CreatePublicEventScreen() {
             value={category}
             onChange={setCategory}
           />
-          <EventLevelPicker sport={sport} value={requiredLevel} onChange={setRequiredLevel} />
           <EventDifficultyPicker value={difficulty} onChange={setDifficulty} />
           <View className="flex-row gap-3">
             <View className="flex-1">
@@ -439,7 +517,18 @@ export default function CreatePublicEventScreen() {
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={6} title={t("create.event.sections.media")} />
-          <PhotosPicker uris={heroUris} onAdd={() => void pickHeroPhotos()} onRemove={(i) => removeHero(i)} />
+          <CoverPicker
+            url={coverUri}
+            onPick={() => void pickCover()}
+            onRemove={() => setCoverUri(null)}
+            disabled={createMut.isPending}
+          />
+          <PhotosPicker
+            uris={heroUris}
+            onAdd={() => void pickHeroPhotos()}
+            onChange={(i) => void replaceHero(i)}
+            onRemove={(i) => removeHero(i)}
+          />
         </Card>
         {!isValid && missing.length > 0 && (
           <View className="mt-1 mb-3 p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800">

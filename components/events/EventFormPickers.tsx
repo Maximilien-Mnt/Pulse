@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/Text";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { COUNTRIES, countryFlag } from "@/utils/countries";
+import { MAX_EVENT_PHOTOS } from "@/lib/eventMedia";
 import { t } from "@/hooks/useTranslation";
 
 export function CountryPicker({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
@@ -55,29 +56,138 @@ export function CountryPicker({ value, onChange, error }: { value: string; onCha
   );
 }
 
-export function PhotosPicker({ uris, onAdd, onRemove }: { uris: string[]; onAdd: () => void; onRemove: (i: number) => void }) {
+/**
+ * Optional cover image: a single slot that can be added, changed and removed.
+ * The cover stays independent from the photo gallery below it.
+ */
+export function CoverPicker({
+  url,
+  onPick,
+  onRemove,
+  disabled,
+}: {
+  url: string | null;
+  onPick: () => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View className="mb-4">
+      <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+        {t("create.event.coverImage")}
+      </Text>
+      <Text className="text-xs text-neutral-500 mb-2">{t("create.event.coverHint")}</Text>
+      {url ? (
+        <View className="relative">
+          <Image
+            source={{ uri: url }}
+            style={{ width: "100%", height: 160, borderRadius: 16 }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
+          <View className="absolute top-2 right-2 flex-row gap-2">
+            <Pressable
+              onPress={onPick}
+              disabled={disabled}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("create.event.changeCover")}
+              className="bg-black/60 rounded-full p-2"
+            >
+              <Icon name="Pen" size={16} color="white" />
+            </Pressable>
+            <Pressable
+              onPress={onRemove}
+              disabled={disabled}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("create.event.removeCover")}
+              className="bg-error rounded-full p-2"
+            >
+              <Icon name="X" size={16} color="white" />
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <Pressable
+          onPress={onPick}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={t("create.event.addCover")}
+          className="h-32 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center active:bg-neutral-50 dark:active:bg-neutral-700/50"
+        >
+          <Icon name="Image" size={28} color="text-tertiary" />
+          <Text className="text-sm text-neutral-500 mt-2">{t("create.event.addCover")}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Up to MAX_EVENT_PHOTOS optional photos. Each slot can be changed (replaced
+ * in place) and removed individually; photos are added through `onAdd`.
+ */
+export function PhotosPicker({
+  uris,
+  onAdd,
+  onChange,
+  onRemove,
+}: {
+  uris: string[];
+  onAdd: () => void;
+  onChange: (i: number) => void;
+  onRemove: (i: number) => void;
+}) {
+  const canAdd = uris.length < MAX_EVENT_PHOTOS;
   return (
     <View>
       <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-        {t("create.event.photos")} ({uris.length}/5)
+        {t("create.event.photos")} ({uris.length}/{MAX_EVENT_PHOTOS})
       </Text>
       <Text className="text-xs text-neutral-500 mb-2">{t("create.event.photosHint")}</Text>
       <View className="flex-row gap-2">
-        <Pressable onPress={onAdd} accessibilityRole="button" accessibilityLabel={t("create.event.addPhotos")} className="w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center">
-          <Icon name="Plus" size={24} color="text-tertiary" />
-        </Pressable>
+        {canAdd ? (
+          <Pressable
+            onPress={onAdd}
+            accessibilityRole="button"
+            accessibilityLabel={t("create.event.addPhotos")}
+            className="w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center"
+          >
+            <Icon name="Plus" size={24} color="text-tertiary" />
+          </Pressable>
+        ) : null}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {uris.map((uri, i) => (
-            <View key={`${uri}-${i}`} className="mr-2 relative">
-              {i === 0 ? (
-                <View className="absolute top-1 left-1 z-10 bg-primary rounded-full px-2 py-0.5">
-                  <Text className="text-white text-[10px] font-bold">{t("create.event.coverBadge")}</Text>
-                </View>
-              ) : null}
-              <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" />
-              <Pressable onPress={() => onRemove(i)} className="absolute -top-1 -right-1 bg-error rounded-full p-1" hitSlop={8}>
-                <Icon name="X" size={12} color="white" />
-              </Pressable>
+            <View key={`${uri}-${i}`} className="mr-2">
+              <Image
+                source={{ uri }}
+                style={{ width: 80, height: 80, borderRadius: 12 }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+              />
+              <View className="absolute bottom-1 right-1 flex-row gap-1">
+                <Pressable
+                  onPress={() => onChange(i)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("create.event.changePhoto")}
+                  className="bg-black/60 rounded-full p-1"
+                >
+                  <Icon name="Pen" size={12} color="white" />
+                </Pressable>
+                <Pressable
+                  onPress={() => onRemove(i)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("create.event.removePhoto")}
+                  className="bg-error rounded-full p-1"
+                >
+                  <Icon name="X" size={12} color="white" />
+                </Pressable>
+              </View>
             </View>
           ))}
         </ScrollView>

@@ -491,8 +491,6 @@ export default function EventDetailScreen() {
           ) : null}
           {event.league ? <InfoRow icon="Trophy" label={t("forms.league")} value={event.league} /> : null}
           {event.contact_email ? <InfoRow icon="Mail" label={t("create.event.contactEmailShort")} value={event.contact_email} /> : null}
-          {event.category ? <InfoRow icon="Tag" label={t("events.category")} value={event.category} /> : null}
-          {event.difficulty ? <InfoRow icon="Star" label={t("events.difficulty")} value={`${event.difficulty}/5`} /> : null}
           {event.website_url ? <InfoRow icon="Globe" label={t("forms.website")} value={event.website_url} /> : null}
           {registrationUrl ? <InfoRow icon="ExternalLink" label={t("create.event.registrationLink")} value={registrationUrl} /> : null}
           {(event.age_min != null || event.age_max != null) && (

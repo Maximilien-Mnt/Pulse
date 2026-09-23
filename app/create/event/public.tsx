@@ -1,9 +1,7 @@
 import { EventHostingSelector, type EventHosting } from "@/components/events/EventHostingSelector";
 import { EventIdentitySelector } from "@/components/events/EventIdentitySelector";
 import {
-  EventChipRow,
   EventDescriptionsFields,
-  EventDifficultyPicker,
   EventLevelsPerSport,
   EventSectionTitle,
   SportPicker,
@@ -16,7 +14,6 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { EVENT_CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { eventPublicSchema } from "@/utils/validation";
@@ -80,6 +77,7 @@ export default function CreatePublicEventScreen() {
       setSynced(true);
     }
   }, [profile, synced]);
+
   const [venueAddress, setVenueAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [hosting, setHosting] = useState<EventHosting>("in_app");
@@ -88,21 +86,16 @@ export default function CreatePublicEventScreen() {
   const [contactEmail, setContactEmail] = useState("");
   const [league, setLeague] = useState("");
   const [priceInput, setPriceInput] = useState("");
-  const [difficulty, setDifficulty] = useState(3);
-  const [category, setCategory] = useState("");
+  const [placesTotal, setPlacesTotal] = useState("");
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
-  const [placesTotal, setPlacesTotal] = useState("");
   const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // +7 days
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [heroUris, setHeroUris] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const primarySport = sports[0] ?? "";
-
-  // Club deep links are validated against the authorized publishing identities.
 
   const pickCover = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -182,9 +175,6 @@ export default function CreatePublicEventScreen() {
         contact_email: contactEmail,
         league,
         price_cents: priceCents,
-        required_level: levelMap[primarySport] ?? "",
-        difficulty,
-        category,
         age_min: ageMin.trim() ? Number(ageMin) : undefined,
         age_max: ageMax.trim() ? Number(ageMax) : undefined,
         places_total: placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : undefined,
@@ -236,8 +226,6 @@ export default function CreatePublicEventScreen() {
           price_cents: priceCents,
           is_paid: priceCents > 0,
           required_level: levelMap[primarySport] ?? null,
-          difficulty,
-          category: category || null,
           age_min: ageMin.trim() ? Number(ageMin) : null,
           age_max: ageMax.trim() ? Number(ageMax) : null,
           places_total: placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null,
@@ -402,15 +390,6 @@ export default function CreatePublicEventScreen() {
           {endDateError ? (
             <Text className="text-error text-sm mb-4">{endDateError}</Text>
           ) : null}
-
-          <EventDescriptionsFields
-            shortDescription={shortDescription}
-            onChangeShort={setShortDescription}
-            description={description}
-            onChangeDescription={setDescription}
-            shortError={errors.short_description}
-            longError={errors.description}
-          />
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={3} title={t("create.event.sections.location")} />
@@ -486,32 +465,26 @@ export default function CreatePublicEventScreen() {
             keyboardType="decimal-pad"
             placeholder="0"
             help={t("create.event.priceHint")}
+            rightElement={<Text className="text-base font-semibold text-neutral-500">€</Text>}
           />
           <View className="mt-4" />
           <Input
             label={t("create.event.totalSlots")}
             value={placesTotal}
             onChangeText={(v) => setPlacesTotal(v.replace(/[^0-9]/g, ""))}
-            keyboardType="numeric"
+            keyboardType="number-pad"
             placeholder={t("events.unlimitedIfEmpty")}
             help={t("create.event.placesHint")}
           />
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={5} title={t("create.event.sections.details")} />
-          <EventChipRow
-            label={t("create.event.category")}
-            options={EVENT_CATEGORIES}
-            value={category}
-            onChange={setCategory}
-          />
-          <EventDifficultyPicker value={difficulty} onChange={setDifficulty} />
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Input label={t("create.event.ageMin")} value={ageMin} onChangeText={(v) => setAgeMin(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="—" />
+              <Input label={t("create.event.ageMin")} value={ageMin} onChangeText={(v) => setAgeMin(v.replace(/[^0-9]/g, ""))} keyboardType="number-pad" placeholder="—" />
             </View>
             <View className="flex-1">
-              <Input label={t("create.event.ageMax")} value={ageMax} onChangeText={(v) => setAgeMax(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="—" error={errors.age_max} />
+              <Input label={t("create.event.ageMax")} value={ageMax} onChangeText={(v) => setAgeMax(v.replace(/[^0-9]/g, ""))} keyboardType="number-pad" placeholder="—" error={errors.age_max} />
           </View>
           </View>
         </Card>

@@ -1,10 +1,9 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { EVENT_CATEGORIES, SPORTS } from "@/lib/constants";
+import { SPORTS } from "@/lib/constants";
 import { getSportLabel } from "@/lib/i18n";
 import type { EventListFilters } from "@/hooks/useEvents";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import Slider from "@react-native-community/slider";
 import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Switch, View } from "react-native";
@@ -115,40 +114,6 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                 }}
               />
             ) : null}
-            <Input
-              label={t("events.requiredLevel")}
-              value={draft.requiredLevel}
-              onChangeText={(requiredLevel) => setDraft((d) => ({ ...d, requiredLevel }))}
-            />
-            <Text variant="caption" className="font-medium text-text-secondary mt-2">
-              {t("events.filters.difficulty")} ({draft.difficultyMin}–{draft.difficultyMax})
-            </Text>
-            <Slider
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={draft.difficultyMax}
-              onValueChange={(v) => setDraft((d) => ({ ...d, difficultyMin: 1, difficultyMax: Math.round(v) }))}
-            />
-            <Text variant="caption" className="font-medium text-text-secondary mb-2">
-              {t("events.filters.categories")}
-            </Text>
-            <View className="flex-row flex-wrap mb-2">
-              {EVENT_CATEGORIES.map((c) => (
-                <Pressable
-                  key={c}
-                  onPress={() => setDraft((d) => ({ ...d, category: d.category === c ? "" : c }))}
-                  className={`px-3 py-2 rounded-full mr-2 mb-2 ${draft.category === c ? "bg-primary" : "bg-chip dark:bg-chip-dark"}`}
-                >
-                  <Text
-                    variant="body"
-                    className={draft.category === c ? "text-white" : "text-chip-text dark:text-chip-text-dark"}
-                  >
-                    {c}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
             <View className="flex-row items-center justify-between py-2">
               <Text variant="body" className="text-text-primary">
                 {t("events.filters.paidOnly")}
@@ -215,10 +180,6 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                     location: "",
                     dateFrom: null,
                     dateTo: null,
-                    requiredLevel: "",
-                    difficultyMin: 0,
-                    difficultyMax: 5,
-                    category: "",
                     paidOnly: null,
                     internalOnly: false,
                     externalOnly: false,

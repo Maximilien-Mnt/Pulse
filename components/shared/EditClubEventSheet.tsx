@@ -288,13 +288,6 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
             />
           )}
 
-          <Input
-            label={t("forms.requiredLevel")}
-            value={formData.required_level}
-            onChangeText={(text) => setFormData({ ...formData, required_level: text })}
-            placeholder={t("forms.levelExample")}
-          />
-
           {type === "club" && (
             <>
               <Input

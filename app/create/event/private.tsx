@@ -441,7 +441,7 @@ export default function CreatePrivateEventScreen() {
             label={t("create.event.totalSlots")}
             value={placesTotal}
             onChangeText={(v) => setPlacesTotal(v.replace(/[^0-9]/g, ""))}
-            keyboardType="numeric"
+            keyboardType="number-pad"
             placeholder={t("events.unlimitedIfEmpty")}
             help={t("create.event.placesHint")}
           />

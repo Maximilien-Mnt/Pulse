@@ -26,10 +26,6 @@ const defaultFilters: EventListFilters = {
   location: "",
   dateFrom: null,
   dateTo: null,
-  requiredLevel: "",
-  difficultyMin: 1,
-  difficultyMax: 5,
-  category: "",
   paidOnly: null,
   internalOnly: false,
   externalOnly: false,
@@ -77,10 +73,6 @@ export default function EventsScreen() {
       filters.location.trim() !== "" ||
       filters.dateFrom != null ||
       filters.dateTo != null ||
-      filters.requiredLevel.trim() !== "" ||
-      filters.difficultyMin !== defaultFilters.difficultyMin ||
-      filters.difficultyMax !== defaultFilters.difficultyMax ||
-      filters.category.trim() !== "" ||
       filters.paidOnly != null ||
       filters.internalOnly ||
       filters.externalOnly ||

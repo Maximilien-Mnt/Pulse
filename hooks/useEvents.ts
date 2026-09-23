@@ -10,10 +10,6 @@ export type EventListFilters = {
   location: string;
   dateFrom: string | null;
   dateTo: string | null;
-  requiredLevel: string;
-  difficultyMin: number;
-  difficultyMax: number;
-  category: string;
   paidOnly: boolean | null;
   internalOnly: boolean;
   externalOnly: boolean;
@@ -75,11 +71,6 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
       }
       if (filters.dateFrom) q = q.gte("start_date", filters.dateFrom);
       if (filters.dateTo) q = q.lte("start_date", filters.dateTo);
-      if (filters.requiredLevel.trim()) q = q.eq("required_level", filters.requiredLevel);
-      q = q
-        .gte("difficulty", filters.difficultyMin)
-        .lte("difficulty", filters.difficultyMax);
-      if (filters.category.trim()) q = q.eq("category", filters.category);
       if (filters.paidOnly === true) q = q.eq("is_paid", true);
       if (filters.paidOnly === false) q = q.eq("is_paid", false);
       if (filters.internalOnly && !filters.externalOnly) q = q.eq("is_external", false);
@@ -103,12 +94,6 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
           break;
         case "price_desc":
           q = q.order("price_cents", { ascending: false });
-          break;
-        case "difficulty_asc":
-          q = q.order("difficulty", { ascending: true });
-          break;
-        case "difficulty_desc":
-          q = q.order("difficulty", { ascending: false });
           break;
         case "relevance":
           q = q.order("start_date", { ascending: true });

@@ -309,13 +309,31 @@ export const eventPrivateSchema = z.object({
   club_id: z.string().optional(),
   invitees: z.array(z.string()).default([]),
   hosting: hostingSchema.default("in_app"),
-  registration_url: requiredLinkSchema,
+  registration_url: linkSchema.optional().or(z.literal("")),
   places_total: z.number().int().positive().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
 }).refine(endAfterStart.check, {
   message: endAfterStart.message,
   path: endAfterStart.path,
-}).superRefine(validateEventLevels);
+}).superRefine((d, ctx) => {
+  validateEventLevels(d, ctx);
+  if (d.hosting === "external") {
+    const url = d.registration_url?.trim();
+    if (!url) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.linkRequired",
+        path: ["registration_url"],
+      });
+    } else if (!isValidLink(url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.invalidUrl",
+        path: ["registration_url"],
+      });
+    }
+  }
+});
 
 export const eventPublicSchema = z.object({
   ...eventDescriptionsSchema,
@@ -327,7 +345,7 @@ export const eventPublicSchema = z.object({
   country: z.string().min(1, "validation.countryRequired"),
   city: z.string().min(1, "validation.cityRequired"),
   hosting: hostingSchema.default("in_app"),
-  registration_url: requiredLinkSchema,
+  registration_url: linkSchema.optional().or(z.literal("")),
   venue_address: z.string().optional(),
   price_cents: z.number().min(0).optional(),
   age_min: z.number().int().min(0).max(99).optional(),
@@ -338,6 +356,22 @@ export const eventPublicSchema = z.object({
   hero_urls: z.array(z.string()).max(5).default([]),
 }).superRefine((d, ctx) => {
   validateEventLevels(d, ctx);
+  if (d.hosting === "external") {
+    const url = d.registration_url?.trim();
+    if (!url) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.linkRequired",
+        path: ["registration_url"],
+      });
+    } else if (!isValidLink(url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.invalidUrl",
+        path: ["registration_url"],
+      });
+    }
+  }
   if (d.age_min != null && d.age_max != null && d.age_min > d.age_max) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.ageRangeInvalid", path: ["age_max"] });
   }

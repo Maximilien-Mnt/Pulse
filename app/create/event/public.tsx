@@ -169,7 +169,7 @@ export default function CreatePublicEventScreen() {
         country,
         city,
         hosting,
-        registration_url: normalizeLink(registrationUrl),
+        registration_url: hosting === "external" && registrationUrl.trim() ? normalizeLink(registrationUrl) : "",
         venue_address: venueAddress,
         postal_code: postalCode,
         contact_email: contactEmail,
@@ -220,7 +220,7 @@ export default function CreatePublicEventScreen() {
           contact_email: contactEmail.trim() || null,
           league: league.trim() || null,
           cover_url: coverUrl,
-          registration_url: normalizeLink(registrationUrl),
+          registration_url: isExternal && registrationUrl.trim() ? normalizeLink(registrationUrl) : null,
           website_url: websiteUrl ? normalizeLink(websiteUrl) : null,
           is_external: isExternal,
           price_cents: priceCents,
@@ -290,7 +290,7 @@ export default function CreatePublicEventScreen() {
   const levelsComplete = sports.every((sport) => !!requiredLevels[sport]?.trim());
   if (sports.length > 0 && !levelsComplete) missing.push(t("create.event.levelPerSport"));
   if (!shortDescription.trim()) missing.push(t("create.event.shortDescription"));
-  if (!registrationUrl.trim()) missing.push(t("create.event.registrationLink"));
+  if (hosting === "external" && !registrationUrl.trim()) missing.push(t("create.event.registrationLink"));
   if (!country) missing.push(t("create.event.country"));
   if (!city.trim()) missing.push(t("create.event.city"));
   const isValid = identity.isValid && !profileLoading && (!!clubId || !!profile?.is_public_profile) && missing.length === 0;
@@ -392,6 +392,15 @@ export default function CreatePublicEventScreen() {
           {endDateError ? (
             <Text className="text-error text-sm mb-4">{endDateError}</Text>
           ) : null}
+
+          <EventDescriptionsFields
+            shortDescription={shortDescription}
+            onChangeShort={setShortDescription}
+            description={description}
+            onChangeDescription={setDescription}
+            shortError={errors.short_description}
+            longError={errors.description}
+          />
         </Card>
         <Card className="p-4 mb-4">
           <EventSectionTitle step={3} title={t("create.event.sections.location")} />

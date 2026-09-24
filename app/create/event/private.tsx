@@ -170,7 +170,7 @@ export default function CreatePrivateEventScreen() {
         end_date: endDate?.toISOString(),
         invitees,
         hosting,
-        registration_url: normalizeLink(registrationLink),
+        registration_url: hosting === "external" && registrationLink.trim() ? normalizeLink(registrationLink) : "",
         places_total: placesTotal.trim() ? Number(placesTotal) : undefined,
         hero_urls: [] as string[],
       };
@@ -211,7 +211,7 @@ export default function CreatePrivateEventScreen() {
           contact_email: contactEmail.trim() || null,
           league: league.trim() || null,
           cover_url: coverUrl,
-          registration_url: normalizeLink(registrationLink),
+          registration_url: isExternal && registrationLink.trim() ? normalizeLink(registrationLink) : null,
           is_external: isExternal,
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
@@ -269,7 +269,7 @@ export default function CreatePrivateEventScreen() {
     sports.length > 0 &&
     shortDescription.trim().length > 0 &&
     sports.every((sport) => !!requiredLevels[sport]?.trim()) &&
-    registrationLink.trim().length > 0;
+    (hosting === "in_app" || registrationLink.trim().length > 0);
   const missing: string[] = [];
   if (!name.trim()) missing.push(t("create.event.name"));
   if (sports.length === 0) missing.push(t("create.event.sports"));
@@ -277,7 +277,7 @@ export default function CreatePrivateEventScreen() {
     missing.push(t("create.event.levelPerSport"));
   }
   if (!shortDescription.trim()) missing.push(t("create.event.shortDescription"));
-  if (!registrationLink.trim()) missing.push(t("create.event.registrationLink"));
+  if (hosting === "external" && !registrationLink.trim()) missing.push(t("create.event.registrationLink"));
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>

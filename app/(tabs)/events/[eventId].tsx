@@ -148,13 +148,15 @@ export default function EventDetailScreen() {
   // An event is full when it has a limited number of places and all are taken
   const isFull = event?.places_total != null && (event?.accepted_count ?? 0) >= event.places_total;
 
+  const isExternal = !!event?.is_external || !!event?.registration_url?.trim();
+
   const joinMut = useMutation({
     mutationFn: async () => {
       if (!userId || !event || isFull) return;
       const { error } = await supabase.from("event_join_requests").insert({ event_id: event.id, user_id: userId });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       posthog.capture("event_join_requested", {
         event_id: event?.id ?? null,
         event_name: event?.name ?? null,
@@ -162,7 +164,15 @@ export default function EventDetailScreen() {
         is_paid: event?.is_paid ?? null,
         is_external: event?.is_external ?? null,
       });
-      Toast.show({ type: "success", text1: t("events.requestSent") });
+
+      if (isExternal && event?.registration_url) {
+        Toast.show({ type: "success", text1: t("events.waitingListNotice") });
+        const { openBrowserAsync } = await import("expo-web-browser");
+        await openBrowserAsync(event.registration_url);
+      } else {
+        Toast.show({ type: "success", text1: t("events.requestSent") });
+      }
+
       void queryClient.invalidateQueries({ queryKey: ["join-request-status", "event", eventId] });
     },
     onError: () => Toast.show({ type: "error", text1: t("common.error") }),
@@ -247,32 +257,63 @@ export default function EventDetailScreen() {
   const longDescription = event.description?.trim() || null;
 
   let actionButton: React.ReactNode = null;
-  if (registrationUrl) {
+  if (!isCreator) {
+    if (joinStatus?.isMember) {
+      actionButton = (
+        <Button
+          title={t("events.participant")}
+          variant="secondary"
+          icon="CheckCircle2"
+          disabled
+        />
+      );
+    } else if (joinStatus?.isPending) {
+      actionButton = (
+        <Button
+          title={isExternal ? t("events.waitingList") : t("events.requestSent")}
+          variant="secondary"
+          icon={isExternal ? "Globe" : "Clock"}
+          onPress={
+            isExternal && registrationUrl
+              ? async () => {
+                  const { openBrowserAsync } = await import("expo-web-browser");
+                  await openBrowserAsync(registrationUrl);
+                }
+              : undefined
+          }
+          disabled={!isExternal || !registrationUrl}
+        />
+      );
+    } else if (isFull) {
+      actionButton = <Button title={t("events.full")} variant="secondary" disabled />;
+    } else {
+      actionButton = (
+        <Button
+          testID="event-detail-join-button"
+          title={
+            isExternal
+              ? t("events.register")
+              : event.is_private
+                ? t("events.requestJoin")
+                : t("events.join")
+          }
+          icon={isExternal ? "Globe" : "CheckCircle2"}
+          onPress={() => joinMut.mutate()}
+          loading={joinMut.isPending}
+        />
+      );
+    }
+  } else if (isExternal && registrationUrl) {
     actionButton = (
       <Button
         title={t("events.register")}
         icon="Globe"
         onPress={async () => {
           const { openBrowserAsync } = await import("expo-web-browser");
-          if (event.registration_url) await openBrowserAsync(event.registration_url);
+          await openBrowserAsync(registrationUrl);
         }}
       />
     );
-  } else if (!isCreator) {
-    if (joinStatus?.isMember) actionButton = <Button title={t("events.participant")} variant="secondary" disabled />;
-    else if (joinStatus?.isPending) actionButton = <Button title={t("events.requestSent")} variant="secondary" disabled />;
-    else if (isFull) actionButton = <Button title={t("events.full")} variant="secondary" disabled />;
-    else {
-      actionButton = (
-        <Button
-          testID="event-detail-join-button"
-          title={event.is_private ? t("events.requestJoin") : t("events.join")}
-          icon="CheckCircle2"
-          onPress={() => joinMut.mutate()}
-          loading={joinMut.isPending}
-        />
-      );
-    }
   }
   const actionVisible = actionButton !== null;
 

@@ -22,16 +22,13 @@ function publicBase(overrides: Record<string, unknown> = {}) {
 
 describe("event hosting + link validation", () => {
   it("rejects non-link text in registration_url", () => {
-    const r = eventPublicSchema.safeParse(publicBase({ registration_url: "not a link at all" }));
+    const r = eventPublicSchema.safeParse(publicBase({ hosting: "external", registration_url: "not a link at all" }));
     expect(r.success).toBe(false);
   });
 
-  it("requires the registration link in every hosting mode (in_app included)", () => {
-    const r = eventPublicSchema.safeParse(publicBase({ registration_url: "" }));
-    expect(r.success).toBe(false);
-    if (!r.success) {
-      expect(r.error.errors.some((e) => e.path[0] === "registration_url")).toBe(true);
-    }
+  it("does not require registration link when hosting is in_app", () => {
+    const r = eventPublicSchema.safeParse(publicBase({ hosting: "in_app", registration_url: "" }));
+    expect(r.success).toBe(true);
   });
 
   it("requires link when external", () => {
@@ -53,8 +50,8 @@ describe("event hosting + link validation", () => {
     }
   });
 
-  it("private schema enforces the same rule", () => {
-    const r = eventPrivateSchema.safeParse({
+  it("private schema allows empty link for in_app and requires it for external", () => {
+    const inApp = eventPrivateSchema.safeParse({
       name: "Run",
       sport: "running",
       sports: ["running"],
@@ -65,7 +62,20 @@ describe("event hosting + link validation", () => {
       start_date: FUTURE(),
       invitees: [],
     });
-    expect(r.success).toBe(false);
+    expect(inApp.success).toBe(true);
+
+    const externalWithoutLink = eventPrivateSchema.safeParse({
+      name: "Run",
+      sport: "running",
+      sports: ["running"],
+      required_levels: { running: "Débutant" },
+      short_description: "Un footing entre amis",
+      hosting: "external",
+      registration_url: "",
+      start_date: FUTURE(),
+      invitees: [],
+    });
+    expect(externalWithoutLink.success).toBe(false);
   });
 
   it("isValidLink unit checks", () => {

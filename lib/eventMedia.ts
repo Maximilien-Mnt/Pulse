@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { removeFromStorageByUrl, uploadImageToStorage } from "@/lib/imageUpload";
+import type { PickedImage } from "@/lib/mediaPipeline";
 
 /** Supabase Storage bucket holding every event image. */
 export const EVENTS_BUCKET = "events";
@@ -17,25 +18,47 @@ export const EVENTS_BUCKET = "events";
 /** Maximum number of optional event photos (cover image excluded). */
 export const MAX_EVENT_PHOTOS = 5;
 
-/** Upload the optional cover image (single slot: add / change / remove). */
-export async function uploadEventCover(userId: string, uri: string): Promise<string> {
+/**
+ * Upload the optional cover image (single slot: add / change / remove).
+ *
+ * Takes the *whole* picked asset, not just its uri: the pipeline needs the
+ * picker's `mimeType` to validate web `blob:` URLs (which have no file
+ * extension) and its dimensions/byte size to avoid re-probing them.
+ */
+export async function uploadEventCover(userId: string, image: PickedImage): Promise<string> {
   return uploadImageToStorage({
     bucket: EVENTS_BUCKET,
     path: `${userId}/cover-${Date.now()}.jpg`,
-    uri,
+    uri: image.uri,
     upsert: true,
     role: "cover",
+    pickerMeta: {
+      mimeType: image.mimeType,
+      width: image.width,
+      height: image.height,
+      fileSize: image.fileSize,
+    },
   });
 }
 
 /** Upload one optional event photo (0–MAX_EVENT_PHOTOS per event). */
-export async function uploadEventPhoto(userId: string, uri: string, index: number): Promise<string> {
+export async function uploadEventPhoto(
+  userId: string,
+  image: PickedImage,
+  index: number,
+): Promise<string> {
   return uploadImageToStorage({
     bucket: EVENTS_BUCKET,
     path: `${userId}/photo-${Date.now()}-${index}.jpg`,
-    uri,
+    uri: image.uri,
     upsert: true,
     role: "gallery",
+    pickerMeta: {
+      mimeType: image.mimeType,
+      width: image.width,
+      height: image.height,
+      fileSize: image.fileSize,
+    },
   });
 }
 

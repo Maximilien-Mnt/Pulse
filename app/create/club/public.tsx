@@ -10,7 +10,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { clubPublicSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
 import { uploadImageToStorage } from "@/lib/imageUpload";
-import type { MediaRole } from "@/lib/mediaPipeline";
+import { buildPickerImageOptions, toPickedImage, type MediaRole, type PickedImage } from "@/lib/mediaPipeline";
+import { mediaErrorMessage } from "@/lib/reporting/userMessage";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
@@ -25,8 +26,25 @@ import { t } from "@/hooks/useTranslation";
 import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
 import type { OpeningHourSlot } from "@/lib/openingHours";
 
-async function uploadImage(uri: string, path: string, role: MediaRole = "gallery") {
-  return uploadImageToStorage({ bucket: "clubs", path, uri, upsert: true, role });
+/**
+ * Upload one club image. Takes the picked asset (not just its uri) so the media
+ * pipeline can validate it — a web `blob:` URL carries no file extension, so
+ * the picker's `mimeType` is the only reliable type signal there.
+ */
+async function uploadImage(image: PickedImage, path: string, role: MediaRole = "gallery") {
+  return uploadImageToStorage({
+    bucket: "clubs",
+    path,
+    uri: image.uri,
+    upsert: true,
+    role,
+    pickerMeta: {
+      mimeType: image.mimeType,
+      width: image.width,
+      height: image.height,
+      fileSize: image.fileSize,
+    },
+  });
 }
 
 export default function CreatePublicClubScreen() {
@@ -83,9 +101,12 @@ export default function CreatePublicClubScreen() {
   const [league, setLeague] = useState("");
   const [foundedDate, setFoundedDate] = useState("");
   const [openingHours, setOpeningHours] = useState<OpeningHourSlot[]>([]);
-  const [heroUris, setHeroUris] = useState<string[]>([]);
-  const [logoUri, setLogoUri] = useState<string | null>(null);
-  const [coverUri, setCoverUri] = useState<string | null>(null);
+  // Picked images are kept whole (uri + mimeType + dimensions + byte size) so the
+  // media pipeline can validate and resize them. A bare uri is not enough on web,
+  // where the picker returns an extension-less `blob:` URL.
+  const [heroes, setHeroes] = useState<PickedImage[]>([]);
+  const [logo, setLogo] = useState<PickedImage | null>(null);
+  const [cover, setCover] = useState<PickedImage | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const primarySport = sports[0] ?? "";
@@ -97,55 +118,38 @@ export default function CreatePublicClubScreen() {
   const pickLogo = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
-    if (!res.canceled && first) {
-      const uri = first.uri;
-      setLogoUri(uri);
-    }
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) setLogo(toPickedImage(asset));
   };
 
   const pickCover = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const first = res.assets && res.assets.length > 0 ? res.assets[0] : null;
-    if (!res.canceled && first) {
-      const uri = first.uri;
-      setCoverUri(uri);
-    }
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) setCover(toPickedImage(asset));
   };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const remaining = 10 - heroUris.length;
+    const remaining = 10 - heroes.length;
     if (remaining <= 0) {
       Toast.show({ type: "info", text1: t("clubs.create.maxPhotos") });
       return;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
-    });
+    const res = await ImagePicker.launchImageLibraryAsync(
+      buildPickerImageOptions({ multiple: true, selectionLimit: remaining }),
+    );
     if (!res.canceled) {
-      const newUris = res.assets.map((a) => a.uri);
-      setHeroUris((prev) => [...prev, ...newUris].slice(0, 10));
+      const picked = res.assets.map(toPickedImage);
+      setHeroes((prev) => [...prev, ...picked].slice(0, 10));
     }
   };
 
   const removeHero = (index: number) => {
-    setHeroUris((prev) => prev.filter((_, i) => i !== index));
+    setHeroes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const createMut = useMutation({
@@ -188,9 +192,9 @@ export default function CreatePublicClubScreen() {
 
       // Upload logo
       let logoUrl: string | null = null;
-      if (logoUri) {
+      if (logo) {
         logoUrl = await uploadImage(
-          logoUri,
+          logo,
           `${userId}/${Date.now()}_logo.jpg`,
           "avatar"
         );
@@ -198,9 +202,9 @@ export default function CreatePublicClubScreen() {
 
       // Upload cover
       let coverUrl: string | null = null;
-      if (coverUri) {
+      if (cover) {
         coverUrl = await uploadImage(
-          coverUri,
+          cover,
           `${userId}/${Date.now()}_cover.jpg`,
           "cover"
         );
@@ -208,8 +212,8 @@ export default function CreatePublicClubScreen() {
 
       // Upload hero photos
       const heroUrls: string[] = [];
-      for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadImage(heroUris[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
+      for (let i = 0; i < heroes.length; i++) {
+        const url = await uploadImage(heroes[i]!, `${userId}/${Date.now()}_hero_${i}.jpg`, "gallery");
         heroUrls.push(url);
       }
 
@@ -266,9 +270,11 @@ export default function CreatePublicClubScreen() {
       router.replace(`/(tabs)/clubs/${clubId}`);
     },
     onError: (err) => {
-      if (err instanceof Error && err.message !== "Validation failed") {
-        Toast.show({ type: "error", text1: err.message });
-      }
+      if (err instanceof Error && err.message === "Validation failed") return;
+      // Translate typed media failures — their raw `message` is a machine code
+      // ("invalidType", "oversized", …), never something to show a user.
+      const message = mediaErrorMessage(err) ?? (err instanceof Error ? err.message : t("common.unknownError"));
+      Toast.show({ type: "error", text1: message });
     },
   });
 
@@ -499,18 +505,18 @@ export default function CreatePublicClubScreen() {
           <Text className="text-sm text-neutral-500 mb-3">
             {t("clubs.create.logoHint")}
           </Text>
-          {logoUri ? (
+          {logo?.uri ? (
             <View className="items-center">
               <View className="relative">
                 <Image
-                  source={{ uri: logoUri }}
+                  source={{ uri: logo.uri }}
                   style={{ width: 120, height: 120, borderRadius: 24 }}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={200}
                 />
                 <Pressable
-                  onPress={() => setLogoUri(null)}
+                  onPress={() => setLogo(null)}
                   className="absolute -top-2 -right-2 bg-error rounded-full p-1.5"
                 >
                   <Icon name="X" size={16} color="white" />
@@ -535,18 +541,18 @@ export default function CreatePublicClubScreen() {
           <Text className="text-sm text-neutral-500 mb-3">
             {t("clubs.create.coverHint")}
           </Text>
-          {coverUri ? (
+          {cover?.uri ? (
             <View className="items-center">
               <View className="relative">
                 <Image
-                  source={{ uri: coverUri }}
+                  source={{ uri: cover.uri }}
                   style={{ width: '100%', height: 160, borderRadius: 16 }}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={200}
                 />
                 <Pressable
-                  onPress={() => setCoverUri(null)}
+                  onPress={() => setCover(null)}
                   className="absolute top-2 right-2 bg-error rounded-full p-1.5"
                 >
                   <Icon name="X" size={16} color="white" />
@@ -570,14 +576,14 @@ export default function CreatePublicClubScreen() {
           <Text className="text-lg font-semibold mb-3">{t("clubs.create.photosSection")}</Text>
 
           <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-            {t("clubs.settings.clubPhotos", { count: heroUris.length })}
+            {t("clubs.settings.clubPhotos", { count: heroes.length })}
           </Text>
           <Button title={t("clubs.create.addPhotos")} variant="secondary" onPress={pickHeroPhotos} />
-          {heroUris.length > 0 && (
+          {heroes.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
-              {heroUris.map((uri, i) => (
-                <View key={uri} className="mr-2 relative">
-                  <Image source={{ uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+              {heroes.map((h, i) => (
+                <View key={`${h.uri}-${i}`} className="mr-2 relative">
+                  <Image source={{ uri: h.uri }} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                   <Pressable
                     onPress={() => removeHero(i)}
                     className="absolute -top-2 -right-2 bg-error rounded-full p-1"

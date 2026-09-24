@@ -57,3 +57,44 @@ export function classifyUserError(error: unknown): UserErrorKind {
 export function userFacingMessageFor(error: unknown): string {
   return userFacingMessage(classifyUserError(error));
 }
+
+// ---------------------------------------------------------------------------
+// Media pipeline errors
+//
+// `MediaNormalizationError` (lib/mediaPipeline) carries its machine code in
+// `message` ("invalidType", "oversized", …) plus a translation key. Toasting
+// `error.message` therefore leaks the code to the user — always resolve the
+// translation key through `mediaErrorMessage` instead.
+// ---------------------------------------------------------------------------
+
+/**
+ * Duck-typed detection of `MediaNormalizationError`.
+ *
+ * Deliberately structural rather than `instanceof`: importing `lib/mediaPipeline`
+ * here would drag `expo-image-manipulator` / `expo-file-system` into the
+ * dependency graph of every consumer of this module.
+ */
+function isMediaNormalizationError(
+  error: unknown,
+): error is { translationKey: string; translationParams?: Record<string, string | number> } {
+  return (
+    error instanceof Error &&
+    error.name === "MediaNormalizationError" &&
+    typeof (error as { translationKey?: unknown }).translationKey === "string"
+  );
+}
+
+/**
+ * Localized message for a media failure (unsupported format, oversized image,
+ * failed resize), or `null` when the error did not come from the media pipeline.
+ *
+ * Usage: `mediaErrorMessage(err) ?? otherFallback`.
+ */
+export function mediaErrorMessage(error: unknown): string | null {
+  if (!isMediaNormalizationError(error)) return null;
+  try {
+    return translate(error.translationKey as TranslationKey, error.translationParams);
+  } catch {
+    return null;
+  }
+}

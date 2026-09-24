@@ -16,8 +16,13 @@ import { getInfoAsync } from 'expo-file-system/legacy';
 import {
   normalizeImageForRole,
   MediaNormalizationError,
+  resolveMimeType,
+  resolveMimeTypeAsync,
+  sniffBlobMimeType,
+  toPickedImage,
 } from '../lib/mediaPipeline';
 import type { PickedImage } from '../lib/mediaPipeline';
+import { mediaErrorMessage } from '../lib/reporting/userMessage';
 
 jest.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg', PNG: 'png', WEBP: 'webp' },
@@ -114,6 +119,162 @@ describe('normalizeImageForRole', () => {
     expect(err.translationKey).toBe('media.error.oversized');
     expect(err.key).toBe('media.error.oversized');
     expect(err.translationParams).toEqual({ mb: 4 });
+  });
+});
+
+describe('MIME resolution', () => {
+  it('prefers the picker mimeType and normalizes its casing', () => {
+    expect(resolveMimeType('blob:http://localhost:8081/abc', 'IMAGE/JPEG')).toBe('image/jpeg');
+    expect(resolveMimeType('file:///tmp/photo.jpg', 'image/png')).toBe('image/png');
+  });
+
+  it('ignores a picker mimeType that is not an allowed image type', () => {
+    expect(resolveMimeType('blob:http://localhost:8081/abc', 'text/plain')).toBeNull();
+    expect(resolveMimeType('file:///tmp/anim.gif', 'image/gif')).toBeNull();
+  });
+
+  it('reads the mime type declared by a data: URI', () => {
+    expect(resolveMimeType('data:image/png;base64,iVBORw0KGgo=')).toBe('image/png');
+    expect(resolveMimeType('data:image/gif;base64,R0lGODlh')).toBeNull();
+  });
+
+  it('falls back to the file extension', () => {
+    expect(resolveMimeType('file:///tmp/PIC.WEBP')).toBe('image/webp');
+    // Extension-less blob URL: nothing to read synchronously.
+    expect(resolveMimeType('blob:http://localhost:8081/abc')).toBeNull();
+  });
+});
+
+describe('web blob URL type resolution', () => {
+  const realFetch = (globalThis as { fetch?: unknown }).fetch;
+
+  afterEach(() => {
+    (globalThis as { fetch?: unknown }).fetch = realFetch;
+  });
+
+  it('sniffs the real content type of an extension-less blob URL', async () => {
+    const doFetch = jest.fn().mockResolvedValue({ blob: async () => ({ type: 'image/jpeg' }) });
+
+    await expect(
+      sniffBlobMimeType('blob:http://localhost:8081/abc', doFetch as unknown as typeof fetch),
+    ).resolves.toBe('image/jpeg');
+  });
+
+  it('rejects a blob whose real type is not allow-listed', async () => {
+    const doFetch = jest.fn().mockResolvedValue({ blob: async () => ({ type: 'image/gif' }) });
+
+    await expect(
+      sniffBlobMimeType('blob:http://localhost:8081/abc', doFetch as unknown as typeof fetch),
+    ).resolves.toBeNull();
+  });
+
+  it('returns null when the blob type cannot be read', async () => {
+    const doFetch = jest.fn().mockRejectedValue(new Error('no blob'));
+
+    await expect(
+      sniffBlobMimeType('blob:http://localhost:8081/abc', doFetch as unknown as typeof fetch),
+    ).resolves.toBeNull();
+  });
+
+  it('only reaches for the blob when the sync paths fail', async () => {
+    const doFetch = jest.fn().mockResolvedValue({ blob: async () => ({ type: 'image/png' }) });
+    const fetchImpl = doFetch as unknown as typeof fetch;
+
+    // Picker metadata wins — no fetch.
+    await expect(
+      resolveMimeTypeAsync('blob:http://localhost:8081/abc', 'image/jpeg', { doFetch: fetchImpl }),
+    ).resolves.toBe('image/jpeg');
+    expect(doFetch).not.toHaveBeenCalled();
+
+    // Extension-less blob URL falls through to the sniff.
+    await expect(
+      resolveMimeTypeAsync('blob:http://localhost:8081/abc', undefined, { doFetch: fetchImpl }),
+    ).resolves.toBe('image/png');
+    expect(doFetch).toHaveBeenCalledTimes(1);
+
+    // Local files never trigger a fetch.
+    await expect(
+      resolveMimeTypeAsync('file:///tmp/photo.jpg', undefined, { doFetch: fetchImpl }),
+    ).resolves.toBe('image/jpeg');
+    expect(doFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('normalizes a picked web blob URL that has no file extension', async () => {
+    // Regression test for the "invalidType" toast on event/club publishing: a web
+    // pick gives `blob:http://host/<uuid>`, so guessing the type from the file
+    // extension rejected every image.
+    (globalThis as { fetch?: unknown }).fetch = jest
+      .fn()
+      .mockResolvedValue({ blob: async () => ({ type: 'image/jpeg' }) });
+
+    const result: any = await normalizeImageForRole(
+      { uri: 'blob:http://localhost:8081/abc', fileSize: 1024, width: 100, height: 80 },
+      'avatar',
+    );
+
+    expect(result.mimeType).toBe('image/jpeg');
+    expect(result.contentType).toBe('image/jpeg');
+    expect(result.uri).toBe('blob:http://localhost:8081/abc');
+  });
+
+  it('still rejects an extension-less blob holding an unsupported image', async () => {
+    (globalThis as { fetch?: unknown }).fetch = jest
+      .fn()
+      .mockResolvedValue({ blob: async () => ({ type: 'image/gif' }) });
+
+    await expect(
+      normalizeImageForRole({ uri: 'blob:http://localhost:8081/abc', fileSize: 1024 }, 'avatar'),
+    ).rejects.toMatchObject({ code: 'invalidType', key: 'media.error.invalidType' });
+  });
+});
+
+describe('toPickedImage', () => {
+  it('keeps the picker metadata', () => {
+    expect(
+      toPickedImage({
+        uri: 'blob:http://localhost:8081/abc',
+        mimeType: 'image/jpeg',
+        width: 4000,
+        height: 3000,
+        fileSize: 900,
+      }),
+    ).toEqual({
+      uri: 'blob:http://localhost:8081/abc',
+      mimeType: 'image/jpeg',
+      width: 4000,
+      height: 3000,
+      fileSize: 900,
+    });
+  });
+
+  it('defaults missing picker metadata to null', () => {
+    expect(toPickedImage({ uri: 'file:///tmp/a.jpg' })).toEqual({
+      uri: 'file:///tmp/a.jpg',
+      mimeType: null,
+      width: null,
+      height: null,
+      fileSize: null,
+    });
+  });
+});
+
+describe('mediaErrorMessage', () => {
+  it('resolves the translation key carried by a real MediaNormalizationError', () => {
+    const err = new MediaNormalizationError('invalidType', 'media.error.invalidType');
+
+    expect(err.message).toBe('invalidType');
+    expect(mediaErrorMessage(err)).toBe("Format d'image non supporté");
+  });
+
+  it('interpolates the role byte limit for an oversized image', () => {
+    const err = new MediaNormalizationError('oversized', 'media.error.oversized', { mb: 8 });
+
+    expect(mediaErrorMessage(err)).toBe('Image trop volumineuse (max 8 Mo)');
+  });
+
+  it('returns null for non-media errors', () => {
+    expect(mediaErrorMessage(new Error('invalidType'))).toBeNull();
+    expect(mediaErrorMessage(null)).toBeNull();
   });
 });
 

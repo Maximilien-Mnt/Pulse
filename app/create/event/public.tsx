@@ -8,6 +8,8 @@ import {
 } from "@/components/events/EventFormSections";
 import { CountryPicker, CoverPicker, PhotosPicker } from "@/components/events/EventFormPickers";
 import { MAX_EVENT_PHOTOS, uploadEventCover, uploadEventPhoto } from "@/lib/eventMedia";
+import { buildPickerImageOptions, toPickedImage, type PickedImage } from "@/lib/mediaPipeline";
+import { mediaErrorMessage } from "@/lib/reporting/userMessage";
 import { normalizeLink } from "@/utils/links";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { BackButton } from "@/components/ui/BackButton";
@@ -92,40 +94,36 @@ export default function CreatePublicEventScreen() {
   const [startDate, setStartDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // +7 days
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [endDateError, setEndDateError] = useState("");
-  const [coverUri, setCoverUri] = useState<string | null>(null);
-  const [heroUris, setHeroUris] = useState<string[]>([]);
+  // Picked images are kept whole (uri + mimeType + dimensions + byte size) so the
+  // media pipeline can validate and resize them. A bare uri is not enough on web,
+  // where the picker returns an extension-less `blob:` URL.
+  const [cover, setCover] = useState<PickedImage | null>(null);
+  const [heroes, setHeroes] = useState<PickedImage[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const primarySport = sports[0] ?? "";
 
   const pickCover = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const uri = res.canceled ? null : res.assets[0]?.uri;
-    if (uri) setCoverUri(uri);
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) setCover(toPickedImage(asset));
   };
 
   const pickHeroPhotos = async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const remaining = MAX_EVENT_PHOTOS - heroUris.length;
+    const remaining = MAX_EVENT_PHOTOS - heroes.length;
     if (remaining <= 0) {
       Toast.show({ type: "info", text1: t("create.event.maxPhotos") });
       return;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
-    });
+    const res = await ImagePicker.launchImageLibraryAsync(
+      buildPickerImageOptions({ multiple: true, selectionLimit: remaining }),
+    );
     if (!res.canceled) {
-      const newUris = res.assets.map((a) => a.uri);
-      setHeroUris((prev) => [...prev, ...newUris].slice(0, MAX_EVENT_PHOTOS));
+      const picked = res.assets.map(toPickedImage);
+      setHeroes((prev) => [...prev, ...picked].slice(0, MAX_EVENT_PHOTOS));
     }
   };
 
@@ -133,18 +131,15 @@ export default function CreatePublicEventScreen() {
   const replaceHero = async (index: number) => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const uri = res.canceled ? null : res.assets[0]?.uri;
-    if (!uri) return;
-    setHeroUris((prev) => prev.map((u, i) => (i === index ? uri : u)));
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (!asset) return;
+    const picked = toPickedImage(asset);
+    setHeroes((prev) => prev.map((h, i) => (i === index ? picked : h)));
   };
 
   const removeHero = (index: number) => {
-    setHeroUris((prev) => prev.filter((_, i) => i !== index));
+    setHeroes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const createMut = useMutation({
@@ -195,10 +190,10 @@ export default function CreatePublicEventScreen() {
       }
 
       // Upload the optional cover, then the optional photos (0–5)
-      const coverUrl = coverUri ? await uploadEventCover(userId, coverUri) : null;
+      const coverUrl = cover ? await uploadEventCover(userId, cover) : null;
       const heroUrls: string[] = [];
-      for (let i = 0; i < heroUris.length; i++) {
-        const url = await uploadEventPhoto(userId, heroUris[i]!, i);
+      for (let i = 0; i < heroes.length; i++) {
+        const url = await uploadEventPhoto(userId, heroes[i]!, i);
         heroUrls.push(url);
       }
 
@@ -263,7 +258,7 @@ export default function CreatePublicEventScreen() {
               p_user_id: member.user_id,
               p_type: "event_notification",
               p_title: t("create.event.newInClub"),
-              p_body: `{t("create.event.new")} "${name}" {t("create.event.createdInClub")}`,
+              p_body: `${t("create.event.new")} "${name}" ${t("create.event.createdInClub")}`,
               p_data: { event_id: event.id, club_id: clubId },
             });
           }
@@ -277,9 +272,14 @@ export default function CreatePublicEventScreen() {
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
-      if (err instanceof Error && err.message !== "Validation failed") {
-        Toast.show({ type: "error", text1: err.message });
-      }
+      if (err instanceof Error && err.message === "Validation failed") return;
+      // `mediaErrorMessage` translates typed pipeline failures; showing a raw
+      // `MediaNormalizationError.message` would toast its machine code
+      // ("invalidType", "oversized", …) instead of a user-readable reason.
+      const message =
+        mediaErrorMessage(err) ??
+        (err instanceof Error ? err.message : t("common.unknownError"));
+      Toast.show({ type: "error", text1: message });
     },
   });
 
@@ -502,13 +502,13 @@ export default function CreatePublicEventScreen() {
         <Card className="p-4 mb-4">
           <EventSectionTitle step={6} title={t("create.event.sections.media")} />
           <CoverPicker
-            url={coverUri}
+            url={cover?.uri ?? null}
             onPick={() => void pickCover()}
-            onRemove={() => setCoverUri(null)}
+            onRemove={() => setCover(null)}
             disabled={createMut.isPending}
           />
           <PhotosPicker
-            uris={heroUris}
+            uris={heroes.map((h) => h.uri)}
             onAdd={() => void pickHeroPhotos()}
             onChange={(i) => void replaceHero(i)}
             onRemove={(i) => removeHero(i)}

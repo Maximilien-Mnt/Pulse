@@ -100,15 +100,77 @@ function mimeFromExtension(uri: string): string | null {
   return EXT_TO_MIME[clean.slice(dot + 1).toLowerCase()] ?? null;
 }
 
+/** "data:image/png;base64,…" → "image/png" (null when not an allow-listed image). */
+function mimeFromDataUri(uri: string): string | null {
+  const declared = /^data:([^;,]+)[;,]/.exec(uri)?.[1]?.trim().toLowerCase();
+  if (!declared) return null;
+  return ALLOWED_MIME_TYPES.has(declared) ? declared : null;
+}
+
+/**
+ * Normalize a picker-supplied MIME type (some platforms hand back uppercase,
+ * or "image/jpg") before comparing it against the allow-list. Returns null when
+ * the value is missing or not an image type the pipeline accepts.
+ */
+function normalizePickerMimeType(pickerMimeType?: string | null): string | null {
+  const candidate = pickerMimeType?.trim().toLowerCase();
+  if (!candidate) return null;
+  return ALLOWED_MIME_TYPES.has(candidate) ? candidate : null;
+}
+
 export function resolveMimeType(uri: string, pickerMimeType?: string | null): string | null {
-  if (pickerMimeType && ALLOWED_MIME_TYPES.has(pickerMimeType.toLowerCase())) {
-    return pickerMimeType.toLowerCase();
-  }
-  return mimeFromExtension(uri);
+  return normalizePickerMimeType(pickerMimeType) ?? mimeFromDataUri(uri) ?? mimeFromExtension(uri);
 }
 
 export function isAllowedMimeType(uri: string, pickerMimeType?: string | null): boolean {
   return resolveMimeType(uri, pickerMimeType) !== null;
+}
+
+/**
+ * Ask the runtime for the real content type of a `blob:` URL.
+ *
+ * Web picks produce `blob:http://host/<uuid>` URIs, which carry no file
+ * extension — the browser still knows the underlying `File`'s type, so we read
+ * it back instead of rejecting a perfectly valid image. Runs a single `fetch`,
+ * which is cheap: the response body is the blob URL itself, no network hop.
+ *
+ * `doFetch` is injectable so the behaviour is unit-testable without a real
+ * fetch. Returns null when the type cannot be read or is not allow-listed.
+ */
+export async function sniffBlobMimeType(
+  uri: string,
+  doFetch: typeof fetch = fetch,
+): Promise<string | null> {
+  try {
+    const blob = await (await doFetch(uri)).blob();
+    const declared = blob.type?.trim().toLowerCase();
+    if (!declared) return null;
+    return ALLOWED_MIME_TYPES.has(declared) ? declared : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Async counterpart of `resolveMimeType`: same precedence (picker metadata →
+ * `data:` header → file extension), then — as a last resort — sniffs the bytes
+ * behind a `blob:` URL. `blob:` URIs only exist on web (native pickers always
+ * return `file://` paths that carry a real extension), so this fallback is
+ * inherently web-only while keeping the pure resolver synchronous for callers
+ * that cannot await.
+ *
+ * A sniffed-but-disallowed type (e.g. `image/gif`) deliberately still resolves
+ * to null, so unsupported images keep failing with `invalidType`.
+ */
+export async function resolveMimeTypeAsync(
+  uri: string,
+  pickerMimeType?: string | null,
+  opts: { doFetch?: typeof fetch } = {},
+): Promise<string | null> {
+  const resolved = resolveMimeType(uri, pickerMimeType);
+  if (resolved) return resolved;
+  if (!uri.startsWith("blob:")) return null;
+  return sniffBlobMimeType(uri, opts.doFetch ?? fetch);
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +214,30 @@ export type PickedImage = {
   canceled?: boolean;
 };
 
+/**
+ * Convert an `expo-image-picker` asset into the pipeline's `PickedImage`.
+ *
+ * Keeping the picker's own `mimeType` / dimensions / byte size is what lets the
+ * pipeline validate a web `blob:` URL (which carries no file extension) and
+ * skip redundant native probes for dimensions and size. Every picker call site
+ * should go through this instead of reading `asset.uri` directly.
+ */
+export function toPickedImage(asset: {
+  uri: string;
+  mimeType?: string | null;
+  width?: number | null;
+  height?: number | null;
+  fileSize?: number | null;
+}): PickedImage {
+  return {
+    uri: asset.uri,
+    mimeType: asset.mimeType ?? null,
+    width: asset.width ?? null,
+    height: asset.height ?? null,
+    fileSize: asset.fileSize ?? null,
+  };
+}
+
 export type PickResultCanceled = {
   canceled: true;
 };
@@ -188,8 +274,9 @@ export async function normalizeImageForRole(
     return { canceled: true } as PickResultCanceled;
   }
 
-  // 1. Type validation.
-  const mime = resolveMimeType(uri, picked.mimeType);
+  // 1. Type validation. Web `blob:` URLs carry no file extension, so this also
+  //    falls back to sniffing the blob's real content type before rejecting.
+  const mime = await resolveMimeTypeAsync(uri, picked.mimeType);
   if (!mime) {
     throw new MediaNormalizationError("invalidType", "media.error.invalidType");
   }

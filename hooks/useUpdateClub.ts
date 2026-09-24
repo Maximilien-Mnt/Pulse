@@ -98,7 +98,7 @@ export function useUpdateClub() {
             p_user_id: member.user_id,
             p_type: "club_updated",
             p_title: t("updateClub.modified"),
-            p_body: `Le club "${club.name}" {t("updateClub.modifiedBodyPrefix")} ${changes.join(", ")}.`,
+            p_body: `Le club "${club.name}" ${t("updateClub.modifiedBodyPrefix")}${changes.join(", ")}.`,
             p_data: { club_id: clubId, changes },
           });
         }

@@ -9,6 +9,8 @@ import {
 } from "@/components/events/EventFormSections";
 import { CoverPicker, PhotosPicker } from "@/components/events/EventFormPickers";
 import { MAX_EVENT_PHOTOS, uploadEventCover, uploadEventPhoto } from "@/lib/eventMedia";
+import { buildPickerImageOptions, toPickedImage, type PickedImage } from "@/lib/mediaPipeline";
+import { mediaErrorMessage } from "@/lib/reporting/userMessage";
 import { useEventPublishingIdentity } from "@/hooks/useEventPublishingIdentity";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -70,8 +72,11 @@ export default function CreatePrivateEventScreen() {
   const [linkError, setLinkError] = useState<string | undefined>(undefined);
   const [invitees, setInvitees] = useState<string[]>([]);
   const [placesTotal, setPlacesTotal] = useState("");
-  const [coverUri, setCoverUri] = useState<string | null>(null);
-  const [heroUris, setHeroUris] = useState<string[]>([]);
+  // Picked images are kept whole (uri + mimeType + dimensions + byte size) so the
+  // media pipeline can validate and resize them. A bare uri is not enough on web,
+  // where the picker returns an extension-less `blob:` URL.
+  const [cover, setCover] = useState<PickedImage | null>(null);
+  const [heroes, setHeroes] = useState<PickedImage[]>([]);
   const [searchHits, setSearchHits] = useState<
     { id: string; username: string; full_name: string; avatar_url: string | null }[]
   >([]);
@@ -114,34 +119,32 @@ export default function CreatePrivateEventScreen() {
   const pickCover = useCallback(async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const uri = res.canceled ? null : res.assets[0]?.uri;
-    if (uri) setCoverUri(uri);
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) setCover(toPickedImage(asset));
   }, []);
 
   const pickHeroPhotos = useCallback(async () => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, quality: 0.8, selectionLimit: MAX_EVENT_PHOTOS - heroUris.length });
-    if (!res.canceled) setHeroUris((prev) => [...prev, ...res.assets.map((a) => a.uri)].slice(0, MAX_EVENT_PHOTOS));
-  }, [heroUris.length]);
+    const res = await ImagePicker.launchImageLibraryAsync(
+      buildPickerImageOptions({ multiple: true, selectionLimit: MAX_EVENT_PHOTOS - heroes.length }),
+    );
+    if (!res.canceled) {
+      const picked = res.assets.map(toPickedImage);
+      setHeroes((prev) => [...prev, ...picked].slice(0, MAX_EVENT_PHOTOS));
+    }
+  }, [heroes.length]);
 
   /** Replace one photo in place (before upload, so there is nothing to delete). */
   const replaceHero = useCallback(async (index: number) => {
     const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!p.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.8,
-    });
-    const uri = res.canceled ? null : res.assets[0]?.uri;
-    if (!uri) return;
-    setHeroUris((prev) => prev.map((u, i) => (i === index ? uri : u)));
+    const res = await ImagePicker.launchImageLibraryAsync(buildPickerImageOptions());
+    const asset = res.canceled ? null : res.assets[0];
+    if (!asset) return;
+    const picked = toPickedImage(asset);
+    setHeroes((prev) => prev.map((h, i) => (i === index ? picked : h)));
   }, []);
 
   const createMut = useMutation({
@@ -186,12 +189,12 @@ export default function CreatePrivateEventScreen() {
       const placesNum = placesTotal.trim() ? Math.max(1, Math.floor(Number(placesTotal))) : null;
 
       // Upload the optional cover, then the optional photos (0-5)
-      const coverUrl = coverUri ? await uploadEventCover(userId, coverUri) : null;
+      const coverUrl = cover ? await uploadEventCover(userId, cover) : null;
       const heroUrls: string[] = [];
-      for (let i = 0; i < heroUris.length; i += 1) {
-        const localUri = heroUris[i];
-        if (!localUri) continue;
-        const url = await uploadEventPhoto(userId, localUri, i);
+      for (let i = 0; i < heroes.length; i += 1) {
+        const image = heroes[i];
+        if (!image) continue;
+        const url = await uploadEventPhoto(userId, image, i);
         if (url) heroUrls.push(url);
       }
 
@@ -256,8 +259,13 @@ export default function CreatePrivateEventScreen() {
       router.replace(`/(tabs)/events/${eventId}`);
     },
     onError: (err) => {
+      // Translate typed media failures; their raw `message` is a machine code
+      // ("invalidType", "oversized", …) and must never reach the toast.
       const message =
-        err instanceof Error ? err.message : (err as { message?: string })?.message ?? t("common.unknownError");
+        mediaErrorMessage(err) ??
+        (err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ?? t("common.unknownError"));
       Toast.show({ type: "error", text1: message });
     },
   });
@@ -453,16 +461,16 @@ export default function CreatePrivateEventScreen() {
         <Card className="p-4 mb-4">
           <EventSectionTitle step={4} title={t("create.event.sections.media")} />
           <CoverPicker
-            url={coverUri}
+            url={cover?.uri ?? null}
             onPick={() => void pickCover()}
-            onRemove={() => setCoverUri(null)}
+            onRemove={() => setCover(null)}
             disabled={createMut.isPending}
           />
           <PhotosPicker
-            uris={heroUris}
+            uris={heroes.map((h) => h.uri)}
             onAdd={() => void pickHeroPhotos()}
             onChange={(i) => void replaceHero(i)}
-            onRemove={(i) => setHeroUris((p) => p.filter((_, j) => j !== i))}
+            onRemove={(i) => setHeroes((p) => p.filter((_, j) => j !== i))}
           />
         </Card>
 

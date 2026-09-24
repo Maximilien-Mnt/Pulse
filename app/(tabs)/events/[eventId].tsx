@@ -480,13 +480,14 @@ export default function EventDetailScreen() {
             value={placeValue || `${event.city}, ${getCountryDisplay(event.country)}`}
           />
           <InfoRow icon="Users" label="Places" value={placesLabel} />
-          {perSportLevels.length > 0 ? (
+          {perSportLevels.length > 0 ? perSportLevels.map((entry) => (
             <InfoRow
+              key={entry.id}
               icon="Shield"
-              label={t("events.requiredLevel")}
-              value={perSportLevels.map((entry) => `${entry.label} — ${entry.level}`).join(" · ")}
+              label={`${entry.label} — ${t("create.event.requiredLevel")}`}
+              value={entry.level}
             />
-          ) : event.required_level ? (
+          )) : event.required_level ? (
             <InfoRow icon="Shield" label={t("events.requiredLevel")} value={event.required_level} />
           ) : null}
           {event.league ? <InfoRow icon="Trophy" label={t("forms.league")} value={event.league} /> : null}

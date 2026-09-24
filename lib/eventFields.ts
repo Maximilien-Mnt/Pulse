@@ -28,7 +28,7 @@ export const EVENT_FIELD_SPECS: EventFieldSpec[] = [
   { key: "publisher", column: "publisher_club_id/club_id", private: "ALWAYS", public: "ALWAYS", note: "Personal profile or administered club. Preselected when created from a club." },
   { key: "name", column: "name", private: "ALWAYS", public: "ALWAYS", note: "1–80 chars." },
   { key: "sports", column: "sports/sport", private: "ALWAYS", public: "ALWAYS", note: "Multi-select from SPORTS. First selected = primary sport (sport column) for filters, cards and search." },
-  { key: "required_levels", column: "required_levels", private: "OPTIONAL", public: "OPTIONAL", note: "One level chip ladder per selected sport. required_level mirrors the primary sport." },
+  { key: "required_levels", column: "required_levels", private: "ALWAYS", public: "ALWAYS", note: "One required predefined or custom level per selected sport. required_level mirrors the primary sport." },
   { key: "short_description", column: "short_description", private: "ALWAYS", public: "ALWAYS", note: "1–200 chars, mandatory. Card / detail lead copy." },
   { key: "description", column: "description", private: "OPTIONAL", public: "OPTIONAL", note: "Up to 2000 chars, optional. Full detail copy." },
   { key: "start_date", column: "start_date", private: "ALWAYS", public: "ALWAYS", note: "Must be in the future." },
@@ -48,9 +48,6 @@ export const EVENT_FIELD_SPECS: EventFieldSpec[] = [
   { key: "places_total", column: "places_total/places_left", private: "OPTIONAL", public: "OPTIONAL", note: "Empty = unlimited. places_left mirrors places_total on insert." },
   { key: "invitees", column: "event_invitations", private: "OPTIONAL", public: "EXCLUDED", note: "Private only: @username multi-select → notify_user." },
   { key: "price", column: "price_cents/is_paid", private: "EXCLUDED", public: "OPTIONAL", note: "Public only. 0/empty = free. is_paid derived." },
-  { key: "category", column: "category", private: "EXCLUDED", public: "OPTIONAL", note: "Public only: EVENT_CATEGORIES chips." },
-  { key: "required_levels_legacy", column: "required_level", private: "EXCLUDED", public: "EXCLUDED", note: "Legacy: single required_level text input. required_level now mirrors required_levels[primary sport]." },
-  { key: "difficulty", column: "difficulty", private: "EXCLUDED", public: "OPTIONAL", note: "Public only: slider 1–5, default 3." },
   { key: "age_range", column: "age_min/age_max", private: "EXCLUDED", public: "OPTIONAL", condition: "If both set, min ≤ max, 0–99.", note: "Public only." },
   { key: "website_url", column: "website_url", private: "OPTIONAL", public: "OPTIONAL", note: "Valid URL when set, both contexts." },
   // System-managed (never in forms)

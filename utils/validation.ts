@@ -247,7 +247,39 @@ export const eventDescriptionsSchema = {
 export const eventSportsSchema = {
   sport: z.string().min(1, "validation.sportRequired"),
   sports: z.array(z.string()).min(1, "validation.sportRequired"),
-  required_levels: z.record(z.string(), z.string()).optional(),
+  required_levels: z.record(
+    z.string(),
+    z.string().trim().min(1, "validation.eventLevelRequired").max(80, "validation.eventLevelMax")
+  ),
+};
+
+/** Ensure a level exists for every selected sport and nothing stale remains. */
+const validateEventLevels = (
+  d: { sport: string; sports: string[]; required_levels: Record<string, string> },
+  ctx: z.RefinementCtx
+) => {
+  if (d.sport !== d.sports[0]) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.eventPrimarySport", path: ["sport"] });
+  }
+  const levelKeys = Object.keys(d.required_levels);
+  for (const sport of d.sports) {
+    if (!d.required_levels[sport]?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.eventLevelRequired",
+        path: ["required_levels", sport],
+      });
+    }
+  }
+  for (const sport of levelKeys) {
+    if (!d.sports.includes(sport)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "validation.eventLevelSport",
+        path: ["required_levels", sport],
+      });
+    }
+  }
 };
 
 /** Optional logistics fields shared by both event creation contexts. */
@@ -283,7 +315,7 @@ export const eventPrivateSchema = z.object({
 }).refine(endAfterStart.check, {
   message: endAfterStart.message,
   path: endAfterStart.path,
-});
+}).superRefine(validateEventLevels);
 
 export const eventPublicSchema = z.object({
   ...eventDescriptionsSchema,
@@ -305,6 +337,7 @@ export const eventPublicSchema = z.object({
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(5).default([]),
 }).superRefine((d, ctx) => {
+  validateEventLevels(d, ctx);
   if (d.age_min != null && d.age_max != null && d.age_min > d.age_max) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.ageRangeInvalid", path: ["age_max"] });
   }

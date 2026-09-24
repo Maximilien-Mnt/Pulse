@@ -9,7 +9,7 @@ describe("event rich fields validation", () => {
       name: "Tournoi d'ouverture",
       sport: "football",
       sports: ["football", "basketball"],
-      required_levels: { football: "Régional" },
+      required_levels: { football: "Régional", basketball: "Loisirs" },
       short_description: "Un tournoi convivial pour lancer la saison",
       description: "Programme complet, buvette et animations toute la journée.",
       country: "FR",
@@ -29,6 +29,24 @@ describe("event rich fields validation", () => {
   it("accepts a full public payload and trims level maps per sport at call sites", () => {
     const r = eventPublicSchema.safeParse(validPublic());
     expect(r.success).toBe(true);
+  });
+
+  it("accepts trimmed custom levels and rejects missing, stale, blank, or oversized levels", () => {
+    expect(eventPublicSchema.safeParse(validPublic({
+      required_levels: { football: "  Amateur senior  ", basketball: "Loisirs" },
+    })).success).toBe(true);
+    expect(eventPublicSchema.safeParse(validPublic({
+      required_levels: { football: "Régional" },
+    })).success).toBe(false);
+    expect(eventPublicSchema.safeParse(validPublic({
+      required_levels: { football: "Régional", basketball: "Loisirs", tennis: "Beginner" },
+    })).success).toBe(false);
+    expect(eventPublicSchema.safeParse(validPublic({
+      required_levels: { football: "Régional", basketball: "  " },
+    })).success).toBe(false);
+    expect(eventPublicSchema.safeParse(validPublic({
+      required_levels: { football: "Régional", basketball: "x".repeat(81) },
+    })).success).toBe(false);
   });
 
   it("requires the short description and at least one sport", () => {
@@ -55,6 +73,7 @@ describe("event rich fields validation", () => {
       name: "Footing",
       sport: "running",
       sports: ["running"],
+      required_levels: { running: "Débutant" },
       short_description: "Un footing entre amis",
       hosting: "in_app",
       registration_url: normalizeLink("example.com/go"),
@@ -62,6 +81,7 @@ describe("event rich fields validation", () => {
       invitees: [],
     };
     expect(eventPrivateSchema.safeParse(base).success).toBe(true);
+    expect(eventPrivateSchema.safeParse({ ...base, required_levels: {} }).success).toBe(false);
     expect(
       eventPrivateSchema.safeParse({ ...base, short_description: "" }).success
     ).toBe(false);

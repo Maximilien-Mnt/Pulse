@@ -16,15 +16,12 @@ type EventUpdateData = {
   contact_email?: string | null;
   league?: string | null;
   cover_url?: string | null;
-  required_level?: string | null;
   required_levels?: Record<string, string> | null;
   sports?: string[];
   start_date?: string;
   end_date?: string | null;
   price_cents?: number;
   is_paid?: boolean;
-  difficulty?: number;
-  category?: string | null;
   places_total?: number | null;
   logo_url?: string | null;
   hero_urls?: string[];
@@ -77,8 +74,6 @@ export function useUpdateEvent() {
         start_date: t("updateEvent.dateLabel"),
         end_date: t("updateEvent.endDateLabel"),
         price_cents: t("updateEvent.priceLabel"),
-        difficulty: t("updateEvent.difficultyLabel"),
-        category: t("updateEvent.categoryLabel"),
         places_total: t("updateEvent.placesTotalLabel"),
       };
 

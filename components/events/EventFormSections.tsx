@@ -1,6 +1,6 @@
 // PULSE — shared event form sections (private + public).
 // See lib/eventFields.ts for the official field specification these render.
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/Text";
 import { Input } from "@/components/ui/Input";
@@ -65,60 +65,23 @@ export function SportPicker({ value, onChange, error }: { value: string[]; onCha
   );
 }
 
-type ChipRowProps = {
-  label: string;
-  options: readonly string[];
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  error?: string;
-};
-
-/** Optional single-select chip row (category, level…). Tap again to clear. */
-export function EventChipRow({ label, options, value, onChange, required, error }: ChipRowProps) {
-  return (
-    <View className="mb-4">
-      <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-        {label}
-        {required ? <Text className="text-error"> *</Text> : null}
-      </Text>
-      <View className="flex-row flex-wrap gap-2">
-        {options.map((opt) => {
-          const selected = value === opt;
-          return (
-            <Pressable
-              key={opt}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={opt}
-              onPress={() => onChange(selected ? "" : opt)}
-              className={`px-3 py-2 rounded-full border ${selected ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
-            >
-              <Text className={selected ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{opt}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {error ? <Text className="text-xs text-error mt-1">{error}</Text> : null}
-    </View>
-  );
-}
-
 /**
- * Per-sport required level: one ladder per selected sport, using the
- * sport-specific levels (SPORT_LEVELS, same source as club creation) with the
- * generic fallback. Tap a selected level again to clear that sport's level.
- * Every sport is asked separately, including when several are selected.
+ * Required level for each selected sport. Organizers can choose one of the
+ * sport-specific presets or provide their own level. The stored value remains a
+ * plain string, so custom levels require no database change.
  */
 export function EventLevelsPerSport({
   sports,
   values,
   onChange,
+  errors,
 }: {
   sports: string[];
   values: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
+  errors?: Record<string, string>;
 }) {
+  const [customSports, setCustomSports] = useState<Record<string, boolean>>({});
   const ladders = useMemo(
     () =>
       sports.map((id) => ({
@@ -134,30 +97,73 @@ export function EventLevelsPerSport({
   return (
     <View className="mb-4">
       <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-        {t("create.event.levelPerSport")}
+        {t("create.event.levelPerSport")} <Text className="text-error">*</Text>
       </Text>
-      {ladders.map(({ id, label, levels }) => (
-        <View key={id} className="mb-3">
-          <Text className="text-xs text-neutral-500 mb-1">{label}</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {levels.map((lvl) => {
-              const selected = values[id] === lvl;
-              return (
-                <Pressable
-                  key={lvl}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`${label} — ${lvl}`}
-                  onPress={() => onChange({ ...values, [id]: selected ? "" : lvl })}
-                  className={`px-3 py-2 rounded-full border ${selected ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
-                >
-                  <Text className={selected ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{lvl}</Text>
-                </Pressable>
-              );
-            })}
+      {ladders.map(({ id, label, levels }) => {
+        const value = values[id] ?? "";
+        const customValue = customSports[id] ?? (!!value && !levels.includes(value));
+        const error = errors?.[id];
+        const setValue = (next: string) => {
+          onChange({ ...values, [id]: next.trim() });
+        };
+
+        return (
+          <View key={id} className="mb-4">
+            <Text className="text-xs text-neutral-500 mb-1">
+              {label} — {t("create.event.requiredLevel")} <Text className="text-error">*</Text>
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {levels.map((level) => {
+                const selected = value === level;
+                return (
+                  <Pressable
+                    key={level}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${label} — ${level}`}
+                    onPress={() => {
+                      setCustomSports((current) => ({ ...current, [id]: !selected }));
+                      setValue(selected ? value : level);
+                    }}
+                    className={`px-3 py-2 rounded-full border ${selected ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
+                  >
+                    <Text className={selected ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{level}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected: customValue }}
+                accessibilityLabel={`${label} — ${t("create.event.customLevel")}`}
+                onPress={() => {
+                  setCustomSports((current) => ({ ...current, [id]: true }));
+                  setValue(value || "");
+                }}
+                className={`px-3 py-2 rounded-full border ${customValue ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
+              >
+                <Text className={customValue ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{t("create.event.customLevel")}</Text>
+              </Pressable>
+            </View>
+            {customValue ? (
+              <Input
+                className="mt-2"
+                label={`${t("create.event.customLevelFor", { sport: label })} *`}
+                value={value}
+                onChangeText={(text) => {
+                  setCustomSports((current) => ({ ...current, [id]: true }));
+                  setValue(text);
+                }}
+                placeholder={t("create.event.customLevelPlaceholder")}
+                maxLength={80}
+                error={error}
+                testID={`event-level-${id}`}
+              />
+            ) : error ? (
+              <Text className="text-xs text-error mt-1">{error}</Text>
+            ) : null}
           </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -208,38 +214,5 @@ export function EventDescriptionsFields({
         testID="event-long-description"
       />
     </>
-  );
-}
-
-/** Public-only difficulty rating (1–5, defaults to 3). */
-export function EventDifficultyPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <View className="mb-4">
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{t("create.event.difficulty")}</Text>
-        <Text className="text-sm font-semibold text-primary">{t("create.event.difficultyValue", { value: String(value) })}</Text>
-      </View>
-      <View className="flex-row gap-2">
-        {[1, 2, 3, 4, 5].map((step) => {
-          const selected = value === step;
-          return (
-            <Pressable
-              key={step}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={t("create.event.difficultyValue", { value: String(step) })}
-              onPress={() => onChange(step)}
-              className={`flex-1 h-11 rounded-xl items-center justify-center border ${selected ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
-            >
-              <Text className={selected ? "text-white font-semibold" : "text-neutral-700 dark:text-neutral-200"}>{step}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <View className="flex-row justify-between mt-1">
-        <Text className="text-xs text-neutral-500">{t("create.event.difficultyEasy")}</Text>
-        <Text className="text-xs text-neutral-500">{t("create.event.difficultyHard")}</Text>
-      </View>
-    </View>
   );
 }

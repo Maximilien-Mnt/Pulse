@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { EventHostingSelector } from "@/components/events/EventHostingSelector";
+import { EventLevelsPerSport } from "@/components/events/EventFormSections";
 import { isValidLink, normalizeLink } from "@/utils/links";
 import { localizeError } from "@/utils/localizeError";
 import type { Club, EventRow } from "@/types";
@@ -21,6 +22,7 @@ type Props = {
 export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoading }: Props) {
   const [formData, setFormData] = useState<any>({});
   const [linkError, setLinkError] = useState<string | undefined>(undefined);
+  const [levelErrors, setLevelErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data) {
@@ -49,6 +51,13 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
 
   const handleSave = () => {
     if (!data) return;
+    if (type === "event") {
+      const nextSports: string[] = Array.isArray(formData.sports) ? formData.sports : [];
+      const nextLevels: Record<string, string> = formData.required_levels ?? {};
+      const missing = nextSports.filter((sport) => !nextLevels[sport]?.trim());
+      setLevelErrors(Object.fromEntries(missing.map((sport) => [sport, t("validation.eventLevelRequired")])));
+      if (nextSports.length === 0 || missing.length > 0) return;
+    }
     
     const updateData: any = {};
     const oldData: any = {};
@@ -211,6 +220,18 @@ export function EditClubEventSheet({ visible, onClose, type, data, onSave, isLoa
             numberOfLines={4}
             placeholder={type === "event" ? t("create.event.longDescriptionPlaceholder") : t("forms.description")}
           />
+
+          {type === "event" && (
+            <EventLevelsPerSport
+              sports={formData.sports ?? []}
+              values={formData.required_levels ?? {}}
+              onChange={(levels) => {
+                setFormData({ ...formData, required_levels: levels });
+                setLevelErrors((current) => Object.fromEntries(Object.entries(current).filter(([sport]) => !levels[sport]?.trim())));
+              }}
+              errors={levelErrors}
+            />
+          )}
 
           {type === "event" && (
             <Input

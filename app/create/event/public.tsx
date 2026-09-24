@@ -287,6 +287,8 @@ export default function CreatePublicEventScreen() {
   const missing: string[] = [];
   if (!name.trim()) missing.push(t("create.event.name"));
   if (sports.length === 0) missing.push(t("create.event.sports"));
+  const levelsComplete = sports.every((sport) => !!requiredLevels[sport]?.trim());
+  if (sports.length > 0 && !levelsComplete) missing.push(t("create.event.levelPerSport"));
   if (!shortDescription.trim()) missing.push(t("create.event.shortDescription"));
   if (!registrationUrl.trim()) missing.push(t("create.event.registrationLink"));
   if (!country) missing.push(t("create.event.country"));

@@ -1,11 +1,13 @@
 // ---------------------------------------------------------------------------
 // PULSE PROFILE SCREEN (Personal)
 //
-// Cover image (3:1), avatar 96px overlay, name, username, bio, then the same
+// Cover image (3:1), avatar 96px overlay, expanding notifications/settings
+// round buttons over the cover (top-right, hover-revealed names), name,
+// username, bio, then the same
 // clean, UI/UX-optimised sections as a public profile:
 //   - Stats grid (6 tiles when public, only clubs + events when private)
 //   - Sports & statuts, sports interested in, and objectives
-// Then the public/private info and the notifications / clubs / settings
+// Then the public/private info and the accepted-events / posts
 // subscreens access rows.
 // ---------------------------------------------------------------------------
 
@@ -15,7 +17,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import { useTranslation , t } from "@/hooks/useTranslation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -33,6 +35,7 @@ import {
 } from "@/components/profile/ProfileSections";
 import type { Club } from "@/types";
 import { ProfileClubsSection } from "@/components/profile/ProfileClubsSection";
+import { ProfileTopActions } from "@/components/profile/ProfileTopActions";
 import { useMyClubMemberships } from "@/hooks/useMyClubMemberships";
 import { useMyCreatedClubs } from "@/hooks/useMyCreatedClubs";
 
@@ -43,7 +46,13 @@ import { useMyCreatedClubs } from "@/hooks/useMyCreatedClubs";
 function ProfileSkeleton() {
   return (
     <SafeScreen edges={["top"]}>
-      <Skeleton className="w-full h-32 rounded-none" />
+      <View className="relative">
+        <Skeleton className="w-full h-32 rounded-none" />
+        <View className="absolute top-3 right-3 flex-row gap-2">
+          <Skeleton className="w-11 h-11 rounded-full" />
+          <Skeleton className="w-11 h-11 rounded-full" />
+        </View>
+      </View>
       <View className="px-4 gap-4 -mt-12">
         <Skeleton className="w-24 h-24 rounded-full" />
         <Skeleton className="w-48 h-6 rounded-sm" />
@@ -94,7 +103,7 @@ export default function ProfileScreen() {
     <SafeScreen edges={["top"]}>
       <ScrollView bounces={false}>
         {/* Cover */}
-        <View>
+        <View className="relative">
           {coverUrl ? (
             <Image
               key={coverUrl}
@@ -111,6 +120,9 @@ export default function ProfileScreen() {
           <View className="absolute bottom-0 left-4 translate-y-1/2">
             <Avatar uri={coverUrl} size={96} className="border-[3px] border-surface" />
           </View>
+
+          {/* Notifications + settings round buttons, top-right over the cover */}
+          <ProfileTopActions />
         </View>
 
         {/* Header */}
@@ -209,40 +221,6 @@ export default function ProfileScreen() {
 
           {/* Divider */}
           <View className="border-t border-border" />
-{/* Notifications access */}
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile/notifications" as any)}
-            className="flex-row items-center justify-between py-4"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Bell" size={20} color="text-secondary" />
-              <Text variant="body" className="text-text-secondary">
-                {t("profile.notificationsSection")}
-              </Text>
-            </View>
-            <Icon name="Search" size={16} color="text-tertiary" />
-          </Pressable>
-
-          {/* Divider */}
-          <View className="border-t border-border" />
-
-          {/* Settings access */}
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile/settings" as any)}
-            className="flex-row items-center justify-between py-4"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Settings" size={20} color="text-secondary" />
-              <Text variant="body" className="text-text-secondary">
-                {t("profile.settings")}
-              </Text>
-            </View>
-            <Icon name="Search" size={16} color="text-tertiary" />
-          </Pressable>
-
-          {/* Divider */}
-          <View className="border-t border-border" />
-
 
           {/* Accepted Events */}
           <Pressable

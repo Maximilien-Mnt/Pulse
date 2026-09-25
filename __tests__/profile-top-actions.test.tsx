@@ -2,13 +2,12 @@
 // PULSE — Profile top actions tests
 //
 // Renders the personal profile screen with mocked data hooks and checks that:
-//   - the notifications + settings entry points live at the top of the
-//     screen as round icon buttons over the cover (localized a11y labels),
+//   - the notifications + settings entry points live just above the stats
+//     grid as link-button cards (icon + localized name + chevron),
 //   - pressing each navigates to the right route,
 //   - each label appears exactly once (the old bottom rows are gone),
-//   - the button enters its expanded state on hover/focus and collapses
-//     back on hover-out/blur (the width + label-reveal animation is driven
-//     by that state).
+//   - the card enters its active state on hover/focus and collapses back on
+//     hover-out/blur (hover tint + chevron nudge are driven by that state).
 // ---------------------------------------------------------------------------
 
 import React from "react";
@@ -89,7 +88,7 @@ describe("Profile top actions", () => {
     setup();
   });
 
-  it("renders top round icon buttons for notifications and settings in French", () => {
+  it("renders link cards for notifications and settings in French", () => {
     const { getByTestId, getByLabelText } = render(<ProfileScreen />);
 
     expect(getByTestId("profile-top-notifications")).toBeTruthy();
@@ -127,8 +126,8 @@ describe("Profile top actions", () => {
     expect(getByLabelText(en["profile.settings"])).toBeTruthy();
   });
 
-  it("widens the button when focused (expands accessibility state)", () => {
-    // Focus drives the same expanded state as web hover (also the visible
+  it("activates the card style on focus and releases on blur", () => {
+    // Focus drives the same active state as web hover (also the visible
     // keyboard-focus affordance on web); it is not platform-gated.
     const { getByTestId } = render(<ProfileScreen />);
 
@@ -140,5 +139,18 @@ describe("Profile top actions", () => {
 
     fireEvent(button, "blur");
     expect(getByTestId("profile-top-notifications").props.accessibilityState?.expanded).toBeFalsy();
+  });
+
+  it("stacks the cards vertically on narrow containers", () => {
+    const { getByTestId, UNSAFE_getByProps } = render(<ProfileScreen />);
+
+    // Simulate a narrow phone column (jsdom reports no layout widths).
+    fireEvent(getByTestId("profile-top-actions"), "layout", {
+      nativeEvent: { layout: { width: 300, height: 200, x: 0, y: 0 } },
+    });
+
+    // The NarrowAware container re-renders with the column direction.
+    const column = UNSAFE_getByProps({ testID: "profile-top-actions" });
+    expect(column.props.className ?? "").toContain("flex-col");
   });
 });

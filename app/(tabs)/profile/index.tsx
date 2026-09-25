@@ -1,9 +1,8 @@
 // ---------------------------------------------------------------------------
 // PULSE PROFILE SCREEN (Personal)
 //
-// Cover image (3:1), avatar 96px overlay, expanding notifications/settings
-// round buttons over the cover (top-right, hover-revealed names), name,
-// username, bio, then the same
+// Cover image (3:1), avatar 96px overlay, name, username, bio, then the
+// notifications / settings link-button cards, followed by the same
 // clean, UI/UX-optimised sections as a public profile:
 //   - Stats grid (6 tiles when public, only clubs + events when private)
 //   - Sports & statuts, sports interested in, and objectives
@@ -46,12 +45,8 @@ import { useMyCreatedClubs } from "@/hooks/useMyCreatedClubs";
 function ProfileSkeleton() {
   return (
     <SafeScreen edges={["top"]}>
-      <View className="relative">
+      <View>
         <Skeleton className="w-full h-32 rounded-none" />
-        <View className="absolute top-3 right-3 flex-row gap-2">
-          <Skeleton className="w-11 h-11 rounded-full" />
-          <Skeleton className="w-11 h-11 rounded-full" />
-        </View>
       </View>
       <View className="px-4 gap-4 -mt-12">
         <Skeleton className="w-24 h-24 rounded-full" />
@@ -60,6 +55,10 @@ function ProfileSkeleton() {
         <View className="flex-row gap-2">
           <Skeleton className="w-16 h-8 rounded-full" />
           <Skeleton className="w-16 h-8 rounded-full" />
+        </View>
+        <View className="flex-row gap-3">
+          <Skeleton className="flex-1 h-[76px] rounded-xl" />
+          <Skeleton className="flex-1 h-[76px] rounded-xl" />
         </View>
       </View>
     </SafeScreen>
@@ -103,7 +102,7 @@ export default function ProfileScreen() {
     <SafeScreen edges={["top"]}>
       <ScrollView bounces={false}>
         {/* Cover */}
-        <View className="relative">
+        <View>
           {coverUrl ? (
             <Image
               key={coverUrl}
@@ -120,9 +119,6 @@ export default function ProfileScreen() {
           <View className="absolute bottom-0 left-4 translate-y-1/2">
             <Avatar uri={coverUrl} size={96} className="border-[3px] border-surface" />
           </View>
-
-          {/* Notifications + settings round buttons, top-right over the cover */}
-          <ProfileTopActions />
         </View>
 
         {/* Header */}
@@ -149,6 +145,9 @@ export default function ProfileScreen() {
 
         {/* Content sections — same as a public profile */}
         <View className="px-4">
+          {/* Notifications + settings link cards, just above the stats grid */}
+          <ProfileTopActions />
+
           {/* Stats grid (gated by visibility: 6 public / 2 private) */}
           <StatsGrid stats={profile.stats ?? null} isPublic={isPublic} />
 

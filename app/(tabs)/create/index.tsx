@@ -35,7 +35,6 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Tag } from "@/components/ui/Tag";
 import { TagInput } from "@/components/feed/TagInput";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -185,13 +184,23 @@ function PostForm({ onClose }: { onClose: () => void }) {
             {t("create.post.sportOptional")}
           </Text>
           <View className="flex-row flex-wrap gap-2">
-            {SPORTS.map((s) => (
-              <Pressable key={s.id} onPress={() => setSport(sport === s.id ? null : s.id)}>
-                <Tag variant="chip" active={sport === s.id}>
-                  {s.label}
-                </Tag>
-              </Pressable>
-            ))}
+            {SPORTS.map((s) => {
+              const active = sport === s.id;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setSport(active ? null : s.id)}
+                  className={`self-start rounded-full px-4 py-2 ${active ? "bg-primary dark:bg-primary-dark" : "bg-neutral-50 dark:bg-neutral-800"}`}
+                >
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={14} color={active ? "#FFFFFF" : s.color} />
+                    <Text variant="caption" className={active ? "text-white dark:text-text-inverse" : "text-text-secondary"}>
+                      {s.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -334,13 +343,23 @@ function ClubForm({ onClose }: { onClose: () => void }) {
             Sport principal
           </Text>
           <View className="flex-row flex-wrap gap-2">
-            {SPORTS.map((s) => (
-              <Pressable key={s.id} onPress={() => setSport(sport === s.id ? null : s.id)}>
-                <Tag variant="chip" active={sport === s.id}>
-                  {s.label}
-                </Tag>
-              </Pressable>
-            ))}
+            {SPORTS.map((s) => {
+              const active = sport === s.id;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setSport(active ? null : s.id)}
+                  className={`self-start rounded-full px-4 py-2 ${active ? "bg-primary dark:bg-primary-dark" : "bg-neutral-50 dark:bg-neutral-800"}`}
+                >
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={14} color={active ? "#FFFFFF" : s.color} />
+                    <Text variant="caption" className={active ? "text-white dark:text-text-inverse" : "text-text-secondary"}>
+                      {s.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -486,13 +505,23 @@ function EventForm({ onClose }: { onClose: () => void }) {
             {t("create.post.sport")}
           </Text>
           <View className="flex-row flex-wrap gap-2">
-            {SPORTS.map((s) => (
-              <Pressable key={s.id} onPress={() => setSport(sport === s.id ? null : s.id)}>
-                <Tag variant="chip" active={sport === s.id}>
-                  {s.label}
-                </Tag>
-              </Pressable>
-            ))}
+            {SPORTS.map((s) => {
+              const active = sport === s.id;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setSport(active ? null : s.id)}
+                  className={`self-start rounded-full px-4 py-2 ${active ? "bg-primary dark:bg-primary-dark" : "bg-neutral-50 dark:bg-neutral-800"}`}
+                >
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={14} color={active ? "#FFFFFF" : s.color} />
+                    <Text variant="caption" className={active ? "text-white dark:text-text-inverse" : "text-text-secondary"}>
+                      {s.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 

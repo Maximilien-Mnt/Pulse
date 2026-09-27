@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/Text";
+import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
 import { t } from "@/hooks/useTranslation";
@@ -50,7 +51,10 @@ export function SportPicker({ value, onChange, error }: { value: string[]; onCha
               onPress={() => toggle(s.id)}
               className={`px-3 py-2 rounded-full border ${selected ? "bg-primary border-primary" : "bg-neutral-100 dark:bg-neutral-800 border-transparent"}`}
             >
-              <Text className={selected ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{s.label}</Text>
+              <View className="flex-row items-center gap-1.5">
+                <Icon name={s.icon} size={14} color={selected ? "#FFFFFF" : s.color} />
+                <Text className={selected ? "text-white text-sm font-medium" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{s.label}</Text>
+              </View>
             </Pressable>
           );
         })}
@@ -109,9 +113,12 @@ export function EventLevelsPerSport({
 
         return (
           <View key={id} className="mb-4">
-            <Text className="text-xs text-neutral-500 mb-1">
-              {label} — {t("create.event.requiredLevel")} <Text className="text-error">*</Text>
-            </Text>
+            <View className="flex-row items-center gap-1.5 mb-1">
+              <Icon name={SPORTS.find((s) => s.id === id)?.icon ?? "Circle"} size={12} color={SPORTS.find((s) => s.id === id)?.color} />
+              <Text className="text-xs text-neutral-500">
+                {label} — {t("create.event.requiredLevel")} <Text className="text-error">*</Text>
+              </Text>
+            </View>
             <View className="flex-row flex-wrap gap-2">
               {levels.map((level) => {
                 const selected = value === level;

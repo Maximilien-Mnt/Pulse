@@ -61,12 +61,15 @@ export function EventFilters({ visible, onClose, value, onApply, isLocationEnabl
                   onPress={() => toggleSport(s.id)}
                   className={`px-4 py-3 rounded-full mr-2 mb-2 active:opacity-80 ${draft.sports.includes(s.id) ? "bg-primary" : "bg-chip dark:bg-chip-dark"}`}
                 >
-                  <Text
-                    variant="body"
-                    className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-chip-text dark:text-chip-text-dark"}
-                  >
-                    {getSportLabel(s.id)}
-                  </Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={15} color={draft.sports.includes(s.id) ? "#FFFFFF" : s.color} />
+                    <Text
+                      variant="body"
+                      className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-chip-text dark:text-chip-text-dark"}
+                    >
+                      {getSportLabel(s.id)}
+                    </Text>
+                  </View>
                 </Pressable>
               ))}
             </View>

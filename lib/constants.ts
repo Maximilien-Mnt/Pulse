@@ -60,18 +60,18 @@ export type SportDefinition = {
 };
 
 export const SPORTS: SportDefinition[] = [
-  { id: "football", label: "Football", icon: "Target", color: "#16A34A" },
-  { id: "basketball", label: "Basketball", icon: "Volleyball", color: "#EA580C" },
+  { id: "football", label: "Football", icon: "Goal", color: "#16A34A" },
+  { id: "basketball", label: "Basketball", icon: "Circle", color: "#EA580C" },
   { id: "tennis", label: "Tennis", icon: "CircleDot", color: "#EAB308" },
   { id: "running", label: "Course à pied", icon: "Footprints", color: "#3B82F6" },
   { id: "cycling", label: "Cyclisme", icon: "Bike", color: "#6366F1" },
   { id: "swimming", label: "Natation", icon: "Waves", color: "#06B6D4" },
-  { id: "volleyball", label: "Volleyball", icon: "Circle", color: "#F97316" },
+  { id: "volleyball", label: "Volleyball", icon: "Volleyball", color: "#F97316" },
   { id: "handball", label: "Handball", icon: "Hand", color: "#DC2626" },
-  { id: "padel", label: "Padel", icon: "CircleDot", color: "#A855F7" },
+  { id: "padel", label: "Padel", icon: "Target", color: "#A855F7" },
   { id: "badminton", label: "Badminton", icon: "Feather", color: "#14B8A6" },
   { id: "fitness", label: "Fitness", icon: "Dumbbell", color: "#64748B" },
-  { id: "rugby", label: "Rugby", icon: "Trophy", color: "#15803D" },
+  { id: "rugby", label: "Rugby", icon: "Medal", color: "#15803D" },
   { id: "squash", label: "Squash", icon: "Disc", color: "#0891B2" },
   { id: "table_tennis", label: "Tennis de table", icon: "CircleSmall", color: "#BE185D" },
   { id: "martial_arts", label: "Arts martiaux", icon: "Swords", color: "#B45309" },

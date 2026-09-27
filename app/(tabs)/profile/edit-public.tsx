@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { SPORTS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
@@ -170,9 +171,12 @@ export default function EditPublicProfileScreen() {
                   practicedSports.includes(s.id) ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
                 }`}
               >
-                <Text className={practicedSports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}>
-                  {s.label}
-                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <Icon name={s.icon} size={14} color={practicedSports.includes(s.id) ? "#FFFFFF" : s.color} />
+                  <Text className={practicedSports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}>
+                    {s.label}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -191,9 +195,12 @@ export default function EditPublicProfileScreen() {
                   interestedSports.includes(s.id) ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
                 }`}
               >
-                <Text className={interestedSports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}>
-                  {s.label}
-                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <Icon name={s.icon} size={14} color={interestedSports.includes(s.id) ? "#FFFFFF" : s.color} />
+                  <Text className={interestedSports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}>
+                    {s.label}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </View>

@@ -26,13 +26,18 @@ import { ConversationActionSheet } from "@/components/conversations/Conversation
 
 function ConvSkeleton() {
   return (
-    <View className="px-4 pt-4 gap-0">
+    <View
+      className="px-4 pt-4"
+      testID="conversations-skeleton"
+      accessibilityLabel={t("common.loading")}
+      importantForAccessibility="no-hide-descendants"
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <View key={i} className="flex-row items-center gap-3 py-4 border-b border-border">
-          <Skeleton className="w-12 h-12 rounded-full" />
+          <Skeleton.Circle className="w-12 h-12" />
           <View className="flex-1 gap-2">
-            <Skeleton className="w-40 h-4 rounded-sm" />
-            <Skeleton className="w-56 h-3 rounded-sm" />
+            <Skeleton.Line className="w-40" height={14} />
+            <Skeleton.Line className="w-56" height={10} />
           </View>
         </View>
       ))}

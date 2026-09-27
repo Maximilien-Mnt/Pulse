@@ -270,7 +270,10 @@ export default function ClubSettings() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {SPORTS.map((sp) => (
               <Pressable key={sp.id} onPress={() => toggleSport(sp.id)} className={`px-3 py-1.5 rounded-full border ${sports.includes(sp.id) ? "bg-primary border-primary" : "border-primary"}`}>
-                <Text className={sports.includes(sp.id) ? "text-white text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{sp.label}</Text>
+                <View className="flex-row items-center gap-1.5">
+                  <Icon name={sp.icon} size={12} color={sports.includes(sp.id) ? "#FFFFFF" : sp.color} />
+                  <Text className={sports.includes(sp.id) ? "text-white text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}>{sp.label}</Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -281,7 +284,10 @@ export default function ClubSettings() {
               <View className="h-3" />
               {sports.map((sp) => (
                 <View key={sp} className="mb-3">
-                  <Text className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{SPORTS.find((x) => x.id === sp)?.label ?? sp}</Text>
+                  <View className="flex-row items-center gap-1.5 mb-1.5">
+                    <Icon name={SPORTS.find((x) => x.id === sp)?.icon ?? "Circle"} size={12} color={SPORTS.find((x) => x.id === sp)?.color} />
+                    <Text className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{SPORTS.find((x) => x.id === sp)?.label ?? sp}</Text>
+                  </View>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                     {((SPORT_LEVELS as Record<string, string[]>)[sp] ?? ["Any"]).map((lvl: string) => (
                       <Pressable key={lvl} onPress={() => setLevelFor(sp, lvl)} className={`px-2.5 py-1 rounded-full border ${(requiredLevels[sp] ?? "Any") === lvl ? "bg-primary border-primary" : "border-primary"}`}>

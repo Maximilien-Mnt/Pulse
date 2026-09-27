@@ -178,9 +178,12 @@ export default function SignupStep3() {
                   accessibilityState={{ selected: on }}
                   className={`px-3 py-2 rounded-full mr-2 mb-2 ${on ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"}`}
                 >
-                  <Text className={on ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}>
-                    {t(`signup.sport.${s.id}`)}
-                  </Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={14} color={on ? "#FFFFFF" : s.color} />
+                    <Text className={on ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}>
+                      {t(`signup.sport.${s.id}`)}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}

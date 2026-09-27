@@ -27,6 +27,7 @@ import { logger } from "@/lib/reporting/logger";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
+import { SkeletonProvider } from "@/components/ui/Skeleton";
 import { markNavigatedInSession, recordRouteChange } from "@/lib/navigationSession";
 
 SplashScreen.preventAutoHideAsync();
@@ -183,6 +184,7 @@ export default function RootLayout() {
             <AppErrorBoundary route={pathname}>
             <AuthGate />
             <PushNotificationsGate>
+              <SkeletonProvider>
               <View className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
                 <StatusBar style={isDark ? "light" : "dark"} />
                 <OfflineBanner />
@@ -197,6 +199,7 @@ export default function RootLayout() {
 
                 <Toast config={toastConfig} />
               </View>
+              </SkeletonProvider>
             </PushNotificationsGate>
             </AppErrorBoundary>
           </PostHogProvider>

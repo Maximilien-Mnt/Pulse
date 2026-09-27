@@ -44,6 +44,11 @@ export function usePostLike({
   const [liked, setLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
 
+  // Refs mirror the displayed state so rapid taps compute the correct
+  // next value even when `onMutate` closes over a stale render.
+  const likedRef = useRef(initialLiked);
+  const likesCountRef = useRef(initialLikesCount);
+
   // The server is the source of truth for the count. Keep a flag so we never
   // let a refetched prop overwrite a pending optimistic change mid-flight.
   const isMutatingRef = useRef(false);
@@ -53,6 +58,8 @@ export function usePostLike({
     if (isMutatingRef.current) return;
     setLiked(initialLiked);
     setLikesCount(initialLikesCount);
+    likedRef.current = initialLiked;
+    likesCountRef.current = initialLikesCount;
   }, [initialLiked, initialLikesCount]);
 
   // Write the new state everywhere the post is cached (feed, user posts,
@@ -111,29 +118,35 @@ export function usePostLike({
       return row;
     },
 
-    // Optimistic update: flip UI immediately, roll back on error.
-    onMutate: async (): Promise<{ prevLiked: boolean; prevLikesCount: number }> => {
-      // Stop any in-flight refetch from clobbering our optimistic snapshot.
-      await queryClient.cancelQueries({ queryKey: ["feed"] });
-      await queryClient.cancelQueries({ queryKey: ["user-posts-with-author"] });
-      await queryClient.cancelQueries({ queryKey: ["user-posts"] });
-
-      const prevLiked = liked;
-      const prevLikesCount = likesCount;
+    // Optimistic update: flip UI synchronously (same frame as press),
+    // roll back on error. Ref reads avoid stale closures on rapid taps,
+    // and no `await` runs before the state writes so there is zero delay.
+    onMutate: (): { prevLiked: boolean; prevLikesCount: number } => {
+      const prevLiked = likedRef.current;
+      const prevLikesCount = likesCountRef.current;
       const nextLiked = !prevLiked;
       const nextLikesCount = Math.max(0, prevLikesCount + (nextLiked ? 1 : -1));
 
       isMutatingRef.current = true;
+      likedRef.current = nextLiked;
+      likesCountRef.current = nextLikesCount;
       setLiked(nextLiked);
       setLikesCount(nextLikesCount);
       applyState(nextLiked, nextLikesCount);
       notifyChange(nextLiked, nextLikesCount);
+
+      // Stop any in-flight refetch from clobbering our optimistic snapshot.
+      void queryClient.cancelQueries({ queryKey: ["feed"] });
+      void queryClient.cancelQueries({ queryKey: ["user-posts-with-author"] });
+      void queryClient.cancelQueries({ queryKey: ["user-posts"] });
 
       return { prevLiked, prevLikesCount };
     },
 
     onError: (_err, _vars, context) => {
       if (!context) return;
+      likedRef.current = context.prevLiked;
+      likesCountRef.current = context.prevLikesCount;
       setLiked(context.prevLiked);
       setLikesCount(context.prevLikesCount);
       applyState(context.prevLiked, context.prevLikesCount);
@@ -142,6 +155,8 @@ export function usePostLike({
 
     // Server truth always wins: show exactly what the database computed.
     onSuccess: (row) => {
+      likedRef.current = row.liked;
+      likesCountRef.current = row.likes_count;
       setLiked(row.liked);
       setLikesCount(row.likes_count);
       applyState(row.liked, row.likes_count);
@@ -158,9 +173,11 @@ export function usePostLike({
   });
 
   const toggleLike = useCallback(() => {
-    if (!userId || likeMutation.isPending) return;
+    // No isPending guard: every press flips optimistically in the same frame.
+    // A failed request rolls back via onError, restoring heart + count.
+    if (!userId) return;
     likeMutation.mutate();
-  }, [userId, likeMutation.isPending, likeMutation.mutate]);
+  }, [userId, likeMutation.mutate]);
 
   return {
     liked,

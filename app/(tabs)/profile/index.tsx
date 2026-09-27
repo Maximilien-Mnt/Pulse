@@ -45,20 +45,20 @@ import { useMyCreatedClubs } from "@/hooks/useMyCreatedClubs";
 function ProfileSkeleton() {
   return (
     <SafeScreen edges={["top"]}>
-      <View>
+      <View testID="profile-skeleton" importantForAccessibility="no-hide-descendants">
         <Skeleton className="w-full h-32 rounded-none" />
-      </View>
-      <View className="px-4 gap-4 -mt-12">
-        <Skeleton className="w-24 h-24 rounded-full" />
-        <Skeleton className="w-48 h-6 rounded-sm" />
-        <Skeleton className="w-full h-8 rounded-sm" />
-        <View className="flex-row gap-2">
-          <Skeleton className="w-16 h-8 rounded-full" />
-          <Skeleton className="w-16 h-8 rounded-full" />
-        </View>
-        <View className="flex-row gap-3">
-          <Skeleton className="flex-1 h-[76px] rounded-xl" />
-          <Skeleton className="flex-1 h-[76px] rounded-xl" />
+        <View className="px-4 gap-4 -mt-12">
+          <Skeleton.Circle className="w-24 h-24" />
+          <Skeleton.Line className="w-48" height={20} />
+          <Skeleton.Line className="w-full" height={24} lines={2} />
+          <View className="flex-row gap-2">
+            <Skeleton className="w-16 h-8 rounded-full" />
+            <Skeleton className="w-16 h-8 rounded-full" />
+          </View>
+          <View className="flex-row gap-3">
+            <Skeleton.Card className="flex-1 h-[76px]" />
+            <Skeleton.Card className="flex-1 h-[76px]" />
+          </View>
         </View>
       </View>
     </SafeScreen>

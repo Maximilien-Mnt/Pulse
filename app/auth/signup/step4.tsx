@@ -4,6 +4,7 @@ import { Header } from "@/components/shared/Header";
 import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { Input } from "@/components/ui/Input";
 import { NativePicker } from "@/components/ui/NativePicker";
+import { Icon } from "@/components/ui/Icon";
 import { OBJECTIVES, SPORTS } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import { signupStep4Schema } from "@/utils/validation";
@@ -128,9 +129,12 @@ export default function SignupStep4() {
                 accessibilityState={{ selected: on }}
                 className={`px-3 py-2 rounded-full mr-2 mb-2 ${on ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"}`}
               >
-                <Text className={on ? "text-white" : "text-neutral-800 dark:text-neutral-100"}>
-                  {t(`signup.sport.${s.id}`)}
-                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <Icon name={s.icon} size={14} color={on ? "#FFFFFF" : s.color} />
+                  <Text className={on ? "text-white" : "text-neutral-800 dark:text-neutral-100"}>
+                    {t(`signup.sport.${s.id}`)}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}

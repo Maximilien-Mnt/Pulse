@@ -1,10 +1,10 @@
 import { ClubCard } from "@/components/clubs/ClubCard";
 import { ClubCardGrid } from "@/components/clubs/ClubCardGrid";
+import { ClubCardListSkeleton } from "@/components/clubs/ClubCardSkeleton";
 import { ClubFilters } from "@/components/clubs/ClubFilters";
 import { Header } from "@/components/shared/Header";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
 import type { ClubListFilters } from "@/hooks/useClubs";
 import { useClubs } from "@/hooks/useClubs";
 import { useLocation } from "@/hooks/useLocation";
@@ -88,10 +88,7 @@ export default function ClubsScreen() {
     return (
       <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]">
         <Header title={t("common.clubs")} showAvatar avatarUrl={profile?.avatar_url} />
-        <View className="px-4 gap-3">
-          <Skeleton height={80} />
-          <Skeleton height={80} />
-        </View>
+        <ClubCardListSkeleton count={6} testID="clubs-list-skeleton" />
       </SafeScreen>
     );
   }

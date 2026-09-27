@@ -10,17 +10,22 @@ import { View } from "react-native";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { EventCardGridSkeleton, EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { Text as PulseText } from "@/components/ui/Text";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function EventsListSkeleton({ grid = false }: { grid?: boolean }) {
   const { t } = useTranslation();
   return (
-    <View className="px-4 gap-3" testID="events-list-skeleton" accessibilityLabel={t("common.loading")}>
-      {Array.from({ length: grid ? 6 : 4 }).map((_, i) => (
-        <Skeleton key={i} height={grid ? 180 : 96} className="w-full rounded-2xl" />
-      ))}
+    <View
+      className={grid ? "px-4 flex-row flex-wrap" : "px-4"}
+      testID="events-list-skeleton"
+      accessible
+      accessibilityLabel={t("common.loading")}
+    >
+      {Array.from({ length: grid ? 6 : 4 }).map((_, i) =>
+        grid ? <EventCardGridSkeleton key={i} /> : <EventCardSkeleton key={i} />,
+      )}
     </View>
   );
 }

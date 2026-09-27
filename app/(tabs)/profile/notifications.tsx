@@ -28,6 +28,7 @@ import {
 } from "react-native";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { BackButton } from "@/components/ui/BackButton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useRouter } from "expo-router";
 import {
   useNotifications,
@@ -330,8 +331,21 @@ export default function ProfileNotificationsScreen() {
         </View>
       </View>
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#1E6BFF" accessibilityLabel={t("common.loading")} />
+        <View
+          className="flex-1 px-4 pt-4"
+          testID="notifications-skeleton"
+          accessible
+          accessibilityLabel={t("common.loading")}
+        >
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} className="flex-row items-center gap-3 py-4 border-b border-border">
+              <Skeleton.Circle className="w-11 h-11" />
+              <View className="flex-1 gap-2">
+                <Skeleton.Line className="w-1/2" height={14} />
+                <Skeleton.Line className="w-3/4" height={10} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : notifications.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">

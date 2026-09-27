@@ -68,6 +68,8 @@ import {
   Footprints,
   Funnel,
   Globe,
+  Goal,
+
   Hand,
   Heart,
   Home,
@@ -81,6 +83,8 @@ import {
   Mail,
   MapPin,
   MapPinned,
+  Medal,
+
   MessageCircle,
   MoreVertical,
   MessageSquare,
@@ -168,6 +172,8 @@ export const ICON_MAP = {
   Footprints,
   Funnel,
   Globe,
+  Goal,
+
   Hand,
   Heart,
   Home,
@@ -181,6 +187,8 @@ export const ICON_MAP = {
   Mail,
   MapPin,
   MapPinned,
+  Medal,
+
   MessageCircle,
   MoreVertical,
   MessageSquare,
@@ -342,7 +350,12 @@ export const Icon = React.memo<IconProps>(
     // For React Native, we need to pass the color as a hex value
     const iconColorHex = typeof resolvedColor === "string" ? resolvedColor : "#000000";
 
-        const LucideComponent = ICON_MAP[name] ?? Info;
+        const resolvedIcon = ICON_MAP[name as IconName];
+    if (__DEV__ && !resolvedIcon)
+      console.warn(
+        `[Icon] Unknown icon name "${String(name)}" — rendering Info fallback. Add it to ICON_MAP in components/ui/Icon.tsx.`,
+      );
+    const LucideComponent = resolvedIcon ?? Info;
 
     // Accessibility: an Icon is decorative by default (ignored by AT).
     // When a label is provided, treat it as informative. When explicitly

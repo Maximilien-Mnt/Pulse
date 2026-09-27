@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { assertCanManageEvent } from "@/lib/eventPermissions";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { t } from "@/hooks/useTranslation";
 
 /**
  * Cancels an event and notifies all participants + club members.
+ * - Resolves permissions (creator OR owner/admin of the publishing club)
  * - Fetches event_participants and club_members
  * - Deletes the event (FK cascades: participants, favorites, join requests)
  * - Sends a notification to every affected user with an optional message
@@ -28,15 +30,9 @@ export function useCancelEvent() {
     }) => {
       if (!userId) throw new Error("auth");
 
-      // Verify the current user is the event creator
-      const { data: event, error: eventError } = await supabase
-        .from("events")
-        .select("created_by")
-        .eq("id", eventId)
-        .single();
-
-      if (eventError) throw eventError;
-      if (event.created_by !== userId) throw new Error("unauthorized");
+      // Verify the current user manages the event (creator or publishing-club owner/admin)
+      const managedEvent = await assertCanManageEvent(eventId, userId);
+      const effectiveClubId = clubId ?? managedEvent.publisher_club_id ?? managedEvent.club_id ?? null;
 
       // Collect all affected users: event participants
       const { data: participants } = await supabase
@@ -49,11 +45,11 @@ export function useCancelEvent() {
       (participants ?? []).forEach((p) => affectedUserIds.add(p.user_id));
 
       // Also add club members if the event belongs to a club
-      if (clubId) {
+      if (effectiveClubId) {
         const { data: members } = await supabase
           .from("club_members")
           .select("user_id")
-          .eq("club_id", clubId)
+          .eq("club_id", effectiveClubId)
           .neq("user_id", userId);
         (members ?? []).forEach((m) => affectedUserIds.add(m.user_id));
       }
@@ -76,7 +72,7 @@ export function useCancelEvent() {
           p_body: trimmedMsg
             ? t("events.canceledNotificationWithMessage", { eventName, message: trimmedMsg })
             : t("events.canceledNotification", { eventName }),
-          p_data: { event_id: eventId, club_id: clubId ?? null, message: trimmedMsg ?? null },
+          p_data: { event_id: eventId, club_id: effectiveClubId, message: trimmedMsg ?? null },
         });
       }
 
@@ -97,3 +93,4 @@ export function useCancelEvent() {
     },
   });
 }
+

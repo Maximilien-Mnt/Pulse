@@ -50,9 +50,12 @@ export function ClubFilters({ visible, onClose, value, onApply, isLocationEnable
                   onPress={() => toggleSport(s.id)}
                   className={`px-4 py-3 rounded-full mr-2 mb-2 active:opacity-80 ${draft.sports.includes(s.id) ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
                 >
-                  <Text className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}>
-                    {s.label}
-                  </Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name={s.icon} size={15} color={draft.sports.includes(s.id) ? "#FFFFFF" : s.color} />
+                    <Text className={draft.sports.includes(s.id) ? "text-white font-medium" : "text-neutral-800 dark:text-neutral-100"}>
+                      {s.label}
+                    </Text>
+                  </View>
                 </Pressable>
               ))}
             </View>

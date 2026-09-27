@@ -85,15 +85,18 @@ function SportPill({
               active ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
             }`}
           >
-            <Text
-              className={`${
-                active
-                  ? "text-white font-medium"
-                  : "text-neutral-700 dark:text-neutral-200"
-              }`}
-            >
-              {s.label}
-            </Text>
+            <View className="flex-row items-center gap-1.5">
+              <Icon name={s.icon} size={14} color={active ? "#FFFFFF" : s.color} />
+              <Text
+                className={`${
+                  active
+                    ? "text-white font-medium"
+                    : "text-neutral-700 dark:text-neutral-200"
+                }`}
+              >
+                {s.label}
+              </Text>
+            </View>
           </Pressable>
         );
       })}

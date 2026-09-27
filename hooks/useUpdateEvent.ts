@@ -1,30 +1,39 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { assertCanManageEvent } from "@/lib/eventPermissions";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
 
-type EventUpdateData = {
+export type EventUpdateData = {
   name?: string;
   description?: string;
   short_description?: string;
+  country?: string;
+  city?: string;
   venue_address?: string | null;
   postal_code?: string | null;
   website_url?: string | null;
   registration_url?: string | null;
+  is_external?: boolean;
   contact_email?: string | null;
   league?: string | null;
   cover_url?: string | null;
+  logo_url?: string | null;
+  hero_urls?: string[];
+  required_level?: string | null;
   required_levels?: Record<string, string> | null;
   sports?: string[];
+  sport?: string;
   start_date?: string;
   end_date?: string | null;
   price_cents?: number;
   is_paid?: boolean;
   places_total?: number | null;
-  logo_url?: string | null;
-  hero_urls?: string[];
+  places_left?: number | null;
+  age_min?: number | null;
+  age_max?: number | null;
 };
 
 export function useUpdateEvent() {
@@ -36,15 +45,8 @@ export function useUpdateEvent() {
     mutationFn: async ({ eventId, data, oldData }: { eventId: string; data: EventUpdateData; oldData: any }) => {
       if (!userId) throw new Error("auth");
 
-      // Verify the current user is the event creator
-      const { data: event, error: eventError } = await supabase
-        .from("events")
-        .select("created_by, name")
-        .eq("id", eventId)
-        .single();
-
-      if (eventError) throw eventError;
-      if (event.created_by !== userId) throw new Error("unauthorized");
+      // Verify the current user manages the event (creator or publishing-club owner/admin)
+      const event = await assertCanManageEvent(eventId, userId);
 
       // Update the event
       const { error: updateError } = await supabase
@@ -78,7 +80,7 @@ export function useUpdateEvent() {
       };
 
       for (const [key, label] of Object.entries(fieldLabels)) {
-        if (data[key as keyof EventUpdateData] !== undefined && data[key as keyof EventUpdateData] !== oldData[key]) {
+        if (data[key as keyof EventUpdateData] !== undefined && JSON.stringify(data[key as keyof EventUpdateData]) !== JSON.stringify(oldData[key])) {
           changes.push(label);
         }
       }

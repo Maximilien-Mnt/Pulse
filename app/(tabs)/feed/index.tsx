@@ -53,21 +53,26 @@ import { formatCount } from "@/utils/format";
 
 function FeedSkeleton() {
   return (
-    <View className="px-4 pt-4 gap-4">
+    <View
+      className="px-4 pt-4 gap-4"
+      testID="feed-skeleton"
+      accessibilityLabel={t("common.loading")}
+      importantForAccessibility="no-hide-descendants"
+    >
       {[1, 2, 3].map((i) => (
         <View key={i} className="bg-surface rounded-lg border border-border p-4 gap-3">
           <View className="flex-row items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-full" />
+            <Skeleton.Circle className="w-10 h-10" />
             <View className="flex-1 gap-2">
-              <Skeleton className="w-32 h-4 rounded-sm" />
-              <Skeleton className="w-20 h-3 rounded-sm" />
+              <Skeleton.Line className="w-32" height={14} />
+              <Skeleton.Line className="w-20" height={10} />
             </View>
           </View>
-          <Skeleton className="w-full h-16 rounded-sm" />
+          <Skeleton.Line className="w-full" height={16} lines={3} />
           <View className="flex-row gap-6">
-            <Skeleton className="w-12 h-4 rounded-sm" />
-            <Skeleton className="w-12 h-4 rounded-sm" />
-            <Skeleton className="w-12 h-4 rounded-sm" />
+            <Skeleton.Line className="w-12" height={14} />
+            <Skeleton.Line className="w-12" height={14} />
+            <Skeleton.Line className="w-12" height={14} />
           </View>
         </View>
       ))}

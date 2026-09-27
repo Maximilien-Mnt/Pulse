@@ -317,11 +317,14 @@ export default function CreatePublicClubScreen() {
                   sports.includes(s.id) ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
                 }`}
               >
-                <Text
-                  className={sports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
-                >
-                  {s.label}
-                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <Icon name={s.icon} size={14} color={sports.includes(s.id) ? "#FFFFFF" : s.color} />
+                  <Text
+                    className={sports.includes(s.id) ? "text-white font-medium" : "text-neutral-700 dark:text-neutral-200"}
+                  >
+                    {s.label}
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </ScrollView>
@@ -333,9 +336,12 @@ export default function CreatePublicClubScreen() {
               </Text>
               {sports.map((sid) => (
                 <View key={sid} className="mb-3">
-                  <Text className="text-xs text-neutral-500 mb-1">
-                    {SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
-                  </Text>
+                  <View className="flex-row items-center gap-1.5 mb-1">
+                    <Icon name={SPORTS.find((sp) => sp.id === sid)?.icon ?? "Circle"} size={12} color={SPORTS.find((sp) => sp.id === sid)?.color} />
+                    <Text className="text-xs text-neutral-500">
+                      {SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
+                    </Text>
+                  </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] ?? ["Débutant", "Intermédiaire", "Confirmé"]).map((lvl) => {
                       const active = requiredLevels[sid] === lvl;

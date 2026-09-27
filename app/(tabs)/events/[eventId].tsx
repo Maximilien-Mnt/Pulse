@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { FlatList, RefreshControl, ScrollView, View, Pressable, Share } from "react-native";
+import { FlatList, RefreshControl, ScrollView, View, Pressable, Share, Platform } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import Toast from "react-native-toast-message";
@@ -24,9 +25,8 @@ import { Text as PulseText } from "@/components/ui/Text";
 import { Avatar } from "@/components/ui/Avatar";
 import { BackButton } from "@/components/ui/BackButton";
 import { MembersListSheet, type Member } from "@/components/shared/MembersListSheet";
-import { EditClubEventSheet } from "@/components/shared/EditClubEventSheet";
 import { useJoinRequestStatus } from "@/hooks/useJoinRequestStatus";
-import { useUpdateEvent } from "@/hooks/useUpdateEvent";
+import { useCanManageEvent } from "@/hooks/useCanManageEvent";
 import { EventMembersStrip } from "@/components/events/EventMembersStrip";
 import { attachEventCreators } from "@/lib/eventIdentity";
 import { supabase } from "@/lib/supabase";
@@ -135,8 +135,10 @@ export default function EventDetailScreen() {
   });
 
   const [showMembersList, setShowMembersList] = useState(false);
-  const [showEditSheet, setShowEditSheet] = useState(false);
-  const updateEvent = useUpdateEvent();
+
+  // The event creator and the owner/admins of the club it was published
+  // through can manage it (settings screen: edit + cancel).
+  const { canManage } = useCanManageEvent(event ?? null);
 
   // Safe, PII-free diagnostics for detail load failures (UI stays non-technical).
   useEffect(() => {
@@ -252,6 +254,62 @@ export default function EventDetailScreen() {
   const placeValue = placeParts.join(", ");
   const isCreator = !!userId && event.created_by === userId;
 
+  // Canonical, shareable link for this event:
+  // - Web: the live origin so the copied/shared link actually opens the page.
+  // - Native: the app public web URL.
+  const eventShareUrl =
+    Platform.OS === "web" && typeof window !== "undefined" && window.location?.origin
+      ? `${window.location.origin}/events/${event.id}`
+      : `https://pulse.app/event/${event.id}`;
+  const eventShareMessage = `${event.name} — Pulse`;
+
+  // Opens the OS share sheet AND copies the event link to the clipboard.
+  const handleShare = async () => {
+    // Copy first so the link stays available even if the sheet is dismissed.
+    try {
+      if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(eventShareUrl);
+      } else {
+        await Clipboard.setStringAsync(eventShareUrl);
+      }
+    } catch {
+      // Clipboard can be blocked (permissions / insecure context) - the share
+      // sheet below still carries the link, so this is non-fatal.
+    }
+
+    if (Platform.OS === "web") {
+      type WebShareData = { title?: string; text?: string; url?: string };
+      const nav =
+        typeof navigator !== "undefined"
+          ? (navigator as Navigator & {
+              share?: (data: WebShareData) => Promise<void>;
+              canShare?: (data: WebShareData) => boolean;
+            })
+          : undefined;
+      const shareData = { title: event.name, text: eventShareMessage, url: eventShareUrl };
+      if (nav?.share && (typeof nav.canShare !== "function" || nav.canShare(shareData))) {
+        try {
+          await nav.share(shareData);
+        } catch {
+          // User dismissed the OS share sheet - the link is already copied.
+        }
+      }
+    } else {
+      try {
+        await Share.share({
+          title: event.name,
+          message: `${eventShareMessage}\n${eventShareUrl}`,
+          url: eventShareUrl,
+        });
+      } catch {
+        // User dismissed the share sheet.
+      }
+    }
+
+    Toast.show({ type: "success", text1: t("events.linkCopied") });
+    posthog.capture("event_shared", { event_id: event.id });
+  };
+
   const registrationUrl = event.registration_url?.trim() || null;
   const shortDescription = event.short_description?.trim() || null;
   const longDescription = event.description?.trim() || null;
@@ -324,23 +382,38 @@ export default function EventDetailScreen() {
 
   return (
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
-      <Stack.Screen
-        options={{
-          title: event.name,
-          headerRight: () =>
-            isCreator ? (
-              <Pressable onPress={() => setShowEditSheet(true)} hitSlop={8} className="mr-2">
-                <Icon name="Settings" size={24} color="text-secondary" />
-              </Pressable>
-            ) : null,
-        }}
-      />
+      <Stack.Screen options={{ title: event.name }} />
 
       <View className="flex-row items-center px-3 py-2">
         <BackButton useInAppSession />
+        {canManage ? <View className="w-[52px]" /> : null}
         <PulseText variant="h2" className="flex-1 text-center" numberOfLines={1}>
           {event.name}
         </PulseText>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={handleShare}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("events.shareAction")}
+            testID="event-detail-share-button"
+            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+          >
+            <Icon name="Share2" size={22} color="primary" />
+          </Pressable>
+          {canManage ? (
+            <Pressable
+              onPress={() => router.push(`/(tabs)/events/${event.id}/settings`)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("events.settings")}
+              testID="event-detail-settings-button"
+              className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+            >
+              <Icon name="Settings" size={22} color="primary" />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <ScrollView
@@ -609,17 +682,6 @@ export default function EventDetailScreen() {
         currentUserId={userId}
       />
 
-      {/* Edit Event Modal */}
-      <EditClubEventSheet
-        visible={showEditSheet}
-        onClose={() => setShowEditSheet(false)}
-        type="event"
-        data={event}
-        onSave={(updateData, oldData) => {
-          updateEvent.mutate({ eventId: event.id, data: updateData, oldData }, { onSuccess: () => setShowEditSheet(false) });
-        }}
-        isLoading={updateEvent.isPending}
-      />
     </SafeScreen>
   );
 }

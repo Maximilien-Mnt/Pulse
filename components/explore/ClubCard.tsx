@@ -26,6 +26,7 @@ import { Tag } from "@/components/ui/Tag";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { t } from "@/hooks/useTranslation";
 
 interface ClubCardProps {
   club: {
@@ -83,6 +84,12 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
     data?.isMember ?? false,
     data?.isPending ?? false,
   );
+
+  // The CTA mirrors the club's registration workflow: in-app clubs are joined
+  // from Pulse, external clubs register on their own site (via the detail
+  // screen, which opens the club's registration link in the browser).
+  const joinLabel = club.is_external ? t("common.register") : t("common.join");
+  const joinIcon = club.is_external ? ("Globe" as const) : undefined;
 
   const handlePress = () => {
     router.push(`/(tabs)/explore/club/${club.id}`);
@@ -200,8 +207,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               </Text>
             </View>
           ) : (
-            <Button variant="primary" onPress={handlePress} className="w-full py-1.5">
-              Rejoindre
+            <Button
+              variant="primary"
+              icon={joinIcon}
+              onPress={handlePress}
+              className="w-full py-1.5"
+            >
+              {joinLabel}
             </Button>
           )}
 
@@ -263,8 +275,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 </Text>
               </View>
             ) : (
-              <Button variant="primary" onPress={handlePress} className="w-full">
-                Rejoindre
+              <Button
+                variant="primary"
+                icon={joinIcon}
+                onPress={handlePress}
+                className="w-full"
+              >
+                {joinLabel}
               </Button>
             )}
 
@@ -358,8 +375,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 </Text>
               </View>
             ) : (
-              <Button variant="primary" onPress={handlePress} className="w-full">
-                Rejoindre
+              <Button
+                variant="primary"
+                icon={joinIcon}
+                onPress={handlePress}
+                className="w-full"
+              >
+                {joinLabel}
               </Button>
             )}
 

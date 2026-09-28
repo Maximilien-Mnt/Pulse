@@ -78,6 +78,19 @@ export default function ClubDetailScreen() {
   if (clubLoading) return <ClubLoadingSkeleton />;
   if (!club) return <ClubNotFoundState onBack={() => router.back()} />;
 
+  // ── External workflow ──────────────────────────────────────────────────
+  // External clubs register outside Pulse: the header CTA opens the club's
+  // own registration link instead of creating an in-app join request.
+  const externalRegUrl = club.is_external
+    ? club.registration_url?.trim() || club.website_url?.trim() || null
+    : null;
+
+  const handleExternalRegister = async () => {
+    if (!externalRegUrl) return;
+    const { openBrowserAsync } = await import('expo-web-browser');
+    await openBrowserAsync(externalRegUrl);
+  };
+
   // ── Derived display values (require a loaded club — see guard above) ──
   const cover = club.cover_url ?? club.hero_urls?.[0];
   const shortDesc = club.short_description ?? null;
@@ -94,7 +107,7 @@ export default function ClubDetailScreen() {
   ];
 
   const linkRows: LinkRowData[] = [
-    club.registration_url && { icon: 'UserPlus', label: "S'inscrire", value: club.registration_url, url: club.registration_url },
+    club.registration_url && { icon: 'UserPlus', label: t('common.register'), value: club.registration_url, url: club.registration_url },
     club.website_url && { icon: 'Globe', label: 'Site web', value: club.website_url, url: club.website_url },
     club.contact_email && { icon: 'Mail', label: 'Email', value: club.contact_email, url: `mailto:${club.contact_email}` },
     club.phone_number && { icon: 'Smartphone', label: 'Téléphone', value: club.phone_number, url: `tel:${club.phone_number}` },
@@ -139,6 +152,12 @@ export default function ClubDetailScreen() {
                   onPress={() => setShowLeaveSheet(true)}
                 />
               </>
+            ) : externalRegUrl ? (
+              <ClubTopPillButton
+                label={t('common.register')}
+                icon='Globe'
+                onPress={() => void handleExternalRegister()}
+              />
             ) : joinStatus?.isPending ? (
               <ClubTopPillButton
                 label={t('clubJoin.requestSent')}

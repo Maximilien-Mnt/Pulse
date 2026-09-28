@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Pill, SportBadge, SourcePill } from './ClubSharedUI';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { ClubDetailRow } from '@/hooks/clubProjections';
 
 interface ClubIdentityProps {
@@ -15,6 +16,7 @@ interface ClubIdentityProps {
 
 /** Logo, title, short description, sport labels, source pill, and privacy pill. */
 export function ClubIdentity({ club, shortDesc, sports }: ClubIdentityProps) {
+  const { t } = useTranslation();
   return (
     <View className='px-5 mb-5'>
       {/* Overlapping logo above the card */}
@@ -62,6 +64,12 @@ export function ClubIdentity({ club, shortDesc, sports }: ClubIdentityProps) {
             />
           ) : null}
         </View>
+        {/* External clubs register outside Pulse — spell the workflow out. */}
+        {club.is_external ? (
+          <PulseText variant='caption' className='text-neutral-500 mt-2'>
+            {t('source.externalHint')}
+          </PulseText>
+        ) : null}
       </View>
     </View>
   );

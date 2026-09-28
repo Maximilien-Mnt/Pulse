@@ -7,7 +7,7 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SPORTS } from '@/lib/constants';
 import type { SportDefinition } from '@/lib/constants';
-import { t } from '@/hooks/useTranslation';
+import { SourceBadge } from '@/components/shared/SourceBadge';
 
 /**
  * Runtime-safe icon-name check. The design system's <Icon> silently falls back
@@ -87,13 +87,10 @@ export function SportBadge({ sport }: { sport: string }) {
   );
 }
 
-/** Source chip (in-app vs external), rendered with the uniform Pill format. */
+/** Source chip (in-app vs external), delegated to the shared SourceBadge so
+ * icon, colors and labels stay consistent with cards and event screens. */
 export function SourcePill({ isExternal }: { isExternal?: boolean }) {
-  return isExternal ? (
-    <Pill icon='Globe' label='Source externe' color='#F59E0B' bgClass='bg-warning/15' />
-  ) : (
-    <Pill icon='Smartphone' label={t('source.inApp')} color='#3358FF' bgClass='bg-primary/10' />
-  );
+  return <SourceBadge isExternal={isExternal} variant='full' />;
 }
 
 // ---------------------------------------------------------------------------

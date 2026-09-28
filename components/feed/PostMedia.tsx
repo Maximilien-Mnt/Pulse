@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useWindowDimensions } from "react-native";
 import type { PostFormat } from "@/types";
 import { Icon } from "@/components/ui/Icon";
+import { GalleryArrowButton } from "@/components/ui/GalleryArrowButton";
 import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { t } from "@/hooks/useTranslation";
@@ -319,20 +320,18 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
           {isWeb && urls.length > 1 ? (
             <>
               {canLeft ? (
-                <Pressable
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
+                <GalleryArrowButton
+                  direction="left"
                   onPress={() => scrollGallery("left")}
-                >
-                  <Icon name="ChevronLeft" size={20} color="text-primary" />
-                </Pressable>
+                  accessibilityLabel="Photo précédente"
+                />
               ) : null}
               {canRight ? (
-                <Pressable
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700 z-10"
+                <GalleryArrowButton
+                  direction="right"
                   onPress={() => scrollGallery("right")}
-                >
-                  <Icon name="ChevronRight" size={20} color="text-primary" />
-                </Pressable>
+                  accessibilityLabel="Photo suivante"
+                />
               ) : null}
             </>
           ) : null}

@@ -18,14 +18,55 @@ import { useLanguageStore } from "@/stores/languageStore";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
 import { Text } from "@/components/ui/Text";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/utils/format";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { SecuritySection } from "@/components/profile/SecuritySection";
 import { DeleteAccountSheet } from "@/components/profile/DeleteAccountSheet";
 import { GoPublicSheet } from "@/components/profile/GoPublicSheet";
 import { BugReportSheet } from "@/components/shared/BugReportSheet";
 import { BackButton } from "@/components/ui/BackButton";
+
+/**
+ * Standard settings / legal navigation row: leading icon, title + subtitle,
+ * and the shared arrow nudge on hover / keyboard focus (the same
+ * micro-interaction as the profile screen's notification/settings cards —
+ * see components/ui/Arrow.tsx).
+ */
+function SettingsRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable
+      {...nudge}
+      onPress={onPress}
+      className={cn(
+        "flex-row items-center justify-between px-4 py-4 active:opacity-80",
+        active && "bg-primary-tint dark:bg-primary-tint-dark"
+      )}
+    >
+      <View className="flex-row items-center gap-3">
+        <Icon name={icon} size={20} color="text-secondary" />
+        <View>
+          <Text className="text-neutral-900 dark:text-neutral-50 font-medium">{title}</Text>
+          <Text className="text-xs text-neutral-500 mt-0.5">{subtitle}</Text>
+        </View>
+      </View>
+      <Arrow active={active} name="ChevronRight" size={16} color="text-tertiary" />
+    </Pressable>
+  );
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -72,43 +113,21 @@ export default function SettingsScreen() {
           {t("settings.section.profile")}
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
-          <Pressable
+          <SettingsRow
+            icon="User"
+            title={t("settings.editProfile")}
+            subtitle={t("settings.editProfileSub")}
             onPress={() => router.push("/(tabs)/profile/edit-profile" as any)}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="User" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("settings.editProfile")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("settings.editProfileSub")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="Globe"
+            title={t("settings.publicProfile")}
+            subtitle={t("settings.publicProfileSub")}
             onPress={() => router.push("/(tabs)/profile/edit-public" as any)}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Globe" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("settings.publicProfile")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("settings.publicProfileSub")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
         </View>
 
         {/* {t("settings.section.preferences")} */}
@@ -197,123 +216,57 @@ export default function SettingsScreen() {
           Juridique
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
-          <Pressable
+          <SettingsRow
+            icon="FileText"
+            title="Conditions d'utilisation"
+            subtitle="Règles et conditions du service"
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "01-conditions-utilisation.md", title: "Conditions d'utilisation" } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="FileText" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Conditions d'utilisation
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  Règles et conditions du service
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="Shield"
+            title={t("legal.privacy.title")}
+            subtitle={t("legal.privacy.subtitle")}
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "02-politique-confidentialite.md", title: t("legal.privacy.title") } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Shield" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("legal.privacy.title")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("legal.privacy.subtitle")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="FileText"
+            title="Politique de cookies"
+            subtitle="Gestion des cookies et traceurs"
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "03-politique-cookies.md", title: "Politique de cookies" } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="FileText" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  Politique de cookies
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  Gestion des cookies et traceurs
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="FileText"
+            title={t("bug.report.title")}
+            subtitle={t("bug.report.subtitle")}
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: t("legal.moderation.title") } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="FileText" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("bug.report.title")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("bug.report.subtitle")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="Users"
+            title={t("legal.moderation.title")}
+            subtitle={t("legal.moderation.subtitle")}
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "04-politique-de-moderation.md", title: t("legal.moderation.title") } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Users" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("legal.moderation.title")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("legal.moderation.subtitle")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />
 
-          <Pressable
+          <SettingsRow
+            icon="Info"
+            title={t("legal.legalNotices.title")}
+            subtitle={t("legal.legalNotices.subtitle")}
             onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "05-mentions-legales.md", title: t("legal.legalNotices.title") } })}
-            className="flex-row items-center justify-between px-4 py-4 active:opacity-80"
-          >
-            <View className="flex-row items-center gap-3">
-              <Icon name="Info" size={20} color="text-secondary" />
-              <View>
-                <Text className="text-neutral-900 dark:text-neutral-50 font-medium">
-                  {t("legal.legalNotices.title")}
-                </Text>
-                <Text className="text-xs text-neutral-500 mt-0.5">
-                  {t("legal.legalNotices.subtitle")}
-                </Text>
-              </View>
-            </View>
-            <Icon name="ChevronRight" size={16} color="#9CA3AF" />
-          </Pressable>
+          />
         </View>
 
         {/* {t("settings.section.danger")} */}

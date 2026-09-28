@@ -12,8 +12,14 @@ export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    // Web: check CSS media query
-    if (Platform.OS === "web" && typeof window !== "undefined") {
+    // Web: check CSS media query. `matchMedia` is missing in a few
+    // environments (jsdom, some embedded webviews), so treat the API as
+    // optional and keep the default (`false` = full motion) when it is.
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function"
+    ) {
       const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
       setReduced(mq.matches);
       const handler = (e: MediaQueryListEvent) => setReduced(e.matches);

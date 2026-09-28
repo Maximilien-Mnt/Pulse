@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, FlatList } from 'react-native';
 import { Image } from 'expo-image';
-import { Icon } from '@/components/ui/Icon';
-import { PressableScale } from '@/components/ui/PressableScale';
+import { GalleryArrowButton } from '@/components/ui/GalleryArrowButton';
 
 import type { ImageLoadEventData } from 'expo-image';
 
@@ -67,28 +66,18 @@ export function ClubPhotoGallery({ urls, itemWidth, itemHeight }: ClubPhotoGalle
         {urls.length > 1 ? (
           <>
             {index > 0 ? (
-              <PressableScale
-                className='absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700'
-                scaleOnPress={0.85}
-                scaleOnHover={1.1}
+              <GalleryArrowButton
+                direction='left'
                 onPress={() => go(-1)}
-                accessibilityRole='button'
                 accessibilityLabel='Photo précédente'
-              >
-                <Icon name='ChevronLeft' size={20} color='text-primary' />
-              </PressableScale>
+              />
             ) : null}
             {index < urls.length - 1 ? (
-              <PressableScale
-                className='absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 dark:bg-neutral-900/90 items-center justify-center shadow-sm border border-neutral-200 dark:border-neutral-700'
-                scaleOnPress={0.85}
-                scaleOnHover={1.1}
+              <GalleryArrowButton
+                direction='right'
                 onPress={() => go(1)}
-                accessibilityRole='button'
                 accessibilityLabel='Photo suivante'
-              >
-                <Icon name='ChevronRight' size={20} color='text-primary' />
-              </PressableScale>
+              />
             ) : null}
           </>
         ) : null}

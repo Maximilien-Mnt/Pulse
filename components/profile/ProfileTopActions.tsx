@@ -8,21 +8,20 @@
 //     stacked otherwise — driven by onLayout so the same component adapts
 //     on native and web without breakpoints,
 //   - on web hover / keyboard focus the card shifts to its hover tint and
-//     the chevron nudges right; on press feedback follows the Card pattern.
+//     the chevron nudges right (shared <Arrow> micro-interaction, see
+//     components/ui/Arrow.tsx); on press feedback follows the Card pattern.
 // ---------------------------------------------------------------------------
 
-import React, { useRef, useState } from "react";
-import { Animated, Easing, Platform, Pressable, View } from "react-native";
+import React, { useState } from "react";
+import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { t } from "@/hooks/useTranslation";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/format";
 
 const LINK_MIN_W = 220;
-const CHEVRON_NUDGE = 4;
-const DURATION = 150;
 
 function LinkActionCard({
   icon,
@@ -35,28 +34,7 @@ function LinkActionCard({
   onPress: () => void;
   testID?: string;
 }) {
-  const reduceMotion = useReducedMotion();
-  const chevronX = useRef(new Animated.Value(0)).current;
-  const [active, setActive] = useState(false);
-  const activeRef = useRef(false);
-
-  const setTo = (next: boolean) => {
-    if (activeRef.current === next) return;
-    activeRef.current = next;
-    setActive(next);
-    if (reduceMotion) {
-      chevronX.setValue(next ? CHEVRON_NUDGE : 0);
-      return;
-    }
-    Animated.timing(chevronX, {
-      toValue: next ? CHEVRON_NUDGE : 0,
-      duration: DURATION,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const isWeb = Platform.OS === "web";
+  const { active, ...nudge } = useArrowNudge();
 
   return (
     <Pressable
@@ -66,10 +44,7 @@ function LinkActionCard({
       accessibilityLabel={label}
       accessibilityState={active ? { expanded: true } : undefined}
       hitSlop={4}
-      onHoverIn={isWeb ? () => setTo(true) : undefined}
-      onHoverOut={isWeb ? () => setTo(false) : undefined}
-      onFocus={() => setTo(true)}
-      onBlur={() => setTo(false)}
+      {...nudge}
       style={{ minWidth: LINK_MIN_W }}
       className={cn(
         "flex-1 flex-row items-center gap-3 rounded-xl border p-4",
@@ -84,9 +59,7 @@ function LinkActionCard({
       <Text variant="buttonLabel" numberOfLines={1} className="flex-1 text-text-secondary">
         {label}
       </Text>
-      <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-        <Icon name="ChevronRight" size={20} color="text-tertiary" />
-      </Animated.View>
+      <Arrow active={active} name="ChevronRight" size={20} color="text-tertiary" />
     </Pressable>
   );
 }

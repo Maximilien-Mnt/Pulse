@@ -5,6 +5,7 @@ import { SignupStepProgress } from "@/components/signup/SignupStepProgress";
 import { NativePicker } from "@/components/ui/NativePicker";
 import { Input } from "@/components/ui/Input";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { SPORT_LEVELS, SPORT_PRACTICES, SPORTS, WEEKDAYS } from "@/lib/constants";
 import type { SportId } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
@@ -24,6 +25,53 @@ function formatHour(hour: number): string {
 }
 
 const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
+
+/**
+ * Collapsible sport entry header: disclosure chevron with the shared arrow
+ * nudge on hover/focus (components/ui/Arrow.tsx), the sport label + summary,
+ * and the remove button.
+ */
+function SportEntryHeader({
+  sportId,
+  summary,
+  expanded,
+  onToggle,
+  onDelete,
+}: {
+  sportId: SportId;
+  summary: string;
+  expanded: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable
+      {...nudge}
+      onPress={onToggle}
+      className={
+        "flex-row items-center px-4 py-3" +
+        (active ? " bg-primary-tint dark:bg-primary-tint-dark" : "")
+      }
+    >
+      <Arrow
+        active={active}
+        name={expanded ? "ChevronDown" : "ChevronRight"}
+        size={20}
+        color="text-secondary"
+      />
+      <View className="flex-1 ml-2">
+        <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+          {t(`signup.sport.${sportId}`)}
+        </Text>
+        <Text className="text-xs text-neutral-500 mt-0.5">{summary}</Text>
+      </View>
+      <Pressable onPress={onDelete} hitSlop={8} className="p-1">
+        <Icon name="X" size={20} color="text-secondary" />
+      </Pressable>
+    </Pressable>
+  );
+}
 
 export default function SignupStep3() {
   const router = useRouter();
@@ -210,26 +258,13 @@ export default function SignupStep3() {
                 key={id}
                 className="mt-4 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 overflow-hidden"
               >
-                <Pressable onPress={() => toggleCollapsed(id)} className="flex-row items-center px-4 py-3">
-                  <Icon
-                    name={expanded ? "ChevronDown" : "ChevronRight"}
-                    size={20}
-                    color="text-secondary"
-                  />
-                  <View className="flex-1 ml-2">
-                    <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-                      {t(`signup.sport.${id}`)}
-                    </Text>
-                    <Text className="text-xs text-neutral-500 mt-0.5">{summary}</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => setEntries((prev) => prev.filter((e) => e.sportId !== id))}
-                    hitSlop={8}
-                    className="p-1"
-                  >
-                    <Icon name="X" size={20} color="text-secondary" />
-                  </Pressable>
-                </Pressable>
+                <SportEntryHeader
+                  sportId={id}
+                  summary={summary}
+                  expanded={expanded}
+                  onToggle={() => toggleCollapsed(id)}
+                  onDelete={() => setEntries((prev) => prev.filter((e) => e.sportId !== id))}
+                />
 
                 {expanded && (
                   <View className="px-4 pb-4 border-t border-neutral-100 dark:border-neutral-800">

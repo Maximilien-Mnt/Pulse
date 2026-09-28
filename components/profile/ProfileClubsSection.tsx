@@ -12,6 +12,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Text } from "@/components/ui/Text";
 import { getCountryDisplay } from "@/utils/countries";
 import type { Club } from "@/types";
@@ -27,10 +28,15 @@ type Props = {
 };
 
 function ClubRow({ club, onPress }: { club: Club; onPress: () => void }) {
+  const { active, ...nudge } = useArrowNudge();
   return (
     <Pressable
+      {...nudge}
       onPress={onPress}
-      className="flex-row items-center gap-3 py-2.5 rounded-lg"
+      className={
+        "flex-row items-center gap-3 py-2.5 rounded-lg" +
+        (active ? " bg-primary-tint dark:bg-primary-tint-dark" : "")
+      }
       accessibilityRole="button"
       accessibilityLabel={club.name}
     >
@@ -50,7 +56,7 @@ function ClubRow({ club, onPress }: { club: Club; onPress: () => void }) {
           {club.city}, {getCountryDisplay(club.country)}
         </Text>
       </View>
-      <Icon name="ChevronRight" size={16} color="text-tertiary" />
+      <Arrow active={active} name="ChevronRight" size={16} color="text-tertiary" />
     </Pressable>
   );
 }

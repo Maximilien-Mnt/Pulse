@@ -12,8 +12,9 @@ import { lazy, Suspense } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { useTranslation } from "@/hooks/useTranslation";
+import { cn } from "@/utils/format";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
@@ -44,6 +45,7 @@ function LegalLoadingFallback() {
 function LegalNotFound() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { active, ...nudge } = useArrowNudge();
   return (
     <SafeScreen edges={["top"]} className="bg-neutral-50 dark:bg-[#0A0F1E]">
       <View className="flex-1 items-center justify-center gap-4 px-6">
@@ -51,10 +53,14 @@ function LegalNotFound() {
           {t("common.notFound")}
         </Text>
         <Pressable
+          {...nudge}
           onPress={() => router.back()}
-          className="flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl active:opacity-80"
+          className={cn(
+            "flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl active:opacity-80",
+            active && "bg-primary-hover dark:bg-primary-dark"
+          )}
         >
-          <Icon name="ChevronLeft" size={20} color="text-inverse" />
+          <Arrow active={active} name="ChevronLeft" size={20} color="text-inverse" />
           <Text className="text-white font-semibold">{t("common.back")}</Text>
         </Pressable>
       </View>

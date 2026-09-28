@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Text } from "@/components/ui/Text";
 import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { COUNTRIES, countryFlag } from "@/utils/countries";
 import { MAX_EVENT_PHOTOS } from "@/lib/eventMedia";
 import { t } from "@/hooks/useTranslation";
@@ -11,6 +12,7 @@ import { t } from "@/hooks/useTranslation";
 export function CountryPicker({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const { active: arrowActive, ...arrowNudge } = useArrowNudge();
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return COUNTRIES;
@@ -22,6 +24,7 @@ export function CountryPicker({ value, onChange, error }: { value: string; onCha
         {t("create.event.country")} <Text className="text-error">*</Text>
       </Text>
       <Pressable
+        {...arrowNudge}
         accessibilityRole="button"
         accessibilityLabel={t("create.event.countryPlaceholder")}
         onPress={() => { setQuery(""); setOpen(true); }}
@@ -30,7 +33,7 @@ export function CountryPicker({ value, onChange, error }: { value: string; onCha
         <Text className={value ? "text-text-primary" : "text-text-tertiary"}>
           {value ? `${countryFlag(value)} ${value}` : t("create.event.countryPlaceholder")}
         </Text>
-        <Icon name="ChevronDown" size={18} color="text-tertiary" />
+        <Arrow active={arrowActive} name="ChevronDown" size={18} color="text-tertiary" />
       </Pressable>
       {error ? <Text className="text-xs text-error mt-1">{error}</Text> : null}
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>

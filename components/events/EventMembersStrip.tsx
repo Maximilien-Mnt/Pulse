@@ -1,6 +1,6 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -25,6 +25,7 @@ export function EventMembersStrip({
 }: Props) {
   const router = useRouter();
   const { t } = useTranslation();
+  const { active, ...nudge } = useArrowNudge();
   const total = count ?? participants.length;
 
   if (!participants.length) return null;
@@ -57,13 +58,17 @@ export function EventMembersStrip({
           </Pressable>
         ))}
         <Pressable
+          {...nudge}
           onPress={seeAll}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t("events.members.seeAll")}
-          className="w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center"
+          className={
+            "w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center" +
+            (active ? " bg-primary/20" : "")
+          }
         >
-          <Icon name="ChevronRight" size={20} color="primary" />
+          <Arrow active={active} name="ChevronRight" size={20} color="primary" />
         </Pressable>
       </ScrollView>
     </View>

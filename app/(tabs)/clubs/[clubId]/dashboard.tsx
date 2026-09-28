@@ -19,6 +19,7 @@ import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
 import type { Member } from '@/components/shared/MembersListSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
@@ -43,6 +44,82 @@ import { t } from '@/hooks/useTranslation';
 
 const CARD =
   'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
+
+// ---------------------------------------------------------------------------
+// Arrow-annotated dashboard cards/rows — shared hover/focus nudge
+// (components/ui/Arrow.tsx), plus the reference hover tint.
+// ---------------------------------------------------------------------------
+
+type MemberChip = { user_id: string; avatar_url?: string | null };
+
+/** "Manage members" card with avatar stack + arrow. */
+function ManageMembersCard({
+  members,
+  onPress,
+}: {
+  members: MemberChip[];
+  onPress: () => void;
+}) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable {...nudge} onPress={onPress} className='active:opacity-80'>
+      <View
+        className={
+          'p-4 ' + CARD + (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
+        }
+      >
+        <View className='flex-row items-center'>
+          <View className='flex-row'>
+            {members.slice(0, 6).map((member, index) => (
+              <View key={member.user_id} style={{ marginLeft: index === 0 ? 0 : -10 }}>
+                <Avatar uri={member.avatar_url} size={44} />
+              </View>
+            ))}
+          </View>
+          <View className='flex-1 ml-3'>
+            <PulseText variant='body' className='text-primary font-medium'>
+              {t('clubs.dashboard.manageMembers')}
+            </PulseText>
+            <PulseText variant='caption' className='text-neutral-500'>
+              {t('clubs.dashboard.manageMembersHint')}
+            </PulseText>
+          </View>
+          <Arrow active={active} name='ChevronRight' size={18} color='text-tertiary' />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+type DashboardLinkRow = { icon: string; label: string; value: string; url: string };
+
+/** External contact/link row with an ArrowRight affordance. */
+function ClubLinkRow({ row, onPress }: { row: DashboardLinkRow; onPress: () => void }) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable
+      {...nudge}
+      onPress={onPress}
+      className={
+        'flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50' +
+        (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
+      }
+    >
+      <View className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center'>
+        <Icon name={row.icon as any} size={18} color='primary' />
+      </View>
+      <View className='flex-1 min-w-0'>
+        <PulseText variant='body' className='font-medium text-neutral-900 dark:text-neutral-50'>
+          {row.label}
+        </PulseText>
+        <PulseText variant='caption' className='text-neutral-500' numberOfLines={1}>
+          {row.value}
+        </PulseText>
+      </View>
+      <Arrow active={active} name='ArrowRight' size={18} color='text-secondary' />
+    </Pressable>
+  );
+}
 
 export default function ClubDashboardScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
@@ -476,28 +553,10 @@ export default function ClubDashboardScreen() {
               {t('clubs.dashboard.noMembers')}
             </PulseText>
           ) : (
-            <Pressable onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)} className='active:opacity-80'>
-              <View className={'p-4 ' + CARD}>
-                <View className='flex-row items-center'>
-                  <View className='flex-row'>
-                    {allMembers.slice(0, 6).map((member, index) => (
-                      <View key={member.user_id} style={{ marginLeft: index === 0 ? 0 : -10 }}>
-                        <Avatar uri={member.avatar_url} size={44} />
-                      </View>
-                    ))}
-                  </View>
-                  <View className='flex-1 ml-3'>
-                    <PulseText variant='body' className='text-primary font-medium'>
-                      {t('clubs.dashboard.manageMembers')}
-                    </PulseText>
-                    <PulseText variant='caption' className='text-neutral-500'>
-                      {t('clubs.dashboard.manageMembersHint')}
-                    </PulseText>
-                  </View>
-                  <Icon name='ChevronRight' size={18} color='text-tertiary' />
-                </View>
-              </View>
-            </Pressable>
+            <ManageMembersCard
+              members={allMembers}
+              onPress={() => router.push(`/(tabs)/clubs/${clubId}/members`)}
+            />
           )}
         </Section>
 
@@ -675,27 +734,14 @@ export default function ClubDashboardScreen() {
             <PulseText variant='overline' className='text-neutral-400 mb-2'>Contact & liens</PulseText>
             <View className={CARD + ' overflow-hidden'}>
               {linkRows.map((row) => (
-                <Pressable
+                <ClubLinkRow
                   key={row.label}
-                  className='flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50'
+                  row={row}
                   onPress={async () => {
                     const { openBrowserAsync } = await import("expo-web-browser");
                     await openBrowserAsync(row.url);
                   }}
-                >
-                  <View className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center'>
-                    <Icon name={row.icon as any} size={18} color='primary' />
-                  </View>
-                  <View className='flex-1 min-w-0'>
-                    <PulseText variant='body' className='font-medium text-neutral-900 dark:text-neutral-50'>
-                      {row.label}
-                    </PulseText>
-                    <PulseText variant='caption' className='text-neutral-500' numberOfLines={1}>
-                      {row.value}
-                    </PulseText>
-                  </View>
-                  <Icon name='ArrowRight' size={18} color='text-secondary' />
-                </Pressable>
+                />
               ))}
             </View>
           </View>
@@ -826,8 +872,10 @@ function StatTile({
   onPress?: () => void;
   highlight?: boolean;
 }) {
+  const { active, ...nudge } = useArrowNudge({ disabled: !onPress });
   return (
     <Pressable
+      {...nudge}
       onPress={onPress}
       disabled={!onPress}
       style={basis ? { flexGrow: 1, flexBasis: basis as never } : undefined}
@@ -835,7 +883,7 @@ function StatTile({
         highlight
           ? 'bg-primary/10 border-primary/30'
           : 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700'
-      }`}
+      }${active ? ' bg-primary-tint dark:bg-primary-tint-dark' : ''}`}
     >
       <View className='flex-row items-center gap-2.5'>
         <View
@@ -853,7 +901,7 @@ function StatTile({
             {label}
           </PulseText>
         </View>
-        {onPress ? <Icon name='ChevronRight' size={16} color='text-tertiary' /> : null}
+        {onPress ? <Arrow active={active} name='ChevronRight' size={16} color='text-tertiary' /> : null}
       </View>
     </Pressable>
   );

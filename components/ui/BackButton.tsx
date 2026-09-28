@@ -15,6 +15,8 @@
 //
 // Behavior:
 //   - Default: calls `router.back()` on press.
+//   - On web hover / keyboard focus the chevron nudges left — the shared
+//     arrow micro-interaction used by every arrow button (components/ui/Arrow.tsx).
 //   - If there is no navigation history to go back to, it falls back to
 //     `fallbackRoute` (default: "/(tabs)/explore").
 //   - If `alwaysUseFallbackRoute` is true, it always navigates to
@@ -23,7 +25,7 @@
 
 import { useRouter } from "expo-router";
 import { Pressable } from "react-native";
-import { Icon } from "./Icon";
+import { Arrow, useArrowNudge } from "./Arrow";
 import { cn } from "@/utils/format";
 import { hasNavigatedInSession, getPreviousRoute } from "@/lib/navigationSession";
 
@@ -51,6 +53,7 @@ export function BackButton({
   useInAppSession = false,
 }: BackButtonProps) {
   const router = useRouter();
+  const { active, ...nudge } = useArrowNudge();
 
   const handlePress = () => {
     if (alwaysUseFallbackRoute) {
@@ -81,16 +84,18 @@ export function BackButton({
 
   return (
     <Pressable
+      {...nudge}
       onPress={handlePress}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel="Retour"
       className={cn(
         "w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20",
+        active && "bg-primary/20",
         className
       )}
     >
-      <Icon name="ChevronLeft" size={24} color="primary" />
+      <Arrow active={active} name="ChevronLeft" size={24} color="primary" />
     </Pressable>
   );
 }

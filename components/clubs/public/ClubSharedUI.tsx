@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import type { DimensionValue, ViewStyle } from 'react-native';
 import { Icon, ICON_MAP } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
+import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SPORTS } from '@/lib/constants';
@@ -109,8 +110,10 @@ export interface StatTileProps {
 
 export function StatTile({ icon, label, value, minWidth, growBasis, onPress }: StatTileProps) {
   const resolvedIcon = resolveIconName(icon);
+  const { active, ...nudge } = useArrowNudge({ disabled: !onPress });
   return (
     <Pressable
+      {...nudge}
       onPress={onPress}
       disabled={!onPress}
       style={
@@ -122,7 +125,8 @@ export function StatTile({ icon, label, value, minWidth, growBasis, onPress }: S
       }
       className={
         'p-3.5 rounded-2xl border ' +
-        'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700'
+        'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700' +
+        (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
       }
     >
       <View className='flex-row items-center gap-2'>
@@ -137,7 +141,7 @@ export function StatTile({ icon, label, value, minWidth, growBasis, onPress }: S
             {label}
           </PulseText>
         </View>
-        {onPress ? <Icon name='ChevronRight' size={16} color='text-tertiary' /> : null}
+        {onPress ? <Arrow active={active} name='ChevronRight' size={16} color='text-tertiary' /> : null}
       </View>
     </Pressable>
   );
@@ -192,9 +196,15 @@ export function LinkRow({
   isLast = false,
 }: LinkRowData & { isLast?: boolean }) {
   const DIVIDER = 'border-b border-neutral-100 dark:border-neutral-700';
+  const { active, ...nudge } = useArrowNudge();
   return (
     <PressableScale
-      className={'flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50 ' + (isLast ? '' : DIVIDER)}
+      {...nudge}
+      className={
+        'flex-row items-center gap-3 p-4 active:bg-neutral-50 dark:active:bg-neutral-700/50 ' +
+        (isLast ? '' : DIVIDER) +
+        (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
+      }
       scaleOnPress={0.98}
       scaleOnHover={1.02}
       onPress={async () => {
@@ -215,7 +225,7 @@ export function LinkRow({
           {value}
         </PulseText>
       </View>
-      <Icon name='ArrowRight' size={18} color='text-secondary' />
+      <Arrow active={active} name='ArrowRight' size={18} color='text-secondary' />
     </PressableScale>
   );
 }

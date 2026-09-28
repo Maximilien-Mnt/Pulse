@@ -22,8 +22,10 @@ import { useTranslation, t } from "@/hooks/useTranslation";
 import { logger } from "@/lib/reporting/logger";
 import { reportError } from "@/lib/reporting/errorReport";
 import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { signupEdgeFunctionUrl } from "@/lib/supabase";
 import { getSignupErrorKey, getSignupMissingFields } from "@/utils/signupChecklist";
+import type { TranslationKey } from "@/lib/translations";
 import { buildSignupPayload } from "@/utils/signupPayload";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import { buildPickerImageOptions, MediaNormalizationError, type PickedImage } from "@/lib/mediaPipeline";
@@ -90,6 +92,32 @@ async function uploadAvatarWithRetry(opts: {
     }
   }
   throw lastError;
+}
+
+/**
+ * One "missing info" shortcut row inside the error card — shared arrow nudge
+ * on hover/focus (components/ui/Arrow.tsx). No hover tint: this is an alert
+ * list, not a navigation card.
+ */
+function MissingIssueRow({
+  labelKey,
+  onPress,
+}: {
+  labelKey: TranslationKey;
+  onPress: () => void;
+}) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable
+      {...nudge}
+      onPress={onPress}
+      accessibilityRole="button"
+      className="flex-row items-center py-2"
+    >
+      <Text className="flex-1 text-sm text-error pr-2">{t(labelKey)}</Text>
+      <Arrow active={active} name="ChevronRight" size={16} color="text-tertiary" />
+    </Pressable>
+  );
 }
 
 export default function SignupStep5() {
@@ -533,8 +561,9 @@ export default function SignupStep5() {
                 <Text className="flex-1 text-sm font-semibold text-error">{t("signup.missing.title")}</Text>
               </View>
               {missing.map((issue, i) => (
-                <Pressable
+                <MissingIssueRow
                   key={`${issue.step}-${i}`}
+                  labelKey={issue.labelKey}
                   onPress={() => {
                     if (issue.labelKey === "signup.missing.terms") {
                       router.push("/auth/signup/legal?document=terms");
@@ -544,12 +573,7 @@ export default function SignupStep5() {
                       router.push(`/auth/signup/step${issue.step}`);
                     }
                   }}
-                  accessibilityRole="button"
-                  className="flex-row items-center py-2"
-                >
-                  <Text className="flex-1 text-sm text-error pr-2">{t(issue.labelKey)}</Text>
-                  <Icon name="ChevronRight" size={16} color="text-tertiary" />
-                </Pressable>
+                />
               ))}
             </View>
           ) : null}

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
+import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Section, CARD } from './ClubSharedUI';
@@ -27,6 +28,7 @@ interface ClubMembersPreviewProps {
 export function ClubMembersPreview({ club, creator, members }: ClubMembersPreviewProps) {
   const router = useRouter();
   const { tp } = useTranslation();
+  const { active, ...nudge } = useArrowNudge();
 
   if (club.is_external || members.length === 0) return null;
 
@@ -70,18 +72,22 @@ export function ClubMembersPreview({ club, creator, members }: ClubMembersPrevie
         })}
       </View>
       <PressableScale
+        {...nudge}
         onPress={() => router.push(`/(tabs)/clubs/${club.id}/members`)}
         scaleOnPress={0.97}
         scaleOnHover={1.03}
         accessibilityRole='button'
         accessibilityLabel='Voir tous les membres'
-        className='flex-row items-center gap-2 mt-3 self-start px-4 py-2.5 rounded-full bg-primary/10 dark:bg-primary/15 active:bg-primary/25'
+        className={
+          'flex-row items-center gap-2 mt-3 self-start px-4 py-2.5 rounded-full bg-primary/10 dark:bg-primary/15 active:bg-primary/25' +
+          (active ? ' bg-primary/25 dark:bg-primary/25' : '')
+        }
       >
         <Icon name='Users' size={16} color='primary' />
         <PulseText variant='body' className='text-primary font-medium'>
           Voir tous les membres
         </PulseText>
-        <Icon name='ChevronRight' size={16} color='primary' />
+        <Arrow active={active} name='ChevronRight' size={16} color='primary' />
       </PressableScale>
     </Section>
   );

@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { Modal, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Text } from "@/components/ui/Text";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
@@ -100,6 +101,7 @@ export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) 
   const router = useRouter();
   const { t } = useTranslation();
   const [step, setStep] = useState<VisibilityStep>(null);
+  const { active: backActive, ...backNudge } = useArrowNudge();
 
   // Reset to the root step whenever the sheet reopens.
   useEffect(() => {
@@ -174,13 +176,14 @@ export function CreateBottomSheet({ visible, onClose }: CreateBottomSheetProps) 
               {/* Sub-step header with back button */}
               <View className="flex-row items-center mb-6">
                 <Pressable
+                  {...backNudge}
                   onPress={handleBack}
                   accessibilityRole="button"
                   accessibilityLabel="Retour"
                   hitSlop={8}
                   className="p-1 -ml-1"
                 >
-                  <Icon name="ChevronLeft" size={24} color="text-secondary" />
+                  <Arrow active={backActive} name="ChevronLeft" size={24} color="text-secondary" />
                 </Pressable>
                 <Text variant="subtitle" className="text-text-primary flex-1 text-center">
                   {STEP_TITLES[step]}

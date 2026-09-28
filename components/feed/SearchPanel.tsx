@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { FeedPost, PostFormat } from "@/types";
 import { Icon } from "@/components/ui/Icon";
+import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SlideDownOverlay } from "@/components/ui/SlideDownOverlay";
 import { t } from "@/hooks/useTranslation";
@@ -117,6 +118,32 @@ export function activeFiltersSummary(options: SearchOptions): { key: string; lab
   return active;
 }
 
+/**
+ * Collapse control at the top of the expanded panel: the up chevron carries
+ * the shared arrow nudge (components/ui/Arrow.tsx).
+ */
+function MinimizeButton({
+  onPress,
+  accessibilityLabel,
+}: {
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  const { active, ...nudge } = useArrowNudge();
+  return (
+    <Pressable
+      {...nudge}
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      className="p-1"
+    >
+      <Arrow active={active} name="ChevronUp" size={20} color="text-tertiary" />
+    </Pressable>
+  );
+}
+
 export function SearchPanel({
   options,
   onChange,
@@ -148,12 +175,14 @@ export function SearchPanel({
   }, [onToggleMinimize]);
 
   const summary = useMemo(() => activeFiltersSummary(options), [options]);
+  const { active: chipArrowActive, ...chipArrowNudge } = useArrowNudge();
 
   // ── Minimized state: slim bar with active filter chips ─────────────
   if (minimized) {
     return (
       <View className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 flex-row items-center gap-2">
         <Pressable
+          {...chipArrowNudge}
           onPress={handleMinimize}
           className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800"
           hitSlop={8}
@@ -162,7 +191,7 @@ export function SearchPanel({
           <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
             Filtres
           </Text>
-          <Icon name="ChevronDown" size={16} color="text-tertiary" />
+          <Arrow active={chipArrowActive} name="ChevronDown" size={16} color="text-tertiary" />
         </Pressable>
 
         {summary.length === 0 ? (
@@ -203,13 +232,9 @@ export function SearchPanel({
     >
       {/* Header row with grab handle + minimize button */}
       <View className="flex-row items-center justify-between px-4 pt-1.5">
-        <Pressable onPress={handleMinimize} hitSlop={8} className="p-1">
-          <Icon name="ChevronUp" size={20} color="text-tertiary" />
-        </Pressable>
+        <MinimizeButton onPress={handleMinimize} accessibilityLabel="Replier les filtres" />
         <Text className="text-sm font-semibold text-neutral-500">Filtres et tri</Text>
-        <Pressable onPress={handleMinimize} hitSlop={8} className="p-1">
-          <Icon name="ChevronUp" size={20} color="text-tertiary" />
-        </Pressable>
+        <MinimizeButton onPress={handleMinimize} accessibilityLabel="Replier les filtres" />
       </View>
 
       <ScrollView

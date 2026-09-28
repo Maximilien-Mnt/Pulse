@@ -21,6 +21,7 @@ import { cn } from "@/utils/format";
 import { Text } from "@/components/ui/Text";
 import { useThemeStore } from "@/stores/themeStore";
 import { Icon, type IconName, type IconColor } from "@/components/ui/Icon";
+import { Arrow, isArrowIcon, useArrowNudge } from "@/components/ui/Arrow";
 import {
   type AccessibilityLabelProps,
   type AccessibilityHintProps,
@@ -162,6 +163,10 @@ export const Button = React.forwardRef<View, ButtonProps>(
 
     const isDisabled = disabled || loading;
 
+    // Shared arrow micro-interaction: arrow icons (Chevron/Arrow ←→) nudge
+    // on hover/focus like every other arrow button in the app.
+    const { active: arrowActive, ...arrowNudge } = useArrowNudge({ disabled: isDisabled });
+
     // Build accessibility props. User-provided values take precedence; when
     // absent we synthesize sensible defaults from visible content so that AT
     // still gets a meaningful announcement without requiring every call site
@@ -197,6 +202,13 @@ export const Button = React.forwardRef<View, ButtonProps>(
     const textColor = isDisabled ? disabledText : variantText[variant];
     const iconColor = indicatorColor(variant);
 
+    const renderIcon = (name: IconName) =>
+      isArrowIcon(name) ? (
+        <Arrow active={arrowActive} name={name} size={20} color={iconColor} />
+      ) : (
+        <Icon name={name} size={20} color={iconColor} />
+      );
+
     return (
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
@@ -214,12 +226,13 @@ export const Button = React.forwardRef<View, ButtonProps>(
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
+          {...arrowNudge}
           className={containerClasses}
         >
           {loading ? (
             <ActivityIndicator color={isDark ? "text-inverse" : iconColor} size="small" />
           ) : icon ? (
-            <Icon name={icon} size={20} color={iconColor} />
+            renderIcon(icon)
           ) : null}
           {title != null ? (
             <Text variant="buttonLabel" className={textColor}>
@@ -232,7 +245,7 @@ export const Button = React.forwardRef<View, ButtonProps>(
           ) : (
             children
           )}
-          {iconRight ? <Icon name={iconRight} size={20} color={iconColor} /> : null}
+          {iconRight ? renderIcon(iconRight) : null}
         </Pressable>
       </Animated.View>
     );

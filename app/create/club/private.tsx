@@ -2,7 +2,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
+import { SportLevelField } from "@/components/shared/SportLevelField";
+import { SPORTS } from "@/lib/constants";
 import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
@@ -337,24 +338,15 @@ export default function CreatePrivateClubScreen() {
                       {SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
                     </Text>
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] ?? ["Débutant", "Intermédiaire", "Confirmé"]).map((lvl) => {
-                      const active = requiredLevels[sid] === lvl;
-                      return (
-                        <Pressable
-                          key={lvl}
-                          onPress={() => setRequiredLevels((prev) => ({ ...prev, [sid]: active ? "" : lvl }))}
-                          className={`px-3 py-2 rounded-full mr-2 ${
-                            active ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800"
-                          }`}
-                        >
-                          <Text className={active ? "text-white font-medium text-sm" : "text-neutral-700 dark:text-neutral-200 text-sm"}>
-                            {lvl}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
+                  <SportLevelField
+                    sportId={sid}
+                    value={requiredLevels[sid] ?? ""}
+                    onChange={(next) => setRequiredLevels((prev) => ({ ...prev, [sid]: next }))}
+                    layout="scroll"
+                    clearOnReselect
+                    size="sm"
+                    a11yPrefix={SPORTS.find((sp) => sp.id === sid)?.label ?? sid}
+                  />
                 </View>
               ))}
             </View>

@@ -1,4 +1,5 @@
 import { buildSignupPayload } from "@/utils/signupPayload";
+import { OTHER_OPTION } from "@/lib/constants";
 import type { SignupSportSelection } from "@/types";
 import type { SignupStep2, SignupStep4 } from "@/stores/signupStore";
 
@@ -105,4 +106,47 @@ describe("buildSignupPayload", () => {
     expect(payload.avatar_url).toBe("https://cdn/x.jpg");
     expect(payload.discovery_source).toBe("friend");
   });
+
+  it("replaces the 'Autre' sentinel with the typed level/practice detail", () => {
+    const sports: SignupSportSelection[] = [
+      {
+        sportId: "football",
+        level: "Autre",
+        practice: "Autre",
+        timeSlots: [],
+        levelOther: "Niveau amateur U16",
+        practiceOther: "Entraînements en petit groupe",
+      },
+    ];
+    const payload = build({ step3: sports });
+    expect(payload.sports[0]?.level).toBe("Niveau amateur U16");
+    expect(payload.sports[0]?.practice).toBe("Entraînements en petit groupe");
+  });
+
+  it("keeps the sentinel when 'Autre' was picked with no detail typed", () => {
+    const sports: SignupSportSelection[] = [
+      { sportId: "tennis", level: "Autre", practice: "Loisir", timeSlots: [], levelOther: "   " },
+    ];
+    const payload = build({ step3: sports });
+    expect(payload.sports[0]?.level).toBe(OTHER_OPTION);
+    expect(payload.sports[0]?.practice).toBe("Loisir");
+  });
+
+  it("ignores a stale detail left over from an earlier 'Autre' pick", () => {
+    const sports: SignupSportSelection[] = [
+      {
+        sportId: "basketball",
+        level: "Loisirs du dimanche",
+        practice: "Loisir",
+        timeSlots: [],
+        // Stale detail from a previous "Autre" pick: the preset wins.
+        levelOther: "should be ignored",
+        practiceOther: "should be ignored",
+      },
+    ];
+    const payload = build({ step3: sports });
+    expect(payload.sports[0]?.level).toBe("Loisirs du dimanche");
+    expect(payload.sports[0]?.practice).toBe("Loisir");
+  });
+
 });

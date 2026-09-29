@@ -25,7 +25,8 @@ import { SafeScreen } from "@/components/shared/SafeScreen";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { uploadImageToStorage } from "@/lib/imageUpload";
-import { OBJECTIVES, SPORTS, COUNTRIES, WEEKDAYS, SPORT_LEVELS, SPORT_PRACTICES } from "@/lib/constants";
+import { OBJECTIVES, SPORTS, COUNTRIES, WEEKDAYS } from "@/lib/constants";
+import { SportLevelField } from "@/components/shared/SportLevelField";
 import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
@@ -673,76 +674,34 @@ export default function EditProfileScreen() {
 
                       {/* Level */}
                       <View className="mb-3">
-                        <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
-                          Niveau
-                        </Text>
-                        <View className="flex-row flex-wrap">
-                          {(SPORT_LEVELS[sid as keyof typeof SPORT_LEVELS] || []).map((lvl) => {
-                            const active = details.level === lvl;
-                            return (
-                              <Pressable
-                                key={lvl}
-                                onPress={() => {
-                                  setPracticedSportDetails((d) => {
-                                    const next: typeof d = { ...d };
-                                    next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), level: lvl };
-                                    return next;
-                                  });
-                                }}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected: active }}
-                                className={`px-3 py-2 rounded-lg mr-2 mb-2 ${active ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
-                              >
-                                <Text
-                                  className={
-                                    active
-                                      ? "text-white text-xs font-medium"
-                                      : "text-xs text-neutral-800 dark:text-neutral-100"
-                                  }
-                                >
-                                  {lvl}
-                                </Text>
-                              </Pressable>
-                            );
+                        <SportLevelField
+                          sportId={sid}
+                          kind="level"
+                          label={t("profile.levelLabel")}
+                          value={details.level}
+                          onChange={(level) => setPracticedSportDetails((d) => {
+                            const next: typeof d = { ...d };
+                            next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), level };
+                            return next;
                           })}
-                        </View>
+                          a11yPrefix={sportDef?.label ?? sid}
+                        />
                       </View>
 
                       {/* Practice */}
                       <View className="mb-3">
-                        <Text className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
-                          Type de pratique
-                        </Text>
-                        <View className="flex-row flex-wrap">
-                          {(SPORT_PRACTICES[sid as keyof typeof SPORT_PRACTICES] || []).map((pr) => {
-                            const active = details.practice === pr;
-                            return (
-                              <Pressable
-                                key={pr}
-                                onPress={() => {
-                                  setPracticedSportDetails((d) => {
-                                    const next: typeof d = { ...d };
-                                    next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), practice: pr };
-                                    return next;
-                                  });
-                                }}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected: active }}
-                                className={`px-3 py-2 rounded-lg mr-2 mb-2 ${active ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
-                              >
-                                <Text
-                                  className={
-                                    active
-                                      ? "text-white text-xs font-medium"
-                                      : "text-xs text-neutral-800 dark:text-neutral-100"
-                                  }
-                                >
-                                  {pr}
-                                </Text>
-                              </Pressable>
-                            );
+                        <SportLevelField
+                          sportId={sid}
+                          kind="practice"
+                          label={t("profile.practiceTypeLabel")}
+                          value={details.practice}
+                          onChange={(practice) => setPracticedSportDetails((d) => {
+                            const next: typeof d = { ...d };
+                            next[sid] = { ...(next[sid] || { level: "", practice: "", timeSlots: [] }), practice };
+                            return next;
                           })}
-                        </View>
+                          a11yPrefix={sportDef?.label ?? sid}
+                        />
                       </View>
 
                       {/* Time slots */}

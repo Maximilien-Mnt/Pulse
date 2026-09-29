@@ -6,7 +6,8 @@ import { NativePicker } from "@/components/ui/NativePicker";
 import { Input } from "@/components/ui/Input";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
-import { SPORT_LEVELS, SPORT_PRACTICES, SPORTS, WEEKDAYS } from "@/lib/constants";
+import { SPORTS, WEEKDAYS, sportLevels, sportPractices } from "@/lib/constants";
+import { SportLevelField } from "@/components/shared/SportLevelField";
 import type { SportId } from "@/lib/constants";
 import { useSignupStore } from "@/stores/signupStore";
 import type { SignupSportSelection } from "@/types";
@@ -112,8 +113,8 @@ export default function SignupStep3() {
     setEntries((prev) => {
       const exists = prev.find((p) => p.sportId === id);
       if (exists) return prev.filter((p) => p.sportId !== id);
-      const levels = SPORT_LEVELS[id];
-      const practices = SPORT_PRACTICES[id];
+      const levels = sportLevels(id);
+      const practices = sportPractices(id);
       return [
         ...prev,
         {
@@ -270,80 +271,27 @@ export default function SignupStep3() {
                   <View className="px-4 pb-4 border-t border-neutral-100 dark:border-neutral-800">
                     {/* Level */}
                     <View className="mt-3">
-                      <Text className="text-sm text-neutral-500 mb-1">{t("signup.step3.level")}</Text>
-                      <View className="flex-row flex-wrap">
-                        {(SPORT_LEVELS[id] ?? []).map((lvl) => (
-                          <Pressable
-                            key={lvl}
-                            onPress={() =>
-                              updateEntry(id, {
-                                level: lvl,
-                                levelOther: lvl === "Autre" ? e.levelOther ?? "" : undefined,
-                              })
-                            }
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: e.level === lvl }}
-                            className={`px-3 py-2 rounded-lg mr-2 mb-2 ${e.level === lvl ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
-                          >
-                            <Text
-                              className={
-                                e.level === lvl
-                                  ? "text-white text-xs font-medium"
-                                  : "text-xs text-neutral-800 dark:text-neutral-100"
-                              }
-                            >
-                              {lvl}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                      {e.level === "Autre" && (
-                        <Input
-                          value={e.levelOther ?? ""}
-                          onChangeText={(text: string) => updateEntry(id, { levelOther: text })}
-                          placeholder={t("signup.step3.otherDetails")}
-                          className="mt-2"
-                        />
-                      )}
+                      <SportLevelField
+                        sportId={id}
+                        label={t("signup.step3.level")}
+                        value={e.level}
+                        onChange={(level) => updateEntry(id, { level, levelOther: undefined })}
+                        a11yPrefix={t(`signup.sport.${id}`)}
+                        placeholder={t("signup.step3.otherDetails")}
+                      />
                     </View>
 
                     {/* Practice */}
                     <View className="mt-4">
-                      <Text className="text-sm text-neutral-500 mb-1">{t("signup.step3.practiceType")}</Text>
-                      <View className="flex-row flex-wrap">
-                        {(SPORT_PRACTICES[id] ?? []).map((p) => (
-                          <Pressable
-                            key={p}
-                            onPress={() =>
-                              updateEntry(id, {
-                                practice: p,
-                                practiceOther: p === "Autre" ? e.practiceOther ?? "" : undefined,
-                              })
-                            }
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: e.practice === p }}
-                            className={`px-3 py-2 rounded-lg mr-2 mb-2 ${e.practice === p ? "bg-primary" : "bg-neutral-100 dark:bg-neutral-800"}`}
-                          >
-                            <Text
-                              className={
-                                e.practice === p
-                                  ? "text-white text-xs font-medium"
-                                  : "text-xs text-neutral-800 dark:text-neutral-100"
-                              }
-                            >
-                              {p}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                      {e.practice === "Autre" && (
-                        <Input
-                          value={e.practiceOther ?? ""}
-                          onChangeText={(text: string) => updateEntry(id, { practiceOther: text })}
-                          placeholder={t("signup.step3.otherDetails")}
-                          className="mt-2"
-                        />
-                      )}
+                      <SportLevelField
+                        sportId={id}
+                        kind="practice"
+                        label={t("signup.step3.practiceType")}
+                        value={e.practice}
+                        onChange={(practice) => updateEntry(id, { practice, practiceOther: undefined })}
+                        a11yPrefix={t(`signup.sport.${id}`)}
+                        placeholder={t("signup.step3.otherDetails")}
+                      />
                     </View>
 
                     {/* Time slots (optional) */}

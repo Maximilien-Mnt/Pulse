@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { SignupSportSelection } from "@/types";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import { isUnderageFromISO, isValidBirthDateISO } from "@/utils/signupDate";
+import { composeOtherOption } from "@/lib/constants";
 
 const PENDING_SIGNUP_KEY = "pulse:pending-signup";
 
@@ -109,8 +110,11 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
         // column default ('practiced') was applied implicitly — and any
         // future change of the default would silently corrupt signup data.
         category: "practiced",
-        level: s.level,
-        practice: s.practice,
+        // Pending signups store the raw selection, where an "Autre" pick keeps
+        // its detail in `levelOther` / `practiceOther` — compose it into the
+        // final value exactly like buildSignupPayload does.
+        level: composeOtherOption(s.level, s.levelOther),
+        practice: composeOtherOption(s.practice, s.practiceOther),
         time_slots: (s.timeSlots ?? []).map((slot) => ({
           weekday: slot.weekday,
           startHour: slot.startHour,

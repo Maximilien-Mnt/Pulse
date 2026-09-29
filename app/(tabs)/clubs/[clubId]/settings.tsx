@@ -9,7 +9,8 @@ import { uploadImageToStorage, removeFromStorageByUrl } from "@/lib/imageUpload"
 import { buildPickerImageOptions, toPickedImage, type MediaRole, type PickedImage } from "@/lib/mediaPipeline";
 import { mediaErrorMessage } from "@/lib/reporting/userMessage";
 import { useAuthStore } from "@/stores/authStore";
-import { SPORTS, SPORT_LEVELS } from "@/lib/constants";
+import { SportLevelField } from "@/components/shared/SportLevelField";
+import { SPORTS } from "@/lib/constants";
 import { COMMON_COUNTRIES, countryFlag } from "@/utils/countries";
 import { Button } from "@/components/ui/Button";
 import { BackButton } from "@/components/ui/BackButton";
@@ -110,10 +111,13 @@ export default function ClubSettings() {
     setSports((prev) => prev.includes(sp) ? prev.filter((x) => x !== sp) : [...prev, sp]);
   }, []);
 
+  // An empty pick means "no specific level" — the key is dropped so the saved
+  // `required_levels` map stays free of empty entries (the "Autre" sentinel is
+  // a real value and is kept).
   const setLevelFor = useCallback((sport: string, value: string) => {
     setRequiredLevels((prev) => {
       const copy = { ...prev };
-      if (value === "any") delete copy[sport];
+      if (!value.trim() || value === "any") delete copy[sport];
       else copy[sport] = value;
       return copy;
     });
@@ -288,13 +292,14 @@ export default function ClubSettings() {
                     <Icon name={SPORTS.find((x) => x.id === sp)?.icon ?? "Circle"} size={12} color={SPORTS.find((x) => x.id === sp)?.color} />
                     <Text className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{SPORTS.find((x) => x.id === sp)?.label ?? sp}</Text>
                   </View>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                    {((SPORT_LEVELS as Record<string, string[]>)[sp] ?? ["Any"]).map((lvl: string) => (
-                      <Pressable key={lvl} onPress={() => setLevelFor(sp, lvl)} className={`px-2.5 py-1 rounded-full border ${(requiredLevels[sp] ?? "Any") === lvl ? "bg-primary border-primary" : "border-primary"}`}>
-                        <Text className={`text-xs ${(requiredLevels[sp] ?? "Any") === lvl ? "text-white" : "text-neutral-700 dark:text-neutral-300"}`}>{lvl}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
+                  <SportLevelField
+                    sportId={sp}
+                    value={requiredLevels[sp] ?? ""}
+                    onChange={(next) => setLevelFor(sp, next)}
+                    variant="outline"
+                    size="sm"
+                    a11yPrefix={SPORTS.find((x) => x.id === sp)?.label ?? sp}
+                  />
                 </View>
               ))}
             </>

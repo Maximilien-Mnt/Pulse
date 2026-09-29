@@ -87,9 +87,21 @@ export const SPORTS: SportDefinition[] = [
 const defaultLevels = ["Débutant", "Intermédiaire", "Confirmé", "Compétition", "Élite"];
 const defaultPractices = ["Loisir", "Compétition", "Mixte", "Entraînement structuré"];
 
-function withOther<T>(arr: readonly T[]): T[] {
-  return [...arr, "Autre" as T];
+/**
+ * Sentinel appended to every "…+ Other" option list by `withOther()`.
+ *
+ * It is the value persisted while the user picked "Autre" but has not typed a
+ * detail yet: once a detail is provided, that text REPLACES the sentinel (same
+ * model as the signup "how did you find Pulse?" answer, see step5).
+ */
+export const OTHER_OPTION = "Autre";
+
+export function withOther<T>(arr: readonly T[]): T[] {
+  return [...arr, OTHER_OPTION as T];
 }
+
+/** Level ladder used when a sport has no dedicated one (legacy fallback). */
+export const FALLBACK_LEVELS = ["Débutant", "Intermédiaire", "Confirmé", "Compétition", "Élite"];
 
 export const SPORT_LEVELS: Record<SportId, string[]> = {
   football: withOther(["Débutant", "Loisir", "Régional", "National", "Semi-pro", "Pro"]),
@@ -141,6 +153,56 @@ export const SPORT_PRACTICES: Record<SportId, string[]> = {
   surfing: withOther(["Loisir", "Club", "Compétition", "Bodyboard"]),
 };
 
+// ---------------------------------------------------------------------------
+// "Autre" option handling
+//
+// Every option list above ends with the "Autre" sentinel. Picking it opens a
+// free-text detail field (components/shared/SportLevelField.tsx), and the typed
+// detail becomes the stored value — so levels/practices stay plain strings and
+// need no database change. These helpers are the single implementation of that
+// rule, shared by club/event forms, signup step 3 and the profile settings.
+// ---------------------------------------------------------------------------
+
+/** Preset levels offered for a sport, "Autre" always last. */
+export function sportLevels(sportId: string): string[] {
+  return (SPORT_LEVELS as Record<string, string[] | undefined>)[sportId] ?? withOther(FALLBACK_LEVELS);
+}
+
+/** Preset practice types offered for a sport, "Autre" always last. */
+export function sportPractices(sportId: string): string[] {
+  return (SPORT_PRACTICES as Record<string, string[] | undefined>)[sportId] ?? withOther(defaultPractices);
+}
+
+/**
+ * True when a stored value belongs to the "Autre" slot: either the sentinel
+ * itself (no detail typed yet) or free text that is not one of the presets.
+ */
+export function isOtherOption(options: readonly string[], value?: string | null): boolean {
+  const v = (value ?? "").trim();
+  if (!v) return false;
+  if (v === OTHER_OPTION) return true;
+  return !options.includes(v);
+}
+
+/** Draft to show in the "Autre" detail field for a stored value. */
+export function otherOptionDetail(value?: string | null): string {
+  const v = (value ?? "").trim();
+  return v === OTHER_OPTION ? "" : v;
+}
+
+/** Value persisted for an "Autre" pick: the typed detail, else the sentinel. */
+export function resolveOtherOption(detail?: string | null): string {
+  return detail?.trim() ? detail.trim() : OTHER_OPTION;
+}
+
+/**
+ * Final stored value when a pick keeps its detail in a separate field
+ * (signup step 3 stores `levelOther` / `practiceOther` next to the sentinel):
+ * the detail replaces the sentinel, anything else passes through untouched.
+ */
+export function composeOtherOption(value: string, detail?: string | null): string {
+  return value === OTHER_OPTION ? resolveOtherOption(detail) : value;
+}
 
 export const WEEKDAYS = [
   "Lundi",

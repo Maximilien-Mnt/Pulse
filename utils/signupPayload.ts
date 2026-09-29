@@ -1,6 +1,7 @@
 import type { SignupStep1, SignupStep2, SignupStep4 } from "@/stores/signupStore";
 import type { SignupSportSelection } from "@/types";
 import { toBirthDateISO } from "@/utils/signupDate";
+import { composeOtherOption } from "@/lib/constants";
 
 /**
  * Pure builder for the signup edge-function payload.
@@ -74,13 +75,15 @@ export function buildSignupPayload(input: SignupPayloadInput): SignupPayload {
     avatar_url: avatarUrl,
     discovery_source: discoverySource,
     interested_sports: step4.interestedSports,
+    // "Autre" picks carry the typed detail in `levelOther` / `practiceOther`;
+    // composing here means the plain `level` / `practice` columns already hold
+    // the final value, so the signup flow and every later reader (profile,
+    // club, feed) see the same string. No schema change needed.
     sports: step3.map((s) => ({
       sportId: s.sportId,
-      level: s.level,
-      practice: s.practice,
+      level: composeOtherOption(s.level, s.levelOther),
+      practice: composeOtherOption(s.practice, s.practiceOther),
       timeSlots: s.timeSlots ?? [],
-      levelOther: s.levelOther,
-      practiceOther: s.practiceOther,
     })),
     objectives: step4.objectives,
     objectives_details: step4.objectivesDetails,

@@ -33,6 +33,7 @@ export const EVENT_CARD_FIELDS = [
   "hero_urls",
   "short_description",
   "is_external",
+  "source_name",
   "is_paid",
   "price_cents",
   "difficulty",
@@ -92,4 +93,3 @@ const verticalCardProjectionCoversRenderedFields: RenderedVerticalEventFields ex
   ? true
   : never = true;
 void verticalCardProjectionCoversRenderedFields;
-

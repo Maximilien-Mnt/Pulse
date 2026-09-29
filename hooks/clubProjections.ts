@@ -101,6 +101,7 @@ export const CLUB_EVENT_FIELDS = [
   "hero_urls",
   "short_description",
   "is_external",
+  "source_name",
   "is_paid",
   "price_cents",
   "difficulty",

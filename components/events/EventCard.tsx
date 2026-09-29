@@ -57,7 +57,9 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
         <Text variant="caption">{event.city}</Text>
         <View className="flex-row items-center justify-between mt-2">
           <Text variant="caption" className="font-semibold text-primary">
-            {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
+            {event.source_name === "OpenAgenda" && event.price_cents <= 0
+              ? t("events.externalPrice")
+              : formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
           </Text>
           <Stars n={event.difficulty} />
         </View>

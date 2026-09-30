@@ -1323,6 +1323,8 @@ export const translations = {
     "source.inAppShort": "Dans l'app",
     "source.externalShort": "Externe",
     "source.externalHint": "Inscription gérée sur le site du club, en dehors de Pulse.",
+    "events.viewOriginal": "Voir la fiche source",
+    "events.externalPrice": "Voir le prix sur la source",
     "time.daysAgo": "{days} j",
     "time.hoursAgo": "{hours} h",
     "time.justNow": "À l'instant",
@@ -2687,6 +2689,8 @@ export const translations = {
     "source.inAppShort": "In app",
     "source.externalShort": "External",
     "source.externalHint": "Registration is handled on the club's website, outside Pulse.",
+    "events.viewOriginal": "View original listing",
+    "events.externalPrice": "Check price on source",
 
     "time.daysAgo": "{days}d ago",
     "time.hoursAgo": "{hours}h ago",

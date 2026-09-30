@@ -48,7 +48,9 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
           <SourceBadge isExternal={event.is_external} variant="chip" />
         </View>
         <Text variant="caption" className="font-semibold text-primary mt-1">
-          {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
+          {event.source_name === "OpenAgenda" && event.price_cents <= 0
+            ? t("events.externalPrice")
+            : formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
         </Text>
         <View className="flex-row justify-end gap-2 mt-2">
           <FavoriteButton

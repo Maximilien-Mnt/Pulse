@@ -10,15 +10,16 @@
   - Entrée: `{ address: string }`
   - Sortie: `{ latitude, longitude, display_name }`
 
-- **`supabase/functions/sync-external-data/index.ts`** - Sync clubs/événements OpenStreetMap
-  - Trigger: Cron quotidien 3h UTC
-  - Sources: OpenStreetMap (Overpass API) pour LU, FR, BE
-  - Tables: `external_clubs`, `external_events`
+- **`supabase/functions/sync-external-data/index.ts`** - Synchronisation de données externes
+  - Clubs/lieux: conserve la collecte OpenStreetMap (Overpass API) vers `external_clubs` pour LU, FR, BE; cette table n'alimente pas actuellement l'écran `clubs`.
+  - Événements: importe les événements sportifs publiés et à venir d'agendas OpenAgenda explicitement autorisés vers `events`.
+  - Sécurité: nécessite le secret serveur `EXTERNAL_SYNC_SECRET`; la clé OpenAgenda et les UID d'agenda restent côté Edge Function.
+  - Planification: le dépôt ne crée pas de tâche Cron active; configuration `pg_cron`/Vault décrite dans [`docs/external-events.md`](docs/external-events.md).
 
 #### Tables
 
 - `external_clubs` - Clubs sportifs externes synchronisés
-- `external_events` - Événements sportifs externes
+- `events` - Les événements OpenAgenda sont enregistrés avec `is_external = true`, `source_name = OpenAgenda` et un lien source.
 - `invitation_tokens` - Tokens d'invitation pour clubs/événements privés
 - `user_settings` - Paramètres utilisateur (opt-out analytics)
 
@@ -130,6 +131,8 @@ supabase functions deploy geocode
 supabase functions deploy sync-external-data
 ```
 
+Pour configurer la clé OpenAgenda, les UID d'agendas et le déclencheur quotidien, suivre [`docs/external-events.md`](docs/external-events.md).
+
 ## Migration
 
 ```bash
@@ -148,6 +151,8 @@ Body: { "address": "Paris, France" }
 ### Sync données externes
 ```
 POST /functions/v1/sync-external-data
+Header requis: x-sync-secret (secret serveur, jamais dans l'application cliente)
+Body: {}
 ```
 
 ## Notes

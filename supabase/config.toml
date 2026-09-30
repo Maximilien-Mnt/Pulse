@@ -8,3 +8,6 @@ project_id = "eqrhjmuaaaarjxuprjaj"
 # payload itself.
 [functions.signup]
 verify_jwt = false
+
+[functions.sync-external-data]
+verify_jwt = false

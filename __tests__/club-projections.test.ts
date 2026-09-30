@@ -134,6 +134,7 @@ describe("CLUB_EVENT_SELECT covers EventCard's rendered fields", () => {
     "start_date",
     "logo_url",
     "is_external",
+    "source_name",
     "is_paid",
     "price_cents",
     "difficulty",

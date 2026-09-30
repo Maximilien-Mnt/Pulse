@@ -310,12 +310,36 @@ export default function EventDetailScreen() {
     posthog.capture("event_shared", { event_id: event.id });
   };
 
-  const registrationUrl = event.registration_url?.trim() || null;
+  // The external action must never dead-end while a source page exists:
+  // imported rows always store a registration link (the normalizer falls back
+  // to the source URL), but if only `source_url` is known, open that instead.
+  const registrationUrl =
+    event.registration_url?.trim() || (event.is_external ? event.source_url?.trim() || null : null);
   const shortDescription = event.short_description?.trim() || null;
   const longDescription = event.description?.trim() || null;
 
+  const openExternalRegistration = async () => {
+    if (!registrationUrl) return;
+    posthog.capture("external_event_registration_opened", {
+      event_id: event.id,
+      source_name: event.source_name ?? null,
+    });
+    const { openBrowserAsync } = await import("expo-web-browser");
+    await openBrowserAsync(registrationUrl);
+  };
+
   let actionButton: React.ReactNode = null;
-  if (!isCreator) {
+  if (isExternal) {
+    actionButton = (
+      <Button
+        testID="event-detail-register-button"
+        title={t("events.register")}
+        icon="Globe"
+        onPress={registrationUrl ? () => void openExternalRegistration() : undefined}
+        disabled={!registrationUrl}
+      />
+    );
+  } else if (!isCreator) {
     if (joinStatus?.isMember) {
       actionButton = (
         <Button
@@ -331,14 +355,7 @@ export default function EventDetailScreen() {
           title={isExternal ? t("events.waitingList") : t("events.requestSent")}
           variant="secondary"
           icon={isExternal ? "Globe" : "Clock"}
-          onPress={
-            isExternal && registrationUrl
-              ? async () => {
-                  const { openBrowserAsync } = await import("expo-web-browser");
-                  await openBrowserAsync(registrationUrl);
-                }
-              : undefined
-          }
+          onPress={isExternal && registrationUrl ? () => void openExternalRegistration() : undefined}
           disabled={!isExternal || !registrationUrl}
         />
       );
@@ -356,22 +373,14 @@ export default function EventDetailScreen() {
                 : t("events.join")
           }
           icon={isExternal ? "Globe" : "CheckCircle2"}
-          onPress={() => joinMut.mutate()}
+          onPress={() => {
+            if (isExternal && registrationUrl) void openExternalRegistration();
+            else joinMut.mutate();
+          }}
           loading={joinMut.isPending}
         />
       );
     }
-  } else if (isExternal && registrationUrl) {
-    actionButton = (
-      <Button
-        title={t("events.register")}
-        icon="Globe"
-        onPress={async () => {
-          const { openBrowserAsync } = await import("expo-web-browser");
-          await openBrowserAsync(registrationUrl);
-        }}
-      />
-    );
   }
   const actionVisible = actionButton !== null;
 
@@ -477,10 +486,26 @@ export default function EventDetailScreen() {
               ) : null}
 
               <View className="flex-row flex-wrap gap-2 mt-3 items-center">
-                <Badge>{event.sport}</Badge>
+                <Badge>{SPORTS.find((sport) => sport.id === event.sport)?.label ?? event.sport}</Badge>
                 {event.category ? <Badge variant="neutral">{event.category}</Badge> : null}
                 <SourceBadge isExternal={event.is_external} />
               </View>
+
+              {isExternal && event.source_url ? (
+                <Pressable
+                  onPress={async () => {
+                    const { openBrowserAsync } = await import("expo-web-browser");
+                    await openBrowserAsync(event.source_url!);
+                  }}
+                  accessibilityRole="link"
+                  className="flex-row items-center gap-1.5 mt-2"
+                >
+                  <Icon name="Globe" size={14} color="primary" />
+                  <PulseText variant="caption" className="text-primary underline">
+                    {event.source_name || "External"} · {t("events.viewOriginal")}
+                  </PulseText>
+                </Pressable>
+              ) : null}
 
               <View className="flex-row items-center gap-1.5 mt-2">
                 <Icon name="MapPinned" size={16} color="text-secondary" />
@@ -502,7 +527,9 @@ export default function EventDetailScreen() {
                   Prix
                 </PulseText>
                 <PulseText variant="subtitle" numberOfLines={1} className="text-primary">
-                  {formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
+                  {event.source_name === "OpenAgenda" && event.price_cents <= 0
+                    ? t("events.externalPrice")
+                    : formatPriceFromCents(event.price_cents, event.is_paid, t("events.priceFree"))}
                 </PulseText>
               </View>
 
@@ -593,7 +620,12 @@ export default function EventDetailScreen() {
             label="Lieu"
             value={placeValue || `${event.city}, ${getCountryDisplay(event.country)}`}
           />
-          <InfoRow icon="Users" label="Places" value={placesLabel} />
+          {/* Imported external rows have no Pulse participation at all, so a
+              "0 registered" row would imply an in-app sign-up list exists.
+              Rows with in-app participants or a places limit keep it. */}
+          {event.is_external && (event.accepted_count ?? 0) === 0 && event.places_total == null ? null : (
+            <InfoRow icon="Users" label="Places" value={placesLabel} />
+          )}
           {perSportLevels.length > 0 ? perSportLevels.map((entry) => (
             <InfoRow
               key={entry.id}
@@ -724,4 +756,3 @@ function InfoSection({
     </View>
   );
 }
-

@@ -76,11 +76,17 @@ async function syncClubsForCountry(
     const latitude = element.center?.lat;
     const longitude = element.center?.lon;
     if (typeof latitude !== "number" || typeof longitude !== "number") continue;
+    // (0, 0) is OpenStreetMap's "null island" data error, not a real venue.
+    if (latitude === 0 && longitude === 0) continue;
 
     const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:city"], tags["addr:postcode"]]
       .filter(Boolean)
       .join(", ");
-    const sourceUrl = `https://www.openstreetmap.org/${element.type}/${element.id}`;
+    // Keep the historical `source_url` scheme: it is the upsert conflict key
+    // (`onConflict: "source_url"`), so switching hosts would insert duplicate
+    // rows for every element already synchronized under the previous URL
+    // instead of updating it. Changing it needs a data migration first.
+    const sourceUrl = `https://osm.org/${element.type}/${element.id}`;
     const { error } = await supabase.from("external_clubs").upsert(
       {
         name: tags.name,
@@ -139,14 +145,18 @@ async function syncOpenAgendaEvents(
     for (let from = 0; from <= OPENAGENDA_MAX_EVENTS_PER_AGENDA; from += OPENAGENDA_PAGE_SIZE) {
       const params = new URLSearchParams({
         "relative[]": "upcoming",
+        // Published only. With a public read key the API ignores this filter and
+        // returns published events only, so this is a no-op for such keys.
         state: "2",
+        // Full time slots (`timings[].begin/end`) and additional fields.
         detailed: "1",
         monolingual: "fr",
         size: String(OPENAGENDA_PAGE_SIZE),
         from: String(from),
-        sort: "timings.asc",
       });
       params.append("relative[]", "current");
+      // Documented array syntax for sorts: next upcoming time slot first.
+      params.append("sort[]", "timings.asc");
       const response = await openAgendaGet<{ events?: OpenAgendaEvent[] }>(
         `/agendas/${encodeURIComponent(agendaUid)}/events?${params.toString()}`,
         apiKey,

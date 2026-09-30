@@ -85,6 +85,7 @@ type RenderedVerticalEventFields =
   | "start_date"
   | "logo_url"
   | "is_external"
+  | "source_name"
   | "is_paid"
   | "price_cents"
   | "difficulty";

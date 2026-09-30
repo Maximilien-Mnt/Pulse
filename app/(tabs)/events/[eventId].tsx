@@ -310,7 +310,11 @@ export default function EventDetailScreen() {
     posthog.capture("event_shared", { event_id: event.id });
   };
 
-  const registrationUrl = event.registration_url?.trim() || null;
+  // The external action must never dead-end while a source page exists:
+  // imported rows always store a registration link (the normalizer falls back
+  // to the source URL), but if only `source_url` is known, open that instead.
+  const registrationUrl =
+    event.registration_url?.trim() || (event.is_external ? event.source_url?.trim() || null : null);
   const shortDescription = event.short_description?.trim() || null;
   const longDescription = event.description?.trim() || null;
 
@@ -328,6 +332,7 @@ export default function EventDetailScreen() {
   if (isExternal) {
     actionButton = (
       <Button
+        testID="event-detail-register-button"
         title={t("events.register")}
         icon="Globe"
         onPress={registrationUrl ? () => void openExternalRegistration() : undefined}
@@ -615,7 +620,12 @@ export default function EventDetailScreen() {
             label="Lieu"
             value={placeValue || `${event.city}, ${getCountryDisplay(event.country)}`}
           />
-          <InfoRow icon="Users" label="Places" value={placesLabel} />
+          {/* Imported external rows have no Pulse participation at all, so a
+              "0 registered" row would imply an in-app sign-up list exists.
+              Rows with in-app participants or a places limit keep it. */}
+          {event.is_external && (event.accepted_count ?? 0) === 0 && event.places_total == null ? null : (
+            <InfoRow icon="Users" label="Places" value={placesLabel} />
+          )}
           {perSportLevels.length > 0 ? perSportLevels.map((entry) => (
             <InfoRow
               key={entry.id}

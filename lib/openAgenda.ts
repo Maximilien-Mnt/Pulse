@@ -19,19 +19,30 @@ export type OpenAgendaEvent = {
   location?: {
     name?: Localized;
     address?: Localized;
+    /**
+     * Deprecated alias of `adminLevel4` (JSON export shape). API v2 read
+     * responses expose the location entity: city/commune = `adminLevel4`.
+     */
     city?: Localized;
     adminLevel4?: Localized;
     postalCode?: string;
     countryCode?: string;
     latitude?: number;
     longitude?: number;
+    /** v1-style coordinates; API v2 exposes `latitude`/`longitude` directly. */
     coordinates?: { lat?: number; lon?: number; lng?: number };
   };
+  /** API v2 shape: `[{ type: "link" | "phone" | "email", value }]`. */
   registration?: Array<{ type?: string; value?: string }> | string[];
   onlineAccessLink?: string;
+  /** Canonical URL: present in the deprecated JSON export, not in API v2 reads. */
   canonicalUrl?: string;
   url?: string;
+  /** Availability: 1 scheduled … 5 full, 6 cancelled (API field `status`). */
   status?: Localized;
+  /** Agenda moderation state: 2 = published (API field `state`). */
+  state?: number;
+  /** 1 = in-person, 2 = online, 3 = mixed (API field `attendanceMode`). */
   attendanceMode?: number;
   age?: { min?: number; max?: number };
 };
@@ -145,17 +156,34 @@ function sportFor(event: OpenAgendaEvent, keywordText: string): string | null {
   return rules.find(([, pattern]) => pattern.test(searchable))?.[0] ?? null;
 }
 
-function priceFromConditions(conditions: string): number {
+/**
+ * Price evidence found in the free-form `conditions` text (the API documents
+ * this field as access conditions such as "Payant, gratuit, sur inscription…").
+ *
+ * An explicit amount always wins over free wording, so a mixed sentence like
+ * "Gratuit pour les membres, 15 EUR sinon" is never reported as free. Anything
+ * without an amount or an explicit free phrase is `unknown` — never `free`.
+ */
+type ExternalPrice =
+  | { kind: "free" }
+  | { kind: "paid"; cents: number }
+  | { kind: "unknown" };
+
+const FREE_CONDITION_WORDS = /\b(gratuit|gratuite|free|frei|entrée libre)\b/;
+const PRICE_AMOUNT = /(?:€\s*(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?))/i;
+
+function parsePriceFromConditions(conditions: string): ExternalPrice {
   const normalized = conditions.toLowerCase();
-  if (/\b(gratuit|gratuite|free|frei|entrée libre)\b/.test(normalized)) return 0;
-  const match = normalized.match(/(?:€\s*(\d+(?:[.,]\d{1,2})?)|(\d+(?:[.,]\d{1,2})?)\s*(?:€|eur(?:os)?))/i);
-  if (!match) return 0;
-  const amountText = match[1] ?? match[2];
-  if (!amountText) return 0;
-  const amount = Number(amountText.replace(",", "."));
-  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0;
+  const match = normalized.match(PRICE_AMOUNT);
+  const amountText = match?.[1] ?? match?.[2];
+  if (amountText) {
+    const amount = Number(amountText.replace(",", "."));
+    if (Number.isFinite(amount) && amount > 0) return { kind: "paid", cents: Math.round(amount * 100) };
+  }
+  return FREE_CONDITION_WORDS.test(normalized) ? { kind: "free" } : { kind: "unknown" };
 }
 
+/** API availability `status`: 6 is "Annulé/Cancelled"; legacy payloads may spell it out. */
 function isCancelled(status: Localized): boolean {
   if (status === 6 || status === "6") return true;
   if (status && typeof status === "object" && !Array.isArray(status)) {
@@ -183,12 +211,21 @@ export function normalizeOpenAgendaEvent(
   const uid = event.uid == null ? "" : String(event.uid);
   const title = localizedText(event.title);
   if (!uid || !title || isCancelled(event.status)) return null;
+  // Agenda moderation state (`state`): only "Publié" (2) is publicly readable.
+  // The read query already filters on it; never import a record we can see is
+  // unpublished, whatever the API key's permissions happen to be.
+  if (typeof event.state === "number" && event.state !== 2) return null;
 
   const location = event.location ?? {};
-  const countryCode = (location.countryCode ?? "").toUpperCase();
+  const countryCode = (location.countryCode ?? "").trim().toUpperCase();
+  // `attendanceMode`: 1 = in-person, 2 = online, 3 = mixed. Mixed events take
+  // place at a venue, so they follow the in-person rules here.
   const isOnline = event.attendanceMode === 2;
-  if (countryCode !== "LU" && !isOnline) return null;
-  if (countryCode && countryCode !== "LU") return null;
+  // Only reviewed Luxembourg agendas are allowlisted, so an online listing is
+  // acceptable without a venue. A physical/mixed listing must be verifiably in
+  // Luxembourg: a missing `countryCode` is not evidence of a Luxembourg venue,
+  // and foreign venues are excluded.
+  if (!isOnline && countryCode !== "LU") return null;
 
   const description = plainText(localizedText(event.description));
   const keywords = localizedText(event.keywords);
@@ -200,12 +237,19 @@ export function normalizeOpenAgendaEvent(
   const timing = nextTiming(event.timings, now);
   if (!timing) return null;
 
+  // API v2 read payloads carry no canonical event URL (the `canonicalUrl` field
+  // exists only in the deprecated JSON export). Prefer an explicit URL when a
+  // payload provides one, otherwise build the public listing URL from the API's
+  // own `slug` values for the agenda and the event.
   const generatedSourceUrl = event.slug && agenda.slug
     ? `https://openagenda.com/${encodeURIComponent(agenda.slug)}/events/${encodeURIComponent(event.slug)}`
     : null;
   const sourceUrl = safeHttpUrl(event.canonicalUrl) ?? safeHttpUrl(event.url) ?? generatedSourceUrl;
   if (!sourceUrl) return null;
 
+  // `registration` is `[{ type: "link" | "phone" | "email", value }]`: only
+  // http(s) links are used, so organizer phone numbers and email addresses are
+  // never copied into Pulse.
   const registrationEntries = Array.isArray(event.registration) ? event.registration : [];
   const registrationUrl = registrationEntries
     .map((entry) => typeof entry === "string" ? entry : entry?.type === "link" ? entry.value : null)
@@ -217,6 +261,9 @@ export function normalizeOpenAgendaEvent(
   const address = localizedText(location.address);
   const venue = localizedText(location.name);
   const venueAddress = [venue, address].filter(Boolean).filter((part, index, all) => all.indexOf(part) === index).join(" — ") || null;
+  // API v2 exposes the municipality as `adminLevel4`; `city` is the deprecated
+  // JSON-export alias. A country-level fallback is only used for records whose
+  // Luxembourg country code has been verified above.
   const city = localizedText(location.city) || localizedText(location.adminLevel4) || (isOnline ? "Online" : "Luxembourg");
   const keywordsForCategory = keywords.slice(0, 120);
   const conditions = plainText(localizedText(event.conditions));
@@ -225,7 +272,12 @@ export function normalizeOpenAgendaEvent(
     longDescription,
     conditions ? `Conditions: ${conditions}` : "",
   ].filter(Boolean).join("\n\n").slice(0, 10000);
-  const priceCents = priceFromConditions(conditions);
+  // `price_cents` is NOT NULL DEFAULT 0 and the app derives "free" from a zero
+  // price, so the schema cannot store "price unknown" apart from "free". Unknown
+  // prices are written as 0/false: the source conditions text above keeps the
+  // wording, and the UI shows "check the price on the source" for these rows.
+  // Never read 0/false back as a confirmed free price.
+  const price = parsePriceFromConditions(conditions);
   const latitude = location.latitude ?? location.coordinates?.lat;
   const longitude = location.longitude ?? location.coordinates?.lon ?? location.coordinates?.lng;
 
@@ -242,8 +294,8 @@ export function normalizeOpenAgendaEvent(
     longitude: typeof longitude === "number" && Number.isFinite(longitude) ? longitude : null,
     start_date: new Date(timing.begin!).toISOString(),
     end_date: timing.end && Number.isFinite(Date.parse(timing.end)) ? new Date(timing.end).toISOString() : null,
-    price_cents: priceCents,
-    is_paid: priceCents > 0,
+    price_cents: price.kind === "paid" ? price.cents : 0,
+    is_paid: price.kind === "paid",
     difficulty: 1,
     category: keywordsForCategory,
     registration_url: registrationUrl,

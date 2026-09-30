@@ -4,6 +4,28 @@
 process.env.EXPO_PUBLIC_SUPABASE_URL ??= "https://test.supabase.co";
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??= "test-anon-key";
 
+// jsdom does not provide the Web Encoding / WebCrypto globals that the Deno Edge
+// runtime does. lib/openAgenda.ts derives its stable event IDs from the event
+// UID with `TextEncoder` + `crypto.subtle`, so expose the Node equivalents here
+// instead of weakening the production code for the test environment.
+const { TextDecoder: NodeTextDecoder, TextEncoder: NodeTextEncoder } = require("node:util");
+const { webcrypto } = require("node:crypto");
+
+if (typeof globalThis.TextEncoder === "undefined") globalThis.TextEncoder = NodeTextEncoder;
+if (typeof globalThis.TextDecoder === "undefined") globalThis.TextDecoder = NodeTextDecoder;
+
+if (!globalThis.crypto?.subtle) {
+  try {
+    if (globalThis.crypto) {
+      Object.defineProperty(globalThis.crypto, "subtle", { value: webcrypto.subtle, configurable: true });
+    } else {
+      Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
+    }
+  } catch {
+    Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true, writable: true });
+  }
+}
+
 jest.mock('expo-modules-core', () => ({
   EventEmitter: jest.fn().mockImplementation(() => ({
     addListener: jest.fn(),

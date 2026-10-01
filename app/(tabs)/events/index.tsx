@@ -96,19 +96,23 @@ export default function EventsScreen() {
   const { counts: favCounts } = useBatchFavoriteCounts("event", eventIds);
 
   // Memoize per-event favorite lookups.
-  const eventFavLookup = useMemo(
-    () =>
-      new Map<string, { isFavorite: boolean; favCount: number }>(
-        events.map((e) => [
-          e.id,
-          {
-            isFavorite: favoriteIds.has(e.id),
-            favCount: favCounts.get(e.id) ?? 0,
-          },
-        ]),
-      ),
-    [events, favoriteIds, favCounts],
-  );
+  const eventFavLookup = useMemo(() => {
+    // NOTE: guards against non-Set/Map payloads from a rehydrated offline
+    // cache (Sets/Maps don't survive a JSON round-trip).
+    const safeFavoriteIds: ReadonlySet<string> =
+      favoriteIds instanceof Set ? favoriteIds : new Set<string>();
+    const safeFavCounts: ReadonlyMap<string, number> =
+      favCounts instanceof Map ? favCounts : new Map<string, number>();
+    return new Map<string, { isFavorite: boolean; favCount: number }>(
+      events.map((e) => [
+        e.id,
+        {
+          isFavorite: safeFavoriteIds.has(e.id),
+          favCount: safeFavCounts.get(e.id) ?? 0,
+        },
+      ]),
+    );
+  }, [events, favoriteIds, favCounts]);
 
   const onRefresh = useCallback(() => void refetch(), [refetch]);
 

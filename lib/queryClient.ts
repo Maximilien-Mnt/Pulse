@@ -45,9 +45,15 @@ export function staleForPrefix(prefix: string): number {
 }
 
 const CACHE_KEY = "pulse:rq-cache";
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 // Max age of a persisted cache before we discard it (24h).
 const MAX_AGE = 1000 * 60 * 60 * 24;
+
+// Query-key prefixes whose data does not survive dehydrate → JSON → hydrate
+// (Sets/Maps come back as plain objects, which have no `.has`/`.get`).
+// They are cheap to refetch, so they are never written to AsyncStorage.
+// NOTE: keep in sync with hooks/useBatchedFavorites.ts (batch-favorite-* keys).
+const NON_SERIALIZABLE_QUERY_PREFIXES = ["batch-favorite-ids", "batch-favorite-counts"];
 
 type PersistedCache = {
   version: string;
@@ -116,8 +122,20 @@ export function persistQueryCache(): () => void {
     saveTimer = setTimeout(() => {
       try {
         const clientState = dehydrate(queryClient, {
-          // Only persist successful queries.
-          shouldDehydrateQuery: (query) => query.state.status === "success",
+          // Only persist successful queries whose data survives a JSON
+          // round-trip. Set/Map payloads (e.g. batch-favorite-*) come back
+          // from AsyncStorage as plain objects without `.has`/`.get`, which
+          // crashed consumers on cold start — they are cheap single-request
+          // refetches, so skip them entirely.
+          shouldDehydrateQuery: (query) => {
+            if (query.state.status !== "success") return false;
+            const key = query.queryKey;
+            const prefix = Array.isArray(key) ? key[0] : undefined;
+            return (
+              typeof prefix !== "string" ||
+              !NON_SERIALIZABLE_QUERY_PREFIXES.includes(prefix)
+            );
+          },
         });
         const payload: PersistedCache = {
           version: CACHE_VERSION,

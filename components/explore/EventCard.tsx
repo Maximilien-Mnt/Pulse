@@ -16,10 +16,8 @@ import { useJoinRequestStatus, deriveStatus } from "@/hooks/useJoinRequestStatus
 import { useAuthStore } from "@/stores/authStore";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
-import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
-import { ShareButton } from "@/components/shared/ShareButton";
-import { supabase } from "@/lib/supabase";
+import { CoverOverlayActions } from "@/components/explore/CoverOverlayActions";
 
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
@@ -162,8 +160,8 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
   if (grid) {
     return (
       <Card className="mb-3 p-0" onPress={handlePress}>
-        {/* Cover image with date badge overlay */}
-        <View>
+        {/* Cover image with date badge + actions overlay */}
+        <View className="relative">
           {coverUrl ? (
             <Image
               source={{ uri: coverUrl }}
@@ -190,6 +188,13 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
               {month}
             </Text>
           </View>
+          <CoverOverlayActions
+            isFavorite={isFavorited ?? false}
+            isPending={isPending}
+            onToggleFavorite={handleToggleFavorite}
+            shareContent={shareContent}
+            size="sm"
+          />
         </View>
 
         {/* Body */}
@@ -233,16 +238,6 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
               Participer
             </Button>
           )}
-
-          {/* Like & Share actions */}
-          <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-            <FavoriteButton
-              isFavorite={isFavorited ?? false}
-              onPress={handleToggleFavorite}
-              size={16}
-            />
-            <ShareButton content={shareContent} iconSize={16} />
-          </View>
         </View>
       </Card>
     );
@@ -297,20 +292,10 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 Participer
               </Button>
             )}
-
-            {/* Like & Share actions */}
-            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-              <FavoriteButton
-                isFavorite={isFavorited ?? false}
-                onPress={handleToggleFavorite}
-                size={16}
-              />
-              <ShareButton content={shareContent} iconSize={16} />
-            </View>
           </View>
 
           {/* Right: Cover image */}
-          <View style={{ width: isCompact ? 200 : 260 }}>
+          <View className="relative" style={{ width: isCompact ? 200 : 260 }}>
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -334,13 +319,19 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 {month}
               </Text>
             </View>
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
+            />
           </View>
         </View>
       ) : (
         // Narrow layout: image on top (default behavior)
         <>
-          {/* Cover image with date badge overlay */}
-          <View>
+          {/* Cover image with date badge + actions overlay */}
+          <View className="relative">
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -374,6 +365,12 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 {month}
               </Text>
             </View>
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
+            />
           </View>
 
           {/* Body */}
@@ -417,16 +414,6 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 Participer
               </Button>
             )}
-
-            {/* Like & Share actions */}
-            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-              <FavoriteButton
-                isFavorite={isFavorited ?? false}
-                onPress={handleToggleFavorite}
-                size={16}
-              />
-              <ShareButton content={shareContent} iconSize={16} />
-            </View>
           </View>
         </>
       )}

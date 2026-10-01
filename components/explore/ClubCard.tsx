@@ -13,11 +13,9 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useJoinRequestStatus, deriveStatus } from "@/hooks/useJoinRequestStatus";
 import { useAuthStore } from "@/stores/authStore";
-import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
-import { ShareButton } from "@/components/shared/ShareButton";
+import { CoverOverlayActions } from "@/components/explore/CoverOverlayActions";
 import { formatCount } from "@/utils/format";
-import { supabase } from "@/lib/supabase";
 
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
@@ -152,7 +150,7 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
     return (
       <Card className="mb-3 p-0" onPress={handlePress}>
         {/* Cover image */}
-        <View>
+        <View className="relative">
           {coverUrl ? (
             <Image
               source={{ uri: coverUrl }}
@@ -169,6 +167,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <Icon name="Users" size={24} color="primary" />
             </View>
           )}
+          <CoverOverlayActions
+            isFavorite={isFavorited ?? false}
+            isPending={isPending}
+            onToggleFavorite={handleToggleFavorite}
+            shareContent={shareContent}
+            size="sm"
+          />
         </View>
 
         {/* Body */}
@@ -216,16 +221,6 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               {joinLabel}
             </Button>
           )}
-
-          {/* Like & Share actions */}
-          <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-            <FavoriteButton
-              isFavorite={isFavorited ?? false}
-              onPress={handleToggleFavorite}
-              size={16}
-            />
-            <ShareButton content={shareContent} iconSize={16} />
-          </View>
         </View>
       </Card>
     );
@@ -285,19 +280,10 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               </Button>
             )}
 
-            {/* Like & Share actions */}
-            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-              <FavoriteButton
-                isFavorite={isFavorited ?? false}
-                onPress={handleToggleFavorite}
-                size={16}
-              />
-              <ShareButton content={shareContent} iconSize={16} />
-            </View>
           </View>
 
           {/* Right: Cover image */}
-          <View style={{ width: isCompact ? 200 : 260 }}>
+          <View className="relative" style={{ width: isCompact ? 200 : 260 }}>
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -311,34 +297,48 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 <Icon name="Users" size={32} color="primary" />
               </View>
             )}
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
+            />
           </View>
         </View>
       ) : (
         // Narrow layout: image on top (default behavior)
         <>
-          {coverUrl ? (
-            <Image
-              source={{ uri: coverUrl }}
-              style={{
-                width: "100%",
-                aspectRatio: 16 / 9,
-                ...(isCompact ? { maxHeight: 200 } : {})
-              }}
-              className="rounded-t-lg"
-              contentFit="cover"
-              cachePolicy="memory-disk"
+          <View className="relative">
+            {coverUrl ? (
+              <Image
+                source={{ uri: coverUrl }}
+                style={{
+                  width: "100%",
+                  aspectRatio: 16 / 9,
+                  ...(isCompact ? { maxHeight: 200 } : {})
+                }}
+                className="rounded-t-lg"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <View
+                className="w-full bg-primary-tint items-center justify-center rounded-t-lg"
+                style={{
+                  aspectRatio: 16 / 9,
+                  ...(isCompact ? { maxHeight: 200 } : {})
+                }}
+              >
+                <Icon name="Users" size={32} color="primary" />
+              </View>
+            )}
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
             />
-          ) : (
-            <View
-              className="w-full bg-primary-tint items-center justify-center rounded-t-lg"
-              style={{
-                aspectRatio: 16 / 9,
-                ...(isCompact ? { maxHeight: 200 } : {})
-              }}
-            >
-              <Icon name="Users" size={32} color="primary" />
-            </View>
-          )}
+          </View>
 
           <View className="p-4 gap-3">
             {creator ? <CreatorRow /> : null}
@@ -384,16 +384,6 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 {joinLabel}
               </Button>
             )}
-
-            {/* Like & Share actions */}
-            <View className="flex-row items-center gap-2 pt-1 border-t border-neutral-100 dark:border-neutral-700 mt-0.5">
-              <FavoriteButton
-                isFavorite={isFavorited ?? false}
-                onPress={handleToggleFavorite}
-                size={16}
-              />
-              <ShareButton content={shareContent} iconSize={16} />
-            </View>
           </View>
         </>
       )}

@@ -90,8 +90,23 @@ export function useBatchFavoriteIds(
     placeholderData: () => new Set<string>(),
   });
 
+  const rawIds = query.data as unknown;
+
+  // Serialization guard: Sets do not survive dehydrate → JSON → hydrate
+  // (they come back as plain objects/arrays, which have no `.has`). A
+  // poisoned persisted cache would otherwise crash every consumer with
+  // `favSet.has is not a function` on cold start. Normalize defensively.
+  let favoriteIds: ReadonlySet<string>;
+  if (rawIds instanceof Set) {
+    favoriteIds = rawIds;
+  } else if (Array.isArray(rawIds)) {
+    favoriteIds = new Set(rawIds as string[]);
+  } else {
+    favoriteIds = new Set<string>();
+  }
+
   return {
-    favoriteIds: query.data ?? new Set<string>(),
+    favoriteIds,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -158,11 +173,25 @@ export function useBatchFavoriteCounts(
     enabled: uniqueIds.length > 0,
   });
 
+  // Serialization guard: Maps do not survive dehydrate → JSON → hydrate
+  // (they come back as plain objects, which have no `.get`). Normalize
+  // defensively so consumers never crash on a rehydrated offline cache.
+  const rawCounts = query.data as unknown;
+  let counts: ReadonlyMap<string, number>;
+  if (rawCounts instanceof Map) {
+    counts = rawCounts;
+  } else if (Array.isArray(rawCounts)) {
+    const rebuilt = new Map<string, number>();
+    for (const [k, v] of rawCounts as Array<[string, number]>) {
+      if (typeof k === "string" && typeof v === "number") rebuilt.set(k, v);
+    }
+    counts = rebuilt;
+  } else {
+    counts = new Map<string, number>();
+  }
+
   return {
-    counts: (query.data ?? new Map<string, number>()) as ReadonlyMap<
-      string,
-      number
-    >,
+    counts,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

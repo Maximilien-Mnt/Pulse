@@ -251,12 +251,17 @@ export default function ExploreScreen() {
   const activeEntityType = tab === "clubs" ? "club" : "event";
   const itemIds = useMemo(() => items.map((item: any) => item.id), [items]);
   const { favoriteIds } = useBatchFavoriteIds(activeEntityType);
-  const favLookup = useMemo(
-    () => new Map<string, boolean>(
-      items.map((item: any) => [item.id, favoriteIds.has(item.id)]),
-    ),
-    [items, favoriteIds],
-  );
+  const favLookup = useMemo(() => {
+    // NOTE: guard at the crash site — a non-Set (e.g. a deserialized offline
+    // cache payload) has no `.has` and would throw inside this memo, taking
+    // down the whole screen via the error boundary. The hook itself also
+    // normalizes, this is belt + braces at the exact throw location.
+    const safeFavoriteIds: ReadonlySet<string> =
+      favoriteIds instanceof Set ? favoriteIds : new Set<string>();
+    return new Map<string, boolean>(
+      items.map((item: any) => [item.id, safeFavoriteIds.has(item.id)]),
+    );
+  }, [items, favoriteIds]);
 
   const handleRefresh = useCallback(() => {
     void refetch();

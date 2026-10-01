@@ -61,19 +61,23 @@ export default function ClubsScreen() {
   const favIdsLoadingOrCountLoading = favIdsLoading;
 
   // Memoize per-club favorite lookups so render doesn't recompute.
-  const clubFavLookup = useMemo(
-    () =>
-      new Map<string, { isFavorite: boolean; favCount: number }>(
-        clubs.map((c) => [
-          c.id,
-          {
-            isFavorite: favoriteIds.has(c.id),
-            favCount: favCounts.get(c.id) ?? 0,
-          },
-        ]),
-      ),
-    [clubs, favoriteIds, favCounts],
-  );
+  const clubFavLookup = useMemo(() => {
+    // NOTE: guards against non-Set/Map payloads from a rehydrated offline
+    // cache (Sets/Maps don't survive a JSON round-trip).
+    const safeFavoriteIds: ReadonlySet<string> =
+      favoriteIds instanceof Set ? favoriteIds : new Set<string>();
+    const safeFavCounts: ReadonlyMap<string, number> =
+      favCounts instanceof Map ? favCounts : new Map<string, number>();
+    return new Map<string, { isFavorite: boolean; favCount: number }>(
+      clubs.map((c) => [
+        c.id,
+        {
+          isFavorite: safeFavoriteIds.has(c.id),
+          favCount: safeFavCounts.get(c.id) ?? 0,
+        },
+      ]),
+    );
+  }, [clubs, favoriteIds, favCounts]);
 
   const onRefresh = useCallback(() => void refetch(), [refetch]);
 

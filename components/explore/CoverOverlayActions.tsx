@@ -14,18 +14,23 @@
 //     the `isFavorite` prop. Stays pressable while pending for instant
 //     feedback (the optimistic `useToggleFavorite` hook guards duplicates).
 //   - Share chip: opens the native share sheet (same content as ShareButton).
-//   - Both chips: hover grow (web) + press squash via PressableScale, all
-//     gated by `useReducedMotion`.
+//   - Both chips: hover (web) surface lift + press squash via PressableScale.
+//     The hover uses the exact colour of the pressed state, so hover and press
+//     read as one system, and a `transition-colors` fade makes it a small,
+//     calm animation. Mirrors the hover pattern of MessageBubble (web-only
+//     `hovered` state + class swap) rather than Tailwind `hover:` variants.
+//     Both the fade and the press squash are gated by `useReducedMotion`.
 //   - Presses stop propagation so tapping a chip never navigates the card.
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Share as RNShare, View } from "react-native";
+import { Animated, Platform, Share as RNShare, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { hitSlopForIcon } from "@/src/accessibility";
+import { cn } from "@/utils/format";
 
 export interface CoverShareContent {
   title: string;
@@ -53,11 +58,20 @@ interface CoverOverlayActionsProps {
   testID?: string;
 }
 
+// Resting and hovered surfaces are declared per placement. Each hovered
+// background intentionally matches that placement's `active:` colour, so the
+// chip reads as one control whether the pointer is hovering or pressing.
+// `transition-colors` (150ms, same duration as MessageBubble) is what turns
+// the swap into the small fade animation.
 const OVERLAY_CHIP_CLASS =
-  "rounded-full bg-black/35 border border-white/30 items-center justify-center active:bg-black/50";
+  "rounded-full bg-black/35 border border-white/30 items-center justify-center active:bg-black/50 transition-colors duration-150";
+const OVERLAY_CHIP_HOVER_CLASS = "bg-black/50";
 
 const INLINE_CHIP_CLASS =
-  "rounded-full bg-neutral-100 dark:bg-neutral-800 border border-border items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700";
+  "rounded-full bg-neutral-100 dark:bg-neutral-800 border border-border items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150";
+const INLINE_CHIP_HOVER_CLASS = "bg-neutral-200 dark:bg-neutral-700";
+
+type ChipId = "favorite" | "share";
 
 export function CoverOverlayActions({
   isFavorite,
@@ -145,6 +159,7 @@ export function CoverOverlayActions({
 
   const isInline = variant === "inline";
   const chipClass = isInline ? INLINE_CHIP_CLASS : OVERLAY_CHIP_CLASS;
+  const chipHoverClass = isInline ? INLINE_CHIP_HOVER_CLASS : OVERLAY_CHIP_HOVER_CLASS;
   const containerClass = isInline
     ? "flex-row items-center gap-1.5 shrink-0"
     : small
@@ -153,6 +168,28 @@ export function CoverOverlayActions({
   // On a light card body the icons use the secondary token; the liked heart
   // fills with primary via `active`. On the photo overlay they stay white.
   const idleIconColor = isInline ? ("text-secondary" as const) : ("white" as const);
+
+  // ── Hover (web only) ───────────────────────────────────────────────
+  // Hover is a pointer-only affordance, so the handlers are only attached on
+  // web — native never carries a hovered state (same guard as MessageBubble).
+  // Only one chip can be hovered at a time, hence the single `hovered` value.
+  const isWeb = Platform.OS === "web";
+  const [hovered, setHovered] = useState<ChipId | null>(null);
+
+  const hoverPropsFor = (chip: ChipId) =>
+    isWeb
+      ? {
+          onHoverIn: () => setHovered(chip),
+          onHoverOut: () => setHovered((h) => (h === chip ? null : h)),
+        }
+      : {};
+
+  const classFor = (chip: ChipId) =>
+    cn(
+      small ? "w-7 h-7" : "w-9 h-9",
+      chipClass,
+      hovered === chip && chipHoverClass,
+    );
 
   return (
     <View
@@ -163,12 +200,13 @@ export function CoverOverlayActions({
         onPress={handleToggle}
         scaleOnPress={0.85}
         scaleOnHover={1.08}
+        {...hoverPropsFor("favorite")}
         accessibilityRole="button"
         accessibilityLabel={favoriteLabel}
         accessibilityHint={favoriteHint}
         accessibilityState={{ selected: visualLiked }}
         hitSlop={hitSlopForIcon(chipSize)}
-        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${chipClass}`}
+        className={classFor("favorite")}
         testID={testID ? `${testID}-favorite` : undefined}
       >
         <Animated.View style={{ transform: [{ scale: pop }] }}>
@@ -185,10 +223,11 @@ export function CoverOverlayActions({
         onPress={handleShare}
         scaleOnPress={0.85}
         scaleOnHover={1.08}
+        {...hoverPropsFor("share")}
         accessibilityRole="button"
         accessibilityLabel={shareLabel}
         hitSlop={hitSlopForIcon(chipSize)}
-        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${chipClass}`}
+        className={classFor("share")}
         testID={testID ? `${testID}-share` : undefined}
       >
         <Icon name="Share2" size={shareSize} color={idleIconColor} decorative />

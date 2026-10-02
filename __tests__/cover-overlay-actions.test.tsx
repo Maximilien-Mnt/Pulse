@@ -10,9 +10,16 @@
 // ---------------------------------------------------------------------------
 
 import React from "react";
-import { Share } from "react-native";
+import { Platform, Share } from "react-native";
 import { fireEvent, render, act } from "@testing-library/react-native";
 import { CoverOverlayActions } from "@/components/explore/CoverOverlayActions";
+
+const classNameOf = (node: { props: { className?: string } }) => node.props.className ?? "";
+
+// Must mirror the hover classes in CoverOverlayActions. Asserted as whole token
+// sequences because the resting inline class already contains
+// `active:bg-neutral-200`.
+const HOVER_INLINE = "bg-neutral-200 dark:bg-neutral-700";
 
 const shareContent = {
   title: "Morning Run",
@@ -124,5 +131,70 @@ describe("CoverOverlayActions", () => {
   it("keeps overlay positioning by default", () => {
     const { getByTestId } = renderOverlay({ testID: "cover-actions" });
     expect(getByTestId("cover-actions-favorite").props.className).toContain("bg-black/35");
+  });
+
+  describe("hover (web)", () => {
+    const realPlatform = Platform.OS;
+
+    beforeEach(() => {
+      jest.replaceProperty(Platform, "OS", "web");
+    });
+
+    afterEach(() => {
+      jest.replaceProperty(Platform, "OS", realPlatform);
+    });
+
+    it("lifts the inline chip surface on hover and restores it on hover out", () => {
+      const { getByTestId } = renderOverlay({ variant: "inline", testID: "cover-actions" });
+      const fav = getByTestId("cover-actions-favorite");
+
+      expect(classNameOf(fav)).toContain("bg-neutral-100");
+      // The resting class already carries `active:bg-neutral-200`, so assert on
+      // the whole hover token sequence rather than the bare colour.
+      expect(classNameOf(fav)).not.toContain(HOVER_INLINE);
+
+      fireEvent(fav, "hoverIn");
+      expect(classNameOf(fav)).toContain(HOVER_INLINE);
+
+      fireEvent(fav, "hoverOut");
+      expect(classNameOf(fav)).toContain("bg-neutral-100");
+      expect(classNameOf(fav)).not.toContain(HOVER_INLINE);
+    });
+
+    it("lifts the overlay chip surface on hover", () => {
+      const { getByTestId } = renderOverlay({ testID: "cover-actions" });
+      const share = getByTestId("cover-actions-share");
+
+      expect(classNameOf(share)).toContain("bg-black/35");
+      fireEvent(share, "hoverIn");
+      expect(classNameOf(share)).toContain("bg-black/50");
+    });
+
+    it("hovers each chip independently", () => {
+      const { getByTestId } = renderOverlay({ variant: "inline", testID: "cover-actions" });
+      const fav = getByTestId("cover-actions-favorite");
+      const share = getByTestId("cover-actions-share");
+
+      fireEvent(fav, "hoverIn");
+      expect(classNameOf(fav)).toContain(HOVER_INLINE);
+      expect(classNameOf(share)).not.toContain(HOVER_INLINE);
+
+      fireEvent(share, "hoverIn");
+      expect(classNameOf(share)).toContain(HOVER_INLINE);
+    });
+
+    it("animates the colour fade on both chips", () => {
+      const { getByTestId } = renderOverlay({ testID: "cover-actions" });
+      expect(classNameOf(getByTestId("cover-actions-favorite"))).toContain("transition-colors");
+      expect(classNameOf(getByTestId("cover-actions-favorite"))).toContain("duration-150");
+      expect(classNameOf(getByTestId("cover-actions-share"))).toContain("transition-colors");
+    });
+  });
+
+  it("does not attach hover handlers on native", () => {
+    // Platform.OS is native under jest-expo, so no hover affordance is wired.
+    const { getByTestId } = renderOverlay({ variant: "inline", testID: "cover-actions" });
+    expect(getByTestId("cover-actions-favorite").props.onHoverIn).toBeUndefined();
+    expect(classNameOf(getByTestId("cover-actions-favorite"))).toContain("bg-neutral-100");
   });
 });

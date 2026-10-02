@@ -23,7 +23,7 @@ import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
-import { Button } from "@/components/ui/Button";
+import { CardJoinFooter } from "@/components/explore/CardJoinFooter";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -228,24 +228,12 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
           </View>
 
           {/* Join button — 3 states with event-specific labels */}
-          {status === "member" ? (
-            <View className="flex-row items-center gap-1.5 py-1">
-              <Icon name="CheckCircle2" size={16} color="success" />
-              <Text variant="caption" className="text-success">
-                Inscrit
-              </Text>
-            </View>
-          ) : status === "pending" ? (
-            <View className="bg-neutral-100 rounded-md py-1.5 items-center">
-              <Text variant="buttonLabel" className="text-neutral-500 text-xs">
-                Demande envoyée
-              </Text>
-            </View>
-          ) : (
-            <Button variant="primary" onPress={handlePress} className="w-full py-1.5">
-              Participer
-            </Button>
-          )}
+          <CardJoinFooter
+            status={status}
+            joinLabel="Participer"
+            memberLabel="Inscrit"
+            onPress={handlePress}
+          />
         </View>
       </Card>
     );
@@ -296,24 +284,12 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             </View>
 
             {/* Join button — 3 states with event-specific labels */}
-            {status === "member" ? (
-              <View className="flex-row items-center gap-2 py-2">
-                <Icon name="CheckCircle2" size={16} color="success" />
-                <Text variant="caption" className="text-success">
-                  Inscrit
-                </Text>
-              </View>
-            ) : status === "pending" ? (
-              <View className="bg-neutral-100 rounded-md py-3 items-center">
-                <Text variant="buttonLabel" className="text-neutral-500">
-                  Demande envoyée
-                </Text>
-              </View>
-            ) : (
-              <Button variant="primary" onPress={handlePress} className="w-full">
-                Participer
-              </Button>
-            )}
+            <CardJoinFooter
+              status={status}
+              joinLabel="Participer"
+              memberLabel="Inscrit"
+              onPress={handlePress}
+            />
           </View>
 
           {/* Right: Cover image with date badge (actions moved to title row) */}
@@ -420,24 +396,12 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             </View>
 
             {/* Join button — 3 states with event-specific labels */}
-            {status === "member" ? (
-              <View className="flex-row items-center gap-2 py-2">
-                <Icon name="CheckCircle2" size={16} color="success" />
-                <Text variant="caption" className="text-success">
-                  Inscrit
-                </Text>
-              </View>
-            ) : status === "pending" ? (
-              <View className="bg-neutral-100 rounded-md py-3 items-center">
-                <Text variant="buttonLabel" className="text-neutral-500">
-                  Demande envoyée
-                </Text>
-              </View>
-            ) : (
-              <Button variant="primary" onPress={handlePress} className="w-full">
-                Participer
-              </Button>
-            )}
+            <CardJoinFooter
+              status={status}
+              joinLabel="Participer"
+              memberLabel="Inscrit"
+              onPress={handlePress}
+            />
           </View>
         </>
       )}

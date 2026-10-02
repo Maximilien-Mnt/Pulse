@@ -22,7 +22,7 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
 import { SourceBadge } from "@/components/shared/SourceBadge";
-import { Button } from "@/components/ui/Button";
+import { CardJoinFooter } from "@/components/explore/CardJoinFooter";
 import { Avatar } from "@/components/ui/Avatar";
 import { t } from "@/hooks/useTranslation";
 
@@ -206,29 +206,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
             <SourceBadge isExternal={club.is_external} variant="chip" className="self-center" />
           </View>
 
-          {status === "member" ? (
-            <View className="flex-row items-center gap-1.5 py-1">
-              <Icon name="CheckCircle2" size={16} color="success" />
-              <Text variant="caption" className="text-success">
-                Membre
-              </Text>
-            </View>
-          ) : status === "pending" ? (
-            <View className="bg-neutral-100 rounded-md py-1.5 items-center">
-              <Text variant="buttonLabel" className="text-neutral-500 text-xs">
-                Demande envoyée
-              </Text>
-            </View>
-          ) : (
-            <Button
-              variant="primary"
-              icon={joinIcon}
-              onPress={handlePress}
-              className="w-full py-1.5"
-            >
-              {joinLabel}
-            </Button>
-          )}
+          <CardJoinFooter
+            status={status}
+            joinLabel={joinLabel}
+            joinIcon={joinIcon}
+            memberLabel="Membre"
+            onPress={handlePress}
+          />
         </View>
       </Card>
     );
@@ -278,29 +262,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 
-            {status === "member" ? (
-              <View className="flex-row items-center gap-2 py-2">
-                <Icon name="CheckCircle2" size={16} color="success" />
-                <Text variant="caption" className="text-success">
-                  Membre
-                </Text>
-              </View>
-            ) : status === "pending" ? (
-              <View className="bg-neutral-100 rounded-md py-3 items-center">
-                <Text variant="buttonLabel" className="text-neutral-500">
-                  Demande envoyée
-                </Text>
-              </View>
-            ) : (
-              <Button
-                variant="primary"
-                icon={joinIcon}
-                onPress={handlePress}
-                className="w-full"
-              >
-                {joinLabel}
-              </Button>
-            )}
+            <CardJoinFooter
+              status={status}
+              joinLabel={joinLabel}
+              joinIcon={joinIcon}
+              memberLabel="Membre"
+              onPress={handlePress}
+            />
 
           </View>
 
@@ -385,29 +353,13 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 
-            {status === "member" ? (
-              <View className="flex-row items-center gap-2 py-2">
-                <Icon name="CheckCircle2" size={16} color="success" />
-                <Text variant="caption" className="text-success">
-                  Membre
-                </Text>
-              </View>
-            ) : status === "pending" ? (
-              <View className="bg-neutral-100 rounded-md py-3 items-center">
-                <Text variant="buttonLabel" className="text-neutral-500">
-                  Demande envoyée
-                </Text>
-              </View>
-            ) : (
-              <Button
-                variant="primary"
-                icon={joinIcon}
-                onPress={handlePress}
-                className="w-full"
-              >
-                {joinLabel}
-              </Button>
-            )}
+            <CardJoinFooter
+              status={status}
+              joinLabel={joinLabel}
+              joinIcon={joinIcon}
+              memberLabel="Membre"
+              onPress={handlePress}
+            />
           </View>
         </>
       )}

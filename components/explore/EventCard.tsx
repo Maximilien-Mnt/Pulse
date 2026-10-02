@@ -160,7 +160,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
   if (grid) {
     return (
       <Card className="mb-3 p-0" onPress={handlePress}>
-        {/* Cover image with date badge + actions overlay */}
+        {/* Cover image with date badge (actions now live in the title row below) */}
         <View className="relative">
           {coverUrl ? (
             <Image
@@ -188,20 +188,28 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
               {month}
             </Text>
           </View>
-          <CoverOverlayActions
-            isFavorite={isFavorited ?? false}
-            isPending={isPending}
-            onToggleFavorite={handleToggleFavorite}
-            shareContent={shareContent}
-            size="sm"
-          />
         </View>
 
         {/* Body */}
         <View className="p-2.5 gap-2">
-          <Text variant="subtitle" className="text-text-primary text-sm" numberOfLines={2}>
-            {event.name}
-          </Text>
+          <View className="flex-row items-start gap-2">
+            <Text
+              variant="subtitle"
+              className="flex-1 text-text-primary text-sm"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {event.name}
+            </Text>
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
+              size="sm"
+              variant="inline"
+            />
+          </View>
 
           <View className="flex-row items-center gap-2">
             {creator ? <CreatorAvatar /> : null}
@@ -253,10 +261,24 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
         <View style={{ flexDirection: "row" }}>
           {/* Left: Content */}
           <View className="flex-1 p-4 gap-3">
+            <View className="flex-row items-start gap-2">
+              <Text
+                variant="subtitle"
+                className="flex-1 text-text-primary"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {event.name}
+              </Text>
+              <CoverOverlayActions
+                isFavorite={isFavorited ?? false}
+                isPending={isPending}
+                onToggleFavorite={handleToggleFavorite}
+                shareContent={shareContent}
+                variant="inline"
+              />
+            </View>
             {creator ? <CreatorRow /> : null}
-            <Text variant="subtitle" className="text-text-primary" numberOfLines={2}>
-              {event.name}
-            </Text>
 
             <View className="flex-row items-center gap-3">
               <View className="flex-row items-center gap-1">
@@ -294,7 +316,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             )}
           </View>
 
-          {/* Right: Cover image */}
+          {/* Right: Cover image with date badge (actions moved to title row) */}
           <View className="relative" style={{ width: isCompact ? 200 : 260 }}>
             {coverUrl ? (
               <Image
@@ -319,18 +341,12 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 {month}
               </Text>
             </View>
-            <CoverOverlayActions
-              isFavorite={isFavorited ?? false}
-              isPending={isPending}
-              onToggleFavorite={handleToggleFavorite}
-              shareContent={shareContent}
-            />
           </View>
         </View>
       ) : (
         // Narrow layout: image on top (default behavior)
         <>
-          {/* Cover image with date badge + actions overlay */}
+          {/* Cover image with date badge (actions now in the title row below) */}
           <View className="relative">
             {coverUrl ? (
               <Image
@@ -365,20 +381,28 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 {month}
               </Text>
             </View>
-            <CoverOverlayActions
-              isFavorite={isFavorited ?? false}
-              isPending={isPending}
-              onToggleFavorite={handleToggleFavorite}
-              shareContent={shareContent}
-            />
           </View>
 
           {/* Body */}
           <View className="p-4 gap-3">
+            <View className="flex-row items-start gap-2">
+              <Text
+                variant="subtitle"
+                className="flex-1 text-text-primary"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {event.name}
+              </Text>
+              <CoverOverlayActions
+                isFavorite={isFavorited ?? false}
+                isPending={isPending}
+                onToggleFavorite={handleToggleFavorite}
+                shareContent={shareContent}
+                variant="inline"
+              />
+            </View>
             {creator ? <CreatorRow /> : null}
-            <Text variant="subtitle" className="text-text-primary" numberOfLines={2}>
-              {event.name}
-            </Text>
 
             <View className="flex-row items-center gap-3">
               <View className="flex-row items-center gap-1">

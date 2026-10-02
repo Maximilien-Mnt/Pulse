@@ -110,4 +110,19 @@ describe("CoverOverlayActions", () => {
     expect(getByTestId("cover-actions-favorite").props.className).toContain("w-9 h-9");
     expect(getByTestId("cover-actions-share").props.className).toContain("w-9 h-9");
   });
+
+  it("renders a static neutral row in inline variant (title row, no cover overlay)", () => {
+    const { getByTestId } = renderOverlay({
+      variant: "inline",
+      testID: "cover-actions",
+    } as any);
+    const favClass = getByTestId("cover-actions-favorite").props.className as string;
+    expect(favClass).toContain("bg-neutral-100");
+    expect(favClass).not.toContain("bg-black/35");
+  });
+
+  it("keeps overlay positioning by default", () => {
+    const { getByTestId } = renderOverlay({ testID: "cover-actions" });
+    expect(getByTestId("cover-actions-favorite").props.className).toContain("bg-black/35");
+  });
 });

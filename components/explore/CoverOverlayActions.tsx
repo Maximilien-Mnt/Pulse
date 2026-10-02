@@ -1,12 +1,15 @@
 // ---------------------------------------------------------------------------
 // PULSE EXPLORE — Cover Overlay Actions
 //
-// Floating like/share chips anchored to the top-right corner of an explore
-// card cover image. Glass style (translucent dark + light border) keeps the
-// icons legible over any photo, matching the ClubHeroBar floating chips.
+// Two placements for the like/share actions on explore cards:
+//   - overlay (default): floating glass chips anchored to the top-right
+//     corner of a cover image. Glass style (translucent dark + light border)
+//     keeps the icons legible over any photo.
+//   - inline: static chips for the info section, anchored at the right side
+//     of the title row. Neutral surface style for light/dark card bodies.
 //
-// Behavior:
-//   - Like chip: unfilled white heart ↔ filled primary heart, with instant
+// Behavior (both variants):
+//   - Like chip: unfilled heart ↔ filled primary heart, with instant
 //     local flip + spring pop (borrowed from FavoriteButton), reconciled with
 //     the `isFavorite` prop. Stays pressable while pending for instant
 //     feedback (the optimistic `useToggleFavorite` hook guards duplicates).
@@ -38,14 +41,23 @@ interface CoverOverlayActionsProps {
   shareContent: CoverShareContent;
   /** "md" for default/wide covers, "sm" for compact grid covers. */
   size?: "md" | "sm";
+  /**
+   * Placement of the two chips.
+   * - "overlay": absolutely positioned over the cover image (glass style).
+   * - "inline": static row for the title row of the info section.
+   */
+  variant?: "overlay" | "inline";
   /** Called after the native share dialog is presented. */
   onShare?: (result: { action: string }) => void;
   /** Test identifier prefix for E2E and unit tests. */
   testID?: string;
 }
 
-const CHIP_CLASS =
+const OVERLAY_CHIP_CLASS =
   "rounded-full bg-black/35 border border-white/30 items-center justify-center active:bg-black/50";
+
+const INLINE_CHIP_CLASS =
+  "rounded-full bg-neutral-100 dark:bg-neutral-800 border border-border items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700";
 
 export function CoverOverlayActions({
   isFavorite,
@@ -53,6 +65,7 @@ export function CoverOverlayActions({
   onToggleFavorite,
   shareContent,
   size = "md",
+  variant = "overlay",
   onShare,
   testID,
 }: CoverOverlayActionsProps) {
@@ -130,9 +143,20 @@ export function CoverOverlayActions({
     : "Ajoute ce contenu à tes favoris";
   const shareLabel = `Partager ${shareContent.title}${shareContent.url ? ` — ${shareContent.url}` : ""}`;
 
+  const isInline = variant === "inline";
+  const chipClass = isInline ? INLINE_CHIP_CLASS : OVERLAY_CHIP_CLASS;
+  const containerClass = isInline
+    ? "flex-row items-center gap-1.5 shrink-0"
+    : small
+      ? "absolute top-2 right-2 flex-row gap-1.5"
+      : "absolute top-3 right-3 flex-row gap-1.5";
+  // On a light card body the icons use the secondary token; the liked heart
+  // fills with primary via `active`. On the photo overlay they stay white.
+  const idleIconColor = isInline ? ("text-secondary" as const) : ("white" as const);
+
   return (
     <View
-      className={small ? "absolute top-2 right-2 flex-row gap-1.5" : "absolute top-3 right-3 flex-row gap-1.5"}
+      className={containerClass}
       pointerEvents="box-none"
     >
       <PressableScale
@@ -144,14 +168,14 @@ export function CoverOverlayActions({
         accessibilityHint={favoriteHint}
         accessibilityState={{ selected: visualLiked }}
         hitSlop={hitSlopForIcon(chipSize)}
-        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${CHIP_CLASS}`}
+        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${chipClass}`}
         testID={testID ? `${testID}-favorite` : undefined}
       >
         <Animated.View style={{ transform: [{ scale: pop }] }}>
           <Icon
             name="Heart"
             size={heartSize}
-            color="white"
+            color={visualLiked ? "primary" : idleIconColor}
             active={visualLiked}
             decorative
           />
@@ -164,10 +188,10 @@ export function CoverOverlayActions({
         accessibilityRole="button"
         accessibilityLabel={shareLabel}
         hitSlop={hitSlopForIcon(chipSize)}
-        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${CHIP_CLASS}`}
+        className={`${small ? "w-7 h-7" : "w-9 h-9"} ${chipClass}`}
         testID={testID ? `${testID}-share` : undefined}
       >
-        <Icon name="Share2" size={shareSize} color="white" decorative />
+        <Icon name="Share2" size={shareSize} color={idleIconColor} decorative />
       </PressableScale>
     </View>
   );

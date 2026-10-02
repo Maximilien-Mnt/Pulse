@@ -149,8 +149,8 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
   if (grid) {
     return (
       <Card className="mb-3 p-0" onPress={handlePress}>
-        {/* Cover image */}
-        <View className="relative">
+        {/* Cover image (actions now live in the title row below) */}
+        <View>
           {coverUrl ? (
             <Image
               source={{ uri: coverUrl }}
@@ -167,20 +167,28 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
               <Icon name="Users" size={24} color="primary" />
             </View>
           )}
-          <CoverOverlayActions
-            isFavorite={isFavorited ?? false}
-            isPending={isPending}
-            onToggleFavorite={handleToggleFavorite}
-            shareContent={shareContent}
-            size="sm"
-          />
         </View>
 
         {/* Body */}
         <View className="p-2.5 gap-2">
-          <Text variant="subtitle" className="text-text-primary text-sm" numberOfLines={2}>
-            {club.name}
-          </Text>
+          <View className="flex-row items-start gap-2">
+            <Text
+              variant="subtitle"
+              className="flex-1 text-text-primary text-sm"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {club.name}
+            </Text>
+            <CoverOverlayActions
+              isFavorite={isFavorited ?? false}
+              isPending={isPending}
+              onToggleFavorite={handleToggleFavorite}
+              shareContent={shareContent}
+              size="sm"
+              variant="inline"
+            />
+          </View>
 
           <View className="flex-row items-center gap-2">
             {creator ? <CreatorAvatar /> : null}
@@ -236,10 +244,24 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
         <View style={{ flexDirection: "row" }}>
           {/* Left: Content */}
           <View className="flex-1 p-4 gap-3">
+            <View className="flex-row items-start gap-2">
+              <Text
+                variant="subtitle"
+                className="flex-1 text-text-primary"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {club.name}
+              </Text>
+              <CoverOverlayActions
+                isFavorite={isFavorited ?? false}
+                isPending={isPending}
+                onToggleFavorite={handleToggleFavorite}
+                shareContent={shareContent}
+                variant="inline"
+              />
+            </View>
             {creator ? <CreatorRow /> : null}
-            <Text variant="subtitle" className="text-text-primary" numberOfLines={2}>
-              {club.name}
-            </Text>
 
             <View className="flex-row items-center gap-3">
               <View className="flex-row items-center gap-1">
@@ -282,8 +304,8 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
 
           </View>
 
-          {/* Right: Cover image */}
-          <View className="relative" style={{ width: isCompact ? 200 : 260 }}>
+          {/* Right: Cover image (like/share moved to the title row) */}
+          <View style={{ width: isCompact ? 200 : 260 }}>
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -297,18 +319,12 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 <Icon name="Users" size={32} color="primary" />
               </View>
             )}
-            <CoverOverlayActions
-              isFavorite={isFavorited ?? false}
-              isPending={isPending}
-              onToggleFavorite={handleToggleFavorite}
-              shareContent={shareContent}
-            />
           </View>
         </View>
       ) : (
         // Narrow layout: image on top (default behavior)
         <>
-          <View className="relative">
+          <View>
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -332,19 +348,27 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 <Icon name="Users" size={32} color="primary" />
               </View>
             )}
-            <CoverOverlayActions
-              isFavorite={isFavorited ?? false}
-              isPending={isPending}
-              onToggleFavorite={handleToggleFavorite}
-              shareContent={shareContent}
-            />
           </View>
 
           <View className="p-4 gap-3">
+            <View className="flex-row items-start gap-2">
+              <Text
+                variant="subtitle"
+                className="flex-1 text-text-primary"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {club.name}
+              </Text>
+              <CoverOverlayActions
+                isFavorite={isFavorited ?? false}
+                isPending={isPending}
+                onToggleFavorite={handleToggleFavorite}
+                shareContent={shareContent}
+                variant="inline"
+              />
+            </View>
             {creator ? <CreatorRow /> : null}
-            <Text variant="subtitle" className="text-text-primary" numberOfLines={2}>
-              {club.name}
-            </Text>
 
             <View className="flex-row items-center gap-3">
               <View className="flex-row items-center gap-1">

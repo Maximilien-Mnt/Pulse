@@ -10,6 +10,7 @@
 import React from "react";
 import { PressableScale } from "./PressableScale";
 import { Arrow, useArrowNudge } from "./Arrow";
+import { ICON_BUTTON_SCALE_HOVER, ICON_BUTTON_SCALE_PRESS } from "./IconButton";
 import { cn } from "@/utils/format";
 
 export type GalleryArrowDirection = "left" | "right";
@@ -37,17 +38,17 @@ export function GalleryArrowButton({
       {...nudge}
       onPress={onPress}
       disabled={disabled}
-      scaleOnPress={0.85}
-      scaleOnHover={1.1}
+      scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+      scaleOnHover={ICON_BUTTON_SCALE_HOVER}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className={cn(
         "absolute top-1/2 -translate-y-1/2 z-10",
-        "w-10 h-10 rounded-full items-center justify-center shadow-sm border",
+        "w-11 h-11 rounded-full items-center justify-center shadow-sm border", // Standard 44×44 — all circular buttons share this dimension.
         // Hover/focus lifts to the same colour as the pressed state, matching
         // the shared <IconButton> motion language (components/ui/IconButton.tsx).
         "bg-white/90 dark:bg-neutral-900/90 border-neutral-200 dark:border-neutral-700",
-        active && "bg-white dark:bg-neutral-800",
+        active && "bg-white dark:bg-neutral-800 transition-colors duration-150",
         direction === "left" ? "left-2" : "right-2"
       )}
     >

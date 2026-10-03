@@ -668,7 +668,7 @@ function FeedTopBar({
           <IconButton
             icon={viewMode === "list" ? "PanelLeft" : "PanelBottom"}
             iconSize={20}
-            size="sm"
+            size="md"
             tone="neutral"
             label={viewMode === "list" ? t("common.viewList") : t("common.viewGrid")}
             onPress={onToggleViewMode}

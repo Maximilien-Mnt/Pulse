@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { ICON_BUTTON_SCALE_HOVER, ICON_BUTTON_SCALE_PRESS } from '@/components/ui/IconButton';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface ClubHeroBarProps {
@@ -60,14 +61,14 @@ export function ClubHeroBar({
           <View>
             <PressableScale
               onPress={onToggle}
-              scaleOnPress={0.85}
-              scaleOnHover={1.08}
+              scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+              scaleOnHover={ICON_BUTTON_SCALE_HOVER}
               disabled={isFavPending}
               accessibilityRole='button'
               accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               accessibilityState={{ selected: !!isFavorited, disabled: isFavPending }}
               hitSlop={6}
-              className='w-10 h-10 rounded-full bg-black/35 items-center justify-center border border-white/30 active:bg-black/50'
+              className='w-11 h-11 rounded-full bg-black/35 items-center justify-center border border-white/30 active:bg-black/50 transition-colors duration-150'
               style={{ opacity: isFavPending ? 0.6 : 1 }}
             >
               <Animated.View style={{ transform: [{ scale: pop }] }}>
@@ -87,12 +88,12 @@ export function ClubHeroBar({
           </View>
           <PressableScale
             onPress={onShare}
-            scaleOnPress={0.85}
-            scaleOnHover={1.08}
+            scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+            scaleOnHover={ICON_BUTTON_SCALE_HOVER}
             accessibilityRole='button'
             accessibilityLabel='Partager'
             hitSlop={6}
-            className='w-10 h-10 rounded-full bg-black/35 items-center justify-center border border-white/30 active:bg-black/50'
+            className='w-11 h-11 rounded-full bg-black/35 items-center justify-center border border-white/30 active:bg-black/50 transition-colors duration-150'
           >
             <Icon name='Share2' size={19} color='white' />
           </PressableScale>

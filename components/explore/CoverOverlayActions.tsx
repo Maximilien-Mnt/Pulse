@@ -20,14 +20,20 @@
 //     calm animation. Mirrors the hover pattern of MessageBubble (web-only
 //     `hovered` state + class swap) rather than Tailwind `hover:` variants.
 //     Both the fade and the press squash are gated by `useReducedMotion`.
-//   - Presses stop propagation so tapping a chip never navigates the card.
+//   - All circular icon buttons in the app share the same 44×44 hit target and
+//     the same motion language (see constants in IconButton.tsx).
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Platform, Share as RNShare, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
-import { ICON_BUTTON_TRANSITION_MS } from "@/components/ui/IconButton";
+import {
+  BUTTON_ICON_SIZE,
+  ICON_BUTTON_SCALE_HOVER,
+  ICON_BUTTON_SCALE_PRESS,
+  ICON_BUTTON_TRANSITION_MS,
+} from "@/components/ui/IconButton";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { hitSlopForIcon } from "@/src/accessibility";
@@ -82,7 +88,6 @@ export function CoverOverlayActions({
   isPending: _isPending,
   onToggleFavorite,
   shareContent,
-  size = "md",
   variant = "overlay",
   onShare,
   testID,
@@ -90,10 +95,9 @@ export function CoverOverlayActions({
   void _isPending; // accepted for API compat, intentionally ignored
   const reduceMotion = useReducedMotion();
 
-  const small = size === "sm";
-  const chipSize = small ? 28 : 36;
-  const heartSize = small ? 15 : 18;
-  const shareSize = small ? 14 : 16;
+  // All circular buttons share the same 44×44 hit target (BUTTON_ICON_SIZE).
+  // The `size` prop remains for API compatibility but no longer drives dimensions.
+  const chipSize = BUTTON_ICON_SIZE;
 
   // Instant local like state: flips synchronously on press so the heart fills
   // (+ pop) without waiting for the optimistic hook / backend round-trip.
@@ -166,9 +170,7 @@ export function CoverOverlayActions({
   const chipHoverClass = isInline ? INLINE_CHIP_HOVER_CLASS : OVERLAY_CHIP_HOVER_CLASS;
   const containerClass = isInline
     ? "flex-row items-center gap-1.5 shrink-0"
-    : small
-      ? "absolute top-2 right-2 flex-row gap-1.5"
-      : "absolute top-3 right-3 flex-row gap-1.5";
+    : "absolute top-3 right-3 flex-row gap-1.5";
   // On a light card body the icons use the secondary token; the liked heart
   // fills with primary via `active`. On the photo overlay they stay white.
   const idleIconColor = isInline ? ("text-secondary" as const) : ("white" as const);
@@ -190,7 +192,7 @@ export function CoverOverlayActions({
 
   const classFor = (chip: ChipId) =>
     cn(
-      small ? "w-7 h-7" : "w-9 h-9",
+      "w-11 h-11", // Standard 44×44 — all circular buttons share this dimension.
       chipClass,
       hovered === chip && chipHoverClass,
     );
@@ -202,8 +204,8 @@ export function CoverOverlayActions({
     >
       <PressableScale
         onPress={handleToggle}
-        scaleOnPress={0.85}
-        scaleOnHover={1.08}
+        scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+        scaleOnHover={ICON_BUTTON_SCALE_HOVER}
         {...hoverPropsFor("favorite")}
         accessibilityRole="button"
         accessibilityLabel={favoriteLabel}
@@ -216,7 +218,7 @@ export function CoverOverlayActions({
         <Animated.View style={{ transform: [{ scale: pop }] }}>
           <Icon
             name="Heart"
-            size={heartSize}
+            size={20}
             color={visualLiked ? "primary" : idleIconColor}
             active={visualLiked}
             decorative
@@ -225,8 +227,8 @@ export function CoverOverlayActions({
       </PressableScale>
       <PressableScale
         onPress={handleShare}
-        scaleOnPress={0.85}
-        scaleOnHover={1.08}
+        scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+        scaleOnHover={ICON_BUTTON_SCALE_HOVER}
         {...hoverPropsFor("share")}
         accessibilityRole="button"
         accessibilityLabel={shareLabel}
@@ -234,7 +236,7 @@ export function CoverOverlayActions({
         className={classFor("share")}
         testID={testID ? `${testID}-share` : undefined}
       >
-        <Icon name="Share2" size={shareSize} color={idleIconColor} decorative />
+        <Icon name="Share2" size={19} color={idleIconColor} decorative />
       </PressableScale>
     </View>
   );

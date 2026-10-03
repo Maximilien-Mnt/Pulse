@@ -13,6 +13,8 @@
 //   - scale springs come from PressableScale (1.06 hover / 0.9 press),
 //   - accessibility: required role/label, disabled + selected state, and a 44px
 //     minimum hit area on the small size.
+//   - All circular icon buttons in the app share the same 44×44 hit target via
+//     BUTTON_ICON_SIZE (components/ui/IconButton.tsx).
 // ---------------------------------------------------------------------------
 
 import React from "react";
@@ -242,4 +244,3 @@ describe("keyboard focus parity", () => {
     expect(cls).toContain("transition-colors");
   });
 });
-  });

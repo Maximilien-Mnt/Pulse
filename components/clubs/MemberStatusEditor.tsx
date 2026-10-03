@@ -218,7 +218,7 @@ export function MemberStatusEditor({
           icon="X"
           label={t("common.cancel")}
           tone="neutral"
-          size="sm"
+          size="md"
           onPress={onClose}
           disabled={isPending}
         />
@@ -226,7 +226,7 @@ export function MemberStatusEditor({
           icon="Check"
           label={t("common.save")}
           tone="primary"
-          size="sm"
+          size="md"
           onPress={handleSave}
           disabled={isPending}
           testID="member-status-confirm"

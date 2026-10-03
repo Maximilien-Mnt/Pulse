@@ -43,6 +43,8 @@ import { cn } from "@/utils/format";
 // Timing constants — the shared motion language
 // ---------------------------------------------------------------------------
 
+/** Standard size (px) for every round icon button in the app — all circular buttons share this dimension. */
+export const BUTTON_ICON_SIZE = 44;
 /** Scale applied while hovered / keyboard-focused. */
 export const ICON_BUTTON_SCALE_HOVER = 1.06;
 /** Scale applied while pressed. */

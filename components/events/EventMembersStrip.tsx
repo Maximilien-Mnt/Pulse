@@ -64,7 +64,7 @@ export function EventMembersStrip({
           accessibilityRole="button"
           accessibilityLabel={t("events.members.seeAll")}
           className={
-            "w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center" +
+            "w-11 h-11 shrink-0 rounded-full bg-primary/10 items-center justify-center" + // Standard 44x44 — all circular buttons share this dimension.
             (active ? " bg-primary/20" : "")
           }
         >

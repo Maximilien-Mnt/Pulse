@@ -660,7 +660,7 @@ function ExploreHeader({
             <IconButton
               icon={viewMode === "list" ? "LayoutGrid" : "List"}
               iconSize={20}
-              size="sm"
+              size="md"
               tone="neutral"
               label={
                 viewMode === "list" ? t("common.viewList") : t("common.viewGrid")

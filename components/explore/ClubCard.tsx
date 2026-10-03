@@ -20,8 +20,8 @@ import { formatCount } from "@/utils/format";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
-import { Tag } from "@/components/ui/Tag";
 import { SourceBadge } from "@/components/shared/SourceBadge";
+import { SportPills, normalizeSports, getSportLabel } from "@/components/shared/SportPill";
 import { CardJoinFooter } from "@/components/explore/CardJoinFooter";
 import { Avatar } from "@/components/ui/Avatar";
 import { t } from "@/hooks/useTranslation";
@@ -31,6 +31,8 @@ interface ClubCardProps {
     id: string;
     name: string;
     sport?: string;
+    /** Every sport practiced (settings `sports[]`); `sport` is the primary one. */
+    sports?: string[];
     logo_url?: string | null;
     hero_urls?: string[];
     member_count?: number;
@@ -66,16 +68,21 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
 
   const handleToggleFavorite = toggle;
 
+  // ── Sports ──────────────────────────────────────────────────────────
+  // Every sport the club practices (settings `sports[]`, falling back to the
+  // legacy primary `sport` column), rendered as default sport pills.
+  const sportIds = normalizeSports(club.sports, club.sport);
+  const shareSportLabel = sportIds.map((id) => getSportLabel(id)).join(" · ");
+
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {
     title: club.name,
-    message: `${club.name} — ${club.sport ?? "Sport"} | Pulse`,
+    message: `${club.name} — ${shareSportLabel || "Sport"} | Pulse`,
     url: `https://pulse.app/club/${club.id}`,
   };
 
   const coverUrl = club.hero_urls?.[0] ?? club.logo_url ?? null;
   const memberCount = club.member_count ?? 0;
-  const sportLabel = club.sport ?? null;
   const creator = club.creator;
 
   const status = deriveStatus(
@@ -198,11 +205,7 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
                 {formatCount(memberCount)}
               </Text>
             </View>
-            {sportLabel ? (
-              <Tag variant="chip" active={false}>
-                {sportLabel}
-              </Tag>
-            ) : null}
+            <SportPills sports={sportIds} size="sm" />
             <SourceBadge isExternal={club.is_external} variant="chip" className="self-center" />
           </View>
 
@@ -247,18 +250,14 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
             </View>
             {creator ? <CreatorRow /> : null}
 
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row flex-wrap items-center gap-3">
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
                   {formatCount(memberCount)}
                 </Text>
               </View>
-              {sportLabel ? (
-                <Tag variant="chip" active={false}>
-                  {sportLabel}
-                </Tag>
-              ) : null}
+              <SportPills sports={sportIds} size="sm" />
               <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 
@@ -338,18 +337,14 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
             </View>
             {creator ? <CreatorRow /> : null}
 
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row flex-wrap items-center gap-3">
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
                   {formatCount(memberCount)}
                 </Text>
               </View>
-              {sportLabel ? (
-                <Tag variant="chip" active={false}>
-                  {sportLabel}
-                </Tag>
-              ) : null}
+              <SportPills sports={sportIds} size="sm" />
               <SourceBadge isExternal={club.is_external} variant="chip" />
             </View>
 

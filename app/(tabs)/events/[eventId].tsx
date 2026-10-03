@@ -35,6 +35,8 @@ import type { EventRow } from "@/types";
 import { formatDateLong, formatTime } from "@/utils/date";
 import { formatPriceFromCents } from "@/utils/format";
 import { SPORTS } from "@/lib/constants";
+import { SportPills } from "@/components/shared/SportPill";
+import { buildSportLevelRows, practicedSports } from "@/lib/sportLevels";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import { isNetworkError } from "@/utils/isNetworkError";
 import { logQueryError } from "@/utils/logQueryError";
@@ -245,10 +247,18 @@ export default function EventDetailScreen() {
   // When no dedicated cover exists the first photo doubles as the cover, so the
   // gallery only shows the remaining photos.
   const galleryUrls = event.cover_url ? (event.hero_urls ?? []) : (event.hero_urls ?? []).slice(1);
-  const levelMap = (event.required_levels as Record<string, string> | null) ?? {};
-  const perSportLevels = (event.sports?.length ? event.sports : event.sport ? [event.sport] : [])
-    .map((id) => ({ id, label: SPORTS.find((s) => s.id === id)?.label ?? id, level: levelMap[id] }))
-    .filter((entry): entry is { id: string; label: string; level: string } => !!entry.level);
+  // One row per practiced sport with its configured level (settings `sports[]` /
+  // `required_levels`, legacy `required_level` merged in by the helper).
+  const perSportLevels = buildSportLevelRows(
+    event.sports,
+    event.required_levels as Record<string, string> | null,
+    event.required_level,
+    event.sport
+  ).map((entry) => ({
+    id: entry.sport,
+    label: SPORTS.find((s) => s.id === entry.sport)?.label ?? entry.sport,
+    level: entry.level,
+  }));
   const placeParts = [event.venue_address, event.postal_code, event.city, getCountryDisplay(event.country)].filter(
     (part): part is string => !!part && part.trim().length > 0
   );
@@ -481,7 +491,7 @@ export default function EventDetailScreen() {
               ) : null}
 
               <View className="flex-row flex-wrap gap-2 mt-3 items-center">
-                <Badge>{SPORTS.find((sport) => sport.id === event.sport)?.label ?? event.sport}</Badge>
+                <SportPills sports={practicedSports(event.sports, event.sport)} size="md" />
                 {event.category ? <Badge variant="neutral">{event.category}</Badge> : null}
                 <SourceBadge isExternal={event.is_external} />
               </View>

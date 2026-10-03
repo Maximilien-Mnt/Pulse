@@ -10,6 +10,7 @@ import { queryClient } from '@/lib/queryClient';
 import { usePostHog } from 'posthog-react-native';
 import { getCountryDisplay } from '@/utils/countries';
 import { SPORTS } from '@/lib/constants';
+import { buildSportLevelRows, practicedSports } from '@/lib/sportLevels';
 import { ClubTopActions, ClubTopIconButton, ClubTopPillButton } from '@/components/clubs/public/ClubTopActions';
 import { Button } from '@/components/ui/Button';
 import { SourceBadge } from '@/components/shared/SourceBadge';
@@ -330,16 +331,12 @@ export default function ClubDashboardScreen() {
   const coverH = isWide ? 280 : winWidth >= 400 ? 220 : 180;
   const statBasis = isWide ? '23%' : '47%';
 
-  const sports: string[] =
-    Array.isArray(club.sports) && club.sports.length > 0
-      ? club.sports
-      : club.sport
-        ? [club.sport]
-        : [];
-  const levels = (club.required_levels ?? {}) as Record<string, string>;
-  const levelRows = sports
-    .map((s) => ({ sport: s, level: levels[s] ?? (sports.length === 1 ? club.required_level : undefined) }))
-    .filter((r): r is { sport: string; level: string } => !!r.level);
+  const sports = practicedSports(club.sports, club.sport);
+  const levelRows = buildSportLevelRows(
+    sports,
+    club.required_levels as Record<string, string> | null,
+    club.required_level
+  );
 
   const linkRows: { icon: string; label: string; value: string; url: string }[] = [
     ...(club.contact_email

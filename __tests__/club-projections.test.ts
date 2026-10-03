@@ -60,6 +60,7 @@ describe("CLUB_CARD_SELECT covers every rendered card field", () => {
     "is_external",
     "short_description",
     "description",
+    "sports",
   ];
 
   it.each(renderedCardFields)("selects %s", (field) => {

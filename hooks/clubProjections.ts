@@ -31,6 +31,9 @@ export const CLUB_CARD_FIELDS = [
   "is_external",
   "short_description",
   "description",
+  // Multi-sport list (every sport practiced, `sport` holds only the primary
+  // one) — rendered as sport pills on the explore card.
+  "sports",
   "created_by",
 ] as const;
 
@@ -130,7 +133,8 @@ type RenderedCardFields =
   | "hero_urls"
   | "is_external"
   | "short_description"
-  | "description";
+  | "description"
+  | "sports";
 
 const cardProjectionCoversRenderedFields: RenderedCardFields extends (typeof CLUB_CARD_FIELDS)[number]
   ? true

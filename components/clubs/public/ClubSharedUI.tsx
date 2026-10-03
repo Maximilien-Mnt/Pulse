@@ -6,8 +6,7 @@ import type { IconName } from '@/components/ui/Icon';
 import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { SPORTS } from '@/lib/constants';
-import type { SportDefinition } from '@/lib/constants';
+import { SportPill } from '@/components/shared/SportPill';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 
 /**
@@ -76,16 +75,9 @@ export function Pill({
   );
 }
 
-/** Sport badge rendered using the shared Pill component. */
+/** Sport badge rendered using the default sport pill (color + icon + label). */
 export function SportBadge({ sport }: { sport: string }) {
-  const definition: SportDefinition | undefined = SPORTS.find((s) => s.id === sport);
-  const iconName: IconName = definition?.icon ?? 'Trophy';
-  const color = definition?.color ?? '#3358FF';
-  const label = definition?.label ?? sport;
-
-  return (
-    <Pill icon={iconName} label={label} color={color} bgStyle={{ backgroundColor: `${color}15` }} />
-  );
+  return <SportPill sport={sport} size="md" />;
 }
 
 /** Source chip (in-app vs external), delegated to the shared SourceBadge so

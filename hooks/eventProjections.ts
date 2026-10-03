@@ -37,6 +37,9 @@ export const EVENT_CARD_FIELDS = [
   "is_paid",
   "price_cents",
   "difficulty",
+  // Multi-sport list (every sport practiced, `sport` holds only the primary
+  // one) — rendered as sport pills on the explore card.
+  "sports",
   "created_by",
   "publisher_club_id",
 ] as const;
@@ -69,6 +72,7 @@ type RenderedExploreEventFields =
   | "short_description"
   | "difficulty"
   | "is_external"
+  | "sports"
   | "created_by";
 
 const exploreCardProjectionCoversRenderedFields: RenderedExploreEventFields extends (typeof EVENT_CARD_FIELDS)[number]

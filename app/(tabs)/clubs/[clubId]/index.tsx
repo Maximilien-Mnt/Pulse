@@ -24,6 +24,7 @@ import { ClubNotFoundState } from '@/components/clubs/public/ClubNotFoundState';
 import type { LinkRowData } from '@/components/clubs/public/ClubSharedUI';
 import type { StatData } from '@/components/clubs/public/ClubStatTiles';
 import type { LevelRow } from '@/components/clubs/public/ClubInfoGrid';
+import { buildSportLevelRows, practicedSports } from '@/lib/sportLevels';
 
 export default function ClubDetailScreen() {
   const params = useLocalSearchParams<{ clubId: string; public?: string }>();
@@ -94,7 +95,7 @@ export default function ClubDetailScreen() {
   // ── Derived display values (require a loaded club — see guard above) ──
   const cover = club.cover_url ?? club.hero_urls?.[0];
   const shortDesc = club.short_description ?? null;
-  const sports = club.sports ?? [];
+  const sports = practicedSports(club.sports, club.sport);
 
   const stats: StatData[] = [
     { icon: 'Users', label: 'Membres', value: String(club.member_count ?? members.length), onPress: 'members' },
@@ -102,9 +103,15 @@ export default function ClubDetailScreen() {
     { icon: 'Calendar', label: 'Événements', value: String(upcomingEvents.length + pastEvents.length) },
   ];
 
-  const levelRows: LevelRow[] = [
-    ...(club.required_level ? [{ sport: club.sports?.[0] ?? 'sport', level: club.required_level }] : []),
-  ];
+  // "Niveau requis": one row per practiced sport, with the level configured for
+  // that sport in the club settings (`required_levels`, legacy `required_level`
+  // merged in by buildSportLevelRows).
+  const levelRows: LevelRow[] = buildSportLevelRows(
+    club.sports,
+    club.required_levels as Record<string, string> | null,
+    club.required_level,
+    club.sport
+  );
 
   const linkRows: LinkRowData[] = [
     club.registration_url && { icon: 'UserPlus', label: t('common.register'), value: club.registration_url, url: club.registration_url },

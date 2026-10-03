@@ -22,7 +22,7 @@ import { CoverOverlayActions } from "@/components/explore/CoverOverlayActions";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
-import { Tag } from "@/components/ui/Tag";
+import { SportPills, normalizeSports, getSportLabel } from "@/components/shared/SportPill";
 import { CardJoinFooter } from "@/components/explore/CardJoinFooter";
 import { SourceBadge } from "@/components/shared/SourceBadge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -36,6 +36,8 @@ interface EventCardProps {
     id: string;
     name: string;
     sport?: string;
+    /** Every sport practiced (settings `sports[]`); `sport` is the primary one. */
+    sports?: string[];
     start_date: string;
     logo_url?: string | null;
     cover_url?: string | null;
@@ -79,16 +81,21 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
 
   const handleToggleFavorite = toggle;
 
+  // ── Sports ──────────────────────────────────────────────────────────
+  // Every sport the event practices (settings `sports[]`, falling back to the
+  // legacy primary `sport` column), rendered as default sport pills.
+  const sportIds = normalizeSports(event.sports, event.sport);
+  const shareSportLabel = sportIds.map((id) => getSportLabel(id)).join(" · ");
+
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {
     title: event.name,
-    message: `${event.name} — ${event.sport ?? "Sport"} | Pulse`,
+    message: `${event.name} — ${shareSportLabel || "Sport"} | Pulse`,
     url: `https://pulse.app/event/${event.id}`,
   };
 
   const coverUrl = event.cover_url ?? event.hero_urls?.[0] ?? event.logo_url ?? null;
   const participantCount = event.participant_count ?? 0;
-  const sportLabel = event.sport ?? null;
   const creator = event.creator;
 
   const status = deriveStatus(
@@ -211,7 +218,7 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             />
           </View>
 
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row flex-wrap items-center gap-2">
             {creator ? <CreatorAvatar /> : null}
             <View className="flex-row items-center gap-1">
               <Icon name="Users" size={16} color="text-tertiary" />
@@ -219,12 +226,8 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
                 {participantCount}
               </Text>
             </View>
-            {sportLabel ? (
-              <Tag variant="chip" active={false}>
-                {sportLabel}
-              </Tag>
-            ) : null}
-              <SourceBadge isExternal={event.is_external} variant="chip" />
+            <SportPills sports={sportIds} size="sm" />
+            <SourceBadge isExternal={event.is_external} variant="chip" />
           </View>
 
           {/* Join button — 3 states with event-specific labels */}
@@ -268,18 +271,14 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             </View>
             {creator ? <CreatorRow /> : null}
 
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row flex-wrap items-center gap-3">
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
                   {participantCount}
                 </Text>
               </View>
-              {sportLabel ? (
-                <Tag variant="chip" active={false}>
-                  {sportLabel}
-                </Tag>
-              ) : null}
+              <SportPills sports={sportIds} size="sm" />
               <SourceBadge isExternal={event.is_external} variant="chip" />
             </View>
 
@@ -380,18 +379,14 @@ export function EventCard({ event, isCompact = false, grid = false, initialIsFav
             </View>
             {creator ? <CreatorRow /> : null}
 
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row flex-wrap items-center gap-3">
               <View className="flex-row items-center gap-1">
                 <Icon name="Users" size={16} color="text-tertiary" />
                 <Text variant="caption" className="text-text-tertiary tabular-nums">
                   {participantCount}
                 </Text>
               </View>
-              {sportLabel ? (
-                <Tag variant="chip" active={false}>
-                  {sportLabel}
-                </Tag>
-              ) : null}
+              <SportPills sports={sportIds} size="sm" />
               <SourceBadge isExternal={event.is_external} variant="chip" />
             </View>
 

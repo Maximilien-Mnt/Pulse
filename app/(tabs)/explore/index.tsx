@@ -5,7 +5,7 @@
 // and responsive list/grid of ClubCard / EventCard components.
 // ---------------------------------------------------------------------------
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -27,15 +27,17 @@ import { cn } from "@/utils/format";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Tag } from "@/components/ui/Tag";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ClubCard } from "@/components/explore/ClubCard";
 import { EventCard } from "@/components/explore/EventCard";
-import { ClubFilters } from "@/components/clubs/ClubFilters";
-import { EventFilters } from "@/components/events/EventFilters";
+import { ExploreFilterPanel } from "@/components/explore/ExploreFilterPanel";
 import { SortSheet } from "@/components/shared/SortSheet";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useFeedLayout } from "@/hooks/useFeedLayout";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
@@ -135,25 +137,32 @@ export default function ExploreScreen() {
 
   const { latitude, longitude, isLocationEnabled, requestPermission } = useLocation();
 
-  // Effective filters = modal filters overlaid with the quick-access controls
+  // The inline filter panel pushes every change here immediately (instant
+  // feedback on toggles/pills/fields) while the queries below read the
+  // debounced values, so a burst of interactions costs a single refetch.
+  const { debouncedValue: clubFiltersQuery } = useDebounce(clubFilters, 700);
+  const { debouncedValue: eventFiltersQuery } = useDebounce(eventFilters, 700);
+  const { debouncedValue: searchQuery } = useDebounce(search, 700);
+
+  // Effective filters = panel filters overlaid with the quick-access controls
   // (search bar). Location is attached when "nearby" is selected.
   const clubQueryFilters = useMemo<ClubListFilters>(() => ({
-    ...clubFilters,
-    sports: clubFilters.sports,
-    location: tab === "clubs" && search ? search : clubFilters.location,
-    ...(clubFilters.sort === "nearby" && latitude !== null && longitude !== null
+    ...clubFiltersQuery,
+    sports: clubFiltersQuery.sports,
+    location: tab === "clubs" && searchQuery ? searchQuery : clubFiltersQuery.location,
+    ...(clubFiltersQuery.sort === "nearby" && latitude !== null && longitude !== null
       ? { userLat: latitude, userLon: longitude }
       : {}),
-  }), [clubFilters, search, tab, latitude, longitude]);
+  }), [clubFiltersQuery, searchQuery, tab, latitude, longitude]);
 
   const eventQueryFilters = useMemo<EventListFilters>(() => ({
-    ...eventFilters,
-    sports: eventFilters.sports,
-    location: tab === "events" && search ? search : eventFilters.location,
-    ...(eventFilters.sort === "nearby" && latitude !== null && longitude !== null
+    ...eventFiltersQuery,
+    sports: eventFiltersQuery.sports,
+    location: tab === "events" && searchQuery ? searchQuery : eventFiltersQuery.location,
+    ...(eventFiltersQuery.sort === "nearby" && latitude !== null && longitude !== null
       ? { userLat: latitude, userLon: longitude }
       : {}),
-  }), [eventFilters, search, tab, latitude, longitude]);
+  }), [eventFiltersQuery, searchQuery, tab, latitude, longitude]);
 
   // True when the modal filters for the active tab differ from their defaults
   // (ignoring the quick-access sport chip, which has its own visual indicator).
@@ -181,11 +190,17 @@ export default function ExploreScreen() {
     [eventFilters]
   );
 
-  const handleOpenFilters = useCallback(() => setFilterOpen(true), []);
+  // The filter button toggles the inline panel (no modal, no apply step).
+  const handleOpenFilters = useCallback(() => setFilterOpen((open) => !open), []);
   const handleCloseFilters = useCallback(() => setFilterOpen(false), []);
 
   const handleOpenSort = useCallback(() => setSortOpen(true), []);
   const handleCloseSort = useCallback(() => setSortOpen(false), []);
+
+  // Switching segment closes the panel: each tab has its own filter state.
+  useEffect(() => {
+    setFilterOpen(false);
+  }, [tab]);
 
   // True when the selected sort for the active tab differs from its default.
   const clubSortActive = clubFilters.sort !== defaultClubFilters.sort;
@@ -301,9 +316,10 @@ export default function ExploreScreen() {
   const keyExtractor = useCallback((item: any) => item.id, []);
 
   // ------------------------------------------------------------------
-  // Loading
+  // Loading — only when there is nothing to show yet. A filter change that
+  // refetches keeps the panel and the current list mounted.
   // ------------------------------------------------------------------
-  if (isLoading) {
+  if (isLoading && items.length === 0) {
     return (
       <SafeScreen edges={["top"]}>
         <ExploreHeader
@@ -319,6 +335,16 @@ export default function ExploreScreen() {
           onOpenSort={handleOpenSort}
           sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
         />
+        {filterOpen ? (
+          <ExploreFilterPanel
+            tab={tab}
+            clubFilters={clubFilters}
+            eventFilters={eventFilters}
+            onChangeClubFilters={setClubFilters}
+            onChangeEventFilters={setEventFilters}
+            onClose={handleCloseFilters}
+          />
+        ) : null}
         <ExploreSkeleton />
       </SafeScreen>
     );
@@ -343,6 +369,16 @@ export default function ExploreScreen() {
           onOpenSort={handleOpenSort}
           sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
         />
+        {filterOpen ? (
+          <ExploreFilterPanel
+            tab={tab}
+            clubFilters={clubFilters}
+            eventFilters={eventFilters}
+            onChangeClubFilters={setClubFilters}
+            onChangeEventFilters={setEventFilters}
+            onClose={handleCloseFilters}
+          />
+        ) : null}
         <View className="flex-1 items-center justify-center px-8">
           <Icon name="Search" size={32} color="text-tertiary" />
           <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
@@ -374,6 +410,18 @@ export default function ExploreScreen() {
         onOpenSort={handleOpenSort}
         sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
       />
+
+      {/* Inline filter panel — right under the header, above the list */}
+      {filterOpen ? (
+        <ExploreFilterPanel
+          tab={tab}
+          clubFilters={clubFilters}
+          eventFilters={eventFilters}
+          onChangeClubFilters={setClubFilters}
+          onChangeEventFilters={setEventFilters}
+          onClose={handleCloseFilters}
+        />
+      ) : null}
 
       {items.length === 0 ? (
         <ExploreEmpty tab={tab} />
@@ -449,25 +497,6 @@ export default function ExploreScreen() {
               </View>
             ) : null
           }
-        />
-      )}
-
-      {/* Filter/sort modal — different options per tab */}
-      {tab === "clubs" ? (
-        <ClubFilters
-          visible={filterOpen}
-          onClose={handleCloseFilters}
-          value={clubFilters}
-          onApply={setClubFilters}
-          isLocationEnabled={isLocationEnabled}
-        />
-      ) : (
-        <EventFilters
-          visible={filterOpen}
-          onClose={handleCloseFilters}
-          value={eventFilters}
-          onApply={setEventFilters}
-          isLocationEnabled={isLocationEnabled}
         />
       )}
 
@@ -584,12 +613,18 @@ function ExploreHeader({
             />
           </View>
 
-          {/* Filter / sort */}
-          <Pressable
+          {/* Filter / sort / view: each carries an "active" dot or uses the
+              active-state icon colour, so they keep children and stay
+              <PressableScale>. Motion + surface classes are copied verbatim
+              from <IconButton tone="neutral"> so the row animates as one
+              system (components/ui/IconButton.tsx). */}
+          <PressableScale
             onPress={onOpenFilterModal}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
             accessibilityRole="button"
             accessibilityLabel={t("explore.filtersSort")}
-            className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
+            className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
           >
             <Icon
               name="ListFilter"
@@ -597,16 +632,18 @@ function ExploreHeader({
               color={filterActive ? "primary" : "text-secondary"}
             />
             {filterActive ? (
-              <View className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
             ) : null}
-          </Pressable>
+          </PressableScale>
 
           {/* Order / sort */}
-          <Pressable
+          <PressableScale
             onPress={onOpenSort}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
             accessibilityRole="button"
             accessibilityLabel={t("explore.sort")}
-            className="relative p-2 rounded-full bg-surface dark:bg-surface-dark"
+            className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
           >
             <Icon
               name="ArrowUpDown"
@@ -614,26 +651,22 @@ function ExploreHeader({
               color={sortActive ? "primary" : "text-secondary"}
             />
             {sortActive ? (
-              <View className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
             ) : null}
-          </Pressable>
+          </PressableScale>
 
           {/* View mode toggle */}
           {isGridAvailable ? (
-            <Pressable
-              onPress={onToggleViewMode}
-              accessibilityRole="button"
-              accessibilityLabel={
+            <IconButton
+              icon={viewMode === "list" ? "LayoutGrid" : "List"}
+              iconSize={20}
+              size="sm"
+              tone="neutral"
+              label={
                 viewMode === "list" ? t("common.viewList") : t("common.viewGrid")
               }
-              className="p-2 rounded-full bg-surface dark:bg-surface-dark"
-            >
-              <Icon
-                name={viewMode === "list" ? "LayoutGrid" : "List"}
-                size={20}
-                color="text-secondary"
-              />
-            </Pressable>
+              onPress={onToggleViewMode}
+            />
           ) : null}
         </View>
       </View>

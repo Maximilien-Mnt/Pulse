@@ -43,6 +43,8 @@ export function PressableScale({
   onPressOut,
   onHoverIn,
   onHoverOut,
+  onFocus,
+  onBlur,
   style,
   children,
   ...rest
@@ -102,6 +104,29 @@ export function PressableScale({
               springTo(hoveredRef.current && scaleOnHover !== 1 ? scaleOnHover : 1);
               onPressOut?.(e);
             }
+      }
+      // Keyboard focus gets the same lift as pointer hover so the affordance
+      // is never mouse-only. Not platform-gated (unlike hover above) because
+      // focus is the keyboard affordance on native as well as web. Only wired
+      // when the caller actually asked for a hover effect, so the many
+      // `scaleOnHover === 1` usages keep their plain press-squash behaviour.
+      onFocus={
+        scaleOnHover !== 1
+          ? (e) => {
+              hoveredRef.current = true;
+              springTo(scaleOnHover);
+              onFocus?.(e);
+            }
+          : onFocus
+      }
+      onBlur={
+        scaleOnHover !== 1
+          ? (e) => {
+              hoveredRef.current = false;
+              springTo(1);
+              onBlur?.(e);
+            }
+          : onBlur
       }
       style={[{ transform: [{ scale }] }, style as never]}
     >

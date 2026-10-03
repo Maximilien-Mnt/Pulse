@@ -1,23 +1,12 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Icon, type IconColor, type IconName } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
+import { IconButton, type IconButtonTone } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { cn } from '@/utils/format';
 
 type IconTone = 'default' | 'primary' | 'danger';
-
-const toneClass: Record<IconTone, string> = {
-  default: 'bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700',
-  primary: 'bg-primary dark:bg-primary-dark active:opacity-80',
-  danger: 'bg-error-600/10 dark:bg-error-dark/15 active:bg-error-600/20',
-};
-
-const toneIcon: Record<IconTone, IconColor> = {
-  default: 'text-secondary',
-  primary: 'white',
-  danger: 'error-500',
-};
 
 /**
  * Round icon button for club top headers — matches the like/share
@@ -36,24 +25,22 @@ export function ClubTopIconButton({
   tone?: IconTone;
   disabled?: boolean;
 }) {
+  // Rendered through the canonical <IconButton> so these header circles share
+  // the exact hover/focus lift + spring timing of every other icon button in
+  // the app (see components/ui/IconButton.tsx). `tone` maps onto its token
+  // families; the dark-mode `*-dark` variants come from the token classes.
+  const iconButtonTone: IconButtonTone =
+    tone === 'primary' ? 'solid' : tone === 'danger' ? 'danger' : 'neutral';
   return (
-    <PressableScale
+    <IconButton
+      icon={icon}
+      label={label}
       onPress={onPress}
       disabled={disabled}
-      hitSlop={8}
-      scaleOnPress={0.9}
-      scaleOnHover={1.08}
-      accessibilityRole='button'
-      accessibilityLabel={label}
-      accessibilityState={disabled ? { disabled: true } : undefined}
-      className={cn(
-        'w-11 h-11 rounded-full items-center justify-center shrink-0',
-        toneClass[tone],
-        disabled && 'opacity-50',
-      )}
-    >
-      <Icon name={icon} size={20} color={toneIcon[tone]} />
-    </PressableScale>
+      tone={iconButtonTone}
+      iconSize={20}
+      className='w-11 h-11'
+    />
   );
 }
 

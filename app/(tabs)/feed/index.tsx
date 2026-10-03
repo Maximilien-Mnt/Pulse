@@ -36,6 +36,8 @@ import type { FeedPost } from "@/types";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { Tag } from "@/components/ui/Tag";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
@@ -663,25 +665,26 @@ function FeedTopBar({
       {/* View mode toggle + Bell with badge */}
       <View className="flex-row items-center gap-2">
         {isGridAvailable ? (
-          <Pressable
+          <IconButton
+            icon={viewMode === "list" ? "PanelLeft" : "PanelBottom"}
+            iconSize={20}
+            size="sm"
+            tone="neutral"
+            label={viewMode === "list" ? t("common.viewList") : t("common.viewGrid")}
             onPress={onToggleViewMode}
-            accessibilityRole="button"
-            accessibilityLabel={viewMode === "list" ? t("common.viewList") : t("common.viewGrid")}
-            className="p-2 rounded-full bg-surface dark:bg-surface-dark"
-          >
-            <Icon
-              name={viewMode === "list" ? "PanelLeft" : "PanelBottom"}
-              size={20}
-              color="text-secondary"
-            />
-          </Pressable>
+          />
         ) : null}
 
-        <Pressable
+        {/* Badge-carrying bell: stays a <PressableScale> (it needs children),
+            but reuses the exact same motion + surface language as
+            <IconButton> so the row animates as one system. */}
+        <PressableScale
           onPress={() => router.push("/(tabs)/profile/notifications" as any)}
+          scaleOnPress={0.9}
+          scaleOnHover={1.06}
           accessibilityRole="button"
           accessibilityLabel={unreadCount > 0 ? `${t("common.notifications")}, ${tp("notifications.unread", unreadCount)}` : t("common.notifications")}
-          className="relative"
+          className="w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
         >
           <Icon name="Bell" size={24} color="text-secondary" />
           {unreadCount > 0 ? (
@@ -691,7 +694,7 @@ function FeedTopBar({
               </Text>
             </View>
           ) : null}
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );

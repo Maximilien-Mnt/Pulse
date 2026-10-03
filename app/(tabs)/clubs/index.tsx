@@ -14,6 +14,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import type { Club } from "@/types";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -109,13 +110,19 @@ export default function ClubsScreen() {
     <SafeScreen className="flex-1 bg-neutral-50 dark:bg-[#0A0F1E]" edges={["top"]}>
       <Header title={t("common.clubs")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between items-center py-2">
-        <Pressable onPress={() => setFilterOpen(true)}>
-          <Icon name="Funnel" size={24} color="primary" />
-        </Pressable>
+        <IconButton
+          icon="Funnel"
+          iconSize={24}
+          label={t("common.filter")}
+          onPress={() => setFilterOpen(true)}
+        />
         {showViewToggle ? (
-          <Pressable onPress={() => setGrid((g) => !g)}>
-            <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
-          </Pressable>
+          <IconButton
+            icon={grid ? "List" : "LayoutGrid"}
+            iconSize={24}
+            label={grid ? t("common.viewList") : t("common.viewGrid")}
+            onPress={() => setGrid((g) => !g)}
+          />
         ) : null}
       </View>
       <ClubFilters 

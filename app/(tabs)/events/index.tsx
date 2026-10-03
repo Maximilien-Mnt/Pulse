@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { EventRow } from "@/types";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { isNetworkError } from "@/utils/isNetworkError";
 import { logQueryError } from "@/utils/logQueryError";
@@ -144,13 +145,19 @@ export default function EventsScreen() {
     <SafeScreen className="flex-1 bg-bg dark:bg-bg-dark" edges={["top"]}>
       <Header title={t("common.events")} showAvatar avatarUrl={profile?.avatar_url} />
       <View className="px-4 flex-row justify-between py-2">
-        <Pressable onPress={() => setFilterOpen(true)}>
-          <Icon name="Funnel" size={24} color="primary" />
-        </Pressable>
+        <IconButton
+          icon="Funnel"
+          iconSize={24}
+          label={t("common.filter")}
+          onPress={() => setFilterOpen(true)}
+        />
         {showViewToggle ? (
-          <Pressable onPress={() => setGrid((g) => !g)}>
-            <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
-          </Pressable>
+          <IconButton
+            icon={grid ? "List" : "LayoutGrid"}
+            iconSize={24}
+            label={grid ? t("common.viewList") : t("common.viewGrid")}
+            onPress={() => setGrid((g) => !g)}
+          />
         ) : null}
       </View>
       <EventFilters visible={filterOpen} onClose={() => setFilterOpen(false)} value={filters} onApply={setFilters} isLocationEnabled={isLocationEnabled} />

@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Avatar } from "@/components/ui/Avatar";
 import { BackButton } from "@/components/ui/BackButton";
@@ -400,27 +401,21 @@ export default function EventDetailScreen() {
           {event.name}
         </PulseText>
         <View className="flex-row items-center gap-2">
-          <Pressable
-            onPress={handleShare}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("events.shareAction")}
+          <IconButton
+            icon="Share2"
+            iconSize={22}
+            label={t("events.shareAction")}
             testID="event-detail-share-button"
-            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
-          >
-            <Icon name="Share2" size={22} color="primary" />
-          </Pressable>
+            onPress={handleShare}
+          />
           {canManage ? (
-            <Pressable
-              onPress={() => router.push(`/(tabs)/events/${event.id}/settings`)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t("events.settings")}
+            <IconButton
+              icon="Settings"
+              iconSize={22}
+              label={t("events.settings")}
               testID="event-detail-settings-button"
-              className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
-            >
-              <Icon name="Settings" size={22} color="primary" />
-            </Pressable>
+              onPress={() => router.push(`/(tabs)/events/${event.id}/settings`)}
+            />
           ) : null}
         </View>
       </View>

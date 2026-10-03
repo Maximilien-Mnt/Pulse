@@ -23,6 +23,7 @@ import {
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { t } from "@/hooks/useTranslation";
@@ -165,9 +166,14 @@ export default function UserPostsScreen() {
               <Text className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
                 Commentaires
               </Text>
-              <Pressable onPress={handleCloseModal}>
-                <Icon name="X" size={28} color="text-secondary" />
-              </Pressable>
+              <IconButton
+                icon="X"
+                iconSize={28}
+                size="lg"
+                tone="neutral"
+                label={t("common.close")}
+                onPress={handleCloseModal}
+              />
             </View>
 
             {selectedPostId ? (

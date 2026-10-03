@@ -17,6 +17,7 @@ import type { Club, EventRow } from "@/types";
 import type { ClubListFilters } from "@/hooks/useClubs";
 import type { EventListFilters } from "@/hooks/useEvents";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, View, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -133,12 +134,18 @@ export default function DiscoverScreen() {
       </View>
 
       <View className="px-4 flex-row justify-between py-2">
-        <Pressable onPress={() => setFilterOpen(true)}>
-          <Icon name="Funnel" size={24} color="primary" />
-        </Pressable>
-        <Pressable onPress={() => setGrid((g) => !g)}>
-          <Icon name={grid ? "List" : "LayoutGrid"} size={24} color="primary" />
-        </Pressable>
+        <IconButton
+          icon="Funnel"
+          iconSize={24}
+          label={t("common.filter")}
+          onPress={() => setFilterOpen(true)}
+        />
+        <IconButton
+          icon={grid ? "List" : "LayoutGrid"}
+          iconSize={24}
+          label={grid ? t("common.viewList") : t("common.viewGrid")}
+          onPress={() => setGrid((g) => !g)}
+        />
       </View>
 
       {mode === "clubs" ? (

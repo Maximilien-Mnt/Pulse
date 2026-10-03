@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text as PulseText } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
@@ -522,22 +523,25 @@ export default function ClubDashboardScreen() {
                       @{request.username}
                     </PulseText>
                   </View>
-                  <Pressable
+                  <IconButton
+                    icon="CheckCircle2"
+                    iconSize={18}
+                    size="sm"
+                    label="Accepter la demande"
+                    disabled={handleRequestAction.isPending}
                     onPress={() => handleRequestAction.mutate({ action: 'accept', request })}
+                    className="ml-2"
+                  />
+                  <IconButton
+                    icon="X"
+                    iconSize={18}
+                    size="sm"
+                    tone="danger"
+                    label="Refuser la demande"
                     disabled={handleRequestAction.isPending}
-                    className='w-10 h-10 rounded-full bg-primary/10 items-center justify-center ml-2'
-                    hitSlop={4}
-                  >
-                    <Icon name='CheckCircle2' size={18} color='primary' />
-                  </Pressable>
-                  <Pressable
                     onPress={() => setRefuseRequest(request)}
-                    disabled={handleRequestAction.isPending}
-                    className='w-10 h-10 rounded-full bg-error-500/10 items-center justify-center ml-2'
-                    hitSlop={4}
-                  >
-                    <Icon name='X' size={18} color='error-500' />
-                  </Pressable>
+                    className="ml-2"
+                  />
                 </View>
               ))
             )}
@@ -592,16 +596,13 @@ export default function ClubDashboardScreen() {
                   );
                 })}
                 </View>
-                <PressableScale
+                <IconButton
+                  icon="Plus"
+                  iconSize={18}
+                  size="sm"
+                  label={t('events.create')}
                   onPress={() => router.push(`/create/event/public?clubId=${clubId}`)}
-                  hitSlop={8}
-                  scaleOnPress={0.96}
-                  accessibilityRole='button'
-                  accessibilityLabel={t('events.create')}
-                  className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'
-                >
-                  <Icon name='Plus' size={18} color='primary' />
-                </PressableScale>
+                />
               </View>
               {/* Scrollable, height-limited event list (or empty state) */}
               {tabEvents.length > 0 ? (

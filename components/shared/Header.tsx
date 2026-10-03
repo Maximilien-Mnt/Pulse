@@ -5,10 +5,11 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import { SearchBar } from "./SearchBar";
 import { BackButton } from "../ui/BackButton";
-import { Icon } from "../ui/Icon";
+import { IconButton } from "../ui/IconButton";
+import { PressableScale } from "../ui/PressableScale";
 import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
-import { useTranslation , t } from "@/hooks/useTranslation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Props = {
   title: string;
@@ -73,15 +74,13 @@ export function Header({
     <View className={cn("px-4 pt-2 pb-3 bg-neutral-50 dark:bg-[#0A0F1E]", className)} onLayout={onLayout}>
       <View className="flex-row items-center gap-3">
         {showCancelButton ? (
-          <Pressable
-            onPress={onCancel ?? (() => router.replace("/"))}
+          <IconButton
+            icon="X"
+            iconSize={24}
+            label="Annuler"
             hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Annuler"
-            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
-          >
-            <Icon name="X" size={24} color="primary" />
-          </Pressable>
+            onPress={onCancel ?? (() => router.replace("/"))}
+          />
         ) : showBackButton ? (
           <BackButton fallbackRoute={fallbackRoute} />
         ) : null}
@@ -111,30 +110,34 @@ export function Header({
         {rightSlot}
 
         {showThemeToggle ? (
-          <Pressable
-            onPress={() => useThemeStore.getState().toggle()}
+          <IconButton
+            icon={isDark ? "Sun" : "Moon"}
+            iconSize={24}
+            label={isDark ? t("theme.light") : t("theme.dark")}
+            hint={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
             hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={isDark ? t("theme.light") : t("theme.dark")}
-            accessibilityHint={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
-            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
-          >
-            <Icon name={isDark ? "Sun" : "Moon"} size={24} color="primary" />
-          </Pressable>
+            onPress={() => useThemeStore.getState().toggle()}
+          />
         ) : null}
 
         {showLanguageToggle ? (
-          <Pressable
+          // Kept as a text button (the "FR"/"EN" pair *is* the current-language
+          // indicator, so a globe glyph would lose information). It reuses the
+          // exact same motion + surface language as <IconButton tone="primary">
+          // so it still animates identically — see ICON_BUTTON_* constants.
+          <PressableScale
             onPress={() => useLanguageStore.getState().toggle()}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={t("lang.toggle")}
-            className="w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20"
+            className="w-11 h-11 rounded-full items-center justify-center shrink-0 bg-primary/10 dark:bg-primary-dark/15 active:bg-primary/20 dark:active:bg-primary-dark/25 transition-colors duration-150"
           >
             <Text className="text-xs font-bold text-primary dark:text-primary-dark">
               {language === "fr" ? "EN" : "FR"}
             </Text>
-          </Pressable>
+          </PressableScale>
         ) : null}
 
         {showAvatar ? (

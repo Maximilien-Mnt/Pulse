@@ -17,6 +17,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Input } from "@/components/ui/Input";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import type { Club } from "@/types";
 import type { OpeningHourSlot } from "@/lib/openingHours";
 import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
@@ -368,14 +369,26 @@ export default function ClubSettings() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {heroUrls.map((uri, i) => (
               <View key={i} className="relative"><Image source={{ uri }} className="w-20 h-20 rounded-lg" />
-                <Pressable onPress={() => { const gone = heroUrls[i]; setHeroUrls((prev) => prev.filter((_, idx) => idx !== i)); if (gone) void removeFromStorageByUrl(gone, "clubs"); }} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center"><Text className="text-xs text-white">x</Text></Pressable>
+                <IconButton
+                  icon="X"
+                  iconSize={12}
+                  size="sm"
+                  tone="dangerSolid"
+                  label={t("common.delete")}
+                  onPress={() => { const gone = heroUrls[i]; setHeroUrls((prev) => prev.filter((_, idx) => idx !== i)); if (gone) void removeFromStorageByUrl(gone, "clubs"); }}
+                  className="absolute -top-1 -right-1 w-5 h-5"
+                />
               </View>
             ))}
             {heroUrls.length < 10 && (
-              <Pressable onPress={async () => { const images = (await pickImage({ multiple: true })) as PickedImage[] | null;
-              if (images && images.length > 0) { const uploaded = await Promise.all(images.slice(0, 10 - heroUrls.length).map((image) => uploadImage(image, "hero", "gallery"))); setHeroUrls((prev) => [...prev, ...uploaded.filter(Boolean) as string[]]); } }} className="w-20 h-20 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-600 items-center justify-center">
-                <Icon name="Plus" size={20} />
-              </Pressable>
+              <IconButton
+                icon="Plus"
+                iconSize={20}
+                label={t("clubs.create.addPhotos")}
+                onPress={async () => { const images = (await pickImage({ multiple: true })) as PickedImage[] | null;
+                if (images && images.length > 0) { const uploaded = await Promise.all(images.slice(0, 10 - heroUrls.length).map((image) => uploadImage(image, "hero", "gallery"))); setHeroUrls((prev) => [...prev, ...uploaded.filter(Boolean) as string[]]); } }}
+                className="w-20 h-20 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-600 bg-transparent"
+              />
             )}
           </View>
         </View>

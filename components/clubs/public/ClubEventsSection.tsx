@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Section, CARD } from './ClubSharedUI';
@@ -64,16 +65,14 @@ export function ClubEventsSection({
             })}
             </View>
             {showCreate ? (
-              <PressableScale
+              <IconButton
+                icon="Plus"
+                iconSize={18}
+                size="sm"
+                label={t('events.create')}
                 onPress={onCreateEvent}
-                hitSlop={8}
-                scaleOnPress={0.96}
-                accessibilityRole='button'
-                accessibilityLabel={t('events.create')}
-                className='w-8 h-8 rounded-full bg-primary/10 items-center justify-center'
-              >
-                <Icon name='Plus' size={18} color='primary' />
-              </PressableScale>
+                className="w-8 h-8"
+              />
             ) : null}
           </View>
           {/* Scrollable, height-limited event list (or empty state) */}

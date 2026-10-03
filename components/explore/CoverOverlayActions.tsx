@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Platform, Share as RNShare, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
+import { ICON_BUTTON_TRANSITION_MS } from "@/components/ui/IconButton";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { hitSlopForIcon } from "@/src/accessibility";
@@ -61,14 +62,17 @@ interface CoverOverlayActionsProps {
 // Resting and hovered surfaces are declared per placement. Each hovered
 // background intentionally matches that placement's `active:` colour, so the
 // chip reads as one control whether the pointer is hovering or pressing.
-// `transition-colors` (150ms, same duration as MessageBubble) is what turns
-// the swap into the small fade animation.
+// `transition-colors` (ICON_BUTTON_TRANSITION_MS, same duration as
+// MessageBubble and the arrow nudge) is what turns the swap into the small
+// fade animation. These chips are the reference implementation that
+// <IconButton> (components/ui/IconButton.tsx) was extracted from, so they now
+// share its timing constants rather than restating them.
 const OVERLAY_CHIP_CLASS =
-  "rounded-full bg-black/35 border border-white/30 items-center justify-center active:bg-black/50 transition-colors duration-150";
+  `rounded-full bg-black/35 border border-white/30 items-center justify-center active:bg-black/50 transition-colors duration-${ICON_BUTTON_TRANSITION_MS}`;
 const OVERLAY_CHIP_HOVER_CLASS = "bg-black/50";
 
 const INLINE_CHIP_CLASS =
-  "rounded-full bg-neutral-100 dark:bg-neutral-800 border border-border items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150";
+  `rounded-full bg-neutral-100 dark:bg-neutral-800 border border-border items-center justify-center active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-${ICON_BUTTON_TRANSITION_MS}`;
 const INLINE_CHIP_HOVER_CLASS = "bg-neutral-200 dark:bg-neutral-700";
 
 type ChipId = "favorite" | "share";

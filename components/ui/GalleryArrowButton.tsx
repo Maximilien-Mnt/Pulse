@@ -44,7 +44,10 @@ export function GalleryArrowButton({
       className={cn(
         "absolute top-1/2 -translate-y-1/2 z-10",
         "w-10 h-10 rounded-full items-center justify-center shadow-sm border",
+        // Hover/focus lifts to the same colour as the pressed state, matching
+        // the shared <IconButton> motion language (components/ui/IconButton.tsx).
         "bg-white/90 dark:bg-neutral-900/90 border-neutral-200 dark:border-neutral-700",
+        active && "bg-white dark:bg-neutral-800",
         direction === "left" ? "left-2" : "right-2"
       )}
     >

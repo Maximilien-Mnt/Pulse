@@ -90,8 +90,11 @@ export function BackButton({
       accessibilityRole="button"
       accessibilityLabel="Retour"
       className={cn(
-        "w-11 h-11 items-center justify-center rounded-full bg-primary/10 active:bg-primary/20",
-        active && "bg-primary/20",
+        "w-11 h-11 items-center justify-center rounded-full shrink-0",
+        "bg-primary/10 dark:bg-primary-dark/15 transition-colors duration-150",
+        // Hover/focus uses the exact same colour as the pressed state, so the
+        // two read as one gesture — the shared <IconButton> motion language.
+        active ? "bg-primary/20 dark:bg-primary-dark/25" : "active:bg-primary/20 dark:active:bg-primary-dark/25",
         className
       )}
     >

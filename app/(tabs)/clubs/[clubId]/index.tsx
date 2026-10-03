@@ -18,7 +18,6 @@ import { ClubCreateEventSheet } from '@/components/clubs/public/ClubCreateEventS
 import { useCanCreateClubEvent } from '@/hooks/useCanCreateClubEvent';
 import { ClubContactLinks } from '@/components/clubs/public/ClubContactLinks';
 import { ClubPhotoGallery } from '@/components/clubs/public/ClubPhotoGallery';
-import { ClubMembersPreview } from '@/components/clubs/public/ClubMembersPreview';
 import { ClubLoadingSkeleton } from '@/components/clubs/public/ClubLoadingSkeleton';
 import { ClubNotFoundState } from '@/components/clubs/public/ClubNotFoundState';
 import type { LinkRowData } from '@/components/clubs/public/ClubSharedUI';
@@ -241,8 +240,6 @@ export default function ClubDetailScreen() {
           />
         ) : null}
 
-        {/* ---- Members: card chips that wrap, creator highlighted, "see all" ---- */}
-        <ClubMembersPreview club={club} creator={creator} members={members} />
         <View style={{ height: 12 }} />
       </ScrollView>
       <LeaveClubSheet

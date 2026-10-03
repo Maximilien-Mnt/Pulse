@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { NavTab } from "@/components/shared/NavTabMotion";
 import { useNavbarStore } from "@/stores/navbarStore";
 import { useIsWebWide } from "@/components/shared/SideRail";
 import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
@@ -81,8 +83,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       {MAIN_TABS.slice(0, 2).map((tab) => {
         const active = isActive(tab.route);
         return (
-          <Pressable
+          <NavTab
             key={tab.route}
+            active={active}
             onPress={() => {
               // Always navigate for non-profile tabs when not active
               // For profile, always navigate to root even if in a sub-screen
@@ -106,14 +109,18 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 color={active ? "primary" : "text-tertiary"}
               />
             </View>
-          </Pressable>
+          </NavTab>
         );
       })}
 
-      {/* Create — floating circle */}
+      {/* Create — floating circle.
+          Slightly gentler press scale than the tab default (0.9): a 56px
+          circular target carries more visual mass than a tab row, so the same
+          squash would read as too aggressive here. */}
       <View className="flex-1 items-center justify-center">
-        <Pressable
+        <PressableScale
           onPress={handleCreatePress}
+          scaleOnPress={0.92}
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
           accessibilityHint={t("tabs.createHint")}
@@ -125,15 +132,16 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           }}
         >
           <Icon name="Plus" size={24} color="text-inverse" />
-        </Pressable>
+        </PressableScale>
       </View>
 
       {/* Messages & Profile (last 2) */}
       {MAIN_TABS.slice(2).map((tab) => {
         const active = isActive(tab.route);
         return (
-          <Pressable
+          <NavTab
             key={tab.route}
+            active={active}
             onPress={() => {
               // Always navigate for non-profile tabs when not active
               // For profile, always navigate to root even if in a sub-screen
@@ -162,7 +170,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 color={active ? "primary" : "text-tertiary"}
               />
             </View>
-          </Pressable>
+          </NavTab>
         );
       })}
 

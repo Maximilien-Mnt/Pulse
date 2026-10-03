@@ -9,5 +9,10 @@ module.exports = {
   transformIgnorePatterns: [
     "node_modules/(?!(@react-native|react-native|@react-navigation|expo(-[a-z0-9]+)?|expo-modules-core|expo-font|@expo|@expo/vector-icons|@hookform|@tanstack|zustand|react-hook-form|@supabase|posthog-react-native|lucide-react-native|lucide-react|react-native-url-polyfill)/)",
   ],
-  testPathIgnorePatterns: ["/node_modules/"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    // Stray agent worktrees are full copies of the repo — running their
+    // duplicated suites here would test stale sources against live modules.
+    "<rootDir>/\\.kilo/",
+  ],
 };

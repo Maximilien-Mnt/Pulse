@@ -132,6 +132,15 @@ export default function ProfileNotificationsScreen() {
           ? `/clubs/${data.club_id}`
           : `/events/${data.event_id}`;
       router.push(route as any);
+    } else if (
+      // Membership notifications carry `club_id` (migration 058 / 050) and
+      // open the club's member list, where the change is visible.
+      (item.type === "club_member_status_changed" ||
+        item.type === "club_member_removed" ||
+        item.type === "club_member_left") &&
+      data.club_id
+    ) {
+      router.push(`/clubs/${data.club_id}/members` as any);
     }
   };
 

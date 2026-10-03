@@ -31,6 +31,7 @@ export const NOTIFICATION_TYPE_KEYS: Record<string, TranslationKey> = {
   // Membership changes
   club_member_left: "notifications.clubMemberLeft.title",
   club_member_removed: "notifications.clubMemberRemoved.title",
+  club_member_status_changed: "notifications.clubMemberStatusChanged.title",
   event_participant_removed: "notifications.eventParticipantRemoved.title",
   // Updates
   club_updated: "updateClub.modified",

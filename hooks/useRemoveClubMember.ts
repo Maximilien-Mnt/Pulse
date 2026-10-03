@@ -22,46 +22,29 @@ export function useRemoveClubMember() {
       message?: string;
     }) => {
       if (!userId) throw new Error("auth");
-      
-      // Verify the current user is the club creator
+
+      // The notification text is authored here (actor's language) and passed
+      // to the RPC so the delete + notification happen in ONE transaction.
       const { data: club, error: clubError } = await supabase
         .from("clubs")
-        .select("created_by, name")
+        .select("name")
         .eq("id", clubId)
         .single();
 
       if (clubError) throw clubError;
-      if (club.created_by !== userId) throw new Error("unauthorized");
 
-      // Remove the member
-      const { error: deleteError } = await supabase
-        .from("club_members")
-        .delete()
-        .eq("club_id", clubId)
-        .eq("user_id", memberId);
-
-      if (deleteError) throw deleteError;
-
-      // Optional message appended to the notification body.
       const messageText = message?.trim()
         ? `\n\n${t("notifications.clubMemberRemoved.messageLabel")} ${message.trim()}`
         : "";
 
-      // Send notification to the removed member (RLS lets the admin insert a
-      // notification for the removed user through the notify_user RPC path).
-      const { error: notifError } = await supabase.rpc("notify_user", {
-        p_user_id: memberId,
-        p_type: "club_member_removed",
+      const { error } = await supabase.rpc("remove_club_member_secure", {
+        p_club_id: clubId,
+        p_member_id: memberId,
         p_title: t("notifications.clubMemberRemoved.title"),
         p_body: `${t("notifications.clubMemberRemoved.body", { clubName: club.name })}${messageText}`,
-        p_data: {
-          club_id: clubId,
-          club_name: club.name,
-          message: message?.trim() || null,
-        },
       });
 
-      if (notifError) throw notifError;
+      if (error) throw error;
 
       return { ok: true };
     },

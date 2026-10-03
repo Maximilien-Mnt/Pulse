@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_MEMBER_STATUS } from "@/lib/clubMemberStatus";
 import { useQuery } from "@tanstack/react-query";
 
 export type ClubMember = {
@@ -9,6 +10,16 @@ export type ClubMember = {
   /** Derived from the club creator / "owner" role — either "admin" or "member". */
   role: "admin" | "member";
   is_admin: boolean;
+  /** Human-facing status inside the club (`member_status` column). */
+  member_status: string;
+  /** Free-text status — only set when `member_status === "other"`. */
+  custom_member_status: string | null;
+  /**
+   * Raw technical role from `club_members.role` (`owner` / `admin` /
+   * `member`), or `null` for the club creator with no row (legacy flow).
+   * Used for permission checks that mirror the server-side rules.
+   */
+  raw_role: string | null;
 };
 
 /**
@@ -30,7 +41,7 @@ export function useClubAllMembers(clubId: string | null) {
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from("club_members")
-        .select("user_id, role")
+        .select("user_id, role, member_status, custom_member_status")
         .eq("club_id", clubId!);
 
       if (error) throw error;
@@ -50,8 +61,14 @@ export function useClubAllMembers(clubId: string | null) {
       }
 
       const roleByUser = new Map<string, string>();
+      const statusByUser = new Map<string, { status: string; custom: string | null }>();
       (rows ?? []).forEach((row: any) => {
-        if (typeof row?.user_id === "string") roleByUser.set(row.user_id, row.role ?? "member");
+        if (typeof row?.user_id !== "string") return;
+        roleByUser.set(row.user_id, row.role ?? "member");
+        statusByUser.set(row.user_id, {
+          status: row.member_status ?? DEFAULT_MEMBER_STATUS,
+          custom: row.custom_member_status ?? null,
+        });
       });
 
       // Guarantee the creator is present.
@@ -83,6 +100,9 @@ export function useClubAllMembers(clubId: string | null) {
           avatar_url: profile.avatar_url ?? null,
           role: isAdmin ? "admin" : "member",
           is_admin: isAdmin,
+          member_status: statusByUser.get(id)?.status ?? DEFAULT_MEMBER_STATUS,
+          custom_member_status: statusByUser.get(id)?.custom ?? null,
+          raw_role: roleByUser.get(id) ?? null,
         };
       });
 

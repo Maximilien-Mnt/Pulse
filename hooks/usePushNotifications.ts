@@ -76,9 +76,25 @@ export function usePushNotifications() {
 
     const sub2 = Notifications.addNotificationResponseReceivedListener(async (response) => {
       const data = response.notification.request.content.data;
-      
-      // Extract navigation target from payload
-      if (data?.club_id) {
+
+      // Extract navigation target from payload.
+      // `deep_link` is written by the DB (migration 058) and always wins —
+      // membership notifications point at the club's member list.
+      const deepLink =
+        typeof data?.deep_link === "string" ? data.deep_link : null;
+      const dataType = typeof data?.type === "string" ? data.type : "";
+      const opensMemberList =
+        dataType === "club_member_status_changed" ||
+        dataType === "club_member_removed" ||
+        dataType === "club_member_left";
+
+      if (deepLink) {
+        const url = `pulse:///(tabs)/${deepLink.replace(/^\/+/, "")}`;
+        await Linking.openURL(url);
+      } else if (data?.club_id && opensMemberList) {
+        const url = `pulse:///(tabs)/clubs/${data.club_id}/members`;
+        await Linking.openURL(url);
+      } else if (data?.club_id) {
         const url = `pulse:///(tabs)/clubs/${data.club_id}`;
         await Linking.openURL(url);
       } else if (data?.event_id) {

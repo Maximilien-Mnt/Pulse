@@ -91,7 +91,7 @@ describe("plural-aware translations", () => {
 describe("notification type labels", () => {
   it("maps every known server type to a key present in FR and EN", () => {
     const entries = Object.entries(NOTIFICATION_TYPE_KEYS);
-    expect(entries).toHaveLength(21);
+    expect(entries).toHaveLength(22);
     entries.forEach(([type, key]) => {
       expect(typeof translations.fr[key]).toBe("string");
       expect(typeof translations.en[key]).toBe("string");

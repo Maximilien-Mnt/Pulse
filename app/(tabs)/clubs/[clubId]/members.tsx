@@ -17,8 +17,12 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RemoveMemberSheet } from "@/components/shared/RemoveMemberSheet";
+import { MemberStatusBadge } from "@/components/clubs/MemberStatusBadge";
+import { MemberStatusEditor } from "@/components/clubs/MemberStatusEditor";
 import { useClubAllMembers, type ClubMember } from "@/hooks/useClubAllMembers";
 import { useRemoveClubMember } from "@/hooks/useRemoveClubMember";
+import { useUpdateClubMemberStatus } from "@/hooks/useUpdateClubMemberStatus";
+import { getMemberStatusLabel, isManagementStatus } from "@/lib/clubMemberStatus";
 import { useStartConversationWith } from "@/hooks/useStartConversationWith";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
@@ -50,11 +54,23 @@ export default function ClubMembersScreen() {
 
   const isAdmin = !!userId && !!club?.created_by && userId === club.created_by;
   const removeMember = useRemoveClubMember();
+  const updateStatus = useUpdateClubMemberStatus();
   const { startConversation, isPending: isContacting } = useStartConversationWith();
 
   const [removeTarget, setRemoveTarget] = useState<ClubMember | null>(null);
   const [contactingId, setContactingId] = useState<string | null>(null);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Mirrors `user_can_manage_club_members()` in migration 058: the club
+  // creator, a technical owner/admin, or a member holding a "Direction /
+  // gestion" status. The RPC is the authority — this only gates the UI.
+  const selfMember = members.find((m) => m.user_id === userId) ?? null;
+  const canManageStatus =
+    !!userId &&
+    (isAdmin ||
+      (selfMember?.raw_role === "owner" || selfMember?.raw_role === "admin") ||
+      isManagementStatus(selfMember?.member_status));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -115,8 +131,18 @@ export default function ClubMembersScreen() {
             const isSelf = item.user_id === userId;
             const canDelete = isAdmin && !isSelf;
             const contactPending = contactingId === item.user_id;
+            const isEditing = editingStatusId === item.user_id;
+            const statusLabel = getMemberStatusLabel(
+              item.member_status,
+              item.custom_member_status,
+              t
+            );
+            // Never let a manager edit their own row (anti self-escalation) —
+            // the RPC rejects it too with `CANNOT_EDIT_SELF`.
+            const canEditThisStatus = canManageStatus && !isSelf;
 
             return (
+              <View>
               <PressableScale
                 onPress={() => router.push(`/profile/${item.user_id}`)}
                 scaleOnPress={0.97}
@@ -125,29 +151,47 @@ export default function ClubMembersScreen() {
                 className="flex-row items-center gap-3 px-4 py-3 mx-0.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
                 <Avatar uri={item.avatar_url} size={48} />
 
-                <View className="flex-1 min-w-0 items-start">
+                <View className="flex-1 min-w-0 items-start gap-1">
                   <Text variant="body" className="font-medium text-neutral-900 dark:text-neutral-50" numberOfLines={1}>
                     {item.full_name}
                   </Text>
-                  <View
-                    className={
-                      "px-2 py-0.5 rounded-full " +
-                      (item.is_admin
-                        ? "bg-primary/10"
-                        : "bg-neutral-100 dark:bg-neutral-700")
-                    }
-                  >
-                    <Text
-                      variant="caption"
-                      className={
-                        "font-semibold " +
-                        (item.is_admin
-                          ? "text-primary"
-                          : "text-neutral-600 dark:text-neutral-300")
-                      }
-                    >
-                      {item.is_admin ? t("members.admin") : t("members.member")}
-                    </Text>
+
+                  <View className="flex-row items-center gap-1.5 flex-wrap">
+                    {/* Status badge — tap to edit (managers only, never self) */}
+                    {canEditThisStatus ? (
+                      <Pressable
+                        onPress={() => setEditingStatusId(isEditing ? null : item.user_id)}
+                        disabled={updateStatus.isPending}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isEditing, disabled: updateStatus.isPending }}
+                        accessibilityLabel={`${t("members.status.editAction")} — ${item.full_name}`}
+                        testID={`member-status-${item.user_id}`}
+                        className="flex-row items-center gap-1"
+                      >
+                        <MemberStatusBadge
+                          memberStatus={item.member_status}
+                          customMemberStatus={item.custom_member_status}
+                          label={statusLabel}
+                        />
+                        <Icon name="Pen" size={12} color="#64748B" />
+                      </Pressable>
+                    ) : (
+                      <MemberStatusBadge
+                        memberStatus={item.member_status}
+                        customMemberStatus={item.custom_member_status}
+                        label={statusLabel}
+                      />
+                    )}
+
+                    {/* Technical admin flag (kept separate from the status) */}
+                    {item.is_admin ? (
+                      <View className="px-2 py-0.5 rounded-full bg-primary/10">
+                        <Text variant="caption" className="font-semibold text-primary">
+                          {t("members.admin")}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
 
@@ -181,6 +225,28 @@ export default function ClubMembersScreen() {
                   </Pressable>
                 ) : null}
               </PressableScale>
+
+              {/* Inline status editor — expanded under the tapped row */}
+              {isEditing ? (
+                <MemberStatusEditor
+                  currentStatus={item.member_status}
+                  currentCustomStatus={item.custom_member_status}
+                  isPending={updateStatus.isPending}
+                  onClose={() => setEditingStatusId(null)}
+                  onSave={(memberStatus, customMemberStatus) => {
+                    updateStatus.mutate(
+                      {
+                        clubId: clubId!,
+                        memberId: item.user_id,
+                        memberStatus,
+                        customMemberStatus,
+                      },
+                      { onSuccess: () => setEditingStatusId(null) }
+                    );
+                  }}
+                />
+              ) : null}
+              </View>
             );
           }}
         />

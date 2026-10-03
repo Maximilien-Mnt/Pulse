@@ -227,12 +227,16 @@ export type Database = {
           club_id: string;
           user_id: string;
           role: string;
+          member_status: string;
+          custom_member_status: string | null;
           joined_at: string;
         };
         Insert: {
           club_id: string;
           user_id: string;
           role?: string;
+          member_status?: string;
+          custom_member_status?: string | null;
           joined_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["club_members"]["Insert"]>;
@@ -837,6 +841,34 @@ export type Database = {
           p_title?: string | null;
           p_body?: string | null;
           p_data?: Json;
+        };
+        Returns: undefined;
+      };
+      management_member_statuses: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
+      user_can_manage_club_members: {
+        Args: { p_club_id: string };
+        Returns: boolean;
+      };
+      update_club_member_status: {
+        Args: {
+          p_club_id: string;
+          p_member_id: string;
+          p_member_status: string;
+          p_custom_member_status: string | null;
+          p_title: string;
+          p_body: string;
+        };
+        Returns: { previous_status: string; new_status: string }[];
+      };
+      remove_club_member_secure: {
+        Args: {
+          p_club_id: string;
+          p_member_id: string;
+          p_title: string;
+          p_body: string;
         };
         Returns: undefined;
       };

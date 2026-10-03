@@ -21,7 +21,7 @@ import { getImageDimensions, resizeToMaxEdge, SaveFormat } from "./imageManipula
 // ---------------------------------------------------------------------------
 // Roles — max-edge rationale (based on actual render sites in this codebase):
 //   avatar      — 40–80 px circular (Avatar.tsx)              → max edge 512
-//   cover       — full-width hero, contentMax 760–920 px
+//   cover       — full-width hero spanning the entire page width
 //                 (ClubHeroBar coverH 180–280, cards 16:9)    → max edge 1920
 //   gallery     — post image, screenWidth-32, height 200–300 → max edge 1920
 //   thumbnail   — grid/list cards, ~150–250 px wide           → max edge 1024

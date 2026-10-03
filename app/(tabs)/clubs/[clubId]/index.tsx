@@ -64,7 +64,6 @@ export default function ClubDetailScreen() {
   }, [eventsLoading, eventsTab, upcomingEvents.length, pastEvents.length]);
 
   // ── Responsive sizing ─────────────────────────────────────────────────
-  const contentMax = winWidth > 900 ? 760 : '100%';
   const isWide = winWidth >= 700;
   const isMd = winWidth >= 500;
   const coverH = winWidth > 500 ? 240 : 180;
@@ -187,7 +186,7 @@ export default function ClubDetailScreen() {
       <ScrollView
         className='flex-1'
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ width: '100%', maxWidth: contentMax, alignSelf: 'center' }}
+        contentContainerStyle={{ width: '100%' }}
       >
         {/* ---- Hero cover (favorite + share float over the cover) ---- */}
         <ClubHeroBar

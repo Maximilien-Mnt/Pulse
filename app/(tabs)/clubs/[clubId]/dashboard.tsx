@@ -327,7 +327,6 @@ export default function ClubDashboardScreen() {
 
   // ---- Responsive layout (matches the public detail screen) ----
   const isWide = winWidth >= 760;
-  const contentMax = 920;
   const coverH = isWide ? 280 : winWidth >= 400 ? 220 : 180;
   const statBasis = isWide ? '23%' : '47%';
 
@@ -383,7 +382,7 @@ export default function ClubDashboardScreen() {
       <ScrollView
         className='flex-1'
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ width: '100%', maxWidth: contentMax, alignSelf: 'center' }}
+        contentContainerStyle={{ width: '100%' }}
       >
         {/* ---- Hero cover ---- */}
         <View className='px-4 pt-1'>

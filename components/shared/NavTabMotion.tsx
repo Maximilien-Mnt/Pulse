@@ -29,7 +29,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, View } from "react-native";
+import { Animated, Platform } from "react-native";
 import type { PressableProps } from "react-native";
 
 import { Icon, type IconColor, type IconName } from "@/components/ui/Icon";
@@ -137,13 +137,12 @@ export interface NavTabProps extends Omit<PressableProps, "children" | "style"> 
    * two can never double up.
    */
   active: boolean;
-  /** Row content. */
+  /** Row content. Rendered in NORMAL FLOW so the row's flex layout
+   * (`flex-row items-center gap-3` / `justify-center`) shapes it directly.
+   * An absolute-fill wrapper here would take the content out of flow: the row
+   * collapses to its padding (clipping the icon under `overflow-hidden`) and
+   * the label lands outside the row entirely — the SideRail regression. */
   children: React.ReactNode;
-  /**
-   * Rendered under the sliding indicator instead of on top of it, so the
-   * active tint reads as one continuous rectangle behind the row content.
-   */
-  underlay?: boolean;
 }
 
 /**
@@ -154,7 +153,6 @@ export interface NavTabProps extends Omit<PressableProps, "children" | "style"> 
 export function NavTab({
   active,
   children,
-  underlay = false,
   onFocus,
   onBlur,
   className,
@@ -202,13 +200,7 @@ export function NavTab({
           className
         )}
       >
-        {underlay ? (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            {children}
-          </View>
-        ) : (
-          children
-        )}
+        {children}
       </PressableScale>
     </NavTabHoverContext.Provider>
   );

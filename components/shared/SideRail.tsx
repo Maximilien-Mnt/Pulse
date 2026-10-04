@@ -155,7 +155,6 @@ export function SideRail() {
           return (
             <NavTab
               key={tab.route}
-              underlay
               active={active}
               onLayout={(e) =>
                 recordRow(index, e.nativeEvent.layout.y, e.nativeEvent.layout.height)

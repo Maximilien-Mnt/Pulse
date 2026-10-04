@@ -159,14 +159,21 @@ describe("NavTab", () => {
     expect(cls).toContain("h-full");
   });
 
-  it("still renders content when laid out as an underlay", () => {
-    const { getByTestId } = render(
-      <NavTab active={false} underlay testID="tab">
+  it("keeps row content in normal flow — no absolute-fill wrapper", () => {
+    const { toJSON } = render(
+      <NavTab active={false} testID="tab">
         <Text testID="content">Feed</Text>
       </NavTab>
     );
 
-    expect(getByTestId("content")).toBeTruthy();
+    // Host tree (composite wrappers elided): the row must contain the Text
+    // directly. An absolute-fill View between them takes content out of flow:
+    // the row collapses to its padding, `overflow-hidden` clips the icon, and
+    // the label lands outside the row — the SideRail regression this guards.
+    const row = toJSON() as { children?: ({ type?: string } | string)[] } | null;
+    const firstChild = row?.children?.[0];
+    expect(typeof firstChild === "object" && firstChild !== null ? firstChild.type : undefined)
+      .toBe("Text");
   });
 });
 

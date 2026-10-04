@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { ToastConfigParams, ToastConfig } from "react-native-toast-message";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,12 +29,13 @@ function PulseToast(params: ToastConfigParams<unknown>) {
         };
 
   return (
-    <View
+    <Pressable
       style={[
         styles.container,
         { backgroundColor: isWeb ? "#1f2937" : undefined },
       ]}
-      onTouchEnd={onPress}
+      onPress={onPress}
+      accessibilityRole="button"
     >
       <View
         style={[styles.content, shadowStyle]}
@@ -66,7 +67,7 @@ function PulseToast(params: ToastConfigParams<unknown>) {
           </Text>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 

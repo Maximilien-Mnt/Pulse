@@ -78,7 +78,10 @@ export function SideRail() {
   const railWidth = expanded ? 240 : 72;
 
   // ---- Sliding active indicator -------------------------------------------
-  const activeIndex = SIDE_TABS.findIndex(isActive);
+  // NOTE: `findIndex` hands the callback the tab *object*, not its route
+  // string — `isActive` expects a string, so unwrap it explicitly. Passing
+  // `isActive` directly crashes with "routePath.split is not a function".
+  const activeIndex = SIDE_TABS.findIndex((tab) => isActive(tab.route));
   const { recordRow, syncTo, invalidate, indicatorStyle, reduceMotion } =
     useSlidingIndicator(SIDE_TABS.length);
 
@@ -260,9 +263,9 @@ export function SideRail() {
 // ---------------------------------------------------------------------------
 
 export function useIsWebWide(): boolean {
-  // Only available on web
-  if (Platform.OS !== "web") return false;
+  // Call the hook unconditionally — an early `return` before a hook violates
+  // the rules of hooks (the hook count would differ between native and web).
   // Use a simple breakpoint check — the component will re-render on resize
   const { width } = useWindowDimensions();
-  return width >= 768;
+  return Platform.OS === "web" && width >= 768;
 }

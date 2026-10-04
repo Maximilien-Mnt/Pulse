@@ -142,7 +142,9 @@ describe("IconButton", () => {
       expect(button.props.onHoverIn).toBeUndefined();
       expect(classNameOf(button)).toContain("bg-primary/10");
     });
-describe("keyboard focus parity", () => {
+  });
+
+  describe("keyboard focus parity", () => {
     it("lifts on focus and restores on blur (not web-gated)", () => {
       jest.replaceProperty(Platform, "OS", "ios");
       const { getByLabelText } = render(<IconButton icon="Funnel" label="Filtrer" />);

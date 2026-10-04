@@ -28,6 +28,7 @@ import {
   NavTab,
   NavTabIcon,
   TAB_BAR_INDICATOR_HEIGHT,
+  TAB_BAR_INDICATOR_INSET_Y,
   useSlidingIndicator,
 } from "@/components/shared/NavTabMotion";
 import { useNavbarStore } from "@/stores/navbarStore";
@@ -140,7 +141,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         accessibilityState={{ selected: active }}
         accessibilityLabel={t(tab.labelKey)}
         className={cn(
-          "flex-1 items-center justify-center h-full",
+          // The row IS the capsule box: `py-3` around the 24px icon → 48px,
+          // centred in the 64px bar — exactly TAB_BAR_INDICATOR_HEIGHT, and the
+          // same rhythm the vertical rail uses. `h-full` used to stretch the
+          // row to the full 64px, so hovering painted a grey surface 16px
+          // taller than the blue capsule behind the same icon.
+          "flex-1 items-center justify-center py-3",
           // Reduced motion: no sliding capsule, so the active tab carries its own
           // static tint to stay visible (mirrors the SideRail fallback).
           reduceMotion && active && "bg-primary-tint dark:bg-primary-tint-dark"
@@ -178,7 +184,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 position: "absolute",
                 // Centre the fixed-height capsule in the 64px bar, so it never
                 // collides with the raised Create button's shadow.
-                top: (tabBarHeight - TAB_BAR_INDICATOR_HEIGHT) / 2,
+                top: TAB_BAR_INDICATOR_INSET_Y,
                 height: TAB_BAR_INDICATOR_HEIGHT,
                 borderRadius: INDICATOR_RADIUS,
                 backgroundColor: tintColor,
@@ -229,7 +235,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           className="px-2 items-center justify-center h-full"
         >
           <View className="items-center justify-center rounded-lg p-2">
-            <Icon name="PanelLeft" size={20} color="text-tertiary" />
+            {/* Same 24px as the tab icons — every glyph in this bar is one size. */}
+            <Icon name="PanelLeft" size={NAV_TAB_ICON_SIZE} color="text-tertiary" />
           </View>
         </Pressable>
       ) : null}

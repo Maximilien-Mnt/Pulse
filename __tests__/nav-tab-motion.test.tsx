@@ -196,6 +196,7 @@ function IndicatorHarness({ rows }: { rows: number }) {
         />
       ))}
       <View testID="sync-0" onLayout={() => syncTo(0)} />
+      <View testID="sync-1" onLayout={() => syncTo(1)} />
       <View testID="sync-2" onLayout={() => syncTo(2)} />
       <View testID="invalidate" onLayout={invalidate} />
     </View>
@@ -287,6 +288,51 @@ describe("useSlidingIndicator", () => {
     fireEvent(getByTestId("sync-2"), "layout"); // first placement again → snap
 
     expect(spring).not.toHaveBeenCalled();
+  });
+
+  it("places the indicator when the active row measures AFTER syncTo", () => {
+    // Regression: remounting the rail (navbar position left → bottom → left)
+    // runs the mount effect before any row reports a layout, and nothing
+    // re-runs it afterwards — placement must come from the measurement itself.
+    const spring = jest.spyOn(Animated, "spring");
+    const setValue = jest.spyOn(Animated.Value.prototype, "setValue");
+    const { getByTestId } = render(<IndicatorHarness rows={3} />);
+
+    fireEvent(getByTestId("sync-2"), "layout"); // target recorded, rows absent
+    measureRows(getByTestId, 3); // rows measure afterwards
+
+    expect(setValue).toHaveBeenCalled(); // first placement lands…
+    expect(spring).not.toHaveBeenCalled(); // …with a snap, not a spring
+  });
+
+  it("clamps the tint when a hop crosses more than one row", () => {
+    // Overshoot across that distance would carry the tint past its tab —
+    // visibly above or below the icons it should sit behind.
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = render(<IndicatorHarness rows={4} />);
+
+    measureRows(getByTestId, 4);
+    fireEvent(getByTestId("sync-0"), "layout"); // placed on row 0
+    fireEvent(getByTestId("sync-2"), "layout"); // two rows away
+
+    const hop = spring.mock.calls.find((call) => call[1]?.toValue === 100);
+    expect(hop?.[1]?.overshootClamping).toBe(true);
+  });
+
+  it("keeps a single-row step soft but never lets the SIZE overshoot", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = render(<IndicatorHarness rows={3} />);
+
+    measureRows(getByTestId, 3);
+    fireEvent(getByTestId("sync-0"), "layout");
+    fireEvent(getByTestId("sync-1"), "layout"); // one row down
+
+    const step = spring.mock.calls.find((call) => call[1]?.toValue === 50);
+    expect(step?.[1]?.overshootClamping).toBe(false); // small settle allowed
+    // The capsule must never grow beyond the tab box it highlights — that
+    // box is also the grey hover surface.
+    const size = spring.mock.calls.find((call) => call[1]?.toValue === 44);
+    expect(size?.[1]?.overshootClamping).toBe(true);
   });
 
   it("paints no animated indicator under reduced motion", () => {

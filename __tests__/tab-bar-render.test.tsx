@@ -19,7 +19,11 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { TabBar } from "@/components/shared/TabBar";
 import { useLanguageStore } from "@/stores/languageStore";
-import { TAB_BAR_INDICATOR_HEIGHT } from "@/components/shared/NavTabMotion";
+import {
+  NAV_TAB_ICON_SIZE,
+  TAB_BAR_INDICATOR_HEIGHT,
+} from "@/components/shared/NavTabMotion";
+import { spacing } from "@/src/design-tokens/primitive/spacing";
 
 let mockReducedMotion = false;
 
@@ -118,7 +122,7 @@ describe("TabBar", () => {
     expect(queryByTestId("active-capsule")).toBeNull();
   });
 
-  it("paints a full-height blue capsule behind the active tab", () => {
+  it("paints a blue capsule behind the active tab, centred in the bar", () => {
     const { getByTestId } = renderBar();
 
     const capsule = getByTestId("active-capsule");
@@ -136,6 +140,28 @@ describe("TabBar", () => {
     expect(style.top).toBe((64 - TAB_BAR_INDICATOR_HEIGHT) / 2);
     // Never intercepts taps meant for the tabs behind it.
     expect(capsule.props.pointerEvents).toBe("none");
+  });
+
+  it("sizes tab rows to the capsule so grey hover and blue active match", () => {
+    const { getByTestId, getByLabelText } = renderBar();
+
+    const rowClass = getByLabelText("Feed").props.className ?? "";
+    // py-3 (12px) around the 24px icon = 48px — exactly the capsule's height.
+    // `h-full` used to stretch rows to the full 64px bar, so hovering painted
+    // a grey surface 16px taller than the blue capsule behind the same icon.
+    expect(rowClass).toContain("py-3");
+    expect(rowClass).not.toContain("h-full");
+
+    // Row and capsule are the same box, derived from the same tokens:
+    // icon + py-3 both sides === capsule height.
+    const rowHeight = NAV_TAB_ICON_SIZE + 2 * spacing[3];
+    expect(rowHeight).toBe(TAB_BAR_INDICATOR_HEIGHT);
+
+    const capsuleStyle =
+      StyleSheet.flatten(getByTestId("active-capsule").props.style) ?? {};
+    expect(capsuleStyle.height).toBe(rowHeight);
+    // Centred in the bar — the same vertical position the rows sit at.
+    expect(capsuleStyle.top).toBe((64 - rowHeight) / 2);
   });
 
   it("paints no per-tab tint while motion is allowed", () => {

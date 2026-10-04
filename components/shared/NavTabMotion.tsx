@@ -52,10 +52,16 @@ import { radius } from "@/src/design-tokens/primitive/radius";
 /**
  * Spring used to travel the active indicator between tabs. Deliberately
  * softer (lower tension, higher friction) than the press springs above: this
- * is positional travel across a list and should settle without a bounce, while
- * the press springs are short tactile pops that *should* feel springy.
+ * is positional travel across a list, not a tactile pop.
+ *
+ * friction 18 / tension 170 puts the damping ratio at ζ ≈ 0.69, so a
+ * single-row step settles with ~5% overshoot — a small kiss of bounce. The
+ * old 7/170 was ζ ≈ 0.27 (~40% overshoot): crossing several rows swung the
+ * tint roughly a full row past its destination. Hops across more than one row
+ * are clamped outright in `moveTo`, so distance can never carry the tint
+ * beyond its tab either.
  */
-export const NAV_INDICATOR_SPRING = { friction: 7, tension: 170 } as const;
+export const NAV_INDICATOR_SPRING = { friction: 18, tension: 170 } as const;
 
 /** Resting surface for an inactive nav tab (hover lifts it from here). */
 const TAB_REST_CLASS = "bg-transparent";
@@ -337,6 +343,14 @@ export type NavIndicatorAxis = "vertical" | "horizontal";
  * otherwise the tint would be seen flying in from offset 0 on mount.
  * Subsequent moves spring, including a collapse ↔ expand at the 1024px
  * breakpoint, which re-measures every tab.
+ *
+ * Placement is measurement-driven, not effect-driven: `syncTo` records the
+ * desired index, and `recordRow` lands the indicator as soon as that row
+ * reports a layout. Rows routinely measure AFTER the mount effect has run —
+ * on first layout, when the rail remounts after the navbar position round-trips
+ * left → bottom → left (no later render re-runs the effect because the
+ * pathname never changed), or on a breakpoint re-measure after `invalidate`.
+ * Without this link the tint would silently never appear.
  */
 export function useSlidingIndicator(
   count: number,
@@ -348,24 +362,29 @@ export function useSlidingIndicator(
   const indicatorPos = useRef(new Animated.Value(0)).current;
   const indicatorSize = useRef(new Animated.Value(0)).current;
   const hasPlacedRef = useRef(false);
+  /** Index the indicator should show — recorded by `syncTo` even pre-layout. */
+  const targetIndexRef = useRef(-1);
+  /** Index the indicator is on (or heading to), used to size up the next hop. */
+  const lastIndexRef = useRef<number | null>(null);
 
   /**
-   * Record a tab's position within the bar. Callers read the matching field
-   * off the layout event for their axis: `y`/`height` for the vertical rail,
-   * `x`/`width` for the bottom bar.
+   * Move the indicator onto tab `index`.
+   *
+   * Overshoot policy: a hop across MORE THAN ONE row travels far enough that
+   * the spring would land the tint visibly past its destination — a row too
+   * high above the icons or too deep below them — so those landings are
+   * clamped (`overshootClamping`) and arrive exactly. A single-row step keeps
+   * a small settle (about 5% damping of its own). The SIZE is always clamped:
+   * the capsule must never outgrow the tab box it highlights, because that
+   * box is also the grey hover surface of the tab.
    */
-  const recordRow = useCallback((index: number, offset: number, size: number) => {
-    const prev = layouts.current[index];
-    // Ignore no-op re-measures so an in-flight animation isn't restarted.
-    if (prev && prev.offset === offset && prev.size === size) return;
-    layouts.current[index] = { offset, size };
-  }, []);
-
-  /** Move the indicator onto tab `index`. */
   const moveTo = useCallback(
     (index: number, animate: boolean) => {
       const row = layouts.current[index];
       if (!row) return;
+
+      const prevIndex = lastIndexRef.current;
+      lastIndexRef.current = index;
 
       if (reduceMotion || !animate) {
         indicatorPos.setValue(row.offset);
@@ -373,15 +392,19 @@ export function useSlidingIndicator(
         return;
       }
 
+      const longHop = prevIndex !== null && Math.abs(index - prevIndex) > 1;
+
       Animated.parallel([
         Animated.spring(indicatorPos, {
           ...NAV_INDICATOR_SPRING,
           toValue: row.offset,
+          overshootClamping: longHop,
           useNativeDriver: false,
         }),
         Animated.spring(indicatorSize, {
           ...NAV_INDICATOR_SPRING,
           toValue: row.size,
+          overshootClamping: true,
           useNativeDriver: false,
         }),
       ]).start();
@@ -390,13 +413,38 @@ export function useSlidingIndicator(
   );
 
   /**
-   * Syncs the indicator to `index`. Safe to call before layout has landed — it
-   * simply does nothing until the row is measured, and the next effect run
-   * picks it up.
+   * Record a tab's position within the bar. Callers read the matching field
+   * off the layout event for their axis: `y`/`height` for the vertical rail,
+   * `x`/`width` for the bottom bar.
+   *
+   * If the measured row is the current target, this measurement itself lands
+   * the indicator — first time snaps, a changed re-measure springs to the new
+   * geometry (placement note in the hook docs above).
+   */
+  const recordRow = useCallback(
+    (index: number, offset: number, size: number) => {
+      const prev = layouts.current[index];
+      // Ignore no-op re-measures so an in-flight animation isn't restarted.
+      if (prev && prev.offset === offset && prev.size === size) return;
+      layouts.current[index] = { offset, size };
+
+      if (targetIndexRef.current === index) {
+        moveTo(index, hasPlacedRef.current);
+        hasPlacedRef.current = true;
+      }
+    },
+    [moveTo]
+  );
+
+  /**
+   * Syncs the indicator to `index`. Safe to call before layout has landed —
+   * the target is remembered, and `recordRow` lands the indicator the moment
+   * that row reports its measurement.
    */
   const syncTo = useCallback(
     (index: number) => {
       if (index < 0 || index >= count) return;
+      targetIndexRef.current = index;
       if (layouts.current[index] === undefined) return;
       moveTo(index, hasPlacedRef.current);
       hasPlacedRef.current = true;

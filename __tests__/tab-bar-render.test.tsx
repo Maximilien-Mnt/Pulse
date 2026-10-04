@@ -18,6 +18,7 @@ import { render } from "@testing-library/react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { TabBar } from "@/components/shared/TabBar";
+import { ICON_BUTTON_SCALE_HOVER } from "@/components/ui/IconButton";
 import { useLanguageStore } from "@/stores/languageStore";
 import {
   NAV_TAB_ICON_SIZE,
@@ -162,6 +163,9 @@ describe("TabBar", () => {
     expect(capsuleStyle.height).toBe(rowHeight);
     // Centred in the bar — the same vertical position the rows sit at.
     expect(capsuleStyle.top).toBe((64 - rowHeight) / 2);
+    // The capsule wears the row hover-lift scale, so the blue active rect is
+    // identical in size and form to a grey hover rectangle.
+    expect(capsuleStyle.transform).toEqual([{ scale: ICON_BUTTON_SCALE_HOVER }]);
   });
 
   it("paints no per-tab tint while motion is allowed", () => {

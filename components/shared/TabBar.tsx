@@ -10,9 +10,11 @@
 //
 // The active tab is NOT painted per-tab: one tinted capsule slides between the
 // four tabs (see NavTabMotion's axis-aware `useSlidingIndicator`), off the same
-// spring the vertical SideRail uses. The capsule is sized off the full-height
-// tab row rather than the 24px icon, so it reads as a pill behind the whole tab
-// instead of a small square behind a glyph.
+// spring the vertical SideRail uses. Capsule and tab row are the SAME box:
+// `py-3` (12px) around the 24px icon makes a 48px row centred in the 64px bar,
+// rounded like `rounded-lg` — and the capsule carries the row hover-lift
+// scale, so the blue active surface is identical in size and form to the
+// grey hover rectangles.
 // ---------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
@@ -21,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { ICON_BUTTON_SCALE_HOVER } from "@/components/ui/IconButton";
 import { PressableScale } from "@/components/ui/PressableScale";
 import {
   INDICATOR_RADIUS,
@@ -188,6 +191,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 height: TAB_BAR_INDICATOR_HEIGHT,
                 borderRadius: INDICATOR_RADIUS,
                 backgroundColor: tintColor,
+                // The hovered row lifts by ICON_BUTTON_SCALE_HOVER, so a grey
+                // hover rect renders 6% larger than the resting box — radius
+                // scales with it. Park the static capsule at that same lifted
+                // footprint (position and corner radius both scale) so the blue
+                // active rect matches the grey hover rects exactly in size and
+                // form.
+                transform: [{ scale: ICON_BUTTON_SCALE_HOVER }],
               },
               // Under reduced motion there is no animation to drive, so the
               // active tab paints a static tint of its own instead (above).

@@ -6,7 +6,8 @@
 //   - pressing like flips the filled state instantly + calls the toggle,
 //   - prop reconciliation restores the server truth,
 //   - pressing share opens the native share sheet with the right content,
-//   - size variants render the right chip dimensions.
+//   - every chip renders at the shared 44x44 hit target (`size` is accepted
+//     for API compatibility but no longer changes the dimensions).
 // ---------------------------------------------------------------------------
 
 import React from "react";
@@ -106,16 +107,19 @@ describe("CoverOverlayActions", () => {
     spy.mockRestore();
   });
 
-  it("renders compact chips in grid size", () => {
+  it("renders the standard 44x44 chip in grid size", () => {
+    // `size` is accepted for API compatibility but no longer drives the
+    // dimensions — every circular action shares the 44x44 hit target
+    // (BUTTON_ICON_SIZE; see CoverOverlayActions).
     const { getByTestId } = renderOverlay({ size: "sm", testID: "cover-actions" });
-    expect(getByTestId("cover-actions-favorite").props.className).toContain("w-7 h-7");
-    expect(getByTestId("cover-actions-share").props.className).toContain("w-7 h-7");
+    expect(getByTestId("cover-actions-favorite").props.className).toContain("w-11 h-11");
+    expect(getByTestId("cover-actions-share").props.className).toContain("w-11 h-11");
   });
 
-  it("renders medium chips by default", () => {
+  it("renders the same 44x44 chip by default", () => {
     const { getByTestId } = renderOverlay({ testID: "cover-actions" });
-    expect(getByTestId("cover-actions-favorite").props.className).toContain("w-9 h-9");
-    expect(getByTestId("cover-actions-share").props.className).toContain("w-9 h-9");
+    expect(getByTestId("cover-actions-favorite").props.className).toContain("w-11 h-11");
+    expect(getByTestId("cover-actions-share").props.className).toContain("w-11 h-11");
   });
 
   it("renders a static neutral row in inline variant (title row, no cover overlay)", () => {

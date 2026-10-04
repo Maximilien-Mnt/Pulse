@@ -16,9 +16,8 @@
 // ---------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
-import { View, Pressable, Animated, Platform } from "react-native";
+import { View, Pressable, Animated, Platform, useWindowDimensions } from "react-native";
 import { useRouter, usePathname } from "expo-router";
-import { useWindowDimensions } from "react-native";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useNavbarStore } from "@/stores/navbarStore";

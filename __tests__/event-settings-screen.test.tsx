@@ -8,7 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Toast from "react-native-toast-message";
 import EventSettingsScreen from "@/app/(tabs)/events/[eventId]/settings";
@@ -71,6 +71,13 @@ jest.mock("@/hooks/useTranslation", () => ({
 jest.mock("react-native-toast-message", () => ({
   __esModule: true,
   default: { show: jest.fn() },
+}));
+
+// useUpdateEvent calls `usePostHog()`, which throws without a PostHogProvider.
+// Production is wrapped at app/_layout.tsx; this suite renders the screen
+// bare, so mock the hook like the other suites that touch analytics.
+jest.mock("posthog-react-native", () => ({
+  usePostHog: () => ({ capture: jest.fn() }),
 }));
 
 jest.mock("expo-image-picker", () => ({
@@ -231,7 +238,8 @@ test("saving sends only the changed field, then returns to the event", async () 
 
   await waitFor(() => expect(mockUpdates).toHaveLength(1));
   // An update diff means untouched fields are neither written nor announced.
-  expect(Object.keys(mockUpdates[0]!.payload)).toEqual(["name"]);
+  // `updated_at` is stamped by the hook on every write, so it is expected here.
+  expect(Object.keys(mockUpdates[0]!.payload).sort()).toEqual(["name", "updated_at"]);
   expect(mockUpdates[0]!.payload.name).toBe("Summer cup");
 
   await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());

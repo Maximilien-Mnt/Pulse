@@ -199,8 +199,22 @@ describe("status change notifications", () => {
 const tFr = (key: TranslationKey) => translations.fr[key] ?? key;
 
 function readMigration(): string {
-  return fs.readFileSync(
-    path.join(__dirname, "..", "supabase", "migrations", "058_club_member_status.sql"),
-    "utf8"
-  );
+  // Applied migrations are renamed with a `_(done)` suffix
+  // (e.g. 058_club_member_status_(done).sql), so resolve by prefix instead of
+  // pinning the filename — otherwise the test breaks the moment the migration
+  // is renamed on apply.
+  const dir = path.join(__dirname, "..", "supabase", "migrations");
+  const matches = fs
+    .readdirSync(dir)
+    .filter((file) => file.startsWith("058_club_member_status"));
+
+  if (matches.length !== 1) {
+    throw new Error(
+      `Expected exactly one 058_club_member_status migration, found: ${
+        matches.join(", ") || "none"
+      }`
+    );
+  }
+
+  return fs.readFileSync(path.join(dir, matches[0]!), "utf8");
 }

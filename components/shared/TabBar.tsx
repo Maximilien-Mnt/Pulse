@@ -12,9 +12,9 @@
 // four tabs (see NavTabMotion's axis-aware `useSlidingIndicator`), off the same
 // spring the vertical SideRail uses. Capsule and tab row are the SAME box:
 // `py-3` (12px) around the 24px icon makes a 48px row centred in the 64px bar,
-// rounded like `rounded-lg` — and the capsule carries the row hover-lift
-// scale, so the blue active surface is identical in size and form to the
-// grey hover rectangles.
+// rounded like `rounded-lg` — the capsule reuses those exact box metrics, so
+// the blue active surface matches the grey hover rectangle pixel for pixel,
+// bottom padding included.
 // ---------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
@@ -23,8 +23,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { ICON_BUTTON_SCALE_HOVER } from "@/components/ui/IconButton";
 import { PressableScale } from "@/components/ui/PressableScale";
+import { useHoverLift } from "@/components/ui/useHoverLift";
 import {
   INDICATOR_RADIUS,
   NAV_TAB_ICON_SIZE,
@@ -71,6 +71,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const pathname = usePathname();
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
   const [createOpen, setCreateOpen] = useState(false);
+  // Shared hover/focus lift with the rail Create — one mechanism, both shapes.
+  const createLift = useHoverLift();
 
   const isWeb = Platform.OS === "web";
   const isWebWide = useIsWebWide();
@@ -191,13 +193,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 height: TAB_BAR_INDICATOR_HEIGHT,
                 borderRadius: INDICATOR_RADIUS,
                 backgroundColor: tintColor,
-                // The hovered row lifts by ICON_BUTTON_SCALE_HOVER, so a grey
-                // hover rect renders 6% larger than the resting box — radius
-                // scales with it. Park the static capsule at that same lifted
-                // footprint (position and corner radius both scale) so the blue
-                // active rect matches the grey hover rects exactly in size and
-                // form.
-                transform: [{ scale: ICON_BUTTON_SCALE_HOVER }],
+                // Same box metrics as the tab row — py-3 (12px) around the 24px
+                // icon makes 48px, centred in the bar, rounded like `rounded-lg`.
+                // The hovered row surface never scales (the DOM shows no inline
+                // transform on it), so the grey hover rectangle IS this box: the
+                // blue capsule stays exactly here, bottom padding included.
               },
               // Under reduced motion there is no animation to drive, so the
               // active tab paints a static tint of its own instead (above).
@@ -215,15 +215,25 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             squash would read as too aggressive here. */}
         <View className="flex-1 items-center justify-center">
           <PressableScale
+            {...createLift.hoverProps}
             onPress={handleCreatePress}
             scaleOnPress={0.92}
             accessibilityRole="button"
             accessibilityLabel={t("common.create")}
             accessibilityHint={t("tabs.createHint")}
-            className="bg-primary rounded-full w-14 h-14 items-center justify-center dark:shadow-none"
+            // Same hover/focus lift as the rail Create (useHoverLift) — the
+            // icon-only form scales to the button hover over the shared 150ms
+            // fade, on top of its existing lift above the bar.
+            className={cn(
+              "bg-primary rounded-full w-14 h-14 items-center justify-center dark:shadow-none",
+              createLift.liftTransitionClassName
+            )}
             style={{
-              // Elevate above the tab bar line
-              transform: [{ translateY: Platform.OS === "web" ? -8 : -12 }],
+              // Elevate above the tab bar line + the shared hover/focus lift.
+              transform: [
+                { translateY: Platform.OS === "web" ? -8 : -12 },
+                ...createLift.liftTransform,
+              ],
               ...(Platform.OS === "web" ? { boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } : {}),
             }}
           >

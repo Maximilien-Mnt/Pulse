@@ -33,6 +33,7 @@ import {
   useSlidingIndicator,
 } from "@/components/shared/NavTabMotion";
 import { PressableScale } from "@/components/ui/PressableScale";
+import { useHoverLift } from "@/components/ui/useHoverLift";
 import { t } from "@/hooks/useTranslation";
 import { semanticColors } from "@/src/design-tokens/semantic/colors";
 import { cn } from "@/utils/format";
@@ -65,6 +66,8 @@ export function SideRail() {
   const expanded = width >= 1024;
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
   const [createOpen, setCreateOpen] = useState(false);
+  // Shared hover/focus lift for the Create control — both of its shapes.
+  const createLift = useHoverLift();
 
   const isActive = (routePath: string) => {
     // routePath e.g. "/(tabs)/feed" → tab name is "feed"
@@ -192,15 +195,22 @@ export function SideRail() {
             A 56px circular target carries more visual mass than a tab row, so it
             gets a gentler press scale than the tab default (0.9). */}
         <PressableScale
+          {...createLift.hoverProps}
           onPress={handleCreatePress}
           scaleOnPress={0.92}
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
-          className={`bg-primary shadow-sm dark:shadow-none mt-2 ${
+          // Shared hover/focus lift with the bottom-bar FAB (useHoverLift):
+          // both Create forms — icon-only circle and icon+label pill — scale
+          // to the button hover over the shared 150ms fade.
+          className={cn(
+            "bg-primary shadow-sm dark:shadow-none mt-2",
             expanded
               ? "flex-row items-center justify-center gap-2 px-4 py-2.5 rounded-full self-stretch"
-              : "w-14 h-14 items-center justify-center rounded-full self-center"
-          }`}
+              : "w-14 h-14 items-center justify-center rounded-full self-center",
+            createLift.liftTransitionClassName
+          )}
+          style={{ transform: createLift.liftTransform }}
         >
           <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
           {expanded ? (

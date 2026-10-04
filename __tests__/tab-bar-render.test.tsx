@@ -14,11 +14,12 @@
 
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 import { TabBar } from "@/components/shared/TabBar";
 import { ICON_BUTTON_SCALE_HOVER } from "@/components/ui/IconButton";
+import { t } from "@/hooks/useTranslation";
 import { useLanguageStore } from "@/stores/languageStore";
 import {
   NAV_TAB_ICON_SIZE,
@@ -163,9 +164,10 @@ describe("TabBar", () => {
     expect(capsuleStyle.height).toBe(rowHeight);
     // Centred in the bar — the same vertical position the rows sit at.
     expect(capsuleStyle.top).toBe((64 - rowHeight) / 2);
-    // The capsule wears the row hover-lift scale, so the blue active rect is
-    // identical in size and form to a grey hover rectangle.
-    expect(capsuleStyle.transform).toEqual([{ scale: ICON_BUTTON_SCALE_HOVER }]);
+    // No transform: the hovered surface never scales, so the grey hover
+    // rectangle IS the resting row box — the blue capsule must stay exactly
+    // at those box metrics (height/top asserted above), bottom padding included.
+    expect(capsuleStyle.transform).toBeUndefined();
   });
 
   it("paints no per-tab tint while motion is allowed", () => {
@@ -189,5 +191,45 @@ describe("TabBar", () => {
     // No capsule to animate, so the selection must come from the tab itself.
     expect(queryByTestId("active-capsule")).toBeNull();
     expect(getByLabelText("Feed").props.className ?? "").toContain("bg-primary-tint");
+  });
+
+  it("lifts the Create FAB on hover, on top of its lift above the bar", () => {
+    const { getByLabelText } = renderBar();
+    const transformOf = () =>
+      StyleSheet.flatten(getByLabelText(t("common.create")).props.style)
+        ?.transform;
+    const classNameOfCreate = () =>
+      getByLabelText(t("common.create")).props.className ?? "";
+
+    // Web raises the FAB 8px above the bar; the shared lift owns `scale`.
+    expect(transformOf()).toEqual([{ translateY: -8 }, { scale: 1 }]);
+    expect(classNameOfCreate()).toContain("transition-transform");
+    expect(classNameOfCreate()).toContain("duration-150");
+
+    fireEvent(getByLabelText(t("common.create")), "hoverIn");
+    expect(transformOf()).toEqual([
+      { translateY: -8 },
+      { scale: ICON_BUTTON_SCALE_HOVER },
+    ]);
+
+    fireEvent(getByLabelText(t("common.create")), "hoverOut");
+    expect(transformOf()).toEqual([{ translateY: -8 }, { scale: 1 }]);
+  });
+
+  it("snaps the Create lift under reduced motion", () => {
+    mockReducedMotion = true;
+
+    const { getByLabelText } = renderBar();
+
+    fireEvent(getByLabelText(t("common.create")), "hoverIn");
+
+    // The state still changes — the surface is lifted…
+    expect(
+      StyleSheet.flatten(getByLabelText(t("common.create")).props.style)?.transform
+    ).toEqual([{ translateY: -8 }, { scale: ICON_BUTTON_SCALE_HOVER }]);
+    // …but the fade is dropped, so it snaps instead of animating.
+    expect(getByLabelText(t("common.create")).props.className ?? "").not.toContain(
+      "transition-transform"
+    );
   });
 });

@@ -20,10 +20,12 @@
 // ---------------------------------------------------------------------------
 
 import React from "react";
-import { Dimensions, Platform, Text, View } from "react-native";
-import { render } from "@testing-library/react-native";
+import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 
 import { SideRail, useIsWebWide } from "@/components/shared/SideRail";
+import { ICON_BUTTON_SCALE_HOVER } from "@/components/ui/IconButton";
+import { t } from "@/hooks/useTranslation";
 
 let mockPathname = "/feed";
 const mockPush = jest.fn();
@@ -104,6 +106,34 @@ describe("SideRail", () => {
 
     expect(selectedOf(getByLabelText("Feed"))).toBe(false);
     expect(selectedOf(getByLabelText("Messages"))).toBe(false);
+  });
+
+  it("lifts the Create button on hover and keyboard focus", () => {
+    const { getByLabelText } = render(<SideRail />);
+    const transformOf = () =>
+      StyleSheet.flatten(getByLabelText(t("common.create")).props.style)
+        ?.transform;
+    const classNameOfCreate = () =>
+      getByLabelText(t("common.create")).props.className ?? "";
+
+    // At rest the shared lift parks the surface at scale 1, with the 150ms
+    // transform fade armed (the same timing as the colour swaps elsewhere).
+    expect(transformOf()).toEqual([{ scale: 1 }]);
+    expect(classNameOfCreate()).toContain("transition-transform");
+    expect(classNameOfCreate()).toContain("duration-150");
+
+    // Pointer hover (web) scales the surface to the shared button hover.
+    fireEvent(getByLabelText(t("common.create")), "hoverIn");
+    expect(transformOf()).toEqual([{ scale: ICON_BUTTON_SCALE_HOVER }]);
+
+    fireEvent(getByLabelText(t("common.create")), "hoverOut");
+    expect(transformOf()).toEqual([{ scale: 1 }]);
+
+    // Keyboard focus gets the same affordance — never mouse-only.
+    fireEvent(getByLabelText(t("common.create")), "focus");
+    expect(transformOf()).toEqual([{ scale: ICON_BUTTON_SCALE_HOVER }]);
+    fireEvent(getByLabelText(t("common.create")), "blur");
+    expect(transformOf()).toEqual([{ scale: 1 }]);
   });
 });
 

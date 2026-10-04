@@ -15,13 +15,16 @@
 // ---------------------------------------------------------------------------
 
 import React from "react";
-import { Animated, Platform, Text, View } from "react-native";
+import { Animated, Platform, StyleSheet, Text, View } from "react-native";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import {
   NavTab,
+  NavTabIcon,
+  NavTabLabel,
   useSlidingIndicator,
   NAV_INDICATOR_SPRING,
+  NAV_TAB_ICON_SCALE_HOVER,
 } from "@/components/shared/NavTabMotion";
 import {
   ICON_BUTTON_SCALE_HOVER,
@@ -192,6 +195,34 @@ function IndicatorHarness({ rows }: { rows: number }) {
   );
 }
 
+/**
+ * Horizontal counterpart — the bottom bar. Tabs sit side by side, so the
+ * indicator is fed `x`/`width` and must drive `left`/`width` instead of
+ * `top`/`height`.
+ */
+function HorizontalHarness({ rows }: { rows: number }) {
+  const { recordRow, syncTo, invalidate, indicatorStyle } = useSlidingIndicator(
+    rows,
+    "horizontal"
+  );
+
+  return (
+    <View testID="harness">
+      <Animated.View testID="indicator" style={indicatorStyle} />
+      {Array.from({ length: rows }, (_, i) => (
+        <View
+          key={i}
+          testID={`row-${i}`}
+          onLayout={() => recordRow(i, i * 80, 80)}
+        />
+      ))}
+      <View testID="sync-0" onLayout={() => syncTo(0)} />
+      <View testID="sync-2" onLayout={() => syncTo(2)} />
+      <View testID="invalidate" onLayout={invalidate} />
+    </View>
+  );
+}
+
 /** Fires a synthetic layout on every row so measurements are populated. */
 const measureRows = (getByTestId: (id: string) => { props: object }, n: number) => {
   for (let i = 0; i < n; i += 1) {
@@ -275,6 +306,169 @@ describe("useSlidingIndicator", () => {
 
     expect(spring).not.toHaveBeenCalled();
     expect(setValue).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useSlidingIndicator — horizontal axis (bottom TabBar)
+// ---------------------------------------------------------------------------
+
+describe("useSlidingIndicator (horizontal)", () => {
+  it("drives left/width rather than top/height", () => {
+    const { getByTestId } = render(<HorizontalHarness rows={3} />);
+
+    // Animated.View hands the style back as an array — flatten it so the axis
+    // assertion sees the actual layout props.
+    const style = StyleSheet.flatten(getByTestId("indicator").props.style) ?? {};
+    expect(style).toHaveProperty("left");
+    expect(style).toHaveProperty("width");
+    // A vertical-only style would place the capsule at the wrong axis entirely.
+    expect(style).not.toHaveProperty("top");
+    expect(style).not.toHaveProperty("height");
+  });
+
+  it("springs to the tab's x offset, not its y offset", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = render(<HorizontalHarness rows={3} />);
+
+    measureRows(getByTestId, 3);
+    fireEvent(getByTestId("sync-0"), "layout"); // first placement → snap
+    fireEvent(getByTestId("sync-2"), "layout"); // move → spring
+
+    expect(spring).toHaveBeenCalled();
+    // Row 2 sits at x = 160 in this harness.
+    expect(spring.mock.calls.map((call) => call[1]?.toValue)).toContain(160);
+    for (const call of spring.mock.calls) {
+      expect(call[1]?.friction).toBe(NAV_INDICATOR_SPRING.friction);
+      expect(call[1]?.tension).toBe(NAV_INDICATOR_SPRING.tension);
+      expect(call[1]?.useNativeDriver).toBe(false);
+    }
+  });
+
+  it("snaps on the first placement, exactly like the vertical axis", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = render(<HorizontalHarness rows={3} />);
+
+    measureRows(getByTestId, 3);
+    fireEvent(getByTestId("sync-0"), "layout");
+
+    expect(spring).not.toHaveBeenCalled();
+  });
+
+  it("paints no animated indicator under reduced motion", () => {
+    mockReducedMotion = true;
+    const { getByTestId } = render(<HorizontalHarness rows={3} />);
+
+    expect(getByTestId("indicator").props.style ?? null).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// NavTabIcon / NavTabLabel
+// ---------------------------------------------------------------------------
+
+/** Renders the given children inside a tab so they inherit its hover state. */
+const renderInTab = (
+  tabProps: Record<string, unknown>,
+  children: React.ReactNode
+) =>
+  render(
+    <NavTab active={false} testID="tab" {...tabProps}>
+      {children}
+    </NavTab>
+  );
+
+describe("NavTabIcon", () => {
+  it("springs its scale on hover, to the shared nav hover scale", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = renderInTab({}, <NavTabIcon name="Home" />);
+
+    spring.mockClear();
+    fireEvent(getByTestId("tab"), "hoverIn");
+
+    expect(
+      spring.mock.calls.map((call) => call[1]?.toValue)
+    ).toContain(NAV_TAB_ICON_SCALE_HOVER);
+  });
+
+  it("drives the scale from keyboard focus too, so it is never mouse-only", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = renderInTab({}, <NavTabIcon name="Home" />);
+
+    spring.mockClear();
+    fireEvent(getByTestId("tab"), "focus");
+
+    expect(
+      spring.mock.calls.map((call) => call[1]?.toValue)
+    ).toContain(NAV_TAB_ICON_SCALE_HOVER);
+  });
+
+  it("springs back to rest on hover out", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = renderInTab({}, <NavTabIcon name="Home" />);
+
+    fireEvent(getByTestId("tab"), "hoverIn");
+    spring.mockClear();
+    fireEvent(getByTestId("tab"), "hoverOut");
+
+    expect(spring.mock.calls.map((call) => call[1]?.toValue)).toContain(1);
+  });
+
+  it("pins the scale under reduced motion", () => {
+    mockReducedMotion = true;
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = renderInTab({}, <NavTabIcon name="Home" />);
+
+    spring.mockClear();
+    fireEvent(getByTestId("tab"), "hoverIn");
+
+    expect(
+      spring.mock.calls.map((call) => call[1]?.toValue)
+    ).not.toContain(NAV_TAB_ICON_SCALE_HOVER);
+  });
+
+  it("does not re-spring the already-selected tab on hover", () => {
+    const spring = jest.spyOn(Animated, "spring");
+    const { getByTestId } = renderInTab({ active: true }, <NavTabIcon name="Home" />);
+
+    // The selected icon is already at the engaged scale; re-springing it would
+    // make the active tab jitter under the cursor.
+    spring.mockClear();
+    fireEvent(getByTestId("tab"), "hoverIn");
+
+    expect(
+      spring.mock.calls.map((call) => call[1]?.toValue)
+    ).not.toContain(NAV_TAB_ICON_SCALE_HOVER);
+  });
+});
+
+describe("NavTabLabel", () => {
+  it("renders the label text", () => {
+    const { getByText } = renderInTab({}, <NavTabLabel label="Feed" />);
+    expect(getByText("Feed")).toBeTruthy();
+  });
+
+  it("fades to blue on hover over the shared transition duration", () => {
+    const { getByTestId } = renderInTab({}, <NavTabLabel label="Feed" testID="label" />);
+
+    fireEvent(getByTestId("tab"), "hoverIn");
+
+    const cls = getByTestId("label").props.className ?? "";
+    expect(cls).toContain("text-primary");
+    expect(cls).toContain("transition-colors");
+    expect(cls).toContain(`duration-${ICON_BUTTON_TRANSITION_MS}`);
+  });
+
+  it("is tertiary at rest and blue when its tab is selected", () => {
+    const { getByTestId, rerender } = renderInTab({}, <NavTabLabel label="Feed" testID="label" />);
+    expect(getByTestId("label").props.className ?? "").toContain("text-tertiary");
+
+    rerender(
+      <NavTab active testID="tab">
+        <NavTabLabel label="Feed" testID="label" />
+      </NavTab>
+    );
+    expect(getByTestId("label").props.className ?? "").toContain("text-primary");
   });
 });
 

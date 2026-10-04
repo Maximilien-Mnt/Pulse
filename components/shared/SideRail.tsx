@@ -16,7 +16,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
-import { View, Pressable, Animated, Platform, useWindowDimensions } from "react-native";
+import { View, Animated, Platform, useWindowDimensions } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
@@ -26,9 +26,13 @@ import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
 import {
   INDICATOR_INSET,
   INDICATOR_RADIUS,
+  NAV_TAB_ICON_SIZE,
   NavTab,
+  NavTabIcon,
+  NavTabLabel,
   useSlidingIndicator,
 } from "@/components/shared/NavTabMotion";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { t } from "@/hooks/useTranslation";
 import { semanticColors } from "@/src/design-tokens/semantic/colors";
 import { cn } from "@/utils/format";
@@ -116,8 +120,13 @@ export function SideRail() {
         </Text>
       </View>
 
-      {/* Tab stack. `relative` anchors the absolutely-positioned indicator. */}
-      <View className="flex-1 py-4 gap-2 px-3 relative">
+      {/* Tab stack. `relative` anchors the absolutely-positioned indicator.
+          Horizontal padding is fed as `INDICATOR_INSET` (not `px-3`) so the
+          indicator's `left`/`right` and the stack padding can never drift. */}
+      <View
+        className="flex-1 py-4 gap-3 relative"
+        style={{ paddingHorizontal: INDICATOR_INSET }}
+      >
         {/* Sliding active background — one tinted rectangle that travels
             between rows. Rendered first so it sits behind the tab content. */}
         {activeIndex >= 0 ? (
@@ -173,26 +182,19 @@ export function SideRail() {
                 reduceMotion && active && "bg-primary-tint dark:bg-primary-tint-dark"
               )}
             >
-              <Icon
-                name={tab.icon}
-                size={24}
-                color={active ? "primary" : "text-tertiary"}
-              />
-              {expanded ? (
-                <Text
-                  variant="buttonLabel"
-                  className={active ? "text-primary" : "text-tertiary"}
-                >
-                  {tab.label}
-                </Text>
-              ) : null}
+              <NavTabIcon name={tab.icon} size={NAV_TAB_ICON_SIZE} />
+              {expanded ? <NavTabLabel label={tab.label} /> : null}
             </NavTab>
           );
         })}
 
         {/* Create — pill button expands to show label when rail is expanded */}
-        <Pressable
+        {/* Create — pill button expands to show label when rail is expanded.
+            A 56px circular target carries more visual mass than a tab row, so it
+            gets a gentler press scale than the tab default (0.9). */}
+        <PressableScale
           onPress={handleCreatePress}
+          scaleOnPress={0.92}
           accessibilityRole="button"
           accessibilityLabel={t("common.create")}
           className={`bg-primary shadow-sm dark:shadow-none mt-2 ${
@@ -201,13 +203,13 @@ export function SideRail() {
               : "w-14 h-14 items-center justify-center rounded-full self-center"
           }`}
         >
-          <Icon name="Plus" size={24} color="text-inverse" />
+          <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
           {expanded ? (
             <Text variant="buttonLabel" className="text-white">
               Créer
             </Text>
           ) : null}
-        </Pressable>
+        </PressableScale>
       </View>
 
       {/* Bottom spacer */}
@@ -216,42 +218,33 @@ export function SideRail() {
       {/* Create bottom sheet — modal overlay */}
       <CreateBottomSheet visible={createOpen} onClose={() => setCreateOpen(false)} />
 
-      {/* Profile / settings at bottom + navbar layout toggle */}
-      <View className="px-3 pb-6">
-        <Pressable
+      {/* Profile / settings at bottom + navbar layout toggle.
+          Rendered as `NavTab`s (never selected) so they lift and spring exactly
+          like the tabs above them — a rail whose footer doesn't animate reads as
+          a different, unfinished component. */}
+      <View className="pb-6" style={{ paddingHorizontal: INDICATOR_INSET }}>
+        <NavTab
+          active={false}
           onPress={() => router.push("/(tabs)/profile/settings" as any)}
-          className={`rounded-lg py-3 ${expanded ? "px-3 flex-row items-center gap-3" : "items-center justify-center"}`}
+          accessibilityRole="button"
+          accessibilityLabel="Paramètres"
+          className={`py-3 ${expanded ? "px-3 flex-row items-center gap-3" : "items-center justify-center"}`}
         >
-          <Icon
-            name="Settings"
-            size={24}
-            color="text-tertiary"
-          />
-          {expanded ? (
-            <Text variant="body" className="text-tertiary">
-              Paramètres
-            </Text>
-          ) : null}
-        </Pressable>
+          <NavTabIcon name="Settings" size={NAV_TAB_ICON_SIZE} />
+          {expanded ? <NavTabLabel label="Paramètres" variant="body" /> : null}
+        </NavTab>
 
         {/* Move navbar to the bottom (web only layout preference) */}
-        <Pressable
+        <NavTab
+          active={false}
           onPress={() => setNavbarPosition("bottom")}
           accessibilityRole="button"
           accessibilityLabel="Barre de navigation en bas"
-          className={`rounded-lg py-3 ${expanded ? "px-3 flex-row items-center gap-3" : "items-center justify-center"}`}
+          className={`py-3 ${expanded ? "px-3 flex-row items-center gap-3" : "items-center justify-center"}`}
         >
-          <Icon
-            name="PanelBottom"
-            size={24}
-            color="text-tertiary"
-          />
-          {expanded ? (
-            <Text variant="body" className="text-tertiary">
-              Barre en bas
-            </Text>
-          ) : null}
-        </Pressable>
+          <NavTabIcon name="PanelBottom" size={NAV_TAB_ICON_SIZE} />
+          {expanded ? <NavTabLabel label="Barre en bas" variant="body" /> : null}
+        </NavTab>
       </View>
     </View>
   );

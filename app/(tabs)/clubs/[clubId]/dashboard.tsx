@@ -67,7 +67,13 @@ function ManageMembersCard({
     <Pressable {...nudge} onPress={onPress} className='active:opacity-80'>
       <View
         className={
-          'p-4 ' + CARD + (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
+          // Base surface and hover tint are mutually exclusive: `bg-white`
+          // (CARD) is emitted after `bg-primary-tint` in the generated web
+          // CSS, so keeping both would hide the tint on hover.
+          'p-4 rounded-2xl border border-neutral-100 dark:border-neutral-700 ' +
+          (active
+            ? 'bg-primary-tint dark:bg-primary-tint-dark'
+            : 'bg-white dark:bg-neutral-800')
         }
       >
         <View className='flex-row items-center'>
@@ -876,11 +882,20 @@ function StatTile({
       onPress={onPress}
       disabled={!onPress}
       style={basis ? { flexGrow: 1, flexBasis: basis as never } : undefined}
-      className={`p-3.5 rounded-2xl border ${
-        highlight
-          ? 'bg-primary/10 border-primary/30'
-          : 'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700'
-      }${active ? ' bg-primary-tint dark:bg-primary-tint-dark' : ''}`}
+      className={
+        // Border is independent of the surface: keep it while the hover tint
+        // replaces the base background (the tint would otherwise be overridden
+        // by `bg-white` / `bg-primary/10` in the generated web CSS).
+        `p-3.5 rounded-2xl border ${
+          highlight ? 'border-primary/30' : 'border-neutral-100 dark:border-neutral-700'
+        } ${
+          active
+            ? 'bg-primary-tint dark:bg-primary-tint-dark'
+            : highlight
+              ? 'bg-primary/10'
+              : 'bg-white dark:bg-neutral-800'
+        }`
+      }
     >
       <View className='flex-row items-center gap-2.5'>
         <View

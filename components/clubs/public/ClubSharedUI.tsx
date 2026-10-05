@@ -116,9 +116,13 @@ export function StatTile({ icon, label, value, minWidth, growBasis, onPress }: S
         } as ViewStyle
       }
       className={
-        'p-3.5 rounded-2xl border ' +
-        'bg-white dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700' +
-        (active ? ' bg-primary-tint dark:bg-primary-tint-dark' : '')
+        // Base surface and hover tint are mutually exclusive: `bg-white` is
+        // emitted after `bg-primary-tint` in the generated web CSS, so keeping
+        // both would hide the tint on hover.
+        'p-3.5 rounded-2xl border border-neutral-100 dark:border-neutral-700 ' +
+        (active
+          ? 'bg-primary-tint dark:bg-primary-tint-dark'
+          : 'bg-white dark:bg-neutral-800')
       }
     >
       <View className='flex-row items-center gap-2'>

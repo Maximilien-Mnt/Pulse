@@ -96,8 +96,8 @@ async function uploadAvatarWithRetry(opts: {
 
 /**
  * One "missing info" shortcut row inside the error card — shared arrow nudge
- * on hover/focus (components/ui/Arrow.tsx). No hover tint: this is an alert
- * list, not a navigation card.
+ * on hover/focus (components/ui/Arrow.tsx) plus the reference hover tint, so
+ * it reads like every other forward-navigation arrow row.
  */
 function MissingIssueRow({
   labelKey,
@@ -112,7 +112,13 @@ function MissingIssueRow({
       {...nudge}
       onPress={onPress}
       accessibilityRole="button"
-      className="flex-row items-center py-2"
+      className={
+        // px/-mx cancel out so the text never shifts; the hover tint simply
+        // bleeds a little further out with rounded corners.
+        `flex-row items-center py-2 px-2 -mx-2 rounded-lg${
+          active ? " bg-primary-tint dark:bg-primary-tint-dark" : ""
+        }`
+      }
     >
       <Text className="flex-1 text-sm text-error pr-2">{t(labelKey)}</Text>
       <Arrow active={active} name="ChevronRight" size={16} color="text-tertiary" />

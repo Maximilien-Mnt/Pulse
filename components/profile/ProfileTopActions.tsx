@@ -48,9 +48,14 @@ function LinkActionCard({
       style={{ minWidth: LINK_MIN_W }}
       className={cn(
         "flex-1 flex-row items-center gap-3 rounded-xl border p-4",
-        "bg-surface dark:bg-surface-dark border-border dark:border-border-dark",
-        "active:bg-primary-tint dark:active:bg-primary-tint-dark",
-        active && "bg-primary-tint dark:bg-primary-tint-dark"
+        "border-border dark:border-border-dark",
+        // Base surface and hover tint are mutually exclusive: `bg-surface` /
+        // `dark:bg-surface-dark` are emitted AFTER `bg-primary-tint` in the
+        // generated web CSS, so keeping both would hide the tint on hover.
+        active
+          ? "bg-primary-tint dark:bg-primary-tint-dark"
+          : "bg-surface dark:bg-surface-dark",
+        "active:bg-primary-tint dark:active:bg-primary-tint-dark"
       )}
     >
       <View className="w-10 h-10 shrink-0 rounded-full bg-primary/10 items-center justify-center">

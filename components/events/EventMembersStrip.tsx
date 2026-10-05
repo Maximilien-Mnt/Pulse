@@ -64,8 +64,13 @@ export function EventMembersStrip({
           accessibilityRole="button"
           accessibilityLabel={t("events.members.seeAll")}
           className={
-            "w-11 h-11 shrink-0 rounded-full bg-primary/10 items-center justify-center" + // Standard 44x44 — all circular buttons share this dimension.
-            (active ? " bg-primary/20" : "")
+            // Reference hover treatment for arrow navigation controls: the tint
+            // replaces the base circle, since `bg-primary/10` is emitted after
+            // `bg-primary-tint` in the generated web CSS.
+            "w-11 h-11 shrink-0 rounded-full items-center justify-center" + // Standard 44x44 — all circular buttons share this dimension.
+            (active
+              ? " bg-primary-tint dark:bg-primary-tint-dark"
+              : " bg-primary/10")
           }
         >
           <Arrow active={active} name="ChevronRight" size={20} color="primary" />

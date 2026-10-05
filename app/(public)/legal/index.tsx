@@ -29,9 +29,14 @@ function LegalDocRow({ slug, onPress }: { slug: LegalSlug; onPress: () => void }
       {...nudge}
       onPress={onPress}
       className={cn(
-        "flex-row items-center gap-3 bg-white dark:bg-neutral-800 rounded-xl p-4",
+        "flex-row items-center gap-3 rounded-xl p-4",
         "border border-neutral-100 dark:border-neutral-700 active:opacity-80",
-        active && "bg-primary-tint dark:bg-primary-tint-dark"
+        // Base surface and hover tint are mutually exclusive: `bg-white` is
+        // emitted after `bg-primary-tint` in the generated web CSS, so keeping
+        // both would hide the tint on hover.
+        active
+          ? "bg-primary-tint dark:bg-primary-tint-dark"
+          : "bg-white dark:bg-neutral-800"
       )}
     >
       <View className="w-11 h-11 items-center justify-center rounded-xl bg-primary/10 dark:bg-primary/20">

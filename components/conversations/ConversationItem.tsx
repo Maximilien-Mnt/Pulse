@@ -3,15 +3,29 @@
 //
 // Avatar 48px, name (Subtitle, bold if unread), last message preview
 // truncated, timestamp Caption, unread dot primary 8px.
+//
+// Micro-interaction (web hover / keyboard focus, per row):
+//   - the row lifts to the reference tint (`bg-primary-tint`), and
+//   - its content (avatar + text + timestamp) nudges 4px to the right and
+//     slides back on hover-out / blur — the same timing/easing as the shared
+//     arrow nudge (components/ui/Arrow.tsx), since this row has no arrow.
+// Both snap without animation under prefers-reduced-motion.
 // ---------------------------------------------------------------------------
 
-import React from "react";
-import { Pressable, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, View } from "react-native";
 import { formatRelative } from "@/utils/date";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
+import {
+  ARROW_NUDGE,
+  ARROW_NUDGE_DURATION,
+  useArrowNudge,
+} from "@/components/ui/Arrow";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { cn } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,50 +59,83 @@ export function ConversationItem({
   const unread = conversation.unread ?? false;
   const pinned = conversation.pinned ?? false;
 
+  // Hover/focus state: drives the tint and the content nudge (per row).
+  const { active, ...nudge } = useArrowNudge();
+  const reduceMotion = useReducedMotion();
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const to = active ? ARROW_NUDGE : 0;
+    if (reduceMotion) {
+      // Still move, just without the animation (reduced-motion UX).
+      translateX.setValue(to);
+      return;
+    }
+    Animated.timing(translateX, {
+      toValue: to,
+      duration: ARROW_NUDGE_DURATION,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [active, reduceMotion, translateX]);
+
   return (
     <Pressable
+      {...nudge}
+      testID="conversation-item"
       onPress={onPress}
       onLongPress={onLongPress}
-      className="flex-row items-center gap-3 px-4 py-3 active:bg-primary-tint"
+      className={cn(
+        "flex-row items-center gap-3 px-4 py-3",
+        // Touch press feedback (no hover on native) + the reference hover tint.
+        "active:bg-primary-tint dark:active:bg-primary-tint-dark",
+        active && "bg-primary-tint dark:bg-primary-tint-dark"
+      )}
     >
-      <Pressable
-        onPress={onAvatarPress}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      {/* Content wrapper: slides 4px right while hovered/focused. */}
+      <Animated.View
+        style={{ transform: [{ translateX }] }}
+        className="flex-1 flex-row items-center gap-3"
       >
-        <Avatar size={48} uri={conversation.avatar_url} />
-      </Pressable>
+        <Pressable
+          onPress={onAvatarPress}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Avatar size={48} uri={conversation.avatar_url} />
+        </Pressable>
 
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2">
+        <View className="flex-1">
+          <View className="flex-row items-center gap-2">
+            <Text
+              variant="subtitle"
+              className={unread ? "text-text-primary font-['Inter_700Bold']" : "text-text-primary"}
+              numberOfLines={1}
+            >
+              {conversation.name}
+            </Text>
+            {pinned ? (
+              <Icon name="Pin" size={16} color="text-tertiary" />
+            ) : null}
+            {unread ? (
+              <View className="w-2 h-2 rounded-full bg-primary" />
+            ) : null}
+          </View>
+
           <Text
-            variant="subtitle"
-            className={unread ? "text-text-primary font-['Inter_700Bold']" : "text-text-primary"}
+            variant="body"
+            className={unread ? "text-text-primary font_['Inter_600SemiBold']" : "text-text-secondary"}
             numberOfLines={1}
           >
-            {conversation.name}
+            {conversation.last_message ?? "Nouvelle conversation"}
           </Text>
-          {pinned ? (
-            <Icon name="Pin" size={16} color="text-tertiary" />
-          ) : null}
-          {unread ? (
-            <View className="w-2 h-2 rounded-full bg-primary" />
-          ) : null}
         </View>
 
-        <Text
-          variant="body"
-          className={unread ? "text-text-primary font_['Inter_600SemiBold']" : "text-text-secondary"}
-          numberOfLines={1}
-        >
-          {conversation.last_message ?? "Nouvelle conversation"}
-        </Text>
-      </View>
-
-      {conversation.last_message_at ? (
-        <Text variant="caption" className="text-text-tertiary">
-          {formatRelative(conversation.last_message_at)}
-        </Text>
-      ) : null}
+        {conversation.last_message_at ? (
+          <Text variant="caption" className="text-text-tertiary">
+            {formatRelative(conversation.last_message_at)}
+          </Text>
+        ) : null}
+      </Animated.View>
     </Pressable>
   );
 }

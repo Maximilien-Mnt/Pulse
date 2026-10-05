@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { Text } from "@/components/ui/Text";
+import { TextButton } from "@/components/ui/TextButton";
 import { useBugReport } from "@/hooks/useBugReport";
 import { cn } from "@/utils/format";
 import Toast from "react-native-toast-message";
@@ -115,17 +116,17 @@ export function BugReportSheet({ visible, onClose, onSuccess }: BugReportSheetPr
                 {t("bug.report.dataCollectionNotice")}
               </Text>
 
-              <Pressable
+              <TextButton
+                tone="link"
                 onPress={() => setShowDataDetails(!showDataDetails)}
-                className="flex-row items-center justify-between"
+                iconRight={showDataDetails ? "ChevronUp" : "ChevronDown"}
+                accessibilityLabel={
+                  showDataDetails ? t("common.hideDetails") : t("bug.report.dataTitle")
+                }
+                className="w-full flex-row items-center justify-between"
               >
-                <Text variant="body" className="text-primary font-medium">
-                  {showDataDetails ? t("common.hideDetails") : t("bug.report.dataTitle")}
-                </Text>
-                <Text variant="body" className="text-primary">
-                  {showDataDetails ? "▲" : "▼"}
-                </Text>
-              </Pressable>
+                {showDataDetails ? t("common.hideDetails") : t("bug.report.dataTitle")}
+              </TextButton>
 
               {showDataDetails && (
                 <View className="mt-3 gap-2">

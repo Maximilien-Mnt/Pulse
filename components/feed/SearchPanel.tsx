@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { FeedPost, PostFormat } from "@/types";
 import { Icon } from "@/components/ui/Icon";
 import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
+import { TextButton } from "@/components/ui/TextButton";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SlideDownOverlay } from "@/components/ui/SlideDownOverlay";
 import { t } from "@/hooks/useTranslation";
@@ -299,9 +300,9 @@ export function SearchPanel({
           <View>
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs font-semibold text-neutral-500">Recherches récentes</Text>
-              <Pressable onPress={onClearHistory} hitSlop={8}>
-                <Text className="text-xs text-primary">Effacer</Text>
-              </Pressable>
+              <TextButton tone="link" size="sm" onPress={onClearHistory}>
+                Effacer
+              </TextButton>
             </View>
             <View className="gap-1">
               {history.map((h) => (

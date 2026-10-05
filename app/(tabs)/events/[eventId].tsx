@@ -22,6 +22,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Avatar } from "@/components/ui/Avatar";
 import { BackButton } from "@/components/ui/BackButton";
@@ -497,19 +498,20 @@ export default function EventDetailScreen() {
               </View>
 
               {isExternal && event.source_url ? (
-                <Pressable
+                <TextButton
+                  tone="link"
+                  size="sm"
+                  role="link"
+                  icon="Globe"
+                  iconSize={14}
                   onPress={async () => {
                     const { openBrowserAsync } = await import("expo-web-browser");
                     await openBrowserAsync(event.source_url!);
                   }}
-                  accessibilityRole="link"
-                  className="flex-row items-center gap-1.5 mt-2"
+                  className="mt-2 self-start"
                 >
-                  <Icon name="Globe" size={14} color="primary" />
-                  <PulseText variant="caption" className="text-primary underline">
-                    {event.source_name || "External"} · {t("events.viewOriginal")}
-                  </PulseText>
-                </Pressable>
+                  {event.source_name || "External"} · {t("events.viewOriginal")}
+                </TextButton>
               ) : null}
 
               <View className="flex-row items-center gap-1.5 mt-2">

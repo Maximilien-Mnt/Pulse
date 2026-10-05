@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { NativeDateField } from "@/components/ui/NativeDateField";
 import { Text } from "@/components/ui/Text";
+import { TextButton } from "@/components/ui/TextButton";
 import { CancelEventSheet } from "@/components/clubs/CancelEventSheet";
 import { CountryPicker, CoverPicker, PhotosPicker } from "@/components/events/EventFormPickers";
 import {
@@ -584,19 +585,18 @@ export default function EventSettingsScreen() {
           />
           {endDateError ? <Text className="text-error text-sm mt-1">{endDateError}</Text> : null}
           {endDate ? (
-            <Pressable
+            <TextButton
+              tone="danger"
+              size="sm"
               onPress={() => {
                 setEndDate(null);
                 setEndDateError("");
               }}
-              accessibilityRole="button"
               accessibilityLabel={t("common.delete")}
               className="mt-2 self-start"
             >
-              <Text variant="caption" className="text-primary">
-                {t("common.delete")}
-              </Text>
-            </Pressable>
+              {t("common.delete")}
+            </TextButton>
           ) : null}
 
           <View className="mt-4" />

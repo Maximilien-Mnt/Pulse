@@ -20,6 +20,7 @@ import { SPORTS } from "@/lib/constants";
 
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
+import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
 import { Tag } from "@/components/ui/Tag";
 import { Avatar } from "@/components/ui/Avatar";
@@ -180,11 +181,14 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
               {post.body}
             </Text>
             {bodyTruncated && !expanded ? (
-              <Pressable onPress={() => setExpanded(true)} className="mt-1">
-                <Text variant="caption" className="text-primary">
-                  Voir plus
-                </Text>
-              </Pressable>
+              <TextButton
+                tone="link"
+                size="sm"
+                onPress={() => setExpanded(true)}
+                className="mt-1 self-start"
+              >
+                Voir plus
+              </TextButton>
             ) : null}
           </View>
         ) : null}

@@ -170,10 +170,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         paddingBottom,
       }}
     >
-      {/* Inner row. `relative` anchors the capsule, and it must be the SAME box
-          the tabs are measured against — otherwise `layout.x` (relative to this
-          view) would be offset from the capsule's absolute `left`. */}
-      <View className="flex-1 flex-row items-center justify-around">
+      {/* Inner row. `relative self-stretch` anchors the capsule, and it must be
+          the SAME box the tabs are measured against — otherwise `layout.x`
+          (relative to this view) would be offset from the capsule's absolute
+          `left`. `self-stretch` fills the 64px bar (overriding the outer
+          `items-center`) so the capsule's `top: 8` sits in bar coordinates,
+          exactly on the centred 48px rows — never pushed low with extra space
+          on top and none below. */}
+      <View className="flex-1 relative self-stretch flex-row items-center justify-around">
         {/* Sliding active capsule — one tinted rectangle that travels between
             tabs. Rendered first so it sits behind the tab content.
             Skipped entirely under reduced motion: `indicatorStyle` is null
@@ -187,8 +191,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             style={[
               {
                 position: "absolute",
-                // Centre the fixed-height capsule in the 64px bar, so it never
-                // collides with the raised Create button's shadow.
+                // Centred in the 64px bar (fills via the inner row's
+                // `self-stretch`), so it never collides with the raised Create
+                // button's shadow and sits exactly on the centred 48px rows.
                 top: TAB_BAR_INDICATOR_INSET_Y,
                 height: TAB_BAR_INDICATOR_HEIGHT,
                 borderRadius: INDICATOR_RADIUS,

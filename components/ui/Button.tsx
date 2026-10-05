@@ -8,7 +8,7 @@
 //   <Button variant="destructive" loading>Deleting...</Button>
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -22,6 +22,7 @@ import { Text } from "@/components/ui/Text";
 import { useThemeStore } from "@/stores/themeStore";
 import { Icon, type IconName, type IconColor } from "@/components/ui/Icon";
 import { Arrow, isArrowIcon, useArrowNudge } from "@/components/ui/Arrow";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
   type AccessibilityLabelProps,
   type AccessibilityHintProps,
@@ -40,7 +41,29 @@ export type ButtonVariant =
   | "destructive"
   | "energy";
 
-export type ButtonSize = "md" | "lg";
+export type ButtonSize = "sm" | "md" | "lg";
+
+// ---------------------------------------------------------------------------
+// Shared label-button motion tokens
+//
+// One gesture family for every control whose action is a word rather than a
+// glyph: <Button>, <TextButton> and the icon controls all lift on hover/focus,
+// squash on press, and fade colours over the same 150ms — see
+// ICON_BUTTON_* (components/ui/IconButton.tsx) for the round-surface twin.
+// ---------------------------------------------------------------------------
+
+/**
+ * Hover / keyboard-focus lift. A padded circle lifts to 1.06
+ * (ICON_BUTTON_SCALE_HOVER); a label has no surface to lift, so the step is
+ * smaller but the gesture is the same one.
+ */
+export const BUTTON_SCALE_HOVER = 1.03;
+
+/** Press squash — the subtle value <Button> has always used, now on a spring. */
+export const BUTTON_SCALE_PRESS = 0.98;
+
+/** Shared colour-fade duration (same as ICON_BUTTON_TRANSITION_MS / ARROW_NUDGE_DURATION). */
+export const BUTTON_TRANSITION_MS = 150;
 
 export interface ButtonProps
   extends AccessibilityLabelProps,
@@ -102,8 +125,43 @@ const variantText: Record<ButtonVariant, string> = {
   energy: "text-white dark:text-text-inverse",
 };
 
+/**
+ * Surface reached on hover / keyboard focus.
+ *
+ * Deliberately the same colour sequence as the pressed `active:` state (the
+ * <IconButton> rule): crossing the button with the pointer and then pressing it
+ * reads as one continuous gesture instead of two affordances.
+ */
+const variantLiftBg: Record<ButtonVariant, string> = {
+  primary: "bg-primary-hover dark:bg-primary-hover-dark",
+  secondary: "bg-primary/10 dark:bg-primary-dark/15",
+  ghost: "bg-primary/10 dark:bg-primary-dark/15",
+  destructive: "bg-error-600/85 dark:bg-error-dark/85",
+  energy: "bg-coral-700 dark:bg-coral-800",
+};
+
+/** Pressed surface — the lifted colours under the `active:` pseudo-class, so a
+ *  touch press (which never hovers) animates identically. */
+const variantPressBg: Record<ButtonVariant, string> = {
+  primary: "active:bg-primary-hover dark:active:bg-primary-hover-dark",
+  secondary: "active:bg-primary/10 dark:active:bg-primary-dark/15",
+  ghost: "active:bg-primary/10 dark:active:bg-primary-dark/15",
+  destructive: "active:bg-error-600/85 dark:active:bg-error-dark/85",
+  energy: "active:bg-coral-700 dark:active:bg-coral-800",
+};
+
+/** Label colour reached on hover/focus — only the transparent variants change. */
+const variantLiftText: Record<ButtonVariant, string> = {
+  primary: "",
+  secondary: "text-primary-hover dark:text-primary-hover-dark",
+  ghost: "text-primary-hover dark:text-primary-hover-dark",
+  destructive: "",
+  energy: "",
+};
+
 /** Height + horizontal padding per size preset. */
 const sizeClasses: Record<ButtonSize, string> = {
+  sm: "h-9 px-4",
   md: "h-12 px-[22px]",
   lg: "h-14 px-6",
 };
@@ -143,25 +201,71 @@ export const Button = React.forwardRef<View, ButtonProps>(
     ref
   ) => {
     const isDark = useThemeStore((s) => s.isDark);
+    const reduceMotion = useReducedMotion();
     const scale = useRef(new Animated.Value(1)).current;
-
-    const handlePressIn = useCallback(() => {
-      Animated.timing(scale, {
-        toValue: 0.98,
-        duration: 150,
-        useNativeDriver: Platform.OS !== "web",
-      }).start();
-    }, [scale]);
-
-    const handlePressOut = useCallback(() => {
-      Animated.timing(scale, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: Platform.OS !== "web",
-      }).start();
-    }, [scale]);
+    const [lifted, setLifted] = useState(false);
+    const liftedRef = useRef(false);
+    const pressedRef = useRef(false);
 
     const isDisabled = disabled || loading;
+
+    // ── Motion ─────────────────────────────────────────────────────────
+    // One spring drives every transform, with the same friction/tension as
+    // <PressableScale> and <IconButton>, so hover, focus and press all feel
+    // like one gesture family. Hover/focus lifts to BUTTON_SCALE_HOVER, press
+    // squashes to BUTTON_SCALE_PRESS, and prefers-reduced-motion keeps the
+    // state change but snaps it instead of animating.
+    const settle = useCallback(() => {
+      const target = pressedRef.current
+        ? BUTTON_SCALE_PRESS
+        : liftedRef.current && !isDisabled
+          ? BUTTON_SCALE_HOVER
+          : 1;
+      if (reduceMotion) {
+        scale.setValue(1);
+        return;
+      }
+      Animated.spring(scale, {
+        toValue: target,
+        friction: 6,
+        tension: 300,
+        useNativeDriver: Platform.OS !== "web",
+      }).start();
+    }, [isDisabled, reduceMotion, scale]);
+
+    // Hover is a pointer concept (web only); keyboard focus gets the same
+    // affordance on every platform — the rule shared by <IconButton> and
+    // useArrowNudge, so the arrow and the surface never disagree.
+    const setTo = useCallback(
+      (next: boolean) => {
+        const value = !isDisabled && next;
+        if (liftedRef.current === value) return;
+        liftedRef.current = value;
+        setLifted(value);
+        settle();
+      },
+      [isDisabled, settle]
+    );
+
+    // A button that becomes disabled while hovered/focused releases the lift,
+    // otherwise it would stay stuck in its lifted colour.
+    useEffect(() => {
+      if (isDisabled && liftedRef.current) {
+        liftedRef.current = false;
+        setLifted(false);
+        settle();
+      }
+    }, [isDisabled, settle]);
+
+    const handlePressIn = useCallback(() => {
+      pressedRef.current = true;
+      settle();
+    }, [settle]);
+
+    const handlePressOut = useCallback(() => {
+      pressedRef.current = false;
+      settle();
+    }, [settle]);
 
     // Shared arrow micro-interaction: arrow icons (Chevron/Arrow ←→) nudge
     // on hover/focus like every other arrow button in the app.
@@ -189,17 +293,33 @@ export const Button = React.forwardRef<View, ButtonProps>(
     const containerClasses = cn(
       "flex-row items-center justify-center gap-2 rounded-md",
       sizeClasses[size],
-      // Variant classes
-      isDisabled ? disabledClasses : cn(variantBg[variant], variantBorder[variant]),
-      // Active state (scale animation handles the press effect on native,
-      // web uses active: pseudo-class via NativeWind)
-      "active:scale-[0.98]",
+      // Variant classes. On hover/focus the surface lifts to the colour it
+      // already reaches when pressed, so hover and press read as one gesture.
+      isDisabled
+        ? disabledClasses
+        : cn(
+            variantBg[variant],
+            variantBorder[variant],
+            lifted && variantLiftBg[variant]
+          ),
+      // Pressed surface — same colours, under `active:` so touch presses (which
+      // never hover) animate identically.
+      !isDisabled && variantPressBg[variant],
+      // The 150ms colour fade that turns the surface swap into an animation.
+      // Dropped under reduced motion: the state still changes, it just snaps.
+      !reduceMotion && "transition-colors",
+      "duration-150",
       // Focus ring (web) — ring-2 ring-blue-300 ring-offset-2
       // ring classes applied via className for web clients
       className
     );
 
-    const textColor = isDisabled ? disabledText : variantText[variant];
+    const textColor = cn(
+      isDisabled ? disabledText : variantText[variant],
+      !isDisabled && lifted && variantLiftText[variant],
+      !reduceMotion && "transition-colors",
+      "duration-150"
+    );
     const iconColor = indicatorColor(variant);
 
     const renderIcon = (name: IconName) =>
@@ -226,7 +346,33 @@ export const Button = React.forwardRef<View, ButtonProps>(
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          {...arrowNudge}
+          // Pointer hover (web only) and keyboard focus (every platform) lift
+          // the button; the arrow rides the very same events so the glyph and
+          // the surface can never disagree about whether it is engaged.
+          onHoverIn={
+            Platform.OS === "web"
+              ? () => {
+                  arrowNudge.onHoverIn?.();
+                  setTo(true);
+                }
+              : undefined
+          }
+          onHoverOut={
+            Platform.OS === "web"
+              ? () => {
+                  arrowNudge.onHoverOut?.();
+                  setTo(false);
+                }
+              : undefined
+          }
+          onFocus={() => {
+            arrowNudge.onFocus?.();
+            setTo(true);
+          }}
+          onBlur={() => {
+            arrowNudge.onBlur?.();
+            setTo(false);
+          }}
           className={containerClasses}
         >
           {loading ? (

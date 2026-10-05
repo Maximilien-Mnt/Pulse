@@ -6,7 +6,7 @@ import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import { SearchBar } from "./SearchBar";
 import { BackButton } from "../ui/BackButton";
 import { IconButton } from "../ui/IconButton";
-import { PressableScale } from "../ui/PressableScale";
+import { TextButton } from "../ui/TextButton";
 import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -122,22 +122,19 @@ export function Header({
 
         {showLanguageToggle ? (
           // Kept as a text button (the "FR"/"EN" pair *is* the current-language
-          // indicator, so a globe glyph would lose information). It reuses the
-          // exact same motion + surface language as <IconButton tone="primary">
-          // so it still animates identically — see ICON_BUTTON_* constants.
-          <PressableScale
+          // indicator, so a globe glyph would lose information). It renders
+          // through <TextButton tone="toggle"> so it inherits the exact motion
+          // + surface language of the icon controls — see TEXT_BUTTON_*.
+          <TextButton
+            tone="toggle"
             onPress={() => useLanguageStore.getState().toggle()}
-            scaleOnPress={0.9}
-            scaleOnHover={1.06}
             hitSlop={8}
-            accessibilityRole="button"
             accessibilityLabel={t("lang.toggle")}
-            className="w-11 h-11 rounded-full items-center justify-center shrink-0 bg-primary/10 dark:bg-primary-dark/15 active:bg-primary/20 dark:active:bg-primary-dark/25 transition-colors duration-150"
+            labelVariant="caption"
+            className="w-11 h-11 rounded-full items-center justify-center shrink-0"
           >
-            <Text className="text-xs font-bold text-primary dark:text-primary-dark">
-              {language === "fr" ? "EN" : "FR"}
-            </Text>
-          </PressableScale>
+            {language === "fr" ? "EN" : "FR"}
+          </TextButton>
         ) : null}
 
         {showAvatar ? (

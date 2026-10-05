@@ -13,11 +13,11 @@
 import React from "react";
 import { Modal, Pressable, View } from "react-native";
 
-import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import type { IconName } from "@/components/ui/Icon";
+import { TextButton } from "@/components/ui/TextButton";
 import type { ActionMenuDescriptor } from "@/components/shared/nativeActionMenu";
 import { useTranslation } from "@/hooks/useTranslation";
-import { cn } from "@/utils/format";
 
 interface Props {
   visible: boolean;
@@ -58,53 +58,36 @@ export function ActionMenuSheet({ visible, descriptor, onClose, onSelect, icons 
           ) : null}
 
           <View className="mt-2">
-            {descriptor.options.map((option) => {
-              const icon = icons?.[option.key];
-              return (
-                <Pressable
-                  key={option.key}
-                  disabled={option.disabled}
-                  onPress={() => onSelect(option.key)}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ disabled: option.disabled ?? false }}
-                  className={cn(
-                    "flex-row items-center gap-3 px-4 py-4 rounded-2xl",
-                    option.disabled
-                      ? "opacity-40"
-                      : "active:bg-primary-tint dark:active:bg-primary-tint-dark"
-                  )}
-                >
-                  {icon ? (
-                    <Icon
-                      name={icon}
-                      size={20}
-                      color={option.destructive ? "error-600" : "text-secondary"}
-                    />
-                  ) : null}
-                  <Text
-                    className={cn(
-                      "flex-1 text-base",
-                      option.destructive ? "text-error-600" : "text-text-primary"
-                    )}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {descriptor.options.map((option) => (
+              // A menu option is a label button, so it renders through
+              // <TextButton>: same hover/focus lift, same press spring, same
+              // 150ms colour fade as every other action in the app. The rest
+              // colours are exactly the ones this sheet used before the swap.
+              <TextButton
+                key={option.key}
+                tone={option.destructive ? "danger" : "neutral"}
+                disabled={option.disabled ?? false}
+                onPress={() => onSelect(option.key)}
+                accessibilityLabel={option.label}
+                icon={icons?.[option.key]}
+                iconSize={20}
+                labelVariant="body"
+                className="flex-row items-center gap-3 px-4 py-4 rounded-2xl"
+                labelClassName="flex-1"
+              >
+                {option.label}
+              </TextButton>
+            ))}
           </View>
 
-          <Pressable
+          <TextButton
+            tone="link"
             onPress={onClose}
-            accessibilityRole="button"
             accessibilityLabel={descriptor.cancelLabel}
-            className="mt-1 border-t border-border pt-4 active:opacity-70"
+            className="mt-1 border-t border-border pt-4"
           >
-            <Text className="text-center text-base font-['Inter_600SemiBold'] text-primary">
-              {descriptor.cancelLabel}
-            </Text>
-          </Pressable>
+            {descriptor.cancelLabel}
+          </TextButton>
         </View>
       </View>
     </Modal>

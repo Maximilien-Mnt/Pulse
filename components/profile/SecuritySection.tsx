@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useState, useEffect } from "react";
 import { Pressable, Text, View, Modal, TextInput, Alert, ActivityIndicator } from "react-native";
@@ -166,17 +167,12 @@ export function SecuritySection({ email }: Props) {
             </View>
 
             {/* Submit Button */}
-            <Pressable
+            <Button
+              title="Enregistrer"
               onPress={handleChangePassword}
-              disabled={isChangingPassword}
-              className="bg-primary py-3 rounded-lg items-center"
-            >
-              {isChangingPassword ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-semibold">Enregistrer</Text>
-              )}
-            </Pressable>
+              loading={isChangingPassword}
+              className="w-full rounded-lg"
+            />
           </View>
         </View>
       </Modal>

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { formatRelative } from "@/utils/date";
 import { useAuthStore } from "@/stores/authStore";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -174,30 +175,24 @@ export function CommentItem({ comment, onDelete, onEdit }: Props) {
                 placeholderTextColor="#9CA3AF"
               />
               <View className="flex-row justify-end gap-2 mt-2">
-                <Pressable
+                {/* Both actions are label buttons, so they render through
+                    <Button>: the same hover/focus lift, press spring and 150ms
+                    colour fade as every other action in the app. */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  title="Annuler"
                   onPress={handleEditCancel}
                   disabled={editSaving}
-                  className="px-4 py-2 rounded-lg active:opacity-70"
-                  accessibilityRole="button"
-                  accessibilityLabel="Annuler"
-                >
-                  <Text className="text-sm font-medium text-neutral-500">
-                    Annuler
-                  </Text>
-                </Pressable>
-                <Pressable
+                />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  title="Enregistrer"
                   onPress={handleEditSave}
-                  disabled={!editText.trim() || editSaving}
-                  className={`px-4 py-2 rounded-lg ${editText.trim() ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-700"}`}
-                  accessibilityRole="button"
-                  accessibilityLabel="Enregistrer"
-                >
-                  <Text
-                    className={`text-sm font-medium ${editText.trim() ? "text-white" : "text-neutral-400"}`}
-                  >
-                    {editSaving ? "..." : "Enregistrer"}
-                  </Text>
-                </Pressable>
+                  disabled={!editText.trim()}
+                  loading={editSaving}
+                />
               </View>
             </Animated.View>
           ) : (

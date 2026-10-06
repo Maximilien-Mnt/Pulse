@@ -6,7 +6,7 @@
 // the corresponding form. A missing mode redirects to the feed.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -38,6 +38,8 @@ import { Input } from "@/components/ui/Input";
 import { TagInput } from "@/components/feed/TagInput";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { SportPill } from "@/components/shared/SportPill";
+import { useUserSports } from "@/hooks/useUserSports";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +65,16 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const [media, setMedia] = useState<{ uri: string; mimeType?: string | null; fileSize?: number | null }[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [tagsInput, setTagsInput] = useState("");
+
+  // Default sport pill: pre-select the user's first practiced sport so posts
+  // carry the default sport the user indicated (still changeable per post).
+  const { data: practicedSports } = useUserSports(userId ?? null, "practiced");
+  useEffect(() => {
+    if (sport == null && practicedSports && practicedSports.length > 0) {
+      const first = practicedSports[0] as SportId;
+      if (SPORTS.some((s) => s.id === first)) setSport(first);
+    }
+  }, [practicedSports, sport]);
 
   const canPublish = title.trim().length > 0 || body.trim().length > 0 || media.length > 0;
   const parsedTags = useMemo(() => parseTagsInput(tagsInput, MAX_TAGS), [tagsInput]);
@@ -178,7 +190,7 @@ function PostForm({ onClose }: { onClose: () => void }) {
           ) : null}
         </View>
 
-        {/* Sport chips (optional, single-select) */}
+        {/* Sport pills (optional, single-select) — default sport pill design */}
         <View className="mt-4">
           <Text variant="caption" className="text-text-secondary mb-2">
             {t("create.post.sportOptional")}
@@ -190,14 +202,11 @@ function PostForm({ onClose }: { onClose: () => void }) {
                 <Pressable
                   key={s.id}
                   onPress={() => setSport(active ? null : s.id)}
-                  className={`self-start rounded-full px-4 py-2 ${active ? "bg-primary dark:bg-primary-dark" : "bg-neutral-50 dark:bg-neutral-800"}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  className={active ? "" : "opacity-60"}
                 >
-                  <View className="flex-row items-center gap-1.5">
-                    <Icon name={s.icon} size={14} color={active ? "#FFFFFF" : s.color} />
-                    <Text variant="caption" className={active ? "text-white dark:text-text-inverse" : "text-text-secondary"}>
-                      {s.label}
-                    </Text>
-                  </View>
+                  <SportPill sport={s.id} size="md" />
                 </Pressable>
               );
             })}

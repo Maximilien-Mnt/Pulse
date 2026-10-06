@@ -22,8 +22,8 @@ import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
 import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
-import { Tag } from "@/components/ui/Tag";
 import { Avatar } from "@/components/ui/Avatar";
+import { SportPill } from "@/components/shared/SportPill";
 import { PostMedia } from "./PostMedia";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import { usePostLike } from "@/hooks/usePostLike";
@@ -102,12 +102,10 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
   const authorName = post.author?.full_name ?? post.author?.username ?? "Utilisateur";
   const avatarUrl = post.author?.avatar_url ?? undefined;
   const allTags = post.tags ?? [];
-  const sportTag = allTags.length > 0 ? allTags[0] : null;
-  const isSportTag = sportTag != null && SPORTS.some((s) => s.id === sportTag);
-  const sportValue = isSportTag ? sportTag : null;
-  const sportLabel = sportValue
-    ? SPORTS.find((s) => s.id === sportValue)?.label ?? sportValue
-    : null;
+  // The default sport the user indicated at publish time is stored as the
+  // sport id inside `tags` — find it anywhere in the list (not just tags[0])
+  // so it still shows when hashtags are also present.
+  const sportValue = allTags.find((t) => SPORTS.some((s) => s.id === t)) ?? null;
   // Hashtags = everything in tags except the sport (kept up top)
   const hashtagTags = useMemo(
     () => allTags.filter((t) => (sportValue ? t !== sportValue : true)),
@@ -144,10 +142,8 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
                   {authorName}
                 </Text>
               </Pressable>
-              {sportLabel ? (
-                <Tag variant="chip" active={false}>
-                  {sportLabel}
-                </Tag>
+              {sportValue ? (
+                <SportPill sport={sportValue} size="sm" />
               ) : null}
             </View>
             <View className="flex-row items-center gap-2 mt-0.5">

@@ -1,6 +1,19 @@
-import { useCallback, useEffect, useRef } from "react";
-import { Animated, Pressable, Text, TextInput, View } from "react-native";
+// ---------------------------------------------------------------------------
+// PULSE DESIGN SYSTEM — SearchBar (shared)
+//
+// Single search pill used in feed / explore / conversations. Motion follows
+// IconButton / PressableScale: hover lifts the surface, press squashes gently
+// (0.98 — calmer than round buttons, deliberate for a full-width bar), focus
+// draws the primary border + primary icon. Reduced-motion snaps all states.
+// ---------------------------------------------------------------------------
+
+import { useCallback, useState } from "react";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { ICON_BUTTON_SCALE_PRESS } from "@/components/ui/IconButton";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useDesignTokens } from "@/src/design-tokens/useDesignTokens";
 import { cn } from "@/utils/format";
 import { t } from "@/hooks/useTranslation";
 
@@ -13,10 +26,17 @@ type Props = {
   onPress?: () => void;
   expanded?: boolean;
   onSubmitEditing?: () => void;
+  autoFocus?: boolean;
   className?: string;
 };
 
-const ANIM_DURATION = 200;
+/** Hover lift for a full-width bar — calmer than the 1.06 icon-button lift. */
+export const SEARCH_BAR_SCALE_HOVER = 1.02;
+/** Press squash for a full-width bar — calmer than 0.9 icon-button press. */
+export const SEARCH_BAR_SCALE_PRESS = 0.98;
+
+const restSurface = "bg-neutral-100 dark:bg-neutral-800";
+const liftedSurface = "bg-neutral-200 dark:bg-neutral-700";
 
 export function SearchBar({
   value,
@@ -27,92 +47,123 @@ export function SearchBar({
   onPress,
   expanded,
   onSubmitEditing,
+  autoFocus = true,
   className,
 }: Props) {
-  // ── Hooks MUST be called unconditionally (before any early return) ─
-  const widthAnim = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const reduceMotion = useReducedMotion();
+  const tokens = useDesignTokens();
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const isWeb = Platform.OS === "web";
 
-  useEffect(() => {
-    Animated.timing(widthAnim, {
-      toValue: expanded ? 1 : 0,
-      duration: ANIM_DURATION,
-      useNativeDriver: false,
-    }).start();
-  }, [expanded, widthAnim]);
+  const hasQuery = value.trim().length > 0;
+  const engaged = hovered || focused || hasQuery;
+
+  const setHover = useCallback(
+    (next: boolean) => setHovered(reduceMotion ? false : next),
+    [reduceMotion]
+  );
 
   const handleClear = useCallback(() => {
     if (value.length > 0) {
       onChangeText("");
       onClear?.();
     } else {
-      // Already empty → collapse
       onCollapse?.();
     }
   }, [value, onChangeText, onClear, onCollapse]);
 
+  const pillClass = cn(
+    "flex-row items-center h-11 rounded-full px-4 gap-2 border-[1.5px]",
+    focused ? "border-primary" : "border-transparent",
+    engaged ? liftedSurface : restSurface,
+    !reduceMotion && "transition-colors duration-150",
+    className
+  );
+
+  const hoverProps = {
+    onHoverIn: isWeb ? () => setHover(true) : undefined,
+    onHoverOut: isWeb ? () => setHover(false) : undefined,
+    onFocus: () => {
+      setFocused(true);
+      setHover(true);
+    },
+    onBlur: () => {
+      setFocused(false);
+      setHover(false);
+    },
+  };
+
   // ── Collapsed (pressable stub) ───────────────────────────────────
   if (onPress && !expanded) {
-    const hasQuery = value.trim().length > 0;
     return (
-      <Pressable
+      <PressableScale
         onPress={onPress}
-        className={cn(
-          "flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2.5",
-          className
-        )}
+        scaleOnPress={SEARCH_BAR_SCALE_PRESS}
+        scaleOnHover={reduceMotion ? 1 : SEARCH_BAR_SCALE_HOVER}
+        {...hoverProps}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={hasQuery ? `Rechercher « ${value} »` : placeholder}
+        accessibilityLabel={hasQuery ? value : placeholder}
+        className={pillClass}
       >
-        <Icon name="Search" size={20} color="text-tertiary" />
+        <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
         <Text
           className={cn(
-            "ml-2 flex-1 text-base",
-            hasQuery
-              ? "text-neutral-900 dark:text-neutral-50"
-              : "text-neutral-500"
+            "flex-1 text-base font-inter",
+            hasQuery ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-500"
           )}
           numberOfLines={1}
         >
           {hasQuery ? value : placeholder}
         </Text>
-      </Pressable>
+        {hasQuery ? (
+          <Pressable
+            onPress={handleClear}
+            hitSlop={8}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={t("common.search")}
+          >
+            <Icon name="XCircle" size={18} color="text-tertiary" />
+          </Pressable>
+        ) : null}
+      </PressableScale>
     );
   }
 
   // ── Expanded ─────────────────────────────────────────────────────
   return (
-    <View className={cn("flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2.5", className)}>
-      <Icon name="Search" size={20} color="text-tertiary" />
+    <View className={pillClass}>
+      <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
       <TextInput
-        className="ml-2 flex-1 text-base text-neutral-900 dark:text-neutral-50"
+        className="flex-1 text-base font-inter text-neutral-900 dark:text-neutral-50"
         placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={tokens.colors["text-tertiary"]}
         value={value}
         onChangeText={onChangeText}
-        autoFocus
+        autoFocus={autoFocus}
         returnKeyType="search"
         onSubmitEditing={onSubmitEditing}
+        onFocus={hoverProps.onFocus}
+        onBlur={hoverProps.onBlur}
         accessible
         accessibilityLabel={placeholder}
         accessibilityRole="search"
       />
-      {/* Clear button */}
-      <Pressable
-        onPress={handleClear}
-        hitSlop={8}
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel="Effacer la recherche"
-        className="ml-2"
-      >
-        <Icon
-          name="XCircle"
-          size={20}
-          color="text-tertiary"
-          filled={value.length > 0}
-        />
-      </Pressable>
+      {value.length > 0 ? (
+        <PressableScale
+          onPress={handleClear}
+          scaleOnPress={ICON_BUTTON_SCALE_PRESS}
+          scaleOnHover={1}
+          hitSlop={8}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={t("common.search")}
+        >
+          <Icon name="XCircle" size={18} color="text-tertiary" filled />
+        </PressableScale>
+      ) : null}
     </View>
   );
 }

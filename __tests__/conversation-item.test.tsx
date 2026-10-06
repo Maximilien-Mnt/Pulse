@@ -7,12 +7,14 @@
 //   - hover (web pointer) and focus/blur (keyboard) lift the row to the
 //     reference tint and release it on hover-out / blur, per row,
 //   - the row content nudges ARROW_NUDGE px with the shared duration while
-//     active, and snaps without animation under prefers-reduced-motion.
+//     active, and snaps without animation under prefers-reduced-motion,
+//   - sliding the pointer onto the nested avatar never drops the row state:
+//     the avatar re-asserts it and never deactivates it.
 // ---------------------------------------------------------------------------
 
 import React from "react";
 import { Animated, Platform } from "react-native";
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ConversationItem } from "@/components/conversations/ConversationItem";
 import { ARROW_NUDGE, ARROW_NUDGE_DURATION } from "@/components/ui/Arrow";
 
@@ -62,7 +64,7 @@ describe("ConversationItem", () => {
     expect(onLongPress).toHaveBeenCalledTimes(1);
   });
 
-  it("lifts to the reference tint while hovered and releases on hover-out", () => {
+  it("lifts to the reference tint while hovered and releases on hover-out", async () => {
     const { getAllByTestId } = render(
       <ConversationItem conversation={conversation} onPress={jest.fn()} />
     );
@@ -76,10 +78,12 @@ describe("ConversationItem", () => {
     expect(hovered).toContain("dark:bg-primary-tint-dark");
 
     fireEvent(getAllByTestId("conversation-item")[0], "hoverOut");
-    expect(classes(getAllByTestId("conversation-item")[0])).not.toContain("bg-primary-tint");
+    await waitFor(() => {
+      expect(classes(getAllByTestId("conversation-item")[0])).not.toContain("bg-primary-tint");
+    });
   });
 
-  it("lifts to the reference tint on keyboard focus and releases on blur", () => {
+  it("lifts to the reference tint on keyboard focus and releases on blur", async () => {
     const { getAllByTestId } = render(
       <ConversationItem conversation={conversation} onPress={jest.fn()} />
     );
@@ -88,10 +92,38 @@ describe("ConversationItem", () => {
     expect(classes(getAllByTestId("conversation-item")[0])).toContain("bg-primary-tint");
 
     fireEvent(getAllByTestId("conversation-item")[0], "blur");
-    expect(classes(getAllByTestId("conversation-item")[0])).not.toContain("bg-primary-tint");
+    await waitFor(() => {
+      expect(classes(getAllByTestId("conversation-item")[0])).not.toContain("bg-primary-tint");
+    });
   });
 
-  it("nudges the row content by ARROW_NUDGE with the shared timing", () => {
+  it("keeps the tint while the pointer moves onto the avatar", async () => {
+    const { getAllByTestId, getByTestId } = render(
+      <ConversationItem conversation={conversation} onPress={jest.fn()} />
+    );
+    const row = () => getAllByTestId("conversation-item")[0];
+
+    fireEvent(row(), "hoverIn");
+    expect(classes(row())).toContain("bg-primary-tint");
+
+    // Sliding onto the nested avatar fires the row hover-out first, then the
+    // avatar hover-in — the avatar re-asserts the row so it never drops.
+    fireEvent(row(), "hoverOut");
+    fireEvent(getByTestId("conversation-avatar"), "hoverIn");
+    expect(classes(row())).toContain("bg-primary-tint");
+
+    // Avatar focus (keyboard) keeps the row lifted too.
+    fireEvent(getByTestId("conversation-avatar"), "focus");
+    expect(classes(row())).toContain("bg-primary-tint");
+
+    // Truly leaving the row releases on the deferred off-tick.
+    fireEvent(row(), "hoverOut");
+    await waitFor(() => {
+      expect(classes(row())).not.toContain("bg-primary-tint");
+    });
+  });
+
+  it("nudges the row content by ARROW_NUDGE with the shared timing", async () => {
     const timing = jest.spyOn(Animated, "timing");
 
     const { getAllByTestId } = render(
@@ -112,10 +144,12 @@ describe("ConversationItem", () => {
     );
 
     fireEvent(getAllByTestId("conversation-item")[0], "hoverOut");
-    expect(timing).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({ toValue: 0 })
-    );
+    await waitFor(() => {
+      expect(timing).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ toValue: 0 })
+      );
+    });
   });
 
   it("snaps to the offset instead of animating under reduced motion", () => {

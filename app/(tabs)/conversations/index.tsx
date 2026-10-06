@@ -5,9 +5,10 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, TextInput, View, RefreshControl } from "react-native";
+import { FlatList, Pressable, View, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { SearchBar } from "@/components/shared/SearchBar";
 import { useConversations } from "@/hooks/useConversations";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation , t } from "@/hooks/useTranslation";
@@ -211,16 +212,14 @@ function ConvHeader({
 }) {
   return (
     <View className="px-4 pt-3 bg-bg dark:bg-bg-dark">
-      <View className="flex-row items-center bg-neutral-50 dark:bg-neutral-800 rounded-full px-4 h-11 gap-2">
-        <Icon name="Search" size={16} color="text-tertiary" />
-        <TextInput
-          className="flex-1 text-base text-text-primary font-inter"
-          placeholder={t("conv.search")}
-          placeholderTextColor="#888D97"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        onClear={() => setSearch("")}
+        expanded
+        autoFocus={false}
+        placeholder={t("conv.search")}
+      />
     </View>
   );
 }

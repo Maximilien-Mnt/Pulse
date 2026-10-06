@@ -10,20 +10,22 @@
 //     slides back on hover-out / blur — the same timing/easing as the shared
 //     arrow nudge (components/ui/Arrow.tsx), since this row has no arrow.
 // Both snap without animation under prefers-reduced-motion.
+//
+// The avatar is a nested pressable (opens the profile). Its hover/focus
+// re-asserts the row state and it never deactivates it, so sliding the
+// pointer onto the picture keeps the row tint + nudge. Row hover-out / blur
+// release on a microtask the nested enter cancels, so the row never flickers
+// while the pointer moves between its children.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Easing, Platform, Pressable, View } from "react-native";
 import { formatRelative } from "@/utils/date";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
-import {
-  ARROW_NUDGE,
-  ARROW_NUDGE_DURATION,
-  useArrowNudge,
-} from "@/components/ui/Arrow";
+import { ARROW_NUDGE, ARROW_NUDGE_DURATION } from "@/components/ui/Arrow";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/format";
 
@@ -60,9 +62,41 @@ export function ConversationItem({
   const pinned = conversation.pinned ?? false;
 
   // Hover/focus state: drives the tint and the content nudge (per row).
-  const { active, ...nudge } = useArrowNudge();
+  // Hover-out / blur release on a microtask so a nested enter (avatar) that
+  // follows in the same tick cancels the release — the row never flickers
+  // while the pointer moves between its children.
+  const [active, setActive] = useState(false);
+  const offTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isWeb = Platform.OS === "web";
   const reduceMotion = useReducedMotion();
   const translateX = useRef(new Animated.Value(0)).current;
+
+  const cancelOff = useCallback(() => {
+    if (offTimer.current !== null) {
+      clearTimeout(offTimer.current);
+      offTimer.current = null;
+    }
+  }, []);
+
+  const handleActive = useCallback(() => {
+    cancelOff();
+    setActive(true);
+  }, [cancelOff]);
+
+  const scheduleOff = useCallback(() => {
+    cancelOff();
+    offTimer.current = setTimeout(() => {
+      offTimer.current = null;
+      setActive(false);
+    }, 0);
+  }, [cancelOff]);
+
+  useEffect(
+    () => () => {
+      if (offTimer.current !== null) clearTimeout(offTimer.current);
+    },
+    []
+  );
 
   useEffect(() => {
     const to = active ? ARROW_NUDGE : 0;
@@ -79,9 +113,24 @@ export function ConversationItem({
     }).start();
   }, [active, reduceMotion, translateX]);
 
+  // Native leave of the row host means the pointer truly left (moves between
+  // descendants never fire it), so it releases synchronously.
+  const webLeaveProps = isWeb
+    ? ({
+        onMouseLeave: () => {
+          cancelOff();
+          setActive(false);
+        },
+      } as const)
+    : null;
+
   return (
     <Pressable
-      {...nudge}
+      onHoverIn={isWeb ? handleActive : undefined}
+      onHoverOut={isWeb ? scheduleOff : undefined}
+      onFocus={handleActive}
+      onBlur={scheduleOff}
+      {...(webLeaveProps as any)}
       testID="conversation-item"
       onPress={onPress}
       onLongPress={onLongPress}
@@ -95,21 +144,26 @@ export function ConversationItem({
       {/* Content wrapper: slides 4px right while hovered/focused. */}
       <Animated.View
         style={{ transform: [{ translateX }] }}
-        className="flex-1 flex-row items-center gap-3"
+        className="flex-1 flex-row items-start gap-3"
       >
         <Pressable
+          testID="conversation-avatar"
           onPress={onAvatarPress}
+          onHoverIn={isWeb ? handleActive : undefined}
+          onFocus={handleActive}
+          onBlur={scheduleOff}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Avatar size={48} uri={conversation.avatar_url} />
         </Pressable>
 
-        <View className="flex-1">
+        <View className="flex-1 min-w-0 justify-center">
           <View className="flex-row items-center gap-2">
             <Text
               variant="subtitle"
-              className={unread ? "text-text-primary font-['Inter_700Bold']" : "text-text-primary"}
+              className={unread ? "flex-1 text-text-primary font-['Inter_700Bold']" : "flex-1 text-text-primary"}
               numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {conversation.name}
             </Text>
@@ -123,17 +177,20 @@ export function ConversationItem({
 
           <Text
             variant="body"
-            className={unread ? "text-text-primary font_['Inter_600SemiBold']" : "text-text-secondary"}
+            className={unread ? "text-text-primary font-['Inter_600SemiBold']" : "text-text-secondary"}
             numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {conversation.last_message ?? "Nouvelle conversation"}
           </Text>
         </View>
 
         {conversation.last_message_at ? (
-          <Text variant="caption" className="text-text-tertiary">
-            {formatRelative(conversation.last_message_at)}
-          </Text>
+          <View className="shrink-0 self-start ml-auto pt-0.5">
+            <Text variant="caption" className="text-text-tertiary" numberOfLines={1}>
+              {formatRelative(conversation.last_message_at)}
+            </Text>
+          </View>
         ) : null}
       </Animated.View>
     </Pressable>

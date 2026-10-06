@@ -10,7 +10,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -36,6 +35,7 @@ import { ClubCard } from "@/components/explore/ClubCard";
 import { EventCard } from "@/components/explore/EventCard";
 import { ExploreFilterPanel } from "@/components/explore/ExploreFilterPanel";
 import { SortSheet } from "@/components/shared/SortSheet";
+import { SearchBar } from "@/components/shared/SearchBar";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeedLayout } from "@/hooks/useFeedLayout";
@@ -598,18 +598,18 @@ function ExploreHeader({
       {/* Search bar + View toggle */}
       <View className="px-4 pb-2">
         <View className="flex-row items-center gap-2">
-          <View className="flex-1 flex-row items-center bg-neutral-50 dark:bg-neutral-800 rounded-full px-4 h-11 gap-2">
-            <Icon name="Search" size={16} color="text-tertiary" />
-            <TextInput
-              className="flex-1 text-base text-text-primary font-inter"
+          <View className="flex-1">
+            <SearchBar
+              value={search}
+              onChangeText={setSearch}
+              onClear={() => setSearch("")}
+              expanded
+              autoFocus={false}
               placeholder={
                 tab === "clubs"
                   ? t("explore.searchClub")
                   : t("events.searchPlaceholder")
               }
-              placeholderTextColor={undefined}
-              value={search}
-              onChangeText={setSearch}
             />
           </View>
 

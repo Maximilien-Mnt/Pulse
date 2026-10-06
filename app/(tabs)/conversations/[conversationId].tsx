@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { Message } from '@/types';
 import { Icon } from '@/components/ui/Icon';
+import { SendButton } from '@/components/ui/SendButton';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
@@ -425,17 +426,12 @@ export default function ConversationScreen() {
             onSubmitEditing={() => sendMut.mutate()}
             returnKeyType='send'
           />
-          <Pressable 
+          <SendButton
+            label="Envoyer le message"
+            disabled={!text.trim()}
+            loading={sendMut.isPending}
             onPress={() => sendMut.mutate()}
-            disabled={!text.trim() || sendMut.isPending}
-            className='bg-primary rounded-full p-3 '
-          >
-            {sendMut.isPending ? (
-              <View className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
-            ) : (
-              <Icon name='Send' size={22} color='white' />
-            )}
-          </Pressable>
+          />
         </View>
       </KeyboardAvoidingView>
 

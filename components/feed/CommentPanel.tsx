@@ -17,6 +17,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
 import { CommentItem, type CommentRow } from "./CommentItem";
 import { Icon } from "@/components/ui/Icon";
+import { SendButton } from "@/components/ui/SendButton";
 import { Text } from "@/components/ui/Text";
 import { usePostComment } from "@/hooks/usePostComment";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -170,15 +171,14 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
             multiline
             placeholderTextColor="#9CA3AF"
           />
-          <Pressable
+          <SendButton
+            label="Envoyer le commentaire"
+            disabled={!body.trim()}
+            loading={isPending}
             onPress={() => {
               void addComment(body);
             }}
-            className={`rounded-xl p-3 mb-1 ${body.trim() ? "bg-primary" : "bg-border dark:bg-border-dark"}`}
-            disabled={!body.trim() || isPending}
-          >
-            <Icon name="Send" size={20} color={body.trim() ? "text-inverse" : "text-tertiary"} />
-          </Pressable>
+          />
         </View>
       </KeyboardAvoidingView>
     </Animated.View>

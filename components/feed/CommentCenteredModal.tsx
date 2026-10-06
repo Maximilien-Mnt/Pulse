@@ -21,6 +21,7 @@ import { supabase } from "@/lib/supabase";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommentItem, type CommentRow } from "./CommentItem";
 import { Icon } from "@/components/ui/Icon";
+import { SendButton } from "@/components/ui/SendButton";
 import { Text } from "@/components/ui/Text";
 import { usePostComment } from "@/hooks/usePostComment";
 
@@ -259,15 +260,14 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
                 multiline
                 placeholderTextColor="#9CA3AF"
               />
-              <Pressable
+              <SendButton
+                label="Envoyer le commentaire"
+                disabled={!body.trim()}
+                loading={isPending}
                 onPress={() => {
                   void addComment(body);
                 }}
-                className={`rounded-xl p-3 mb-1 ${body.trim() ? "bg-primary" : "bg-border dark:bg-border-dark"}`}
-                disabled={!body.trim() || isPending}
-              >
-                <Icon name="Send" size={20} color={body.trim() ? "text-inverse" : "text-tertiary"} />
-              </Pressable>
+              />
             </View>
           </KeyboardAvoidingView>
         </View>

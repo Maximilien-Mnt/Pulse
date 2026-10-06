@@ -23,6 +23,7 @@ import {
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/Icon";
+import { SendButton } from "@/components/ui/SendButton";
 import { IconButton } from "@/components/ui/IconButton";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -279,16 +280,14 @@ function CommentsContent({ postId }: { postId: string }) {
           multiline
           placeholderTextColor="#9CA3AF"
         />
-        <Pressable
+        <SendButton
+          label="Envoyer le commentaire"
+          disabled={!body.trim()}
           onPress={async () => {
             await addComment(body);
             setBody("");
           }}
-          className={`${"rounded-xl p-3"} ${body.trim() ? "bg-primary" : "bg-neutral-300 dark:bg-neutral-700"}`}
-          disabled={!body.trim()}
-        >
-          <Icon name="Send" size={20} color={body.trim() ? "white" : "text-tertiary"} />
-        </Pressable>
+        />
       </View>
     </KeyboardAvoidingView>
   );

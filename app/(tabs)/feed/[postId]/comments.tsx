@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
 import { Icon } from "@/components/ui/Icon";
+import { SendButton } from "@/components/ui/SendButton";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -99,15 +100,14 @@ export default function PostCommentsModal() {
             onChangeText={setBody}
             multiline
           />
-          <Pressable
+          <SendButton
+            label="Envoyer le commentaire"
+            disabled={!body.trim()}
+            loading={isPending}
             onPress={() => {
               void addComment(body);
             }}
-            className="bg-primary rounded-xl p-3 mb-1"
-            disabled={!body.trim() || isPending}
-          >
-            <Icon name="Send" size={22} color="white" />
-          </Pressable>
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeScreen>

@@ -11,7 +11,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Pressable,
   View,
   Platform,
@@ -46,21 +45,24 @@ export type ButtonSize = "sm" | "md" | "lg";
 // ---------------------------------------------------------------------------
 // Shared label-button motion tokens
 //
-// One gesture family for every control whose action is a word rather than a
-// glyph: <Button>, <TextButton> and the icon controls all lift on hover/focus,
-// squash on press, and fade colours over the same 150ms — see
-// ICON_BUTTON_* (components/ui/IconButton.tsx) for the round-surface twin.
+// One calm gesture family for every control whose action is a word rather
+// than a glyph: <Button>, <TextButton> and the icon controls all engage on
+// hover/focus (surface reaches its pressed colour over the same 150ms fade —
+// see ICON_BUTTON_* for the round-surface twin) and dip on press. Labels
+// never scale: no grow on hover/focus, no squash on press — the press
+// feedback is the `active:` surface tint plus a subtle opacity dip, so
+// short labels ("S'inscrire", "Enregistrer") never shimmer or reflow.
 // ---------------------------------------------------------------------------
 
 /**
- * Hover / keyboard-focus lift. A padded circle lifts to 1.06
- * (ICON_BUTTON_SCALE_HOVER); a label has no surface to lift, so the step is
- * smaller but the gesture is the same one.
+ * Hover / keyboard-focus engagement for labels. Labels never grow, so this
+ * stays at 1 — hover/focus feedback is the surface/colour engagement only.
+ * Kept exported for backward-compat imports.
  */
-export const BUTTON_SCALE_HOVER = 1.03;
+export const BUTTON_SCALE_HOVER = 1;
 
-/** Press squash — the subtle value <Button> has always used, now on a spring. */
-export const BUTTON_SCALE_PRESS = 0.98;
+/** Labels never squash on press — the feedback is surface + opacity. Kept for compat. */
+export const BUTTON_SCALE_PRESS = 1;
 
 /** Shared colour-fade duration (same as ICON_BUTTON_TRANSITION_MS / ARROW_NUDGE_DURATION). */
 export const BUTTON_TRANSITION_MS = 150;
@@ -202,7 +204,6 @@ export const Button = React.forwardRef<View, ButtonProps>(
   ) => {
     const isDark = useThemeStore((s) => s.isDark);
     const reduceMotion = useReducedMotion();
-    const scale = useRef(new Animated.Value(1)).current;
     const [lifted, setLifted] = useState(false);
     const liftedRef = useRef(false);
     const pressedRef = useRef(false);
@@ -210,29 +211,11 @@ export const Button = React.forwardRef<View, ButtonProps>(
     const isDisabled = disabled || loading;
 
     // ── Motion ─────────────────────────────────────────────────────────
-    // One spring drives every transform, with the same friction/tension as
-    // <PressableScale> and <IconButton>, so hover, focus and press all feel
-    // like one gesture family. Hover/focus lifts to BUTTON_SCALE_HOVER, press
-    // squashes to BUTTON_SCALE_PRESS, and prefers-reduced-motion keeps the
-    // state change but snaps it instead of animating.
-    const settle = useCallback(() => {
-      const target = pressedRef.current
-        ? BUTTON_SCALE_PRESS
-        : liftedRef.current && !isDisabled
-          ? BUTTON_SCALE_HOVER
-          : 1;
-      if (reduceMotion) {
-        scale.setValue(1);
-        return;
-      }
-      Animated.spring(scale, {
-        toValue: target,
-        friction: 6,
-        tension: 300,
-        useNativeDriver: Platform.OS !== "web",
-      }).start();
-    }, [isDisabled, reduceMotion, scale]);
-
+    // Labels never scale: hover/focus/press feedback is the surface + label
+    // colour engagement over the shared 150ms fade, plus the `active:`
+    // pressed surface and a subtle opacity dip. The wrapper below stays at
+    // scale 1 (no spring) so labels never shimmer or reflow.
+    const [pressed, setPressed] = useState(false);
     // Hover is a pointer concept (web only); keyboard focus gets the same
     // affordance on every platform — the rule shared by <IconButton> and
     // useArrowNudge, so the arrow and the surface never disagree.
@@ -242,9 +225,8 @@ export const Button = React.forwardRef<View, ButtonProps>(
         if (liftedRef.current === value) return;
         liftedRef.current = value;
         setLifted(value);
-        settle();
       },
-      [isDisabled, settle]
+      [isDisabled]
     );
 
     // A button that becomes disabled while hovered/focused releases the lift,
@@ -253,19 +235,18 @@ export const Button = React.forwardRef<View, ButtonProps>(
       if (isDisabled && liftedRef.current) {
         liftedRef.current = false;
         setLifted(false);
-        settle();
       }
-    }, [isDisabled, settle]);
+    }, [isDisabled]);
 
     const handlePressIn = useCallback(() => {
       pressedRef.current = true;
-      settle();
-    }, [settle]);
+      setPressed(true);
+    }, []);
 
     const handlePressOut = useCallback(() => {
       pressedRef.current = false;
-      settle();
-    }, [settle]);
+      setPressed(false);
+    }, []);
 
     // Shared arrow micro-interaction: arrow icons (Chevron/Arrow ←→) nudge
     // on hover/focus like every other arrow button in the app.
@@ -303,8 +284,11 @@ export const Button = React.forwardRef<View, ButtonProps>(
             lifted && variantLiftBg[variant]
           ),
       // Pressed surface — same colours, under `active:` so touch presses (which
-      // never hover) animate identically.
+      // never hover) animate identically. Pressed opacity dip adds tactile
+      // feedback without any transform.
       !isDisabled && variantPressBg[variant],
+      !isDisabled && pressed && "opacity-80",
+      !isDisabled && "active:opacity-80",
       // The 150ms colour fade that turns the surface swap into an animation.
       // Dropped under reduced motion: the state still changes, it just snaps.
       !reduceMotion && "transition-colors",
@@ -330,70 +314,68 @@ export const Button = React.forwardRef<View, ButtonProps>(
       );
 
     return (
-      <Animated.View style={{ transform: [{ scale }] }}>
-        <Pressable
-          ref={ref}
-          testID={testID}
-          accessibilityRole="button"
-          accessibilityLabel={effectiveLabel}
-          accessibilityHint={effectiveHint}
-          accessibilityState={effectiveState}
-          accessibilityValue={
-            isDisabled || effectiveValue == null ? undefined : { text: effectiveValue }
-          }
-          accessible={effectiveLabel != null || effectiveHint != null}
-          disabled={isDisabled}
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          // Pointer hover (web only) and keyboard focus (every platform) lift
-          // the button; the arrow rides the very same events so the glyph and
-          // the surface can never disagree about whether it is engaged.
-          onHoverIn={
-            Platform.OS === "web"
-              ? () => {
-                  arrowNudge.onHoverIn?.();
-                  setTo(true);
-                }
-              : undefined
-          }
-          onHoverOut={
-            Platform.OS === "web"
-              ? () => {
-                  arrowNudge.onHoverOut?.();
-                  setTo(false);
-                }
-              : undefined
-          }
-          onFocus={() => {
-            arrowNudge.onFocus?.();
-            setTo(true);
-          }}
-          onBlur={() => {
-            arrowNudge.onBlur?.();
-            setTo(false);
-          }}
-          className={containerClasses}
-        >
-          {loading ? (
-            <ActivityIndicator color={isDark ? "text-inverse" : iconColor} size="small" />
-          ) : icon ? (
-            renderIcon(icon)
-          ) : null}
-          {title != null ? (
-            <Text variant="buttonLabel" className={textColor}>
-              {title}
-            </Text>
-          ) : typeof children === "string" ? (
-            <Text variant="buttonLabel" className={textColor}>
-              {children}
-            </Text>
-          ) : (
-            children
-          )}
-          {iconRight ? renderIcon(iconRight) : null}
-        </Pressable>
-      </Animated.View>
+      <Pressable
+        ref={ref}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={effectiveLabel}
+        accessibilityHint={effectiveHint}
+        accessibilityState={effectiveState}
+        accessibilityValue={
+          isDisabled || effectiveValue == null ? undefined : { text: effectiveValue }
+        }
+        accessible={effectiveLabel != null || effectiveHint != null}
+        disabled={isDisabled}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        // Pointer hover (web only) and keyboard focus (every platform) lift
+        // the button; the arrow rides the very same events so the glyph and
+        // the surface can never disagree about whether it is engaged.
+        onHoverIn={
+          Platform.OS === "web"
+            ? () => {
+                arrowNudge.onHoverIn?.();
+                setTo(true);
+              }
+            : undefined
+        }
+        onHoverOut={
+          Platform.OS === "web"
+            ? () => {
+                arrowNudge.onHoverOut?.();
+                setTo(false);
+              }
+            : undefined
+        }
+        onFocus={() => {
+          arrowNudge.onFocus?.();
+          setTo(true);
+        }}
+        onBlur={() => {
+          arrowNudge.onBlur?.();
+          setTo(false);
+        }}
+        className={containerClasses}
+      >
+        {loading ? (
+          <ActivityIndicator color={isDark ? "text-inverse" : iconColor} size="small" />
+        ) : icon ? (
+          renderIcon(icon)
+        ) : null}
+        {title != null ? (
+          <Text variant="buttonLabel" className={textColor}>
+            {title}
+          </Text>
+        ) : typeof children === "string" ? (
+          <Text variant="buttonLabel" className={textColor}>
+            {children}
+          </Text>
+        ) : (
+          children
+        )}
+        {iconRight ? renderIcon(iconRight) : null}
+      </Pressable>
     );
   }
 );

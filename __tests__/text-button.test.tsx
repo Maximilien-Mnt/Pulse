@@ -3,9 +3,9 @@
 //
 // <TextButton> is the label-only counterpart of <Button>, so these tests pin
 // the contract that keeps every worded action ("Annuler", "Enregistrer",
-// "Supprimer", a menu option, the FR/EN chip…) animating identically:
-//   - the token set is literally shared with <Button> (one gesture family,
-//     same as ICON_BUTTON_* is for the round controls),
+// "Supprimer", a menu option, the FR/EN chip…) calm and coherent:
+//   - labels never scale: no grow on hover/focus, no squash or pop on press
+//     (scale tokens stay at 1; press feedback is surface + opacity),
 //   - hover (web pointer) and focus/blur (keyboard, cross-platform) both lift,
 //   - the lift reaches the colour the button already has when pressed, faded
 //     over the shared 150ms transition,
@@ -71,16 +71,18 @@ describe("TextButton", () => {
   });
 
   describe("shared motion contract", () => {
-    it("lifts by exactly the amount <Button> lifts", () => {
-      expect(TEXT_BUTTON_SCALE_HOVER).toBe(BUTTON_SCALE_HOVER);
-      expect(TEXT_BUTTON_SCALE_HOVER).toBeGreaterThan(1);
+    it("never scales labels on hover/focus/press", () => {
+      expect(TEXT_BUTTON_SCALE_HOVER).toBe(1);
+      expect(TEXT_BUTTON_SCALE_PRESS).toBe(1);
+      expect(TEXT_BUTTON_SCALE_POP).toBe(1);
+      expect(BUTTON_SCALE_HOVER).toBe(1);
     });
 
     it("fades colours over the shared 150ms", () => {
       expect(TEXT_BUTTON_TRANSITION_MS).toBe(150);
     });
 
-    it("springs to the shared press squash, and pops harder when toggling", () => {
+    it("passes no scale to PressableScale, on any tone", () => {
       render(<TextButton>Annuler</TextButton>);
       expect(lastPressableScaleProps).toMatchObject({
         scaleOnHover: TEXT_BUTTON_SCALE_HOVER,
@@ -89,9 +91,9 @@ describe("TextButton", () => {
 
       render(<TextButton tone="toggle">Suivi</TextButton>);
       expect(lastPressableScaleProps).toMatchObject({
-        scaleOnPress: TEXT_BUTTON_SCALE_POP,
+        scaleOnHover: 1,
+        scaleOnPress: 1,
       });
-      expect(TEXT_BUTTON_SCALE_POP).toBeLessThan(TEXT_BUTTON_SCALE_PRESS);
     });
   });
 

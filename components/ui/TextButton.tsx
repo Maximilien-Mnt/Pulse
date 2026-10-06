@@ -6,19 +6,19 @@
 // rather than as a filled capsule. It speaks the exact same motion language as
 // the rest of the system, so a text action never feels like a different control:
 //   shared base (every tone): pointer hover (web) + keyboard focus (every
-//   platform) LIFT the label to TEXT_BUTTON_SCALE_HOVER and deepen its
-//   colour, faded over the shared 150ms colour transition — the <IconButton>
-//   rule: the surface reaches the colour it would have when pressed, so
-//   hover and press read as one gesture; press squashes to
-//   TEXT_BUTTON_SCALE_PRESS with the shared spring (friction 6 /
-//   tension 300); prefers-reduced-motion keeps every state change, it just
-//   snaps.
+//   platform) deepen the surface + label colour, faded over the shared 150ms
+//   colour transition — the <IconButton> rule: the surface reaches the colour
+//   it would have when pressed, so hover and press read as one gesture.
+//   Labels never scale: no grow on hover/focus and no squash or pop on
+//   press — the press feedback is the `active:` surface tint plus a subtle
+//   opacity dip, so short labels ("Suivre", "Annuler") never shimmer or
+//   reflow. Prefers-reduced-motion keeps every state change, it just snaps.
 //   signature move (one per tone, all ≤4px / ≤180ms, ease-out — felt, never
 //   flashy): link "nudge" (directional glyph travels TEXT_BUTTON_NUDGE_PX),
 //   danger "underline" (2px rule sweeps out from the left edge), toggle
-//   "settle" (press pop TEXT_BUTTON_SCALE_POP + scale-settle on flip),
-//   neutral "lift" (shared base only — the calm default that makes the
-//   other three read as intentional).
+//   "settle" (brief opacity dip on flip), neutral "lift" (shared base only
+//   — the calm default that makes the other three read as intentional;
+//   "lift" = surface/colour engagement only, never a scale).
 //
 // Intents (`tone`) and their default signature motion:
 //   link     primary text action — tints into the IconButton "primary" surface
@@ -27,8 +27,8 @@
 //            ("lift": shared base only, no signature move)
 //   danger   destructive text action — error tint plus an underline that sweeps
 //            out from the left on hover/focus ("underline")
-//   toggle   state chip — a stronger snap-back pop, a scale-settle on flip, and
-//            a permanently lifted pill while `active` ("settle")
+//   toggle   state chip — a stronger engaged pill tint, a brief opacity dip on
+//            flip, and a permanently engaged pill while `active` ("settle")
 // Accessibility: 44px touch target by default via hitSlop (callers may widen
 // it, never narrow it); visible keyboard focus ring on web that does not rely
 // on colour alone; `role` override for rows that behave as links; plain-string
@@ -46,10 +46,7 @@ import { Animated, Easing, Platform, View } from "react-native";
 import type { PressableProps } from "react-native";
 
 import { Arrow, isArrowIcon, useArrowNudge } from "@/components/ui/Arrow";
-import {
-  BUTTON_SCALE_HOVER,
-  BUTTON_TRANSITION_MS,
-} from "@/components/ui/Button";
+import { BUTTON_TRANSITION_MS } from "@/components/ui/Button";
 import { Icon, type IconColor, type IconName } from "@/components/ui/Icon";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { Text, type TextVariant } from "@/components/ui/Text";
@@ -68,12 +65,12 @@ export type TextButtonTone = "link" | "neutral" | "danger" | "toggle";
 export type TextButtonSize = "sm" | "md";
 export type TextButtonMotion = "lift" | "underline" | "nudge" | "settle";
 
-/** The lift is shared with <Button> — one gesture family for every label. */
-export const TEXT_BUTTON_SCALE_HOVER = BUTTON_SCALE_HOVER;
-/** Shared press squash for label-sized controls (PressableScale's default). */
-export const TEXT_BUTTON_SCALE_PRESS = 0.94;
-/** Toggle intents pop a little harder so a state flip feels mechanical. */
-export const TEXT_BUTTON_SCALE_POP = 0.9;
+/** Labels never grow on hover/focus — kept at 1 so TextButton stays flat. */
+export const TEXT_BUTTON_SCALE_HOVER = 1;
+/** Labels never squash on press — the feedback is surface + opacity, not scale. */
+export const TEXT_BUTTON_SCALE_PRESS = 1;
+/** @deprecated Toggle no longer pops — kept at 1 for backward-compat imports. */
+export const TEXT_BUTTON_SCALE_POP = 1;
 /** Shared colour-fade duration — the same 150ms as every other control. */
 export const TEXT_BUTTON_TRANSITION_MS = BUTTON_TRANSITION_MS;
 /** Thickness (px) of the danger underline that sweeps in on hover/focus. */
@@ -341,12 +338,9 @@ export function TextButton({
   // The arrow rides the very same events as the surface lift.
   const nudge = useArrowNudge({ disabled: disabled || !showNudge });
 
-  // The toggle settle: a dip-and-recover on the flip, driven by the same
-  // shared spring as press (friction 6 / tension 300) through an Animated
-  // value layered on the settle only — never stacked with PressableScale's
-  // press squash, which is idle at that moment (flip happens onPress, after
-  // the squash already released).
-  const settleScale = useRef(new Animated.Value(1)).current;
+  // The toggle settle: a brief opacity dip-and-recover on the flip — felt,
+  // never flashy, and layout-stable (no scale, so neighbours never shift).
+  const settleOpacity = useRef(new Animated.Value(1)).current;
   const prevActiveRef = useRef(active);
   useEffect(() => {
     if (
@@ -355,19 +349,19 @@ export function TextButton({
       !disabled
     ) {
       if (reduceMotion) {
-        settleScale.setValue(1);
+        settleOpacity.setValue(1);
       } else {
-        settleScale.setValue(TEXT_BUTTON_SCALE_POP);
-        Animated.spring(settleScale, {
+        settleOpacity.setValue(0.6);
+        Animated.timing(settleOpacity, {
           toValue: 1,
-          friction: 6,
-          tension: 300,
+          duration: TEXT_BUTTON_TOGGLE_SETTLE_MS,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }).start();
       }
     }
     prevActiveRef.current = active;
-  }, [active, disabled, reduceMotion, resolvedMotion, settleScale]);
+  }, [active, disabled, reduceMotion, resolvedMotion, settleOpacity]);
 
   // A selected toggle reads as "already engaged", like <IconButton active>.
   const lifted = hovered || active;
@@ -409,16 +403,14 @@ export function TextButton({
   const effectiveHitSlop = hitSlop ?? { top: 10, bottom: 10, left: 8, right: 8 };
 
   return (
-    <Animated.View style={{ transform: [{ scale: settleScale }] }}>
+    <Animated.View style={{ opacity: settleOpacity }}>
     <PressableScale
       onPress={onPress}
       disabled={disabled}
-      // Springs come from PressableScale, which already respects
-      // prefers-reduced-motion for us.
-      scaleOnPress={
-        tone === "toggle" ? TEXT_BUTTON_SCALE_POP : TEXT_BUTTON_SCALE_PRESS
-      }
-      scaleOnHover={TEXT_BUTTON_SCALE_HOVER}
+      // No scale on labels — hover/focus/press feedback is surface + colour
+      // (+ the per-tone signature), so the label never grows or squashes.
+      scaleOnPress={1}
+      scaleOnHover={1}
       hitSlop={effectiveHitSlop}
       testID={testID}
       accessibilityRole={role}
@@ -461,6 +453,8 @@ export function TextButton({
         toneSurface[tone],
         lifted && toneSurfaceLift[tone],
         !disabled && toneSurfacePressed[tone],
+        // Pressed opacity dip (touch + mouse): tactile without a transform.
+        !disabled && "active:opacity-70",
         // Visible keyboard focus ring (web): an outline that does not rely
         // on colour alone — pointer hover gets the chip tint without it.
         isWeb && focused && !disabled && "outline outline-2 outline-primary outline-offset-2",

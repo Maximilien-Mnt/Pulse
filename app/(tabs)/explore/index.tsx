@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/Button";
 import { ClubCard } from "@/components/explore/ClubCard";
 import { EventCard } from "@/components/explore/EventCard";
 import { ExploreFilterPanel } from "@/components/explore/ExploreFilterPanel";
-import { SortSheet } from "@/components/shared/SortSheet";
+import { ExploreSortPanel } from "@/components/explore/ExploreSortPanel";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -190,16 +190,28 @@ export default function ExploreScreen() {
     [eventFilters]
   );
 
-  // The filter button toggles the inline panel (no modal, no apply step).
-  const handleOpenFilters = useCallback(() => setFilterOpen((open) => !open), []);
+  // The filter/sort buttons toggle their inline panel (no modal, no apply
+  // step). Opening one closes the other — a single slot under the header.
+  const handleOpenFilters = useCallback(() => {
+    setFilterOpen((open) => {
+      if (!open) setSortOpen(false);
+      return !open;
+    });
+  }, []);
   const handleCloseFilters = useCallback(() => setFilterOpen(false), []);
 
-  const handleOpenSort = useCallback(() => setSortOpen(true), []);
+  const handleOpenSort = useCallback(() => {
+    setSortOpen((open) => {
+      if (!open) setFilterOpen(false);
+      return !open;
+    });
+  }, []);
   const handleCloseSort = useCallback(() => setSortOpen(false), []);
 
-  // Switching segment closes the panel: each tab has its own filter state.
+  // Switching segment closes the panels: each tab has its own filter state.
   useEffect(() => {
     setFilterOpen(false);
+    setSortOpen(false);
   }, [tab]);
 
   // True when the selected sort for the active tab differs from its default.
@@ -345,6 +357,22 @@ export default function ExploreScreen() {
             onClose={handleCloseFilters}
           />
         ) : null}
+        {sortOpen ? (
+          <ExploreSortPanel
+            options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
+            value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
+            onSelect={handleSortSelect}
+            radiusKm={
+              tab === "clubs"
+                ? clubFilters.radiusKm ?? 10
+                : eventFilters.radiusKm ?? 10
+            }
+            onRadiusKm={handleRadiusChange}
+            isLocationEnabled={isLocationEnabled}
+            onRequestLocation={requestPermission}
+            onClose={handleCloseSort}
+          />
+        ) : null}
         <ExploreSkeleton />
       </SafeScreen>
     );
@@ -377,6 +405,22 @@ export default function ExploreScreen() {
             onChangeClubFilters={setClubFilters}
             onChangeEventFilters={setEventFilters}
             onClose={handleCloseFilters}
+          />
+        ) : null}
+        {sortOpen ? (
+          <ExploreSortPanel
+            options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
+            value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
+            onSelect={handleSortSelect}
+            radiusKm={
+              tab === "clubs"
+                ? clubFilters.radiusKm ?? 10
+                : eventFilters.radiusKm ?? 10
+            }
+            onRadiusKm={handleRadiusChange}
+            isLocationEnabled={isLocationEnabled}
+            onRequestLocation={requestPermission}
+            onClose={handleCloseSort}
           />
         ) : null}
         <View className="flex-1 items-center justify-center px-8">
@@ -420,6 +464,24 @@ export default function ExploreScreen() {
           onChangeClubFilters={setClubFilters}
           onChangeEventFilters={setEventFilters}
           onClose={handleCloseFilters}
+        />
+      ) : null}
+
+      {/* Inline sort panel — same design/logic as the filter panel */}
+      {sortOpen ? (
+        <ExploreSortPanel
+          options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
+          value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
+          onSelect={handleSortSelect}
+          radiusKm={
+            tab === "clubs"
+              ? clubFilters.radiusKm ?? 10
+              : eventFilters.radiusKm ?? 10
+          }
+          onRadiusKm={handleRadiusChange}
+          isLocationEnabled={isLocationEnabled}
+          onRequestLocation={requestPermission}
+          onClose={handleCloseSort}
         />
       ) : null}
 
@@ -500,32 +562,6 @@ export default function ExploreScreen() {
         />
       )}
 
-      {/* Order button sheet — different options per tab */}
-      {tab === "clubs" ? (
-        <SortSheet
-          visible={sortOpen}
-          onClose={handleCloseSort}
-          options={CLUB_SORT_OPTIONS}
-          value={clubFilters.sort}
-          onSelect={handleSortSelect}
-          radiusKm={clubFilters.radiusKm ?? 10}
-          onRadiusKm={handleRadiusChange}
-          isLocationEnabled={isLocationEnabled}
-          onRequestLocation={requestPermission}
-        />
-      ) : (
-        <SortSheet
-          visible={sortOpen}
-          onClose={handleCloseSort}
-          options={EVENT_SORT_OPTIONS}
-          value={eventFilters.sort}
-          onSelect={handleSortSelect}
-          radiusKm={eventFilters.radiusKm ?? 10}
-          onRadiusKm={handleRadiusChange}
-          isLocationEnabled={isLocationEnabled}
-          onRequestLocation={requestPermission}
-        />
-      )}
     </SafeScreen>
   );
 }

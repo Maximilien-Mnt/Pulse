@@ -3,9 +3,8 @@
 //
 // <SendButton> is the single canonical send control, so these tests pin the
 // contract shared with <IconButton>: filled paper-plane glyph, primary
-// surface lifting to primary-hover over the shared duration, hover (web) +
-// focus/blur (keyboard) driving the lift, lift released when disabled or
-// loading, white spinner while loading, press squash springs from
+// surface lifting to primary-hover over the shared duration, glyph growing
+// in place on hover (web) + focus/blur (keyboard), press squash springs from
 // PressableScale, 44px target.
 // ---------------------------------------------------------------------------
 

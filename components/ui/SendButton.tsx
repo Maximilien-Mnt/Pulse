@@ -4,7 +4,7 @@
 // The single canonical send control for every composer in the app
 // (DMs, post comments, comment modals, profile post sheets, …).
 // 44x44 circle, primary surface, white FILLED paper-plane at 22px.
-// Hover lifts + glyph nudges up-right; press squashes; send launches.
+// Hover lifts + glyph grows in place; press squashes; send launches.
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -22,8 +22,8 @@ import { hitSlopForIcon } from "@/src/accessibility";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/format";
 
-/** Resting glyph nudge (px) — diagonal twin of ARROW_NUDGE, up-right. */
-export const SEND_BUTTON_NUDGE = 2;
+/** Glyph scale while hovered / keyboard-focused — grows in place, stays centered. */
+export const SEND_BUTTON_GLYPH_SCALE = 1.18;
 /** Launch travel (px) of the glyph on send, up-right. */
 export const SEND_BUTTON_LAUNCH = 10;
 /** Duration (ms) of the launch-out fade. */
@@ -65,6 +65,7 @@ export function SendButton({
   const hoveredRef = useRef(false);
   const nudgeX = useRef(new Animated.Value(0)).current;
   const nudgeY = useRef(new Animated.Value(0)).current;
+  const glyphScale = useRef(new Animated.Value(1)).current;
   const launchOpacity = useRef(new Animated.Value(1)).current;
   const launchingRef = useRef(false);
   const inactive = disabled || loading;
@@ -88,28 +89,18 @@ export function SendButton({
 
   useEffect(() => {
     if (launchingRef.current) return;
-    const tx = hovered ? SEND_BUTTON_NUDGE : 0;
-    const ty = hovered ? -SEND_BUTTON_NUDGE : 0;
+    const to = hovered ? SEND_BUTTON_GLYPH_SCALE : 1;
     if (reduceMotion) {
-      nudgeX.setValue(tx);
-      nudgeY.setValue(ty);
+      glyphScale.setValue(to);
       return;
     }
-    Animated.parallel([
-      Animated.timing(nudgeX, {
-        toValue: tx,
-        duration: ICON_BUTTON_TRANSITION_MS,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(nudgeY, {
-        toValue: ty,
-        duration: ICON_BUTTON_TRANSITION_MS,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [hovered, reduceMotion, nudgeX, nudgeY]);
+    Animated.timing(glyphScale, {
+      toValue: to,
+      duration: ICON_BUTTON_TRANSITION_MS,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [hovered, reduceMotion, glyphScale]);
 
   const handlePress = useCallback(() => {
     if (inactive) return;
@@ -135,19 +126,19 @@ export function SendButton({
           useNativeDriver: true,
         }),
       ]).start(() => {
-        const bx = hoveredRef.current ? SEND_BUTTON_NUDGE : 0;
-        const by = hoveredRef.current ? -SEND_BUTTON_NUDGE : 0;
+        const back = hoveredRef.current ? SEND_BUTTON_GLYPH_SCALE : 1;
         nudgeX.setValue(-SEND_BUTTON_LAUNCH / 2);
         nudgeY.setValue(SEND_BUTTON_LAUNCH / 2);
+        glyphScale.setValue(back);
         Animated.parallel([
           Animated.timing(nudgeX, {
-            toValue: bx,
+            toValue: 0,
             duration: SEND_BUTTON_LAUNCH_BACK_MS,
             easing: Easing.out(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(nudgeY, {
-            toValue: by,
+            toValue: 0,
             duration: SEND_BUTTON_LAUNCH_BACK_MS,
             easing: Easing.out(Easing.ease),
             useNativeDriver: true,
@@ -164,7 +155,7 @@ export function SendButton({
       });
     }
     onPress?.();
-  }, [inactive, reduceMotion, nudgeX, nudgeY, launchOpacity, onPress]);
+  }, [inactive, reduceMotion, nudgeX, nudgeY, glyphScale, launchOpacity, onPress]);
 
   const isWeb = Platform.OS === "web";
   const containerClass = cn(
@@ -209,7 +200,11 @@ export function SendButton({
       ) : (
         <Animated.View
           style={{
-            transform: [{ translateX: nudgeX }, { translateY: nudgeY }],
+            transform: [
+              { translateX: nudgeX },
+              { translateY: nudgeY },
+              { scale: glyphScale },
+            ],
             opacity: launchOpacity,
           }}
         >

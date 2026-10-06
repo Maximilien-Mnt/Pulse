@@ -2,11 +2,18 @@
 // PULSE DESIGN SYSTEM — SearchBar (shared)
 //
 // Single search pill used in feed / explore / conversations.
-// Motion (coherent with IconButton / Button — 150ms colour fade + spring
-// scale, all gated by useReducedMotion):
-//   - Bar hover (web) / focus: surface lifts neutral-100 → neutral-200
-//     (dark: 800 → 700) + search glyph tints to primary. No border,
-//     no outline — focus reads through surface + icon, never a dark ring.
+// Motion (coherent with IconButton / Button / Arrow — 150ms fades, spring
+// scale, glyph nudge, all gated by useReducedMotion):
+//   - Bar hover (web) / focus ("lit"): surface lifts neutral-100 → neutral-200
+//     (dark: 800 → 700), the search glyph tints to primary and slides
+//     SEARCH_BAR_GLYPH_NUDGE px right, the bar scales to
+//     SEARCH_BAR_SCALE_HOVER (spring on the collapsed stub, 150ms CSS fade on
+//     the expanded bar), and a soft primary halo fades in around the pill
+//     (web). Still no border, no outline — the halo is a brand glow, never a
+//     dark focus ring.
+//   - Transient vs persistent: `lit` (hover || focus) drives the glow / scale
+//     / glyph slide; `engaged` (lit || a filled query) keeps the lifted
+//     surface, so a filled bar stays readable after blur without staying lit.
 //   - Bar press (collapsed stub): gentle squash to 0.98.
 //   - Clear button: circular chip with its own hover (chip darkens +
 //     icon tints to primary, surface lifts to 1.06) and press (squash
@@ -14,8 +21,8 @@
 //     into an unreadable blob).
 // ---------------------------------------------------------------------------
 
-import { useCallback, useState } from "react";
-import { Platform, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Easing, Platform, Text, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { PressableScale } from "@/components/ui/PressableScale";
 import {
@@ -40,18 +47,122 @@ type Props = {
   className?: string;
 };
 
-/** Hover lift for a full-width bar — calmer than the 1.06 icon-button lift. */
-export const SEARCH_BAR_SCALE_HOVER = 1.02;
+/**
+ * Hover/focus lift for a full-width bar — bolder than the previous 1.02,
+ * still calmer than the 1.06 icon-button lift.
+ */
+export const SEARCH_BAR_SCALE_HOVER = 1.04;
 /** Press squash for a full-width bar — calmer than 0.9 icon-button press. */
 export const SEARCH_BAR_SCALE_PRESS = 0.98;
 /** Colour-fade duration shared with IconButton / Button. */
 export const SEARCH_BAR_TRANSITION_MS = 150;
+/** Travel (px) of the search glyph on hover/focus — the field "opens up". */
+export const SEARCH_BAR_GLYPH_NUDGE = 5;
+/** Alpha of the soft primary halo drawn around an engaged bar (web). */
+export const SEARCH_BAR_GLOW_ALPHA = 0.45;
 
 const restSurface = "bg-neutral-100 dark:bg-neutral-800";
 const liftedSurface = "bg-neutral-200 dark:bg-neutral-700";
 
 const clearRest = "bg-neutral-300/60 dark:bg-neutral-600/60";
 const clearLifted = "bg-neutral-400/80 dark:bg-neutral-500/80";
+
+/**
+ * "#3358FF" + 0.45 → "rgba(51,88,255,0.45)" — the halo colour is derived from
+ * the active theme's primary token so it tracks light/dark automatically.
+ */
+function withAlpha(hex: string, alpha: number): string {
+  const normalized = hex.replace("#", "");
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized;
+  const value = Number.parseInt(full, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ---------------------------------------------------------------------------
+// Search glyph — tints with the bar state and slides right while the bar is
+// lit, so hover/focus reads as the field "opening up". Same nudge language as
+// <Arrow> (150ms ease-out, snaps under reduced motion).
+// ---------------------------------------------------------------------------
+
+function SearchGlyph({
+  lit,
+  engaged,
+  reduceMotion,
+}: {
+  /** Hover (web) or keyboard focus — drives the slide. */
+  lit: boolean;
+  /** Also true while a query is present — drives the tint only. */
+  engaged: boolean;
+  reduceMotion: boolean;
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const to = lit ? SEARCH_BAR_GLYPH_NUDGE : 0;
+    if (reduceMotion) {
+      // Still move, just without the animation (reduced-motion UX).
+      translateX.setValue(to);
+      return;
+    }
+    Animated.timing(translateX, {
+      toValue: to,
+      duration: SEARCH_BAR_TRANSITION_MS,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [lit, reduceMotion, translateX]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateX }] }}>
+      <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Glow — soft primary halo around an engaged bar (web only: native has no
+// pointer hover, and a string boxShadow is a DOM affordance). Lives on its own
+// overlay so its opacity fade (`transition-opacity`) never shares a
+// transition-property class with the pill's colour swap, and it paints below
+// the glyph/text because it is the pill's first child.
+// ---------------------------------------------------------------------------
+
+function GlowOverlay({
+  lit,
+  color,
+  reduceMotion,
+}: {
+  /** True while the bar is hovered (web) or keyboard-focused. */
+  lit: boolean;
+  /** Current-mode primary token — the halo follows light/dark with it. */
+  color: string;
+  reduceMotion: boolean;
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      testID="search-bar-glow"
+      className={cn(
+        "absolute top-0 left-0 right-0 bottom-0 rounded-full",
+        lit ? "opacity-100" : "opacity-0",
+        !reduceMotion && "transition-opacity duration-150"
+      )}
+      style={{
+        // Diffuse brand halo + a hair of elevation — a glow, never a ring.
+        boxShadow: `0 0 14px 3px ${withAlpha(color, SEARCH_BAR_GLOW_ALPHA)}, 0 2px 8px rgba(0,0,0,0.10)`,
+      }}
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Clear (cross) button — circular chip with hover + press micro-interaction
@@ -116,6 +227,10 @@ export function SearchBar({
 
   const hasQuery = value.trim().length > 0;
   const engaged = hovered || focused || hasQuery;
+  // Transient engagement — drives the MOTION (scale / glow / glyph slide) so it
+  // releases on hover-out / blur. `engaged` above keeps a filled query's lifted
+  // surface after blur, but never the animation.
+  const lit = hovered || focused;
 
   const setHover = useCallback(
     (next: boolean) => setHovered(reduceMotion ? false : next),
@@ -132,13 +247,31 @@ export function SearchBar({
   }, [value, onChangeText, onClear, onCollapse]);
 
   // No border, no outline: hover / focus / query read through the surface
-  // colour + the search glyph tint only.
-  const pillClass = cn(
-    "flex-row items-center h-11 rounded-full px-4 gap-2 border-0",
-    engaged ? liftedSurface : restSurface,
-    !reduceMotion && "transition-colors duration-150",
-    className
-  );
+  // colour + the search glyph tint only. The transition class differs per
+  // branch: the collapsed stub's scale is spring-driven by PressableScale (a
+  // CSS transform transition would fight the spring), the expanded bar owns an
+  // inline transform that `transition-all` carries on the same 150ms clock as
+  // the colour swap.
+  const pillClass = (branchTransition: string) =>
+    cn(
+      // `relative` anchors the glow overlay on web — RN absolute children
+      // always resolve against their parent on native, but the DOM needs an
+      // explicitly positioned ancestor.
+      "relative flex-row items-center h-11 rounded-full px-4 gap-2 border-0",
+      engaged ? liftedSurface : restSurface,
+      !reduceMotion && branchTransition,
+      className
+    );
+
+  // Soft primary halo (web): rendered as its own first child so it paints
+  // behind the glyph/text and fades through its own `transition-opacity`.
+  const glow = isWeb ? (
+    <GlowOverlay
+      lit={lit}
+      color={tokens.colors.primary}
+      reduceMotion={reduceMotion}
+    />
+  ) : null;
 
   const hoverProps = {
     onHoverIn: isWeb ? () => setHover(true) : undefined,
@@ -172,9 +305,10 @@ export function SearchBar({
         accessible
         accessibilityRole="button"
         accessibilityLabel={hasQuery ? value : placeholder}
-        className={pillClass}
+        className={pillClass("transition-colors duration-150")}
       >
-        <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
+        {glow}
+        <SearchGlyph lit={lit} engaged={engaged} reduceMotion={reduceMotion} />
         <Text
           className={cn(
             "flex-1 text-base font-inter",
@@ -191,8 +325,17 @@ export function SearchBar({
 
   // ── Expanded ─────────────────────────────────────────────────────
   return (
-    <View className={pillClass} {...containerHoverProps}>
-      <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
+    <View
+      className={pillClass("transition-all duration-150")}
+      {...containerHoverProps}
+      // Caller-owned transform (the useHoverLift pattern): `transition-all`
+      // above puts the scale on the same 150ms clock as the colour swap.
+      style={{
+        transform: [{ scale: lit && !reduceMotion ? SEARCH_BAR_SCALE_HOVER : 1 }],
+      }}
+    >
+      {glow}
+      <SearchGlyph lit={lit} engaged={engaged} reduceMotion={reduceMotion} />
       <TextInput
         className="flex-1 text-base font-inter text-neutral-900 dark:text-neutral-50 outline-none"
         placeholder={placeholder}
@@ -209,7 +352,6 @@ export function SearchBar({
         accessibilityRole="search"
         // Kill the browser / Android default focus ring — focus is conveyed
         // by the lifted surface + primary icon, never a dark outline.
-        // eslint-disable-next-line react-native/no-inline-styles
         style={{ outlineStyle: "none" } as never}
       />
       {value.length > 0 ? <ClearButton onPress={handleClear} /> : null}

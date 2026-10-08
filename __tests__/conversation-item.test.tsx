@@ -50,7 +50,7 @@ describe("ConversationItem", () => {
     jest.restoreAllMocks();
   });
 
-  it("fires press and long-press", () => {
+  it("fires press and long-press", async () => {
     const onPress = jest.fn();
     const onLongPress = jest.fn();
     const { getByText } = render(
@@ -61,7 +61,9 @@ describe("ConversationItem", () => {
     expect(onPress).toHaveBeenCalledTimes(1);
 
     fireEvent(getByText("Alice"), "longPress");
-    expect(onLongPress).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onLongPress).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("lifts to the reference tint while hovered and releases on hover-out", async () => {
@@ -183,7 +185,7 @@ describe("ConversationItem", () => {
     expect(button.props.accessibilityRole).toBe("button");
   });
 
-  it("opens the options menu from the button on hover without pressing the row", () => {
+  it("opens the options menu from the button on hover without pressing the row", async () => {
     const onPress = jest.fn();
     const onOptionsPress = jest.fn();
     const { getAllByTestId, getByTestId } = render(
@@ -197,7 +199,9 @@ describe("ConversationItem", () => {
     // Row hover arms the options button (its layer becomes the pointer target).
     fireEvent(getAllByTestId("conversation-item")[0], "hoverIn");
     fireEvent.press(getByTestId("conversation-options"));
-    expect(onOptionsPress).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onOptionsPress).toHaveBeenCalledTimes(1);
+    });
     expect(onPress).not.toHaveBeenCalled();
   });
 
@@ -216,6 +220,53 @@ describe("ConversationItem", () => {
     fireEvent.press(getByTestId("conversation-options"));
     expect(onPress).toHaveBeenCalledTimes(1);
     expect(onOptionsPress).not.toHaveBeenCalled();
+  });
+
+  // ── Options menu anchor ────────────────────────────────────────────────
+  //
+  // Both triggers (the row's "⋮" button and a long-press) hand the anchor
+  // rect up so the floating options menu can position itself next to the
+  // button. In the test env there is no layout engine, so `measureInWindow`
+  // is unavailable and the callback receives `null` — the menu then falls
+  // back to its default placement. The contract asserted here is simply that
+  // both triggers fire their handler (the anchor value itself is exercised in
+  // action-menu-popover.test.tsx).
+  it("passes an anchor (or null without layout) from the options button", async () => {
+    const onOptionsPress = jest.fn();
+    const { getAllByTestId, getByTestId } = render(
+      <ConversationItem
+        conversation={conversation}
+        onPress={jest.fn()}
+        onOptionsPress={onOptionsPress}
+      />
+    );
+
+    fireEvent(getAllByTestId("conversation-item")[0], "hoverIn");
+    fireEvent.press(getByTestId("conversation-options"));
+    await waitFor(() => {
+      expect(onOptionsPress).toHaveBeenCalledTimes(1);
+    });
+    // Called with a measured anchor rect, or null when none is measurable.
+    const arg = onOptionsPress.mock.calls[0][0];
+    expect(arg === null || typeof arg === "object").toBe(true);
+  });
+
+  it("passes an anchor (or null without layout) from a long-press", async () => {
+    const onLongPress = jest.fn();
+    const { getByText } = render(
+      <ConversationItem
+        conversation={conversation}
+        onPress={jest.fn()}
+        onLongPress={onLongPress}
+      />
+    );
+
+    fireEvent(getByText("Alice"), "longPress");
+    await waitFor(() => {
+      expect(onLongPress).toHaveBeenCalledTimes(1);
+    });
+    const arg = onLongPress.mock.calls[0][0];
+    expect(arg === null || typeof arg === "object").toBe(true);
   });
 
   it("keeps the row lifted while the pointer rests on the options button", async () => {

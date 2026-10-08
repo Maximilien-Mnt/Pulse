@@ -6,16 +6,19 @@
 //
 //   - iOS     -> the real system action sheet (ActionSheetIOS), with a
 //                separated Cancel button and red destructive rows.
-//   - Android -> the shared in-app sheet (ActionMenuSheet), because React
-//                Native exposes no native list-style menu without a native
-//                module (which would break the managed / Expo Go workflow).
-//   - web     -> same shared sheet (react-native-web has no native menu).
+//   - Android -> React Native exposes no native list-style menu without a
+//                native module (which would break the managed / Expo Go
+//                workflow), so the options render as a **floating menu**
+//                anchored to the button that opened it (ActionMenuPopover) —
+//                or as the bottom sheet (ActionMenuSheet) when there is no
+//                anchor (e.g. the chat header "⋯").
+//   - web     -> same floating popover / bottom-sheet fallback.
 //
 // Confirmations are native dialogs too (`confirmAction`), and the group rename
 // uses the native text prompt on iOS.
 //
-// The public props are unchanged, so both call sites (the conversations list
-// long-press and the chat header "⋯" button) keep working as-is.
+// The `anchor` prop is optional, so both call sites (the conversations list
+// long-press / "⋮" and the chat header "⋯") keep working as-is.
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +28,10 @@ import { Button } from "@/components/ui/Button";
 import { type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { ActionMenuSheet } from "@/components/shared/ActionMenuSheet";
+import {
+  ActionMenuPopover,
+  type ActionMenuAnchor,
+} from "@/components/shared/ActionMenuPopover";
 import { ReportSheet } from "@/components/shared/ReportSheet";
 import {
   confirmAction,
@@ -66,6 +73,12 @@ interface Props {
   groupName?: string;
   /** Called with the new name after a successful group rename. */
   onRenamed?: (newName: string) => void;
+  /**
+   * On-screen rect of the button/row that opened the menu. When present (and
+   * the platform has no native menu), the options render as a floating menu
+   * anchored next to that button instead of the bottom sheet.
+   */
+  anchor?: ActionMenuAnchor | null;
 }
 
 /** Icons used by the in-app fallback (Android / web); the OS sheet has none. */
@@ -95,6 +108,7 @@ export function ConversationActionSheet({
   onLeft,
   groupName,
   onRenamed,
+  anchor = null,
 }: Props) {
   const { t } = useTranslation();
   const { colors, mode } = useDesignTokens();
@@ -103,7 +117,7 @@ export function ConversationActionSheet({
   // Optimistic pin state, re-synced whenever the server value (or the target
   // conversation) changes.
   const [isPinned, setIsPinned] = useState(pinned);
-  // Descriptor rendered by the fallback sheet on Android / web.
+  // Descriptor rendered by the fallback (popover or sheet) on Android / web.
   const [fallback, setFallback] = useState<ActionMenuDescriptor | null>(null);
   // Rename sheet state (Android / web — iOS uses the native prompt).
   const [renameOpen, setRenameOpen] = useState(false);
@@ -363,17 +377,33 @@ export function ConversationActionSheet({
 
   return (
     <>
-      {/* Android / web: in-app sheet built from the very same descriptor. */}
-      <ActionMenuSheet
-        visible={!!fallback}
-        descriptor={fallback}
-        icons={FALLBACK_ICONS}
-        onClose={() => {
-          setFallback(null);
-          onClose();
-        }}
-        onSelect={runOption}
-      />
+      {/* Android / web: in-app options built from the very same descriptor.
+          With an anchor (the row's "⋮" or a long-press) they render as a
+          floating menu next to the button; without one, as a bottom sheet. */}
+      {anchor ? (
+        <ActionMenuPopover
+          visible={!!fallback}
+          descriptor={fallback}
+          anchor={anchor}
+          icons={FALLBACK_ICONS}
+          onClose={() => {
+            setFallback(null);
+            onClose();
+          }}
+          onSelect={runOption}
+        />
+      ) : (
+        <ActionMenuSheet
+          visible={!!fallback}
+          descriptor={fallback}
+          icons={FALLBACK_ICONS}
+          onClose={() => {
+            setFallback(null);
+            onClose();
+          }}
+          onSelect={runOption}
+        />
+      )}
 
       {/* Group rename (Android / web — iOS uses the native prompt). */}
       <Modal

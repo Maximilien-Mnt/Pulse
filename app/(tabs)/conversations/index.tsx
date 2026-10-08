@@ -74,7 +74,15 @@ export default function ConversationsScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [menuItem, setMenuItem] = useState<any>(null);
+  // On-screen rect of the "⋮" / long-pressed row, used to anchor the floating
+  // options menu next to the button that opened it.
+  const [menuAnchor, setMenuAnchor] = useState<any>(null);
   const [convFilter, setConvFilter] = useState<"all" | "unread" | "pinned" | "public">("all");
+
+  const openMenu = useCallback((item: any, anchor: any) => {
+    setMenuAnchor(anchor ?? null);
+    setMenuItem(item);
+  }, []);
 
   const { data, isLoading, isError, refetch } = useConversations(userId);
 
@@ -138,8 +146,8 @@ export default function ConversationsScreen() {
             },
           });
         }}
-        onLongPress={() => setMenuItem(item)}
-        onOptionsPress={() => setMenuItem(item)}
+        onLongPress={(anchor) => openMenu(item, anchor)}
+        onOptionsPress={(anchor) => openMenu(item, anchor)}
         onAvatarPress={
           isGroup ? undefined : item.other?.id
             ? () => router.push(`/profile/${item.other.id}`)
@@ -148,7 +156,7 @@ export default function ConversationsScreen() {
       />
     );
     },
-    [router]
+    [openMenu, router]
   );
 
   const keyExtractor = useCallback((item: any) => String(item.conversation.id), []);
@@ -184,6 +192,7 @@ export default function ConversationsScreen() {
 
       <ConversationActionSheet
         visible={!!menuItem}
+        anchor={menuAnchor}
         conversationId={menuItem?.conversation?.id ?? ""}
         name={
           menuItem?.conversation?.is_group
@@ -193,7 +202,10 @@ export default function ConversationsScreen() {
         isGroup={!!menuItem?.conversation?.is_group}
         groupName={menuItem?.conversation?.group_name ?? ""}
         pinned={menuItem?.pinned ?? false}
-        onClose={() => setMenuItem(null)}
+        onClose={() => {
+          setMenuItem(null);
+          setMenuAnchor(null);
+        }}
         targetAuthorId={menuItem?.other?.id}
       />
     </SafeScreen>

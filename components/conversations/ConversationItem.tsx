@@ -29,6 +29,7 @@ import { ARROW_NUDGE, ARROW_NUDGE_DURATION } from "@/components/ui/Arrow";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
+import type { ActionMenuAnchor } from "@/components/shared/ActionMenuPopover";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,9 +46,9 @@ interface ConversationItemProps {
     pinned?: boolean;
   };
   onPress: () => void;
-  onLongPress?: () => void;
+  onLongPress?: (anchor?: ActionMenuAnchor | null) => void;
   onAvatarPress?: () => void;
-  onOptionsPress?: () => void;
+  onOptionsPress?: (anchor?: ActionMenuAnchor | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +89,56 @@ export function ConversationItem({
   const isWeb = Platform.OS === "web";
   const reduceMotion = useReducedMotion();
   const translateX = useRef(new Animated.Value(0)).current;
+
+  // Row + options-button refs, used to anchor the floating options menu near
+  // the "⋮" that opened it. The row is the fallback anchor for the native
+  // long-press path (where the ⋮ is never revealed).
+  const rowRef = useRef<View>(null);
+  const optionsRef = useRef<View>(null);
+
+  // Measure a view's window rect and hand it to `cb`. Guarded so it degrades
+  // gracefully in environments without a layout engine (tests / SSR): `cb`
+  // then receives `null` and the menu falls back to its default placement.
+  const measureAnchor = useCallback(
+    (node: View | null, cb: (anchor: ActionMenuAnchor | null) => void) => {
+      if (node && typeof node.measureInWindow === "function") {
+        let settled = false;
+        try {
+          node.measureInWindow((x, y, width, height) => {
+            if (!settled) {
+              settled = true;
+              cb({ x, y, width, height });
+            }
+          });
+        } catch {
+          cb(null);
+          return;
+        }
+        // Safety net: test renderers expose measureInWindow but never invoke
+        // its callback — the menu trigger must never hang.
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            cb(null);
+          }
+        }, 50);
+      } else {
+        cb(null);
+      }
+    },
+    []
+  );
+
+  const handleOptionsPress = useCallback(() => {
+    // Prefer the ⋮ button as the anchor; fall back to the whole row.
+    const node = optionsRef.current ?? rowRef.current;
+    measureAnchor(node, (anchor) => onOptionsPress?.(anchor));
+  }, [measureAnchor, onOptionsPress]);
+
+  const handleLongPress = useCallback(() => {
+    // Long-press anchors to the row (its top-right corner sits by the ⋮).
+    measureAnchor(rowRef.current, (anchor) => onLongPress?.(anchor));
+  }, [measureAnchor, onLongPress]);
 
   // The date ⇄ options-button crossfade rides the same nudge animation: as the
   // row slides ARROW_NUDGE px, the date fades out (1 → 0) and the options
@@ -168,6 +219,7 @@ export function ConversationItem({
 
   return (
     <Pressable
+      ref={rowRef}
       onHoverIn={isWeb ? handleActive : undefined}
       onHoverOut={isWeb ? scheduleOff : undefined}
       onFocus={handleActive}
@@ -175,7 +227,7 @@ export function ConversationItem({
       {...(webLeaveProps as any)}
       testID="conversation-item"
       onPress={onPress}
-      onLongPress={onLongPress}
+      onLongPress={handleLongPress}
       className={cn(
         "w-full flex-row items-center gap-3 px-4 py-3",
         // Touch press feedback (no hover on native) + the reference hover tint.
@@ -256,8 +308,9 @@ export function ConversationItem({
               pointerEvents={active ? "auto" : "none"}
             >
               <Pressable
+                ref={optionsRef}
                 testID="conversation-options"
-                onPress={onOptionsPress}
+                onPress={handleOptionsPress}
                 onHoverIn={isWeb ? handleActive : undefined}
                 onFocus={handleActive}
                 onBlur={scheduleOff}

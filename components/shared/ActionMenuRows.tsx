@@ -96,7 +96,7 @@ function ActionMenuRow({
           <Icon
             name={icon}
             size={18}
-            color={destructive ? "text-error" : "text-secondary"}
+            color={destructive ? "error-600" : "text-secondary"}
             decorative
           />
         ) : null}

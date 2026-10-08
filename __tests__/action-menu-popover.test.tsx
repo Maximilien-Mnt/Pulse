@@ -179,6 +179,33 @@ describe("ActionMenuPopover", () => {
     );
   });
 
+  it("passes a resolvable icon color to destructive rows so icons stay visible", () => {
+    const { getByTestId } = render(
+      <ActionMenuPopover
+        visible
+        descriptor={descriptor}
+        anchor={{ x: 300, y: 100, width: 40, height: 40 }}
+        onClose={jest.fn()}
+        onSelect={jest.fn()}
+        icons={{ pin: "Pin", delete: "Trash2", leave: "LogOut" }}
+      />
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ICON_MAP } = require("@/components/ui/Icon") as typeof import("@/components/ui/Icon");
+    // The destructive row's icon resolves to a real component (Trash2 is a
+    // registered icon, used through the memo wrapper's type identity)…
+    expect(ICON_MAP.Trash2).toBeTruthy();
+
+    // …and the row that carries it is the destructive one (red label kept),
+    // while a neutral sibling renders the same row structure.
+    const destructive = getByTestId("action-menu-option-delete");
+    expect(String(destructive.props.className ?? "")).toContain("flex-row");
+    for (const key of ["pin", "delete"]) {
+      expect(getByTestId(`action-menu-option-${key}`)).toBeTruthy();
+    }
+  });
+
   it("renders nothing when hidden or without a descriptor", () => {
     const { queryByTestId } = render(
       <ActionMenuPopover

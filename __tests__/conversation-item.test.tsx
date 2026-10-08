@@ -165,4 +165,77 @@ describe("ConversationItem", () => {
     expect(timing).not.toHaveBeenCalled();
     expect(setValue.mock.calls.some((call) => call[0] === ARROW_NUDGE)).toBe(true);
   });
+
+  // ── Options button (hover affordance) ───────────────────────────────────
+  //
+  // The relative date on the right swaps into an options button while the row
+  // is hovered/focused. At rest the button layer is inert (pointerEvents none),
+  // so a press there still opens the conversation; once active the button is
+  // the pointer target and its press opens the options menu WITHOUT also
+  // triggering the row press.
+  it("shows the relative date and renders an options button at rest", () => {
+    const { getByTestId } = render(
+      <ConversationItem conversation={conversation} onPress={jest.fn()} />
+    );
+
+    expect(getByTestId("conversation-date")).toBeTruthy();
+    const button = getByTestId("conversation-options");
+    expect(button.props.accessibilityRole).toBe("button");
+  });
+
+  it("opens the options menu from the button on hover without pressing the row", () => {
+    const onPress = jest.fn();
+    const onOptionsPress = jest.fn();
+    const { getAllByTestId, getByTestId } = render(
+      <ConversationItem
+        conversation={conversation}
+        onPress={onPress}
+        onOptionsPress={onOptionsPress}
+      />
+    );
+
+    // Row hover arms the options button (its layer becomes the pointer target).
+    fireEvent(getAllByTestId("conversation-item")[0], "hoverIn");
+    fireEvent.press(getByTestId("conversation-options"));
+    expect(onOptionsPress).toHaveBeenCalledTimes(1);
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it("falls through to the row press when the options button is idle", () => {
+    const onPress = jest.fn();
+    const onOptionsPress = jest.fn();
+    const { getByTestId } = render(
+      <ConversationItem
+        conversation={conversation}
+        onPress={onPress}
+        onOptionsPress={onOptionsPress}
+      />
+    );
+
+    // Idle: the button layer is inert, so the press reaches the row.
+    fireEvent.press(getByTestId("conversation-options"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(onOptionsPress).not.toHaveBeenCalled();
+  });
+
+  it("keeps the row lifted while the pointer rests on the options button", async () => {
+    const { getAllByTestId, getByTestId } = render(
+      <ConversationItem conversation={conversation} onPress={jest.fn()} />
+    );
+    const row = () => getAllByTestId("conversation-item")[0];
+
+    fireEvent(row(), "hoverIn");
+    expect(classes(row())).toContain("bg-primary-tint");
+
+    // Pointer moving onto the button re-asserts the row state so it never drops.
+    fireEvent(row(), "hoverOut");
+    fireEvent(getByTestId("conversation-options"), "hoverIn");
+    expect(classes(row())).toContain("bg-primary-tint");
+
+    // Truly leaving releases on the deferred off-tick.
+    fireEvent(row(), "hoverOut");
+    await waitFor(() => {
+      expect(classes(row())).not.toContain("bg-primary-tint");
+    });
+  });
 });

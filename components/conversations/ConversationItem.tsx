@@ -18,8 +18,8 @@
 // while the pointer moves between its children.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Platform, Pressable, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { formatRelative } from "@/utils/date";
 
 import { Avatar } from "@/components/ui/Avatar";
@@ -27,6 +27,7 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { ARROW_NUDGE, ARROW_NUDGE_DURATION } from "@/components/ui/Arrow";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
@@ -46,18 +47,35 @@ interface ConversationItemProps {
   onPress: () => void;
   onLongPress?: () => void;
   onAvatarPress?: () => void;
+  onOptionsPress?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+const styles = StyleSheet.create({
+  // Options button overlays the date, right-aligned and vertically centered,
+  // so the swap happens in place without reflowing the name column.
+  optionsLayer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+});
+
 export function ConversationItem({
   conversation,
   onPress,
   onLongPress,
   onAvatarPress,
+  onOptionsPress,
 }: ConversationItemProps) {
+  const { t } = useTranslation();
   const unread = conversation.unread ?? false;
   const pinned = conversation.pinned ?? false;
 
@@ -70,6 +88,30 @@ export function ConversationItem({
   const isWeb = Platform.OS === "web";
   const reduceMotion = useReducedMotion();
   const translateX = useRef(new Animated.Value(0)).current;
+
+  // The date ⇄ options-button crossfade rides the same nudge animation: as the
+  // row slides ARROW_NUDGE px, the date fades out (1 → 0) and the options
+  // button fades in (0 → 1). Deriving both from `translateX` keeps them locked
+  // to that one animation and makes them snap together under reduced motion —
+  // no extra Animated.timing call is introduced.
+  const dateOpacity = useMemo(
+    () =>
+      translateX.interpolate({
+        inputRange: [0, ARROW_NUDGE],
+        outputRange: [1, 0],
+        extrapolate: "clamp",
+      }),
+    [translateX]
+  );
+  const optionsOpacity = useMemo(
+    () =>
+      translateX.interpolate({
+        inputRange: [0, ARROW_NUDGE],
+        outputRange: [0, 1],
+        extrapolate: "clamp",
+      }),
+    [translateX]
+  );
 
   const cancelOff = useCallback(() => {
     if (offTimer.current !== null) {
@@ -186,10 +228,41 @@ export function ConversationItem({
         </View>
 
         {conversation.last_message_at ? (
+          // Stable-width slot: the date defines its width so the flex-1 name
+          // column never reflows when the date crossfades into the options
+          // button on hover.
           <View className="shrink-0 self-start ml-auto pt-0.5">
-            <Text variant="caption" className="text-text-tertiary" numberOfLines={1}>
-              {formatRelative(conversation.last_message_at)}
-            </Text>
+            {/* Date — fades out as the row lifts. Never interactive. */}
+            <Animated.View
+              testID="conversation-date"
+              style={{ opacity: dateOpacity }}
+              pointerEvents="none"
+            >
+              <Text variant="caption" className="text-text-tertiary" numberOfLines={1}>
+                {formatRelative(conversation.last_message_at)}
+              </Text>
+            </Animated.View>
+
+            {/* Options button — fades in over the date while hovered/focused and
+                becomes pressable, opening the conversation's options menu. At
+                rest it is inert so presses fall through to the row. */}
+            <Animated.View
+              style={[styles.optionsLayer, { opacity: optionsOpacity }]}
+              pointerEvents={active ? "auto" : "none"}
+            >
+              <Pressable
+                testID="conversation-options"
+                onPress={onOptionsPress}
+                onHoverIn={isWeb ? handleActive : undefined}
+                onFocus={handleActive}
+                onBlur={scheduleOff}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("conv.options")}
+              >
+                <Icon name="MoreVertical" size={20} color="text-tertiary" />
+              </Pressable>
+            </Animated.View>
           </View>
         ) : null}
       </Animated.View>

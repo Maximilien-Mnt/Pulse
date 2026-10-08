@@ -809,6 +809,7 @@ export const translations = {
     "conv.blockError": "Impossible de bloquer cet utilisateur",
     "conv.messageDeleteTitle": "Supprimer ce message ?",
     "conv.messageDeleteBody": "Ce message sera supprimé pour tous les participants. Cette action est irréversible.",
+    "conv.options": "Options de la conversation",
 
     // ── Comments ──────────────────────────────────────────────────────────
     "comments.title": "Commentaires ({count})",
@@ -2245,6 +2246,7 @@ export const translations = {
     "conv.blockError": "Unable to block this user",
     "conv.messageDeleteTitle": "Delete this message?",
     "conv.messageDeleteBody": "This message will be deleted for every participant. This action cannot be undone.",
+    "conv.options": "Conversation options",
 
     // ── Comments ──────────────────────────────────────────────────────────
     "comments.title": "Comments ({count})",

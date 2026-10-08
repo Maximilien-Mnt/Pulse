@@ -139,6 +139,7 @@ export default function ConversationsScreen() {
           });
         }}
         onLongPress={() => setMenuItem(item)}
+        onOptionsPress={() => setMenuItem(item)}
         onAvatarPress={
           isGroup ? undefined : item.other?.id
             ? () => router.push(`/profile/${item.other.id}`)

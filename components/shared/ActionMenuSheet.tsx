@@ -15,6 +15,7 @@ import { Modal, Pressable, View } from "react-native";
 
 import { Text } from "@/components/ui/Text";
 import type { IconName } from "@/components/ui/Icon";
+import { ActionMenuRows } from "@/components/shared/ActionMenuRows";
 import { TextButton } from "@/components/ui/TextButton";
 import type { ActionMenuDescriptor } from "@/components/shared/nativeActionMenu";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -58,26 +59,14 @@ export function ActionMenuSheet({ visible, descriptor, onClose, onSelect, icons 
           ) : null}
 
           <View className="mt-2">
-            {descriptor.options.map((option) => (
-              // A menu option is a label button, so it renders through
-              // <TextButton>: same hover/focus lift, same press spring, same
-              // 150ms colour fade as every other action in the app. The rest
-              // colours are exactly the ones this sheet used before the swap.
-              <TextButton
-                key={option.key}
-                tone={option.destructive ? "danger" : "neutral"}
-                disabled={option.disabled ?? false}
-                onPress={() => onSelect(option.key)}
-                accessibilityLabel={option.label}
-                icon={icons?.[option.key]}
-                iconSize={20}
-                labelVariant="body"
-                className="flex-row items-center gap-3 px-4 py-4 rounded-2xl"
-                labelClassName="flex-1"
-              >
-                {option.label}
-              </TextButton>
-            ))}
+            {/* Same shared rows as the floating popover: uniform alignment
+                and the blue-tint hover for every option, destructive included. */}
+            <ActionMenuRows
+              descriptor={descriptor}
+              onSelect={onSelect}
+              icons={icons}
+              density="sheet"
+            />
           </View>
 
           <TextButton

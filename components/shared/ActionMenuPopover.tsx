@@ -13,10 +13,12 @@
 // width**: it right-aligns to the button, never crosses the screen edges, and
 // flips above the trigger when it would otherwise overflow the bottom.
 //
-// Options render through <TextButton>, so each row carries the shared
-// hover/focus lift, 150ms colour fade and press feedback, and fires its
-// action on tap. A full-screen transparent backdrop sits behind the menu:
-// tapping anywhere outside dismisses it, exactly like the OS sheet.
+// Options render through the shared <ActionMenuRows>, so every row — neutral
+// and destructive alike — shares one structure (fixed icon slot + flex-1
+// left-aligned label) and one hover/focus treatment: the app's blue reference
+// tint faded over 150ms. Each row fires its action on tap. A full-screen
+// transparent backdrop sits behind the menu: tapping anywhere outside
+// dismisses it, exactly like the OS sheet.
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,7 +33,7 @@ import {
 } from "react-native";
 
 import { Text } from "@/components/ui/Text";
-import { TextButton } from "@/components/ui/TextButton";
+import { ActionMenuRows } from "@/components/shared/ActionMenuRows";
 import type { IconName } from "@/components/ui/Icon";
 import type { ActionMenuDescriptor } from "@/components/shared/nativeActionMenu";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -224,23 +226,12 @@ export function ActionMenuPopover({
               </Text>
             ) : null}
 
-            {descriptor.options.map((option) => (
-              <TextButton
-                key={option.key}
-                tone={option.destructive ? "danger" : "neutral"}
-                disabled={option.disabled ?? false}
-                onPress={() => onSelect(option.key)}
-                accessibilityLabel={option.label}
-                icon={icons?.[option.key]}
-                iconSize={18}
-                labelVariant="body"
-                className="flex-row items-center gap-3 px-3 py-3 rounded-xl"
-                labelClassName="flex-1 text-left"
-                testID={`action-menu-option-${option.key}`}
-              >
-                {option.label}
-              </TextButton>
-            ))}
+            <ActionMenuRows
+              descriptor={descriptor}
+              onSelect={onSelect}
+              icons={icons}
+              density="popover"
+            />
           </View>
         </Animated.View>
       </View>

@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   TextInput,
   View,
 } from "react-native";
@@ -137,10 +138,15 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <View className="flex-1">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+        >
           {comments.length === 0 ? (
             <View className="flex-1 items-center justify-center px-8 py-16">
-            <Icon name="MessageSquare" size={32} color="text-tertiary" />
+              <Icon name="MessageSquare" size={32} color="text-tertiary" />
               <Text variant="body" className="text-text-secondary text-center mt-4">
                 Aucun commentaire pour le moment.
               </Text>
@@ -160,7 +166,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
               ))}
             </View>
           )}
-        </View>
+        </ScrollView>
 
         <View className="flex-row items-end gap-2 px-4 py-3 border-t border-border bg-surface dark:bg-surface-dark">
           <TextInput

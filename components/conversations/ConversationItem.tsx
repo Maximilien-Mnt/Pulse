@@ -177,7 +177,7 @@ export function ConversationItem({
       onPress={onPress}
       onLongPress={onLongPress}
       className={cn(
-        "flex-row items-center gap-3 px-4 py-3",
+        "w-full flex-row items-center gap-3 px-4 py-3",
         // Touch press feedback (no hover on native) + the reference hover tint.
         "active:bg-primary-tint dark:active:bg-primary-tint-dark",
         active && "bg-primary-tint dark:bg-primary-tint-dark"
@@ -185,8 +185,13 @@ export function ConversationItem({
     >
       {/* Content wrapper: slides 4px right while hovered/focused. */}
       <Animated.View
-        style={{ transform: [{ translateX }] }}
-        className="flex-1 flex-row items-start gap-3"
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: 12, // gap-3
+          transform: [{ translateX }],
+        }}
       >
         <Pressable
           testID="conversation-avatar"

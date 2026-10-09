@@ -2,7 +2,7 @@ import { MessageBubble } from '@/components/conversations/MessageBubble';
 import { ConversationActionSheet } from '@/components/conversations/ConversationActionSheet';
 import { MessageEditModal } from '@/components/conversations/MessageEditModal';
 import { useMessageActions } from '@/hooks/useMessageActions';
-import { useConversationRealtime, mergeNewMessage, reconcileOptimisticMessage } from '@/hooks/useConversationRealtime';
+import { useConversationRealtime, mergeNewMessage } from '@/hooks/useConversationRealtime';
 import * as Clipboard from 'expo-clipboard';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -312,13 +312,19 @@ export default function ConversationScreen() {
         throw error;
       }
       
-      return data;
+      return { clientId, serverMessage: data };
     },
-    onSuccess: (serverMessage: any) => {
+    onSuccess: (result: any) => {
+      const serverMessage = result?.serverMessage;
       if (serverMessage) {
+        const clientId = result.clientId as string;
         void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
           if (!old) return old;
-          return { ...old, messages: reconcileOptimisticMessage(old.messages, serverMessage, serverMessage.id) };
+          // Drop the optimistic placeholder (keyed by clientId), then add the
+          // authoritative server row. mergeNewMessage dedupes by id, so if the
+          // realtime INSERT already added this row we never double it.
+          const base = old.messages.filter((m: any) => m.id !== clientId);
+          return { ...old, messages: mergeNewMessage(base, { ...serverMessage, _optimistic: false }) };
         });
       }
       setText('');
@@ -430,7 +436,7 @@ const handleTextChange = useCallback((newText: string) => {
             multiline
             value={text}
             onChangeText={handleTextChange}
-            onSubmitEditing={() => sendMut.mutate()}
+            onSubmitEditing={handleSend}
             returnKeyType='send'
           />
           <SendButton

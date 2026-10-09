@@ -111,7 +111,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
 
   return (
     <Animated.View
-      className="flex-1 bg-surface"
+      className="flex-1 bg-surface min-h-0"
       style={{
         transform: [{ translateX }],
         opacity: slideAnim,

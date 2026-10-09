@@ -27,7 +27,7 @@ export function useConversationRealtime({ conversationId, handlers, enabled = tr
       const newMessage = payload.new as any;
       if (seenMessages.has(newMessage.id)) return;
       seenMessages.add(newMessage.id);
-      const cached = qc.getQueryData(['messages', conversationId]) as { messages?: any[] } | undefined;
+      const cached = qc.getQueryData(['messages-initial', conversationId]) as { messages?: any[] } | undefined;
       if (cached?.messages?.some((m: any) => m.id === newMessage.id)) return;
       handlers.onNewMessage?.(newMessage);
     });

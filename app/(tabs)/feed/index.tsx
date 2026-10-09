@@ -572,7 +572,7 @@ export default function FeedScreen() {
           {/* Side Comment Panel - large screens */}
           {showCommentPanel && !useCenteredModal && (
             <View
-              className="border-l border-border"
+              className="border-l border-border flex-1 min-h-0"
               style={{
                 width: "50%",
               }}

@@ -33,7 +33,7 @@ export function usePinConversation() {
       }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conversations"], exact: false });
       void qc.invalidateQueries({ queryKey: ["conv-pinned"] });
     },
   });
@@ -65,7 +65,7 @@ export function useUnpinConversation() {
       }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conversations"], exact: false });
       void qc.invalidateQueries({ queryKey: ["conv-pinned"] });
     },
   });
@@ -82,7 +82,7 @@ export function useDeleteConversation() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conversations"], exact: false });
     },
   });
 }
@@ -103,7 +103,7 @@ export function useLeaveGroupConversation() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conversations"], exact: false });
     },
   });
 }
@@ -162,7 +162,7 @@ export function useRenameGroupConversation() {
     onSettled: (_d, _e, variables) => {
       // Refresh the conversations tab list and reconcile the header with the
       // server value (or restore the truth after a failure).
-      void qc.invalidateQueries({ queryKey: ["conversations"] });
+      void qc.invalidateQueries({ queryKey: ["conversations"], exact: false });
       if (variables?.conversationId) {
         void qc.invalidateQueries({ queryKey: ["conv-row", variables.conversationId] });
       }

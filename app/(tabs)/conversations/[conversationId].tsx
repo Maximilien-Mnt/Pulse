@@ -345,7 +345,14 @@ export default function ConversationScreen() {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
-  const handleTextChange = useCallback((newText: string) => {
+  
+
+// Stable reference for the send handler.
+const handleSend = useCallback(() => {
+  sendMut.mutate();
+}, [sendMut]);
+
+const handleTextChange = useCallback((newText: string) => {
     setText(newText);
     scrollToBottom();
   }, [scrollToBottom]);
@@ -428,9 +435,9 @@ export default function ConversationScreen() {
           />
           <SendButton
             label="Envoyer le message"
-            disabled={!text.trim()}
+            disabled={!text.trim() || sendMut.isPending}
             loading={sendMut.isPending}
-            onPress={() => sendMut.mutate()}
+            onPress={handleSend}
           />
         </View>
       </KeyboardAvoidingView>
@@ -470,3 +477,4 @@ export default function ConversationScreen() {
     </SafeScreen>
   );
 }
+

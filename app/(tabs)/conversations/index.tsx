@@ -201,7 +201,15 @@ export default function ConversationsScreen() {
         }
         isGroup={!!menuItem?.conversation?.is_group}
         groupName={menuItem?.conversation?.group_name ?? ""}
-        pinned={menuItem?.pinned ?? false}
+        // Live query value, not the open-time snapshot: when the (un)pin
+        // refetch lands, the open menu's row flips to the opposite action.
+        pinned={
+          menuItem
+            ? (data?.find(
+                (c: any) => c.conversation?.id === menuItem.conversation?.id
+              )?.pinned ?? menuItem.pinned ?? false)
+            : false
+        }
         onClose={() => {
           setMenuItem(null);
           setMenuAnchor(null);

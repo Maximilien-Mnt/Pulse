@@ -114,9 +114,10 @@ export function ConversationActionSheet({
   const { colors, mode } = useDesignTokens();
   const isDark = mode === "dark";
 
-  // Optimistic pin state, re-synced whenever the server value (or the target
-  // conversation) changes.
-  const [isPinned, setIsPinned] = useState(pinned);
+  // The pin label always derives from the live `pinned` prop (fed by the
+  // conversations query), so reopening the menu after (un)pinning shows
+  // the flipped action. No local mirror: a snapshot would go stale.
+  const isPinned = pinned;
   // Descriptor rendered by the fallback (popover or sheet) on Android / web.
   const [fallback, setFallback] = useState<ActionMenuDescriptor | null>(null);
   // Rename sheet state (Android / web — iOS uses the native prompt).
@@ -139,19 +140,22 @@ export function ConversationActionSheet({
   const leaveMut = useLeaveGroupConversation();
   const renameMut = useRenameGroupConversation();
 
-  useEffect(() => {
-    setIsPinned(pinned);
-  }, [pinned, conversationId]);
 
   // ── Actions ────────────────────────────────────────────────────────────
   const handleTogglePin = useCallback(() => {
-    const next = !isPinned;
-    setIsPinned(next); // mise à jour instantanée et optimiste
-    const mutation = next ? pinMut.mutate : unpinMut.mutate;
-    mutation(conversationId, {
-      onError: () => setIsPinned(!next), // annule l'optimisme en cas d'échec
+    const mutation = isPinned ? unpinMut : pinMut;
+    mutation.mutate(conversationId, {
+      onSuccess: () => {
+        Toast.show({
+          type: "success",
+          text1: isPinned ? t("conv.unpinnedOk") : t("conv.pinnedOk"),
+        });
+      },
+      onError: () => {
+        Toast.show({ type: "error", text1: t("common.unknownError") });
+      },
     });
-  }, [conversationId, isPinned, pinMut.mutate, unpinMut.mutate]);
+  }, [conversationId, isPinned, pinMut, t, unpinMut]);
 
   const handleSignal = useCallback(() => {
     // Snapshot the target before the menu closes, then open the report sheet.
@@ -350,6 +354,14 @@ export function ConversationActionSheet({
 
   const runOption = useCallback(
     (key: string) => {
+      // Pin / unpin keep the menu mounted while the mutation + refetch settle,
+      // so the row visibly flips to the opposite action instead of closing on
+      // a stale label. Every other option closes immediately, as before.
+      if (key === "pin" || key === "unpin") {
+        setFallback(null);
+        handlers[key]?.();
+        return;
+      }
       setFallback(null);
       onClose();
       handlers[key]?.();

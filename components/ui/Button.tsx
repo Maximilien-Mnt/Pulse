@@ -11,6 +11,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   View,
   Platform,
@@ -52,6 +54,8 @@ export type ButtonSize = "sm" | "md" | "lg";
 // never scale: no grow on hover/focus, no squash on press — the press
 // feedback is the `active:` surface tint plus a subtle opacity dip, so
 // short labels ("S'inscrire", "Enregistrer") never shimmer or reflow.
+// Button icons DO grow in place on hover/focus (BUTTON_ICON_SCALE_HOVER)
+// while the label stays flat.
 // ---------------------------------------------------------------------------
 
 /**
@@ -63,6 +67,9 @@ export const BUTTON_SCALE_HOVER = 1;
 
 /** Labels never squash on press — the feedback is surface + opacity. Kept for compat. */
 export const BUTTON_SCALE_PRESS = 1;
+
+/** Icon glyph scale while hovered / keyboard-focused — grows in place, label stays flat. */
+export const BUTTON_ICON_SCALE_HOVER = 1.15;
 
 /** Shared colour-fade duration (same as ICON_BUTTON_TRANSITION_MS / ARROW_NUDGE_DURATION). */
 export const BUTTON_TRANSITION_MS = 150;
@@ -238,6 +245,25 @@ export const Button = React.forwardRef<View, ButtonProps>(
       }
     }, [isDisabled]);
 
+    // ── Icon grow ────────────────────────────────────────────────────────
+    // On hover/focus the leading/trailing glyph grows in place (same 150ms
+    // ease-out as the surface fade, mirroring SendButton's glyph scale).
+    // Labels never scale — only this icon wrapper transforms.
+    const iconScale = useRef(new Animated.Value(1)).current;
+    useEffect(() => {
+      const to = lifted ? BUTTON_ICON_SCALE_HOVER : 1;
+      if (reduceMotion) {
+        iconScale.setValue(to);
+        return;
+      }
+      Animated.timing(iconScale, {
+        toValue: to,
+        duration: BUTTON_TRANSITION_MS,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }, [lifted, reduceMotion, iconScale]);
+
     const handlePressIn = useCallback(() => {
       pressedRef.current = true;
       setPressed(true);
@@ -306,12 +332,18 @@ export const Button = React.forwardRef<View, ButtonProps>(
     );
     const iconColor = indicatorColor(variant);
 
-    const renderIcon = (name: IconName) =>
-      isArrowIcon(name) ? (
-        <Arrow active={arrowActive} name={name} size={20} color={iconColor} />
-      ) : (
-        <Icon name={name} size={20} color={iconColor} />
-      );
+    const renderIcon = (name: IconName) => (
+      <Animated.View
+        testID="button-icon-scale"
+        style={{ transform: [{ scale: iconScale }] }}
+      >
+        {isArrowIcon(name) ? (
+          <Arrow active={arrowActive} name={name} size={20} color={iconColor} />
+        ) : (
+          <Icon name={name} size={20} color={iconColor} />
+        )}
+      </Animated.View>
+    );
 
     return (
       <Pressable

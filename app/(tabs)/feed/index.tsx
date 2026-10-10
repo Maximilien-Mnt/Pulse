@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
 // PULSE FEED SCREEN
 //
-// Top bar: Pulse logo (Activity icon in rounded primary bg) + search bar + Bell badge
-// Search panel: advanced options (scopes, sort, format, tag) + history
-//   → collapsible / minimizable via drag-down, backdrop tap, or chevron button
+// Top bar: Pulse logo + plain search bar + Filter / Sort / View-toggle buttons
+// Filter panel: inline FeedFilterPanel (Format + Tag spécifique)
+// Sort panel: inline FeedSortPanel (Pertinence / Date / Likes / …)
 // Filter row: sticky chips (Pour toi, Abonnements, sports) — filter the feed
 // Post list: PostCard components with skeleton/empty/error states
 // ---------------------------------------------------------------------------
@@ -11,13 +11,11 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
-  Pressable,
   RefreshControl,
   View,
   useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Image } from "expo-image";
 import { useAuthStore } from "@/stores/authStore";
 import { useFeedStore } from "@/stores/feedStore";
 import { useFeed } from "@/hooks/useFeed";
@@ -26,18 +24,19 @@ import { useUserSports } from "@/hooks/useUserSports";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useFeedTagSuggestions } from "@/hooks/useFeedTagSuggestions";
 import {
-  SearchPanel,
   applySearch,
   DEFAULT_SEARCH_OPTIONS,
   type SearchOptions,
+  type SearchSort,
 } from "@/components/feed/SearchPanel";
+import { FeedFilterPanel } from "@/components/feed/FeedFilterPanel";
+import { FeedSortPanel } from "@/components/feed/FeedSortPanel";
 import type { FeedPost } from "@/types";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
-import { IconButton } from "@/components/ui/IconButton";
-import { PressableScale } from "@/components/ui/PressableScale";
 import { Tag } from "@/components/ui/Tag";
+import { PressableScale, CHIP_SCALE_HOVER, CHIP_SCALE_PRESS } from "@/components/ui/PressableScale";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/feed/PostCard";
@@ -47,7 +46,6 @@ import { CommentCenteredModal } from "@/components/feed/CommentCenteredModal";
 import { FeedFilterSortBar } from "@/components/feed/FeedFilterSortBar";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useTranslation , t } from "@/hooks/useTranslation";
-import { formatCount } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder
@@ -174,13 +172,13 @@ export default function FeedScreen() {
   const setFilter = useFeedStore((s) => s.setFilter);
   const { data: userSportsData } = useUserSports(userId);
   const { data: notifData } = useNotifications();
-  const { history, addSearch, removeSearch, clearHistory } = useSearchHistory();
+  const { addSearch } = useSearchHistory();
 
   const selectedPostId = useFeedStore((s) => s.selectedPostId);
   const setSelectedPostId = useFeedStore((s) => s.setSelectedPostId);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchExpanded, setSearchExpanded] = useState(false);
-  const [searchMinimized, setSearchMinimized] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const [searchOptions, setSearchOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS);
 
   const feedListRef = useRef<FlatList<FeedPost>>(null);
@@ -202,7 +200,11 @@ export default function FeedScreen() {
     "abonnements": "Following",
   };
 
-  const isSearching = searchExpanded && !searchMinimized;
+  // Active states drive the filter/sort button dots and the empty-state copy.
+  const filtersActive =
+    searchOptions.formats.length > 0 || searchOptions.tag.trim() !== "";
+  const sortActive = searchOptions.sort !== "relevance";
+  const isSearching = searchQuery.trim() !== "" || filtersActive || sortActive;
   const isGridAvailable = screenWidth >= 768;
   const useCenteredModal = screenWidth < 750;
   const showCommentPanel = !!selectedPostId && viewMode === "list";
@@ -313,24 +315,28 @@ export default function FeedScreen() {
     addSearch(searchQuery);
   }, [addSearch, searchQuery]);
 
-  const handleSelectHistory = useCallback(
-    (q: string) => {
-      setSearchQuery(q);
-      addSearch(q);
-    },
-    [addSearch]
+  // Filter and sort buttons toggle their inline panel (opening one closes the
+  // other — a single slot under the header), mirroring the explore screen.
+  const handleOpenFilters = useCallback(() => {
+    setFilterOpen((open) => {
+      if (!open) setSortOpen(false);
+      return !open;
+    });
+  }, []);
+  const handleCloseFilters = useCallback(() => setFilterOpen(false), []);
+
+  const handleOpenSort = useCallback(() => {
+    setSortOpen((open) => {
+      if (!open) setFilterOpen(false);
+      return !open;
+    });
+  }, []);
+  const handleCloseSort = useCallback(() => setSortOpen(false), []);
+
+  const handleSortSelect = useCallback(
+    (value: SearchSort) => setSearchOptions((o) => ({ ...o, sort: value })),
+    []
   );
-
-  const handleCollapseSearch = useCallback(() => {
-    setSearchExpanded(false);
-    setSearchMinimized(false);
-    setSearchQuery("");
-    setSearchOptions(DEFAULT_SEARCH_OPTIONS);
-  }, []);
-
-  const handleToggleMinimize = useCallback(() => {
-    setSearchMinimized((prev) => !prev);
-  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
@@ -391,23 +397,29 @@ export default function FeedScreen() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           onSearchClear={() => setSearchQuery("")}
-          onSearchCollapse={handleCollapseSearch}
-          onSearchPress={() => setSearchExpanded(true)}
           onSubmitSearch={handleSubmitSearch}
-          searchExpanded={searchExpanded}
-          searchOptions={searchOptions}
-          onFilterPress={() => {
-            setSearchExpanded(true);
-            setSearchMinimized(false);
-          }}
-          onSortPress={() => {
-            setSearchExpanded(true);
-            setSearchMinimized(false);
-          }}
+          filterActive={filtersActive}
+          onFilterPress={handleOpenFilters}
+          sortActive={sortActive}
+          onSortPress={handleOpenSort}
           isGridAvailable={isGridAvailable}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
         />
+        {filterOpen ? (
+          <FeedFilterPanel
+            options={searchOptions}
+            onChange={setSearchOptions}
+            onClose={handleCloseFilters}
+          />
+        ) : null}
+        {sortOpen ? (
+          <FeedSortPanel
+            value={searchOptions.sort}
+            onSelect={handleSortSelect}
+            onClose={handleCloseSort}
+          />
+        ) : null}
         <FeedSkeleton />
       </SafeScreen>
     );
@@ -423,23 +435,29 @@ export default function FeedScreen() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           onSearchClear={() => setSearchQuery("")}
-          onSearchCollapse={handleCollapseSearch}
-          onSearchPress={() => setSearchExpanded(true)}
           onSubmitSearch={handleSubmitSearch}
-          searchExpanded={searchExpanded}
-          searchOptions={searchOptions}
-          onFilterPress={() => {
-            setSearchExpanded(true);
-            setSearchMinimized(false);
-          }}
-          onSortPress={() => {
-            setSearchExpanded(true);
-            setSearchMinimized(false);
-          }}
+          filterActive={filtersActive}
+          onFilterPress={handleOpenFilters}
+          sortActive={sortActive}
+          onSortPress={handleOpenSort}
           isGridAvailable={isGridAvailable}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
         />
+        {filterOpen ? (
+          <FeedFilterPanel
+            options={searchOptions}
+            onChange={setSearchOptions}
+            onClose={handleCloseFilters}
+          />
+        ) : null}
+        {sortOpen ? (
+          <FeedSortPanel
+            value={searchOptions.sort}
+            onSelect={handleSortSelect}
+            onClose={handleCloseSort}
+          />
+        ) : null}
         <FeedError onRetry={() => void refetch()} />
       </SafeScreen>
     );
@@ -454,40 +472,34 @@ export default function FeedScreen() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchClear={() => setSearchQuery("")}
-        onSearchCollapse={handleCollapseSearch}
-        onSearchPress={() => setSearchExpanded(true)}
         onSubmitSearch={handleSubmitSearch}
-        searchExpanded={searchExpanded}
-        searchOptions={searchOptions}
-        onFilterPress={() => {
-          setSearchExpanded(true);
-          setSearchMinimized(false);
-        }}
-        onSortPress={() => {
-          setSearchExpanded(true);
-          setSearchMinimized(false);
-        }}
+        filterActive={filtersActive}
+        onFilterPress={handleOpenFilters}
+        sortActive={sortActive}
+        onSortPress={handleOpenSort}
         isGridAvailable={isGridAvailable}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
       />
 
-      {/* Advanced search panel — collapsible */}
-      {searchExpanded ? (
-        <SearchPanel
+      {/* Inline filter panel */}
+      {filterOpen ? (
+        <FeedFilterPanel
           options={searchOptions}
           onChange={setSearchOptions}
-          history={history}
-          onSelectHistory={handleSelectHistory}
-          onRemoveHistory={removeSearch}
-          onClearHistory={clearHistory}
-          minimized={searchMinimized}
-          onToggleMinimize={handleToggleMinimize}
+          onClose={handleCloseFilters}
+        />
+      ) : null}
+      {sortOpen ? (
+        <FeedSortPanel
+          value={searchOptions.sort}
+          onSelect={handleSortSelect}
+          onClose={handleCloseSort}
         />
       ) : null}
 
-      {/* Filter chips — sticky, hidden while search is expanded (not minimized) */}
-      {!searchExpanded || searchMinimized ? (
+      {/* Filter chips — sticky */}
+      <React.Fragment>
         <View className="bg-bg dark:bg-bg-dark">
           <View className="py-2">
             <FlatList
@@ -497,11 +509,17 @@ export default function FeedScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
               renderItem={({ item }) => (
-                <Pressable onPress={() => handleTagPress(item)}>
+                <PressableScale
+                  onPress={() => handleTagPress(item)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isChipActive(item) }}
+                  scaleOnHover={CHIP_SCALE_HOVER}
+                  scaleOnPress={CHIP_SCALE_PRESS}
+                >
                   <Tag variant="chip" active={isChipActive(item)}>
                     {tagLabels[item] ?? item}
                   </Tag>
-                </Pressable>
+                </PressableScale>
               )}
             />
           </View>
@@ -517,17 +535,23 @@ export default function FeedScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
                 renderItem={({ item }) => (
-                  <Pressable onPress={() => handleTagPress(item)}>
+                  <PressableScale
+                    onPress={() => handleTagPress(item)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isChipActive(item) }}
+                    scaleOnHover={CHIP_SCALE_HOVER}
+                    scaleOnPress={CHIP_SCALE_PRESS}
+                  >
                     <Tag variant="chip" active={isChipActive(item)}>
                       {item}
                     </Tag>
-                  </Pressable>
+                  </PressableScale>
                 )}
               />
             </View>
           ) : null}
         </View>
-      ) : null}
+      </React.Fragment>
 
       {visiblePosts.length === 0 ? (
         isSearching ? (

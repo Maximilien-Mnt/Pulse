@@ -7,13 +7,15 @@ import { Icon } from "@/components/ui/Icon";
 import type { SortOption } from "@/components/shared/SortSheet";
 import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
+import { PressableScale, CHIP_SCALE_HOVER, CHIP_SCALE_PRESS } from "@/components/ui/PressableScale";
 
 function ToggleButton({ label, active, onPress, testID }: {
   label: string; active: boolean; onPress: () => void; testID?: string;
 }) {
   return (
-    <Pressable testID={testID} onPress={onPress} accessibilityRole="button"
+    <PressableScale testID={testID} onPress={onPress} accessibilityRole="button"
       accessibilityState={{ selected: active }}
+      scaleOnHover={CHIP_SCALE_HOVER} scaleOnPress={CHIP_SCALE_PRESS}
       className={cn("flex-row items-center gap-1.5 px-3 py-2 rounded-full border active:opacity-80",
         active ? "bg-primary border-primary"
           : "bg-surface dark:bg-surface-dark border-border dark:border-border-dark")}>
@@ -21,7 +23,7 @@ function ToggleButton({ label, active, onPress, testID }: {
         className={active ? "text-white" : "text-text-secondary dark:text-text-secondary-dark"}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -23,6 +23,20 @@ import type { PressableProps } from "react-native";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { AccessibilityHintProps } from "@/src/accessibility";
 
+// ---------------------------------------------------------------------------
+// Chip motion constants — shared by every carousel tag/filter/sort pill so the
+// micro-interaction is identical across Feed, Conversations and the sort/filter
+// panels. Chips are larger text pills than icon buttons, so the scale deltas are
+// gentler than ICON_BUTTON_SCALE_HOVER/PRESS (a big squash reads as text wobble).
+// ---------------------------------------------------------------------------
+
+/** Scale applied while hovered (web) / keyboard-focused. */
+export const CHIP_SCALE_HOVER = 1.04;
+/** Scale applied while pressed (click/tap). */
+export const CHIP_SCALE_PRESS = 0.96;
+
+
+
 export interface PressableScaleProps extends PressableProps, AccessibilityHintProps {
   /** Scale applied while pressed. Default 0.94. */
   scaleOnPress?: number;

@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, View, RefreshControl } from "react-native";
+import { FlatList, View, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -18,6 +18,7 @@ import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tag } from "@/components/ui/Tag";
+import { PressableScale, CHIP_SCALE_HOVER, CHIP_SCALE_PRESS } from "@/components/ui/PressableScale";
 import { ConversationItem } from "@/components/conversations/ConversationItem";
 import { ConversationActionSheet } from "@/components/conversations/ConversationActionSheet";
 
@@ -270,11 +271,17 @@ function ConvFilterRow({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         renderItem={({ item }) => (
-          <Pressable onPress={() => onFilterChange(item.key)}>
+          <PressableScale
+            onPress={() => onFilterChange(item.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeFilter === item.key }}
+            scaleOnHover={CHIP_SCALE_HOVER}
+            scaleOnPress={CHIP_SCALE_PRESS}
+          >
             <Tag variant="chip" active={activeFilter === item.key}>
               {item.label}
             </Tag>
-          </Pressable>
+          </PressableScale>
         )}
       />
     </View>

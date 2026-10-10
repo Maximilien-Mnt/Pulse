@@ -1,36 +1,38 @@
 // ---------------------------------------------------------------------------
 // PULSE FEED - Filter & Sort Bar
 // ---------------------------------------------------------------------------
-// Separates the search bar from filter/sort controls into a clean row:
+// A single header row:
 //
 //   [Logo]  [SearchBar (flex-1)]  [Filter]  [Sort]  [View toggle]
 //
-// The SearchBar retains its default hover (tint + glyph nudge) and click
-// (blue border + one-step height grow) animations - these are built into
-// the shared <SearchBar> component and triggered by pointer events, so no
-// special wiring is needed here.
+// The SearchBar is a plain, always-expanded field — exactly like the explore
+// screen's. It filters the feed live as you type and opens NO panel. Its
+// default hover (tint + glyph nudge) and click (blue border + one-step
+// height grow) animations live inside the shared <SearchBar> and are driven
+// by pointer events, so nothing special is wired here.
+//
+// The Filter and Sort buttons open their own inline panels (FeedFilterPanel /
+// FeedSortPanel) via the callbacks below; the parent owns the open state.
 // ---------------------------------------------------------------------------
 
 import { View } from 'react-native';
 import { Image } from 'expo-image';
-import { useTranslation, t } from '@/hooks/useTranslation';
+import { t } from '@/hooks/useTranslation';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SearchBar } from '@/components/shared/SearchBar';
-import type { SearchOptions } from '@/components/feed/SearchPanel';
 
 export interface FeedFilterSortBarProps {
   searchValue: string;
   onSearchChange: (v: string) => void;
   onSearchClear: () => void;
-  onSearchPress: () => void;
-  onSearchCollapse: () => void;
   onSubmitSearch: () => void;
-  searchExpanded: boolean;
-  /** Active filter/sort options from the SearchPanel - used to show dots. */
-  searchOptions: SearchOptions;
+  /** Whether the filter button shows its active dot. */
+  filterActive: boolean;
   onFilterPress: () => void;
+  /** Whether the sort button shows its active dot. */
+  sortActive: boolean;
   onSortPress: () => void;
   isGridAvailable: boolean;
   viewMode: 'list' | 'grid';
@@ -41,27 +43,18 @@ export function FeedFilterSortBar({
   searchValue,
   onSearchChange,
   onSearchClear,
-  onSearchPress,
-  onSearchCollapse,
   onSubmitSearch,
-  searchExpanded,
-  searchOptions,
+  filterActive,
   onFilterPress,
+  sortActive,
   onSortPress,
   isGridAvailable,
   viewMode,
   onToggleViewMode,
 }: FeedFilterSortBarProps) {
-  const hasActiveFilters =
-    searchOptions.formats.length > 0 ||
-    searchOptions.tag.trim() !== '' ||
-    searchOptions.scopes.length > 2;
-
-  const hasActiveSort = searchOptions.sort !== 'relevance';
-
   return (
     <View className='flex-row items-center justify-between px-4 py-3 bg-bg dark:bg-bg-dark gap-3'>
-      {/* Logo mark - Activity icon in rounded square */}
+      {/* Logo mark */}
       <View className='w-10 h-10 rounded-xs bg-primary items-center justify-center overflow-hidden shrink-0'>
         <Image
           source={require('@/assets/logo/pulse-logo-10-v3-20260828.png')}
@@ -70,16 +63,14 @@ export function FeedFilterSortBar({
         />
       </View>
 
-      {/* Search bar - flex-1, takes all remaining horizontal space.
-          Hover + click animations live inside <SearchBar>. */}
+      {/* Plain search bar — flex-1, no panel on press. */}
       <View className='flex-1 min-w-0'>
         <SearchBar
           value={searchValue}
           onChangeText={onSearchChange}
           onClear={onSearchClear}
-          onCollapse={onSearchCollapse}
-          onPress={onSearchPress}
-          expanded={searchExpanded}
+          expanded
+          autoFocus={false}
           onSubmitEditing={onSubmitSearch}
           placeholder={t('feed.searchPlaceholder')}
         />
@@ -97,9 +88,9 @@ export function FeedFilterSortBar({
         <Icon
           name='ListFilter'
           size={20}
-          color={hasActiveFilters ? 'primary' : 'text-secondary'}
+          color={filterActive ? 'primary' : 'text-secondary'}
         />
-        {hasActiveFilters ? (
+        {filterActive ? (
           <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
         ) : null}
       </PressableScale>
@@ -116,9 +107,9 @@ export function FeedFilterSortBar({
         <Icon
           name='ArrowUpDown'
           size={20}
-          color={hasActiveSort ? 'primary' : 'text-secondary'}
+          color={sortActive ? 'primary' : 'text-secondary'}
         />
-        {hasActiveSort ? (
+        {sortActive ? (
           <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
         ) : null}
       </PressableScale>

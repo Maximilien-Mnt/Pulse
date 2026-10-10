@@ -17,6 +17,9 @@
 //     is also what the tests assert against.
 //   - Hover/focus: a spring scale-up (1.06). Keyboard focus gets the same
 //     treatment as pointer hover, so the affordance is never mouse-only.
+//   - Hover/focus: the glyph itself grows in place (1.18, same as SendButton)
+//     via an inner Animated.View, alongside the surface lift — background
+//     colour changes AND the icon gets a little bit bigger.
 //   - Press: a spring scale-down (0.9) — tactile feedback on tap/click.
 //   - Everything is gated by `useReducedMotion`: under reduced motion the states
 //     still change, they just snap instead of animating.
@@ -35,6 +38,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, type PressableProps } from "react-native";
 
 import { Icon, type IconColor, type IconName } from "./Icon";
+import { HoverGlyph } from "./HoverGlyph";
 import { PressableScale } from "./PressableScale";
 import { hitSlopForIcon } from "@/src/accessibility";
 import { cn } from "@/utils/format";
@@ -49,6 +53,8 @@ export const BUTTON_ICON_SIZE = 44;
 export const ICON_BUTTON_SCALE_HOVER = 1.06;
 /** Scale applied while pressed. */
 export const ICON_BUTTON_SCALE_PRESS = 0.9;
+/** Glyph scale while hovered / keyboard-focused — the icon grows in place, stays centered. */
+export const ICON_BUTTON_GLYPH_SCALE = 1.18;
 /** Duration (ms) of the surface colour fade. Matches ARROW_NUDGE_DURATION. */
 export const ICON_BUTTON_TRANSITION_MS = 150;
 
@@ -239,14 +245,19 @@ export function IconButton({
       hitSlop={hitSlopForIcon(sizePx[size])}
       className={containerClass}
     >
-      <Icon
-        name={icon}
-        size={iconSize ?? sizeIcon[size]}
-        color={color ?? toneIcon[tone]}
-        active={active}
-        filled={filled}
-        decorative
-      />
+      <HoverGlyph
+        active={hovered}
+        testID={testID ? `${testID}-glyph` : undefined}
+      >
+        <Icon
+          name={icon}
+          size={iconSize ?? sizeIcon[size]}
+          color={color ?? toneIcon[tone]}
+          active={active}
+          filled={filled}
+          decorative
+        />
+      </HoverGlyph>
     </PressableScale>
   );
 }

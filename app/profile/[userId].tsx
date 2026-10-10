@@ -134,7 +134,7 @@ export default function UserPublicProfileScreen() {
         </View>
 
         {!isOwn && (
-          <View className="mt-4 gap-2.5">
+          <View className="mt-4 flex-row flex-wrap gap-2.5">
             {isPublic && (
               <Button
                 title={isFollowing ? t("profile.unfollow") : t("profile.follow")}
@@ -142,7 +142,7 @@ export default function UserPublicProfileScreen() {
                 icon="User"
                 onPress={handleFollow}
                 loading={followMut.isPending || unfollowMut.isPending}
-                className="rounded-xl"
+                className="rounded-xl grow shrink basis-auto min-w-fit"
               />
             )}
             <Button
@@ -151,16 +151,15 @@ export default function UserPublicProfileScreen() {
               icon="Mail"
               onPress={handleContact}
               loading={contactMut.isPending}
-              className="rounded-xl"
+              className="rounded-xl grow shrink basis-auto min-w-fit"
             />
-            <View className="items-center">
-              <Button
-                title="Bloquer"
-                variant="ghost"
-                onPress={handleBlock}
-                loading={blockMut.isPending}
-              />
-            </View>
+            <Button
+              title="Bloquer"
+              variant="ghost"
+              onPress={handleBlock}
+              loading={blockMut.isPending}
+              className="rounded-xl grow shrink basis-auto min-w-fit"
+            />
           </View>
         )}
 

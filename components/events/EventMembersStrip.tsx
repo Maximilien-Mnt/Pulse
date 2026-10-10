@@ -1,6 +1,7 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Arrow, useArrowNudge } from "@/components/ui/Arrow";
+import { HoverGlyph } from "@/components/ui/HoverGlyph";
 import { Text as PulseText } from "@/components/ui/Text";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -73,7 +74,9 @@ export function EventMembersStrip({
               : " bg-primary/10")
           }
         >
-          <Arrow active={active} name="ChevronRight" size={20} color="primary" />
+          <HoverGlyph active={active}>
+            <Arrow active={active} name="ChevronRight" size={20} color="primary" />
+          </HoverGlyph>
         </Pressable>
       </ScrollView>
     </View>

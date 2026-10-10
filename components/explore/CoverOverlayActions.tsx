@@ -28,6 +28,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Platform, Share as RNShare, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
+import { HoverGlyph } from "@/components/ui/HoverGlyph";
 import {
   BUTTON_ICON_SIZE,
   ICON_BUTTON_SCALE_HOVER,
@@ -216,13 +217,15 @@ export function CoverOverlayActions({
         testID={testID ? `${testID}-favorite` : undefined}
       >
         <Animated.View style={{ transform: [{ scale: pop }] }}>
-          <Icon
-            name="Heart"
-            size={20}
-            color={visualLiked ? "primary" : idleIconColor}
-            active={visualLiked}
-            decorative
-          />
+          <HoverGlyph active={hovered === "favorite"}>
+            <Icon
+              name="Heart"
+              size={20}
+              color={visualLiked ? "primary" : idleIconColor}
+              active={visualLiked}
+              decorative
+            />
+          </HoverGlyph>
         </Animated.View>
       </PressableScale>
       <PressableScale
@@ -236,7 +239,9 @@ export function CoverOverlayActions({
         className={classFor("share")}
         testID={testID ? `${testID}-share` : undefined}
       >
-        <Icon name="Share2" size={19} color={idleIconColor} decorative />
+        <HoverGlyph active={hovered === "share"}>
+          <Icon name="Share2" size={19} color={idleIconColor} decorative />
+        </HoverGlyph>
       </PressableScale>
     </View>
   );

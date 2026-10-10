@@ -26,11 +26,13 @@ import { useUserSports } from "@/hooks/useUserSports";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useFeedTagSuggestions } from "@/hooks/useFeedTagSuggestions";
 import {
-  SearchPanel,
+  FeedTest,
   applySearch,
   DEFAULT_SEARCH_OPTIONS,
   type SearchOptions,
-} from "@/components/feed/SearchPanel";
+} from "@/components/feed/FeedTest";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { FeedFilterSortBar } from "@/components/feed/FeedFilterSortBar";
 import type { FeedPost } from "@/types";
 
 import { Text } from "@/components/ui/Text";
@@ -44,7 +46,6 @@ import { PostCard } from "@/components/feed/PostCard";
 import { FeedGrid } from "@/components/feed/FeedGrid";
 import { CommentPanel } from "@/components/feed/CommentPanel";
 import { CommentCenteredModal } from "@/components/feed/CommentCenteredModal";
-import { FeedFilterSortBar } from "@/components/feed/FeedFilterSortBar";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useTranslation , t } from "@/hooks/useTranslation";
 import { formatCount } from "@/utils/format";
@@ -474,7 +475,7 @@ export default function FeedScreen() {
 
       {/* Advanced search panel — collapsible */}
       {searchExpanded ? (
-        <SearchPanel
+        <FeedTest
           options={searchOptions}
           onChange={setSearchOptions}
           history={history}

@@ -104,6 +104,17 @@ describe("IconButton", () => {
     expect(getByLabelText("Paramètres")).toBeTruthy();
   });
 
+  it("wraps the glyph so it grows in place on hover/focus", () => {
+    jest.replaceProperty(Platform, "OS", "web");
+    const { getByLabelText, getByTestId } = render(
+      <IconButton icon="Settings" label="Paramètres" testID="settings-btn" />
+    );
+
+    // Glyph wrapper exists alongside the surface lift (background + icon grow).
+    expect(getByTestId("settings-btn-glyph")).toBeTruthy();
+    expect(classNameOf(getByLabelText("Paramètres"))).toContain("transition-colors");
+  });
+
   describe("surface lift (web hover)", () => {
     beforeEach(() => {
       jest.replaceProperty(Platform, "OS", "web");

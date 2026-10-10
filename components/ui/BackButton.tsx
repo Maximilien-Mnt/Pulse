@@ -26,6 +26,7 @@
 import { useRouter } from "expo-router";
 import { Pressable } from "react-native";
 import { Arrow, useArrowNudge } from "./Arrow";
+import { HoverGlyph } from "./HoverGlyph";
 import { cn } from "@/utils/format";
 import { hasNavigatedInSession, getPreviousRoute } from "@/lib/navigationSession";
 
@@ -98,7 +99,9 @@ export function BackButton({
         className
       )}
     >
-      <Arrow active={active} name="ChevronLeft" size={24} color="primary" />
+      <HoverGlyph active={active}>
+        <Arrow active={active} name="ChevronLeft" size={24} color="primary" />
+      </HoverGlyph>
     </Pressable>
   );
 }

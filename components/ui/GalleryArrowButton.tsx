@@ -10,6 +10,7 @@
 import React from "react";
 import { PressableScale } from "./PressableScale";
 import { Arrow, useArrowNudge } from "./Arrow";
+import { HoverGlyph } from "./HoverGlyph";
 import { ICON_BUTTON_SCALE_HOVER, ICON_BUTTON_SCALE_PRESS } from "./IconButton";
 import { cn } from "@/utils/format";
 
@@ -52,12 +53,14 @@ export function GalleryArrowButton({
         direction === "left" ? "left-2" : "right-2"
       )}
     >
-      <Arrow
-        active={active}
-        name={direction === "left" ? "ChevronLeft" : "ChevronRight"}
-        size={20}
-        color="text-primary"
-      />
+      <HoverGlyph active={active}>
+        <Arrow
+          active={active}
+          name={direction === "left" ? "ChevronLeft" : "ChevronRight"}
+          size={20}
+          color="text-primary"
+        />
+      </HoverGlyph>
     </PressableScale>
   );
 }

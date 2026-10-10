@@ -114,7 +114,7 @@ const REST_BOX = { height: SEARCH_BAR_HEIGHT_REST, top: 0 };
 const GROWN_BOX = { height: SEARCH_BAR_HEIGHT_GROWN, top: -SEARCH_BAR_GROW_LIFT };
 
 const REST_SURFACE = "bg-neutral-100 dark:bg-neutral-800";
-const LIFTED_SURFACE = "bg-neutral-200 dark:bg-neutral-700";
+const LIFTED_SURFACE = "bg-primary-tint dark:bg-primary-tint-dark";
 const REST_BORDER = "border-transparent";
 const STUB_TRANSITION = "transition-[height,top,background-color,border-color]";
 

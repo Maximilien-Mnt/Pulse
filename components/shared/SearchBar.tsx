@@ -8,8 +8,8 @@
 // never paints over (or vacates space beside) the neighbouring title / icon
 // buttons in the packed header row:
 //   - HOVER (pointer only, web): a little, simple animation — the surface
-//     lifts neutral-100 → neutral-200 (dark: 800 → 700) and the search glyph
-//     tints to primary and slides SEARCH_BAR_GLYPH_NUDGE px right, replaying
+//     tints blue (primary-tint light/dark) and the search glyph tints to
+//     primary and slides SEARCH_BAR_GLYPH_NUDGE px right, replaying
 //     on every entry (hoverCount bumps the glyph's replay key). It never
 //     grows the box and never draws a border, and it disappears the moment
 //     the pointer leaves (hoverOut / window blur) — even while the bar is
@@ -93,7 +93,7 @@ export const SEARCH_BAR_TRANSITION_MS = 150;
 export const SEARCH_BAR_GLYPH_NUDGE = 5;
 
 const restSurface = "bg-neutral-100 dark:bg-neutral-800";
-const liftedSurface = "bg-neutral-200 dark:bg-neutral-700";
+const liftedSurface = "bg-primary-tint dark:bg-primary-tint-dark";
 
 /**
  * The click state's affordance: a flat primary ring (light/dark themed via

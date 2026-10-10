@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Message } from '@/types';
 import { Icon } from '@/components/ui/Icon';
 import { SendButton } from '@/components/ui/SendButton';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
@@ -32,12 +32,18 @@ import { reportError } from '@/lib/reporting/errorReport';
 const MESSAGES_PAGE_SIZE = 20;
 
 export default function ConversationScreen() {
-  const { conversationId, otherName, otherAvatarUrl, otherId } = useLocalSearchParams<{
-    conversationId: string;
+  const params = useLocalSearchParams<{
+    conversationId: string | string[];
     otherName?: string;
     otherAvatarUrl?: string;
     otherId?: string;
   }>();
+  // Normalize: on web refresh expo-router can hand back string[] — an array
+  // passed straight to .eq() matches zero rows silently (preview still works
+  // because it never uses this param).
+  const rawId = params.conversationId;
+  const conversationId = Array.isArray(rawId) ? rawId[0] ?? '' : (rawId ?? '');
+  const { otherName, otherAvatarUrl, otherId } = params;
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const authInitialized = useAuthStore((s) => s.initialized);
@@ -45,11 +51,11 @@ export default function ConversationScreen() {
   // JWT may not be loaded yet and RLS would return 0 rows (success) which we
   // must never cache/show as "no messages".
   const authReady = authInitialized && !!userId;
-  // Single canonical cache key for this conversation's messages. Memoized so
-  // realtime/edit/delete callbacks keep stable references.
+  // Single canonical cache key for this conversation's messages. Includes the
+  // user so entries can never leak across accounts; memoized for stable refs.
   const MESSAGES_KEY = useMemo(
-    () => ['messages', conversationId] as unknown as readonly unknown[],
-    [conversationId],
+    () => ['messages', conversationId, userId] as unknown as readonly unknown[],
+    [conversationId, userId],
   );
   const qc = useQueryClient();
   const listRef = useRef<FlatList>(null);
@@ -194,12 +200,15 @@ export default function ConversationScreen() {
 
   const loadMessages = useCallback(async (cursor?: string) => {
     if (!conversationId) return { messages: [], names: {} as Record<string, string>, nextCursor: null as string | null, hasMore: false };
-    // Newest-first page: fetch the latest PAGE, then sort ASC for display.
-    // This guarantees recent messages are always visible even in long histories.
+    // Plain SELECT on messages only: the previous `*, profiles(full_name)`
+    // embed made the whole thread query depend on profiles RLS (own row +
+    // public + conversation-contact chain). Any hiccup there failed the entire
+    // read while the list preview (SECURITY DEFINER RPC) kept working.
+    // Sender names come from the dedicated profiles query below.
     const query = supabase
       .from('messages')
-      .select('*, profiles(full_name)')
-      .eq('conversation_id', conversationId!)
+      .select('*')
+      .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(MESSAGES_PAGE_SIZE);
@@ -232,11 +241,24 @@ export default function ConversationScreen() {
     queryKey: MESSAGES_KEY,
     enabled: !!conversationId && authReady,
     // Never serve a stale empty list from a previous cold-start race:
-    // messages must always refetch once auth is ready.
+    // messages must always refetch once auth is ready and on return.
     staleTime: 0,
     gcTime: 1000 * 60 * 60 * 24,
+    retry: 2,
+    refetchOnMount: 'always',
     queryFn: () => loadMessages(),
   });
+
+  // Refetch whenever the thread regains focus (list → thread, tab switch,
+  // refresh-then-back): the list screen refetches on focus, the thread must too.
+  useFocusEffect(
+    useCallback(() => {
+      if (authReady && conversationId) {
+        void initialQuery.refetch();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authReady, conversationId]),
+  );
 
   // Keep pagination cursors as derived effects — never setState inside queryFn.
   useEffect(() => {
@@ -248,6 +270,20 @@ export default function ConversationScreen() {
 
   const messages = initialQuery.data?.messages ?? [];
   const nameMap = initialQuery.data?.names ?? {};
+  // Honest states: loading / error / genuinely-empty are three different
+  // things. Previously all three rendered "No messages yet", which made a
+  // failed read look exactly like "message never sent".
+  const messagesLoading = initialQuery.isLoading || initialQuery.isPending;
+  const messagesError = initialQuery.isError ? initialQuery.error : null;
+
+  useEffect(() => {
+    if (messagesError) {
+      reportError(messagesError, {
+        operation: 'conversations.loadMessages',
+        route: '/conversations',
+      });
+    }
+  }, [messagesError]);
 
   const dataInverted = [...messages].reverse();
 
@@ -333,7 +369,7 @@ export default function ConversationScreen() {
 
   useConversationRealtime({
     conversationId: conversationId ?? '',
-    enabled: !!conversationId,
+    enabled: !!conversationId && authReady,
     handlers: realtimeHandlers,
   });
 
@@ -494,9 +530,27 @@ const handleTextChange = useCallback((newText: string) => {
           }}
           contentContainerClassName='px-4 py-3'
           ListEmptyComponent={
-            <View className='flex-1 items-center justify-center py-12'>
-              <Text className='text-neutral-400 text-center'>No messages yet</Text>
-            </View>
+            messagesLoading ? (
+              <View className='flex-1 items-center justify-center py-12'>
+                <Text className='text-neutral-400 text-center'>Loading messages…</Text>
+              </View>
+            ) : messagesError ? (
+              <View className='flex-1 items-center justify-center py-12 gap-2'>
+                <Text className='text-neutral-400 text-center'>Couldn&apos;t load messages</Text>
+                <Pressable
+                  onPress={() => void initialQuery.refetch()}
+                  accessibilityRole='button'
+                  accessibilityLabel='Retry loading messages'
+                  className='px-4 py-2 rounded-xl bg-neutral-200 dark:bg-neutral-700'
+                >
+                  <Text className='text-sm font-semibold'>Retry</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View className='flex-1 items-center justify-center py-12'>
+                <Text className='text-neutral-400 text-center'>No messages yet</Text>
+              </View>
+            )
           }
         />
         

@@ -3,27 +3,34 @@
 //
 // Single search pill used in feed / explore / conversations.
 // Motion (coherent with IconButton / Button / Arrow — 150ms fades, glyph
-// nudge, all gated by useReducedMotion). Three rules govern everything below;
-// between them the bar never paints over (or vacates space beside) the
-// neighbouring title / icon buttons in the packed header row:
-//   - Growth is VERTICAL ONLY and goes through layout, never a scale: the pill
-//     swaps SEARCH_BAR_HEIGHT_REST → SEARCH_BAR_HEIGHT_GROWN (h-11 → h-12),
-//     so the header row re-flows instead of the pill painting over a
-//     neighbour, and a SEARCH_BAR_GROW_LIFT `top` pin keeps the bottom edge
-//     on the row line while the extra height extends upward.
-//   - Pointer hover (web) replays on every entry (hoverCount bumps the
-//     glyph's replay key): the surface lifts neutral-100 → neutral-200 (dark:
-//     800 → 700), the search glyph tints to primary and slides
-//     SEARCH_BAR_GLYPH_NUDGE px right, a soft primary halo fades in around
-//     the pill (web), and the bar grows — all on the same 150ms clock.
+// nudge, all gated by useReducedMotion). Two INDEPENDENT channels drive the
+// pill; they render together instead of competing, and between them the bar
+// never paints over (or vacates space beside) the neighbouring title / icon
+// buttons in the packed header row:
+//   - HOVER (pointer only, web): a little, simple animation — the surface
+//     lifts neutral-100 → neutral-200 (dark: 800 → 700) and the search glyph
+//     tints to primary and slides SEARCH_BAR_GLYPH_NUDGE px right, replaying
+//     on every entry (hoverCount bumps the glyph's replay key). It never
+//     grows the box and never draws a border, and it disappears the moment
+//     the pointer leaves (hoverOut / window blur) — even while the bar is
+//     clicked.
+//   - CLICK (`active`): what the bar shows after a click until a click lands
+//     outside it. The border turns the theme's primary blue as a flat
+//     `border-2` ring — deliberately NOT a glow, there is no boxShadow halo
+//     anywhere — and the pill grows one step, SEARCH_BAR_HEIGHT_REST →
+//     SEARCH_BAR_HEIGHT_GROWN (h-11 → h-12), through LAYOUT (never a scale)
+//     with a SEARCH_BAR_GROW_LIFT `top` pin, so the row re-flows instead of
+//     the pill painting over a neighbour. The expanded field arms it through
+//     focus (blur = the click landed outside); the collapsed stub arms it on
+//     press-in and a document pointerdown outside the pill disarms it. So
+//     click = hover animation + blue border + taller box while the pointer
+//     is over the bar, and pulling the pointer away drops exactly the hover
+//     half until it comes back.
 //   - Press (collapsed stub) is a small inward spring squash to
 //     SEARCH_BAR_SQUASH_Y_PRESS on the element's single transform — the one
-//     channel hover never writes (hover = layout + colour) — so a hovered
-//     press composes with the hover state instead of swapping to a competing
-//     branch mid-interaction.
-//   - Persistent engagement: `engaged` (lit || a filled query) keeps the
-//     lifted surface, the grown height and the primary icon tint after blur,
-//     so a filled bar stays readable without staying lit.
+//     channel neither state writes (hover/click = layout + colour) — so a
+//     hovered press composes with both states instead of swapping branches
+//     mid-interaction.
 //   - Clear button: circular chip with its own hover (chip darkens +
 //     icon tints to primary, surface lifts to 1.06) and press (squash
 //     to 0.9). Plain "X" glyph — never XCircle+filled (which self-fills
@@ -57,78 +64,63 @@ type Props = {
 };
 
 /**
- * Collapsed height when idle; grows to h-12 on pointer hover, keyboard focus,
- * or a filled query via layout (not a transform), so the header row re-flows
- * instead of the bar painting over a neighbour the way a uniform scale would.
- * Press keeps its own spring squash on top (see SEARCH_BAR_SQUASH_Y_PRESS) —
- * hover never swaps the transform branch, so the two compose.
+ * Collapsed height when idle; grows to h-12 ONLY while clicked, through
+ * layout (not a transform), so the header row re-flows instead of the bar
+ * painting over a neighbour the way a uniform scale would. Hover never grows
+ * the box. Press keeps its own spring squash on top (see
+ * SEARCH_BAR_SQUASH_Y_PRESS) — neither state writes the transform channel.
  */
 export const SEARCH_BAR_HEIGHT_REST = "h-11";
-/** Hover / focus / filled height — strictly taller, never wider. */
+/** Clicked height — strictly taller, never wider. */
 export const SEARCH_BAR_HEIGHT_GROWN = "h-12";
 /**
- * Focus/hover lift (px, web): the grown bar rises half its height delta so the
+ * Click lift (px, web): the grown bar rises half its height delta so the
  * extra 4px extends upward and the bottom edge stays pinned to the row.
  */
 export const SEARCH_BAR_GROW_LIFT = 2;
 /**
  * Press dimple (collapsed stub): the spring squash target is exactly
  * (1 − SEARCH_BAR_PRESS_DIMPLE) ≈ 0.985 along the shared Y axis — a faint
- * inward dimple strictly inside the layout box, so the click animation can
- * never shrink the bar's box and expose the background beside it.
+ * inward dimple strictly inside the layout box, so the press can never
+ * shrink the bar's box and expose the background beside it.
  */
 export const SEARCH_BAR_PRESS_DIMPLE = 0.015;
 /** The press spring's target scale — exactly (1 − SEARCH_BAR_PRESS_DIMPLE). */
 export const SEARCH_BAR_SQUASH_Y_PRESS = 1 - SEARCH_BAR_PRESS_DIMPLE;
 /** Colour-fade duration shared with IconButton / Button. */
 export const SEARCH_BAR_TRANSITION_MS = 150;
-/** Travel (px) of the search glyph on hover/focus — the field "opens up". */
+/** Travel (px) of the search glyph on hover — the field "opens up". */
 export const SEARCH_BAR_GLYPH_NUDGE = 5;
-/** Alpha of the soft primary halo drawn around an engaged bar (web). */
-export const SEARCH_BAR_GLOW_ALPHA = 0.45;
 
 const restSurface = "bg-neutral-100 dark:bg-neutral-800";
 const liftedSurface = "bg-neutral-200 dark:bg-neutral-700";
 
+/**
+ * The click state's affordance: a flat primary ring (light/dark themed via
+ * the `dark:` twin), never a glow. The WIDTH is a constant `border-2` even at
+ * rest (transparent), so arming/disarming only tweens colour — the content
+ * box never shifts and the pill can never paint outside itself.
+ */
+const activeBorder = "border-primary dark:border-primary-dark";
+const restBorder = "border-transparent";
+
 const clearRest = "bg-neutral-300/60 dark:bg-neutral-600/60";
 const clearLifted = "bg-neutral-400/80 dark:bg-neutral-500/80";
 
-/**
- * "#3358FF" + 0.45 → "rgba(51,88,255,0.45)" — the halo colour is derived from
- * the active theme's primary token so it tracks light/dark automatically.
- */
-function withAlpha(hex: string, alpha: number): string {
-  const normalized = hex.replace("#", "");
-  const full =
-    normalized.length === 3
-      ? normalized
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : normalized;
-  const value = Number.parseInt(full, 16);
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
 // ---------------------------------------------------------------------------
-// Search glyph — tints with the bar state and slides right while the bar is
-// lit, so hover/focus reads as the field "opening up". Same nudge language as
-// <Arrow> (150ms ease-out, snaps under reduced motion).
+// Search glyph — tints and slides right while the bar is HOVERED, so hover
+// reads as the field "opening up". Same nudge language as <Arrow> (150ms
+// ease-out, snaps under reduced motion). The click state never touches it:
+// the blue border + taller box are the click's own, distinct affordance.
 // ---------------------------------------------------------------------------
 
 function SearchGlyph({
   lit,
-  engaged,
   reduceMotion,
   replayKey,
 }: {
-  /** True while lit (pointer hover or keyboard focus) — drives the slide. */
+  /** True while hovered (pointer over, web) — drives slide AND tint. */
   lit: boolean;
-  /** True while engaged (lit or a query) — drives the tint. */
-  engaged: boolean;
   reduceMotion: boolean;
   /**
    * Bumps on every hover-in so the nudge replays from rest: a plain
@@ -162,44 +154,8 @@ function SearchGlyph({
 
   return (
     <Animated.View style={{ transform: [{ translateX }] }}>
-      <Icon name="Search" size={18} color={engaged ? "primary" : "text-tertiary"} />
+      <Icon name="Search" size={18} color={lit ? "primary" : "text-tertiary"} />
     </Animated.View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Glow — soft primary halo around an engaged bar (web only: native has no
-// pointer hover, and a string boxShadow is a DOM affordance). Lives on its own
-// overlay so its opacity fade (`transition-opacity`) never shares a
-// transition-property class with the pill's colour swap, and it paints below
-// the glyph/text because it is the pill's first child.
-// ---------------------------------------------------------------------------
-
-function GlowOverlay({
-  lit,
-  color,
-  reduceMotion,
-}: {
-  /** True while the bar is hovered (web) or keyboard-focused. */
-  lit: boolean;
-  /** Current-mode primary token — the halo follows light/dark with it. */
-  color: string;
-  reduceMotion: boolean;
-}) {
-  return (
-    <View
-      pointerEvents="none"
-      testID="search-bar-glow"
-      className={cn(
-        "absolute top-0 left-0 right-0 bottom-0 rounded-full",
-        lit ? "opacity-100" : "opacity-0",
-        !reduceMotion && "transition-opacity duration-150"
-      )}
-      style={{
-        // Diffuse brand halo + a hair of elevation — a glow, never a ring.
-        boxShadow: `0 0 14px 3px ${withAlpha(color, SEARCH_BAR_GLOW_ALPHA)}, 0 2px 8px rgba(0,0,0,0.10)`,
-      }}
-    />
   );
 }
 
@@ -263,16 +219,23 @@ export function SearchBar({
   const [pointerInside, setPointerInside] = useState(false);
   // Bumps on every hover-in so pointer-driven effects (the glyph nudge)
   // replay from rest even when `lit` held the same value across the entry —
-  // e.g. keyboard focus kept it true before the mouse arrived.
+  // e.g. the click state kept the bar engaged before the mouse arrived.
   const [hoverCount, setHoverCount] = useState(0);
-  const [focused, setFocused] = useState(false);
+  // Click state: armed by a click (field focus / stub press-in), disarmed by
+  // a click landing outside the pill (document pointerdown) or by blur.
+  const [active, setActive] = useState(false);
   const isWeb = Platform.OS === "web";
   const hasQuery = value.trim().length > 0;
+  // The pill itself (or the stub's wrapper): the click-outside listener
+  // checks containment against it so presses that START inside the pill
+  // (padding, glyph, clear chip) never disarm the click state.
+  const rootRef = useRef<View>(null);
+  const inputRef = useRef<TextInput>(null);
 
   // Hover stays the single source of truth for the pointer (web only), and is
-  // never touched by focus/blur — so the hover animation keeps playing every
-  // time the mouse comes back over the bar, even after a click elsewhere or
-  // a keyboard-focus cycle.
+  // never touched by focus/blur or by the click state — so the hover
+  // animation keeps playing every time the mouse comes back over the bar,
+  // even while the click state is holding the border and the taller box.
   useEffect(() => {
     if (!isWeb) return;
     // Switching tabs/windows ends any in-flight hover: the next mouseenter
@@ -283,20 +246,41 @@ export function SearchBar({
     return () => window.removeEventListener("blur", onWindowBlur);
   }, [isWeb]);
 
-  // `focused` is tracked separately for the keyboard affordance, and both
-  // drive `lit`:
-  //   lit = pointerInside || focused
-  // `engaged` additionally keeps the lifted surface and the grown height
-  // while a query is present after blur, but never the transient motion.
-  const lit = pointerInside || focused;
-  const engaged = lit || hasQuery;
+  // Click outside: any pointerdown that lands outside the pill disarms the
+  // click state ("the click animation disappears if the user clicks anywhere
+  // outside"). Capture phase, so it runs before the press itself; containment
+  // keeps presses that start inside the pill from disarming it. The expanded
+  // field additionally clears on blur, which covers Tab presses and native
+  // taps where no document listener exists.
+  useEffect(() => {
+    if (!isWeb || !active || typeof document === "undefined") return;
+    const onPointerDown = (event: Event) => {
+      const root = rootRef.current as unknown as {
+        contains?: (node: Node) => boolean;
+      } | null;
+      const target = event.target as Node | null;
+      if (
+        root &&
+        typeof root.contains === "function" &&
+        target &&
+        root.contains(target)
+      ) {
+        return; // Press started inside the pill — the click state stays.
+      }
+      setActive(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [isWeb, active]);
 
-  // The grown box tracks engagement exactly: strictly taller (h-11 → h-12),
-  // never wider — layout re-flow instead of a scale, so the pill can't paint
-  // over the header title or icon buttons beside it, and the press spring
-  // composes with it rather than swapping it out.
-  const grown = engaged;
-
+  // The two channels, kept apart on purpose:
+  //   lit    = pointer over the bar → hover's little animation only.
+  //   active = bar clicked          → blue border + taller box only.
+  // Rendering adds them, so clicked + hovered shows both, and pulling the
+  // pointer away drops exactly the hover half until it comes back.
+  const lit = pointerInside;
+  const grown = active;
+
   const handleClear = useCallback(() => {
     if (value.length > 0) {
       onChangeText("");
@@ -306,25 +290,26 @@ export function SearchBar({
     }
   }, [value, onChangeText, onClear, onCollapse]);
 
-  // No border, no outline: hover / focus / query read through the surface
-  // colour, the search glyph and the taller box. Transition lists differ per
-  // branch: the expanded bar has no spring of its own, so `transition-all`
-  // carries grow, pin and colour on one 150ms clock; the stub names exactly
-  // its hover-driven properties — `transition-all` would also tween the
-  // `transform` PressableScale's press spring writes every frame.
-   const pillClass = (branchTransition: string) =>
-     cn(
-       // `relative` anchors the glow overlay on web — RN absolute children
-       // always resolve against their parent on native, but the DOM needs an
-       // explicitly positioned ancestor.
-      "relative flex-row items-center rounded-full px-4 gap-2 border-0",
-      // Vertical-only grow via layout (never a scale): rest ↔ grown box.
+  // The border (click) and the surface (hover) are the only painted states.
+  // Transition lists differ per branch: the expanded bar has no spring of its
+  // own, so `transition-all` carries grow, pin, surface and border colour on
+  // one 150ms clock; the stub names exactly its animated properties —
+  // `transition-all` would also tween the `transform` PressableScale's press
+  // spring writes every frame.
+  const pillClass = (branchTransition: string) =>
+    cn(
+      // `relative` carries the grow pin. The border width is a constant
+      // `border-2` (transparent at rest) so arming the click state only
+      // tweens colour — the content box never shifts.
+      "relative flex-row items-center rounded-full px-4 gap-2 border-2",
+      // Vertical-only grow via layout (never a scale): rest ↔ clicked box.
       grown && !reduceMotion ? SEARCH_BAR_HEIGHT_GROWN : SEARCH_BAR_HEIGHT_REST,
-       engaged ? liftedSurface : restSurface,
-       !reduceMotion && branchTransition,
-       className
+      active ? activeBorder : restBorder,
+      // Hover-only surface lift — never held by the click state.
+      lit ? liftedSurface : restSurface,
+      !reduceMotion && branchTransition,
+      className
     );
-
 
   // Bottom-edge pin for the grown bar: a relative `top` offset (the pill is
   // already `relative`), deliberately NOT a transform — on the stub the
@@ -335,14 +320,8 @@ export function SearchBar({
     top: grown && !reduceMotion ? -SEARCH_BAR_GROW_LIFT : 0,
   };
 
-  const glow = isWeb ? (
-    <GlowOverlay
-      lit={lit}
-      color={tokens.colors.primary}
-      reduceMotion={reduceMotion}
-    />
-  ) : null;
-
+  // Pointer hover (web): the little animation's own channel — never touched
+  // by focus, blur or the click state, so it can drop and re-add freely.
   const hoverProps = {
     onHoverIn: isWeb
       ? () => {
@@ -351,70 +330,107 @@ export function SearchBar({
         }
       : undefined,
     onHoverOut: isWeb ? () => setPointerInside(false) : undefined,
-    onFocus: () => setFocused(true),
-    onBlur: () => setFocused(false),
   };
 
+  // Click / keyboard focus: the click state itself (focus = the field was
+  // clicked, blur = the click landed outside it).
+  const focusProps = {
+    onFocus: () => setActive(true),
+    onBlur: () => setActive(false),
+  };
 
-  // Web hover on the container: cast keeps TS happy (RN-web forwards it).
-  const containerHoverProps: Record<string, () => void> = isWeb
+  // Web click on the pill's chrome (padding / glyph / clear chip): a default
+  // mousedown would blur the field and drop the click state for a click that
+  // landed INSIDE the bar, so prevent it and focus the field explicitly —
+  // clicks on the field itself fall through untouched.
+  const chromeMouseDownProps: Record<
+    string,
+    (event: { preventDefault: () => void; target: { nodeName?: string } | null }) => void
+  > = isWeb
     ? {
-        onHoverIn: () => {
-          setPointerInside(true);
-          setHoverCount((c) => c + 1);
+        onMouseDown: (event) => {
+          const name = event.target?.nodeName?.toUpperCase() ?? "";
+          if (name === "INPUT" || name === "TEXTAREA") return;
+          event.preventDefault();
+          inputRef.current?.focus();
         },
-        onHoverOut: () => setPointerInside(false),
       }
     : {};
+
+  // Native tap on the pill's chrome: focus the field so the click state arms
+  // the same way it does on web. Responder negotiation is deepest-first, so
+  // the field itself always wins over this container where they overlap.
+  const chromePressProps = isWeb
+    ? {}
+    : {
+        onStartShouldSetResponder: () => true,
+        onResponderRelease: () => {
+          inputRef.current?.focus();
+        },
+      };
 
   // ── Collapsed (pressable stub) ───────────────────────────────────
   if (onPress && !expanded) {
     // Grow / pin ride layout (h-11 → h-12 + `top`), never a transform, so
-    // the pill's only transform stays PressableScale's press spring: every
-    // hover visual is still in place when the click spring fires, and the
-    // two compose instead of swapping branches mid-interaction. The
-    // transition list names exactly the hover-driven properties —
-    // `transition-all` would also tween `transform` and fight the spring.
+    // the pill's only transform stays PressableScale's press spring: the
+    // hover visuals and the click's border/box are all still in place when
+    // the click spring fires, and the three compose instead of swapping
+    // branches mid-interaction. The transition list names exactly the
+    // animated properties — `transition-all` would also tween `transform`
+    // and fight the spring. The wrapper carries the click-outside ref
+    // (PressableScale forwards none) and adds no styles of its own.
     return (
-      <PressableScale
-        onPress={onPress}
-        scaleOnPress={reduceMotion ? 1 : SEARCH_BAR_SQUASH_Y_PRESS}
-        {...hoverProps}
-        style={grownStyle}
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel={hasQuery ? value : placeholder}
-        className={pillClass("transition-[height,top,background-color] duration-150")}
-      >
-        {glow}
-        <SearchGlyph lit={lit} engaged={engaged} reduceMotion={reduceMotion} replayKey={hoverCount} />
-        <Text
-          className={cn(
-            "flex-1 text-base font-inter",
-            hasQuery ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-500"
+      <View ref={rootRef}>
+        <PressableScale
+          onPress={onPress}
+          onPressIn={() => setActive(true)}
+          scaleOnPress={reduceMotion ? 1 : SEARCH_BAR_SQUASH_Y_PRESS}
+          {...hoverProps}
+          {...focusProps}
+          style={grownStyle}
+          testID="search-bar"
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={hasQuery ? value : placeholder}
+          className={pillClass(
+            "transition-[height,top,background-color,border-color] duration-150"
           )}
-          numberOfLines={1}
         >
-          {hasQuery ? value : placeholder}
-        </Text>
-        {hasQuery ? <ClearButton onPress={handleClear} /> : null}
-      </PressableScale>
+          <SearchGlyph lit={lit} reduceMotion={reduceMotion} replayKey={hoverCount} />
+          <Text
+            className={cn(
+              "flex-1 text-base font-inter",
+              hasQuery ? "text-neutral-900 dark:text-neutral-50" : "text-neutral-500"
+            )}
+            numberOfLines={1}
+          >
+            {hasQuery ? value : placeholder}
+          </Text>
+          {hasQuery ? <ClearButton onPress={handleClear} /> : null}
+        </PressableScale>
+      </View>
     );
   }
 
   // ── Expanded ─────────────────────────────────────────────────────
   // The grow itself is the layout swap inside pillClass; `transition-all`
-  // carries box, pin and colour on one 150ms clock. No transform anywhere
-  // on this branch — growth is reflow, never paint outside the box.
+  // carries box, pin, surface and border colour on one 150ms clock. No
+  // transform anywhere on this branch — growth is reflow, never paint
+  // outside the box. Chrome clicks are handled above so a click INSIDE the
+  // pill can never blur the field and drop the click state.
   return (
     <View
+      ref={rootRef}
+      testID="search-bar"
       className={pillClass("transition-all duration-150")}
-      {...containerHoverProps}
+      {...hoverProps}
+      {...chromeMouseDownProps}
+      {...chromePressProps}
       style={grownStyle}
     >
-      {glow}
-      <SearchGlyph lit={lit} engaged={engaged} reduceMotion={reduceMotion} replayKey={hoverCount} />
+      <SearchGlyph lit={lit} reduceMotion={reduceMotion} replayKey={hoverCount} />
       <TextInput
+        ref={inputRef}
         className="flex-1 text-base font-inter text-neutral-900 dark:text-neutral-50 outline-none"
         placeholder={placeholder}
         placeholderTextColor={tokens.colors["text-tertiary"]}
@@ -423,13 +439,12 @@ export function SearchBar({
         autoFocus={autoFocus}
         returnKeyType="search"
         onSubmitEditing={onSubmitEditing}
-        onFocus={hoverProps.onFocus}
-        onBlur={hoverProps.onBlur}
+        {...focusProps}
         accessible
         accessibilityLabel={placeholder}
         accessibilityRole="search"
         // Kill the browser / Android default focus ring — focus is conveyed
-        // by the lifted surface + primary icon, never a dark outline.
+        // by the flat blue border + taller box, never a dark outline.
         style={{ outlineStyle: "none" } as never}
       />
       {value.length > 0 ? <ClearButton onPress={handleClear} /> : null}

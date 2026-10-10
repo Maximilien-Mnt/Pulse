@@ -1,29 +1,29 @@
 // ---------------------------------------------------------------------------
-// PULSE — SearchBar hover animation tests
+// PULSE — SearchBar hover / click animation tests
 //
-// The shared search pill used to fake its hover grow with a `scaleY` on the
-// wrapper, which painted over neighbouring header items (hamburger,
-// breadcrumb, right cluster) at every scale > 1. These tests pin the
-// bounds-safe contract of its replacement:
-//   - NO scale anywhere: hover growth is a layout swap (h-11 → h-12) with a
-//     `top` pin so the bottom edge stays put — the pill grows up, never out.
-//   - The only transform in the system is PressableScale's press squash,
-//     held under SEARCH_BAR_SQUASH_Y_PRESS (≈ 0.985), passed straight
-//     through and never animated on hover.
-//   - Hover writes layout + surface colour only (150ms, exactly the
-//     height / top / background-color properties), so `top` composes with
-//     the press spring instead of fighting it.
-//   - `lit` (pointer or focus) is the replayable motion channel: the glyph
-//     re-nudges on every hover-in via hoverCount; `engaged` (lit or query)
-//     is the persistent state that keeps the pill grown + lifted.
-//   - Under reduced motion the pill does NOT grow (SearchBar keeps its own
-//     rest height and pin) and the press squash pins to 1, but every state
-//     — surface, halo, tint — still changes.
+// The shared search pill separates two INDEPENDENT state channels and these
+// tests pin that contract:
+//   - HOVER (pointer, web) = a little, simple animation only: the surface
+//     lifts and the glyph tints + nudges. It NEVER grows the box and never
+//     paints the border, and it releases the moment hoverOut fires — even
+//     while the bar is clicked.
+//   - CLICK (`active`) = a flat primary border (never a glow — the old
+//     boxShadow halo is gone) + the taller h-11 → h-12 box, driven through
+//     layout with a `top` pin (never a scale, so neighbours re-flow instead
+//     of being painted over). Armed by focus / press-in, disarmed by a
+//     pointerdown outside the pill or by blur.
+//   - The two COMPOSE: clicked + hovered shows the hover visuals on top of
+//     the border + taller box; pulling the pointer away drops only the hover
+//     half until the mouse returns.
+//   - Press keeps the only transform in the system
+//     (SEARCH_BAR_SQUASH_Y_PRESS ≈ 0.985) and never receives a hover scale.
+//   - Under reduced motion the pill does NOT grow or transition, but every
+//     state — surface, border — still changes, and the glyph snaps.
 // ---------------------------------------------------------------------------
 
 import React from "react";
 import { Animated, Platform } from "react-native";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 import {
   SEARCH_BAR_GLYPH_NUDGE,
   SEARCH_BAR_GROW_LIFT,
@@ -80,349 +80,390 @@ jest.mock("@/components/ui/PressableScale", () => {
 
 const classNameOf = (node: { props: { className?: string } }) => node.props.className ?? "";
 
-interface ClassNode {
+interface PillNode {
   props: { className?: string; style?: unknown };
-  parent: ClassNode | null;
 }
+
+/** Token-exact class check (`border-primary` must not match `…-dark` twins). */
+const hasClass = (node: PillNode, token: string) =>
+  classNameOf(node).split(/\s+/).includes(token);
+
+const flatten = (style: unknown): Record<string, unknown> => {
+  if (Array.isArray(style)) {
+    return style.reduce<Record<string, unknown>>((acc, s) => ({ ...acc, ...flatten(s) }), {});
+  }
+  return (style ?? {}) as Record<string, unknown>;
+};
 
 /**
- * Walks up from a child to the pill itself (identified by its shared height
- * box — h-11 at rest, h-12 when grown) — css-interop wrapper layers can sit
- * between the glow / input and the pill. Throws when the pill is missing so
- * a regression fails loudly.
+ * The box state lives in the pill's LAYOUT classes (h-11 / h-12 — growth is
+ * a layout swap, never a style transform); only the `top` pin rides style.
  */
-function pillOf(start: unknown): ClassNode {
-  let current = start as ClassNode | null;
-  while (current) {
-    const className = typeof current.props.className === "string" ? current.props.className : "";
-    const tokens = className.split(/\s+/);
-    if (tokens.includes(SEARCH_BAR_HEIGHT_REST) || tokens.includes(SEARCH_BAR_HEIGHT_GROWN)) {
-      return current;
-    }
-    current = current.parent;
-  }
-  throw new Error("no search pill ancestor with the shared rest/grown height box");
-}
-
-/** The pill's box contract: height class + the bottom-pinning `top` offset. */
-const boxOf = (pill: ClassNode): { height: string; top: number } => {
-  const tokens = classNameOf(pill).split(/\s+/);
-  let height = "missing-height-class";
-  if (tokens.includes(SEARCH_BAR_HEIGHT_GROWN)) height = SEARCH_BAR_HEIGHT_GROWN;
-  else if (tokens.includes(SEARCH_BAR_HEIGHT_REST)) height = SEARCH_BAR_HEIGHT_REST;
-
-  // Host style can be an object or a style array (Pressable wraps) — flatten
-  // one level to read the pin the same way the browser would compute it.
-  const raw = pill.props.style as unknown;
-  const entries = Array.isArray(raw) ? raw : [raw];
-  const flat: Record<string, unknown> = {};
-  for (const entry of entries) {
-    if (entry && typeof entry === "object") Object.assign(flat, entry);
-  }
-  return { height, top: typeof flat.top === "number" ? flat.top : 0 };
+const boxOf = (node: PillNode) => {
+  const tokens = classNameOf(node).split(/\s+/);
+  const height = tokens.includes(SEARCH_BAR_HEIGHT_GROWN)
+    ? SEARCH_BAR_HEIGHT_GROWN
+    : tokens.includes(SEARCH_BAR_HEIGHT_REST)
+      ? SEARCH_BAR_HEIGHT_REST
+      : undefined;
+  return { height, top: flatten(node.props.style).top };
 };
+
+// Layout contract: rest ↔ grown, with the `top` pin on the grown box only.
+const REST_BOX = { height: SEARCH_BAR_HEIGHT_REST, top: 0 };
+const GROWN_BOX = { height: SEARCH_BAR_HEIGHT_GROWN, top: -SEARCH_BAR_GROW_LIFT };
 
 const REST_SURFACE = "bg-neutral-100 dark:bg-neutral-800";
 const LIFTED_SURFACE = "bg-neutral-200 dark:bg-neutral-700";
-/** Grown box: h-12 lifted by SEARCH_BAR_GROW_LIFT so the bottom edge pins. */
-const GROWN_BOX = { height: SEARCH_BAR_HEIGHT_GROWN, top: -SEARCH_BAR_GROW_LIFT };
-const REST_BOX = { height: SEARCH_BAR_HEIGHT_REST, top: 0 };
+const REST_BORDER = "border-transparent";
+const STUB_TRANSITION = "transition-[height,top,background-color,border-color]";
 
-describe("SearchBar hover animation (bounds-safe contract)", () => {
-  beforeEach(() => {
+/**
+ * A pointerdown landing OUTSIDE the pill: dispatch a real DOM event on the
+ * body so SearchBar's capture-phase document listener sees it. (This is the
+ * browser behaviour a click anywhere else in the page produces.)
+ */
+const clickOutside = () => {
+  act(() => {
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+  });
+};
+
+describe("SearchBar hover / click animation (two-channel contract)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
     mockReducedMotion = false;
     mockLastPressableScaleProps = null;
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  // -------------------------------------------------------------------------
-  // Collapsed stub — the pressable pill shown in packed headers.
-  // -------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Collapsed stub — hover never grows; click arms on press-in.
+  // ------------------------------------------------------------------------
   describe("collapsed stub", () => {
     it("hands PressableScale the press squash and never a hover scale", () => {
       const onPress = jest.fn();
-      render(<SearchBar value="" onChangeText={jest.fn()} onPress={onPress} />);
+      const { getByTestId } = render(
+        <SearchBar value="" onChangeText={jest.fn()} onPress={onPress} placeholder="Search" />
+      );
 
       expect(SEARCH_BAR_SQUASH_Y_PRESS).toBeCloseTo(0.985);
       expect(mockLastPressableScaleProps).toMatchObject({
         onPress,
         scaleOnPress: SEARCH_BAR_SQUASH_Y_PRESS,
       });
-      // Hover must never hand the spring a competing target.
       expect(
         (mockLastPressableScaleProps as Record<string, unknown> | null)?.scaleOnHover
       ).toBeUndefined();
+
       // The pin is a `top` offset, not a transform: the pill's single
-      // transform channel stays the press spring's.
-      expect((mockLastPressableScaleProps?.style as { transform?: unknown }).transform).toBeUndefined();
+      // transform channel stays the press spring, never a state animation.
+      const pill = getByTestId("search-bar");
+      expect(flatten(pill.props.style).transform).toBeUndefined();
     });
 
-    it("grows the layout box, lifts the surface, lights the halo and nudges the glyph on hover", () => {
+    it("lifts the surface and nudges the glyph on hover without growing", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByLabelText, getByTestId, getAllByTestId } = render(
+      const { getByTestId, getAllByTestId } = render(
         <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
       );
-      const pill = getByLabelText("Search");
-      const glow = () => getByTestId("search-bar-glow");
+      const pill = getByTestId("search-bar");
       const glyph = () =>
         getAllByTestId("icon-glyph").find((node) => node.props.name === "Search");
 
-      // At rest: rest box (bottom pinned at the row line), rest surface,
-      // halo off, tertiary glyph.
-      expect(boxOf(pill as never)).toEqual(REST_BOX);
+      // Rest: rest box, rest surface, transparent border, tertiary glyph.
+      expect(boxOf(pill)).toEqual(REST_BOX);
       expect(classNameOf(pill)).toContain(REST_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-0");
-      expect(glyph()?.props.color).toBe("text-tertiary");
-      // Exactly the hover-driven properties — `transition-all` would also
-      // tween the transform the press spring writes every frame.
-      expect(classNameOf(pill)).toContain("transition-[height,top,background-color]");
+      expect(hasClass(pill, "border-2")).toBe(true);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
+      expect(hasClass(pill, "border-primary")).toBe(false);
+      expect(classNameOf(pill)).toContain(STUB_TRANSITION);
       expect(classNameOf(pill)).toContain(`duration-${SEARCH_BAR_TRANSITION_MS}`);
+      expect(classNameOf(pill)).not.toContain("transition-all");
+      expect(glyph()?.props.color).toBe("text-tertiary");
 
       fireEvent(pill, "hoverIn");
 
-      // Grown via layout (h-11 → h-12) with the `top` pin — taller, never
-      // wider, bottom edge still on the row line.
-      expect(boxOf(pill as never)).toEqual(GROWN_BOX);
+      // Hover = the little animation only: NO growth, NO border.
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).not.toContain(SEARCH_BAR_HEIGHT_GROWN);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-100");
+      expect(hasClass(pill, "border-primary")).toBe(false);
       expect(glyph()?.props.color).toBe("primary");
 
       fireEvent(pill, "hoverOut");
 
-      expect(boxOf(pill as never)).toEqual(REST_BOX);
+      // …and it disappears the moment the pointer leaves.
+      expect(boxOf(pill)).toEqual(REST_BOX);
       expect(classNameOf(pill)).toContain(REST_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-0");
       expect(glyph()?.props.color).toBe("text-tertiary");
     });
 
-    it("gives keyboard focus the same grow, lift and halo, releasing on blur", () => {
+    it("adds the blue border + taller box on click, keeping the channels distinct", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByLabelText, getByTestId, getAllByTestId } = render(
+      const { getByTestId, getAllByTestId } = render(
         <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
       );
-      const pill = getByLabelText("Search");
-      const glow = () => getByTestId("search-bar-glow");
+      const pill = getByTestId("search-bar");
       const glyph = () =>
         getAllByTestId("icon-glyph").find((node) => node.props.name === "Search");
 
-      // Focus is the same `lit` affordance as hover — identical box.
-      fireEvent(pill, "focus");
-      expect(boxOf(pill as never)).toEqual(GROWN_BOX);
+      fireEvent(pill, "pressIn");
+
+      // Click = flat blue border + taller box through layout. Surface and
+      // glyph stay at rest — that's hover's half, not click's.
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(hasClass(pill, "border-2")).toBe(true);
+      expect(hasClass(pill, "border-primary")).toBe(true);
+      expect(hasClass(pill, "dark:border-primary-dark")).toBe(true);
+      expect(hasClass(pill, REST_BORDER)).toBe(false);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
+      expect(glyph()?.props.color).toBe("text-tertiary");
+      expect(flatten(pill.props.style).transform).toBeUndefined();
+
+      // Pointer over the clicked bar: the hover half renders ON TOP of it.
+      fireEvent(pill, "hoverIn");
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-100");
       expect(glyph()?.props.color).toBe("primary");
 
-      fireEvent(pill, "blur");
-      expect(boxOf(pill as never)).toEqual(REST_BOX);
+      // Pointer leaves: the hover animation disappears, the click half stays.
+      fireEvent(pill, "hoverOut");
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(true);
       expect(classNameOf(pill)).toContain(REST_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-0");
       expect(glyph()?.props.color).toBe("text-tertiary");
+
+      // A click landing anywhere outside: the click animation disappears too.
+      clickOutside();
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
+      expect(hasClass(pill, "border-primary")).toBe(false);
     });
 
-    it("replays the glyph nudge when hover arrives after focus", () => {
+    it("arms the click state from keyboard focus and releases it on blur", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      // The jest native-driver mock never answers NativeAnimatedAPI.getValue,
-      // so once the glyph's Animated.Value goes native (first timing with
-      // useNativeDriver) every later stopAnimation callback is dropped and
-      // the replay never reaches Animated.timing. Restore the JS-driver
-      // contract — the synchronous one react-native-web runs in the browser —
-      // so SearchGlyph's own effect logic is what these assertions observe.
-      jest
-        .spyOn(Animated.Value.prototype, "stopAnimation")
-        .mockImplementation((callback?: ((value: number) => void) | null) => {
-          callback?.(0);
-        });
-      const timing = jest.spyOn(Animated, "timing");
-      const { getByLabelText } = render(
+      const { getByTestId } = render(
         <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
       );
-      const pill = getByLabelText("Search");
+      const pill = getByTestId("search-bar");
 
-      // Mount settles at rest, focus plays the nudge…
       fireEvent(pill, "focus");
-      // …and hover-in replays it even though `lit` held the same value —
-      // hoverCount bumps the replay key instead of the flag staying flat.
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(true);
+
+      fireEvent(pill, "blur");
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(false);
+    });
+
+    it("replays the glyph nudge on every hover-in", () => {
+      jest.replaceProperty(Platform, "OS", "web");
+      // Re-entry must restart the slide from wherever it currently sits.
+      jest
+        .spyOn(Animated.Value.prototype, "stopAnimation")
+        .mockImplementation(function (this: Animated.Value, cb?: (value: number) => void) {
+          cb?.(0);
+        });
+      const timing = jest.spyOn(Animated, "timing");
+      const { getByTestId } = render(
+        <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
+      );
+      const pill = getByTestId("search-bar");
+
+      fireEvent(pill, "hoverIn");
+      fireEvent(pill, "hoverOut");
       fireEvent(pill, "hoverIn");
 
       expect(timing.mock.calls.map((call) => call[1]?.toValue)).toEqual([
-        0,
-        SEARCH_BAR_GLYPH_NUDGE,
-        SEARCH_BAR_GLYPH_NUDGE,
+        0, // mount settles at rest
+        SEARCH_BAR_GLYPH_NUDGE, // hover-in
+        0, // hover-out
+        SEARCH_BAR_GLYPH_NUDGE, // hover-in again — replays via hoverCount
       ]);
-      for (const call of timing.mock.calls) {
-        expect(call[1]?.duration).toBe(SEARCH_BAR_TRANSITION_MS);
-        expect(call[1]?.useNativeDriver).toBe(true);
-      }
-    });
-
-    it("names exactly the hover-driven transition properties on the stub", () => {
-      const { getByLabelText } = render(
-        <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
-      );
-      const cls = classNameOf(getByLabelText("Search"));
-
-      expect(cls).toContain("transition-[height,top,background-color]");
-      expect(cls).toContain(`duration-${SEARCH_BAR_TRANSITION_MS}`);
-      // transition-all would also tween `transform`, fighting the press
-      // spring; transition-colors would tween the pin away from `top`.
-      expect(cls).not.toContain("transition-all");
-      expect(cls).not.toContain("transition-colors");
+      timing.mock.calls.forEach(([, config]) => {
+        expect(config).toMatchObject({
+          duration: SEARCH_BAR_TRANSITION_MS,
+          useNativeDriver: true,
+        });
+      });
     });
   });
 
-  // -------------------------------------------------------------------------
-  // Expanded bar — the full inline input (no onPress / expanded).
-  // -------------------------------------------------------------------------
-  describe("expanded bar", () => {
-    const renderBar = (value = "", props: { autoFocus?: boolean } = {}) =>
+  // ------------------------------------------------------------------------
+  // Expanded (focusable field) — focus IS the click; hover stays separate.
+  // ------------------------------------------------------------------------
+  describe("expanded field", () => {
+    const renderBar = (value = "") =>
       render(
         <SearchBar
           value={value}
           onChangeText={jest.fn()}
           placeholder="Search"
-          autoFocus={props.autoFocus ?? false}
+          autoFocus={false}
         />
       );
 
-    it("grows and glows while focused, releasing on blur", () => {
+    it("grows and paints the blue border while focused, releasing on blur", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByPlaceholderText, getByTestId } = renderBar();
-      const pill = () => pillOf(getByTestId("search-bar-glow"));
-      const glow = () => getByTestId("search-bar-glow");
+      const { getByTestId, getByPlaceholderText } = renderBar();
+      const pill = getByTestId("search-bar");
 
-      expect(boxOf(pill())).toEqual(REST_BOX);
-      expect(classNameOf(pill())).toContain(REST_SURFACE);
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).toContain("transition-all");
+      expect(classNameOf(pill)).toContain(`duration-${SEARCH_BAR_TRANSITION_MS}`);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
 
       fireEvent(getByPlaceholderText("Search"), "focus");
-      expect(boxOf(pill())).toEqual(GROWN_BOX);
-      expect(classNameOf(pill())).toContain(LIFTED_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-100");
+
+      // Click (focus) = border + taller box. The surface stays at rest —
+      // focus is not hover, and the glyph stays untouched too.
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(true);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
 
       fireEvent(getByPlaceholderText("Search"), "blur");
-      expect(boxOf(pill())).toEqual(REST_BOX);
-      expect(classNameOf(pill())).toContain(REST_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-0");
+
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
+      expect(hasClass(pill, "border-primary")).toBe(false);
     });
 
     it("never applies a scale transform — growth is layout, not paint", () => {
       jest.replaceProperty(Platform, "OS", "web");
       const { getByTestId } = renderBar();
-      const style = (pillOf(getByTestId("search-bar-glow")) as never as {
-        props: { style?: unknown };
-      }).props.style;
+      const pill = getByTestId("search-bar");
+      const style = flatten(pill.props.style);
 
-      // The pin rides `top` in style; there is no transform channel at all.
-      expect(style).toBeDefined();
-      expect(
-        (style as { transform?: unknown } | undefined)?.transform
-      ).toBeUndefined();
+      expect(style.transform).toBeUndefined();
+      expect(style.top).toBe(0);
+      expect(style.height).toBeUndefined();
+      expect(classNameOf(pill)).toContain(SEARCH_BAR_HEIGHT_REST);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
     });
 
-    it("grows and lights on pointer hover too", () => {
+    it("lifts the surface and nudges the glyph on hover without growing", () => {
       jest.replaceProperty(Platform, "OS", "web");
       const { getByTestId, getAllByTestId } = renderBar();
-      const glow = () => getByTestId("search-bar-glow");
-      const pill = () => pillOf(glow());
+      const pill = getByTestId("search-bar");
       const glyph = () =>
         getAllByTestId("icon-glyph").find((node) => node.props.name === "Search");
 
-      expect(boxOf(pill())).toEqual(REST_BOX);
+      fireEvent(pill, "hoverIn");
 
-      fireEvent(pill(), "hoverIn");
-      expect(boxOf(pill())).toEqual(GROWN_BOX);
-      expect(classNameOf(pill())).toContain(LIFTED_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-100");
+      // Hover's little animation only — no growth, no border.
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
+      expect(hasClass(pill, "border-primary")).toBe(false);
       expect(glyph()?.props.color).toBe("primary");
 
-      fireEvent(pill(), "hoverOut");
-      expect(boxOf(pill())).toEqual(REST_BOX);
-      expect(classNameOf(glow())).toContain("opacity-0");
+      fireEvent(pill, "hoverOut");
+
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
       expect(glyph()?.props.color).toBe("text-tertiary");
     });
 
-    it("keeps a filled query grown and lifted after blur, but releases the halo", () => {
+    it("composes: mouse away drops only the hover half, outside click drops the rest", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByPlaceholderText, getByTestId, getAllByTestId } = renderBar("pulse");
-      const pill = () => pillOf(getByTestId("search-bar-glow"));
-      const glow = () => getByTestId("search-bar-glow");
-      const glyph = () =>
-        getAllByTestId("icon-glyph").find((node) => node.props.name === "Search");
+      const { getByTestId, getByPlaceholderText } = renderBar("pulse");
+      const pill = getByTestId("search-bar");
+      const input = getByPlaceholderText("Search");
+
+      fireEvent(input, "focus"); // clicked…
+      fireEvent(pill, "hoverIn"); // …and the pointer is over it
+
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
+      expect(hasClass(pill, "border-primary")).toBe(true);
+
+      fireEvent(pill, "hoverOut"); // pointer leaves
+
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
+      expect(hasClass(pill, "border-primary")).toBe(true);
+
+      // A click outside: everything releases — a filled query holds nothing.
+      clickOutside();
+      fireEvent(input, "blur");
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
+      expect(hasClass(pill, "border-primary")).toBe(false);
+    });
+
+    it("releases everything on an outside click even with a filled query", () => {
+      jest.replaceProperty(Platform, "OS", "web");
+      const { getByTestId, getByPlaceholderText } = renderBar("pulse");
+      const pill = getByTestId("search-bar");
 
       fireEvent(getByPlaceholderText("Search"), "focus");
-      fireEvent(getByPlaceholderText("Search"), "blur");
+      expect(boxOf(pill)).toEqual(GROWN_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(true);
 
-      // `engaged` = lit || query: the query keeps the box, surface and tint…
-      expect(boxOf(pill())).toEqual(GROWN_BOX);
-      expect(classNameOf(pill())).toContain(LIFTED_SURFACE);
-      expect(glyph()?.props.color).toBe("primary");
-      // …but `lit` is what drives the transient halo, so it releases.
-      expect(classNameOf(glow())).toContain("opacity-0");
+      clickOutside();
+
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(hasClass(pill, REST_BORDER)).toBe(true);
+      expect(classNameOf(pill)).toContain(REST_SURFACE);
     });
 
-    it("paints the halo from the active primary token at GLOW alpha", () => {
+    it("never renders a glow — the click affordance is a flat border", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByTestId } = renderBar();
-      const style = getByTestId("search-bar-glow").props.style as { boxShadow?: string };
+      const { queryByTestId, getByTestId, getByPlaceholderText } = renderBar();
 
-      // Derived rgba(r,g,b,SEARCH_BAR_GLOW_ALPHA) — follows the theme's
-      // primary token rather than a hardcoded brand hue.
-      expect(style.boxShadow).toMatch(/rgba\(\d{1,3},\d{1,3},\d{1,3},0\.45\)/);
-    });
-
-    it("renders the halo on web only", () => {
-      jest.replaceProperty(Platform, "OS", "ios");
-      const { queryByTestId } = renderBar();
       expect(queryByTestId("search-bar-glow")).toBeNull();
+
+      fireEvent(getByPlaceholderText("Search"), "focus");
+      const style = flatten(getByTestId("search-bar").props.style);
+      expect(style.boxShadow).toBeUndefined();
     });
   });
 
-  // -------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
   // Reduced motion — no growth animation, but every state still changes.
-  // -------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
   describe("reduced motion", () => {
     it("snaps the glyph, changes state, but never grows or transitions", () => {
       mockReducedMotion = true;
       jest.replaceProperty(Platform, "OS", "web");
       const timing = jest.spyOn(Animated, "timing");
       const setValue = jest.spyOn(Animated.Value.prototype, "setValue");
-      const { getByPlaceholderText, getByTestId } = render(
-        <SearchBar
-          value=""
-          onChangeText={jest.fn()}
-          placeholder="Search"
-          autoFocus={false}
-        />
+      const { getByTestId, getByPlaceholderText } = render(
+        <SearchBar value="" onChangeText={jest.fn()} placeholder="Search" autoFocus={false} />
       );
-      const pill = () => pillOf(getByTestId("search-bar-glow"));
-      const glow = () => getByTestId("search-bar-glow");
+      const pill = getByTestId("search-bar");
 
       // The bar does NOT grow: SearchBar keeps its own rest height and pin
       // rather than handing control back to the Pressable wrapper.
-      expect(boxOf(pill())).toEqual(REST_BOX);
-      expect(classNameOf(pill())).not.toContain(SEARCH_BAR_HEIGHT_GROWN);
-      expect(classNameOf(pill())).not.toContain("transition-all");
-      expect(classNameOf(glow())).not.toContain("transition-opacity");
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).not.toContain(SEARCH_BAR_HEIGHT_GROWN);
+      expect(classNameOf(pill)).not.toContain("transition-all");
 
       fireEvent(getByPlaceholderText("Search"), "focus");
 
       // Motion is off — every visible state still changes.
-      expect(boxOf(pill())).toEqual(REST_BOX);
-      expect(classNameOf(pill())).toContain(LIFTED_SURFACE);
-      expect(classNameOf(glow())).toContain("opacity-100");
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(hasClass(pill, "border-primary")).toBe(true);
       expect(timing).not.toHaveBeenCalled();
-      // The nudge still lands — it snaps instead of animating.
+
+      fireEvent(getByPlaceholderText("Search"), "blur");
+      fireEvent(pill, "hoverIn");
+
+      // Hover lifts the surface without growing; the nudge still lands —
+      // it snaps instead of animating.
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
+      expect(classNameOf(pill)).not.toContain("transition-all");
       expect(setValue.mock.calls.some((call) => call[0] === SEARCH_BAR_GLYPH_NUDGE)).toBe(
         true
       );
+      expect(timing).not.toHaveBeenCalled();
     });
 
     it("pins the collapsed stub's press squash to 1 and never grows the box", () => {
       mockReducedMotion = true;
       jest.replaceProperty(Platform, "OS", "web");
-      const { getByLabelText } = render(
+      const { getByTestId } = render(
         <SearchBar value="" onChangeText={jest.fn()} onPress={jest.fn()} placeholder="Search" />
       );
 
@@ -433,11 +474,14 @@ describe("SearchBar hover animation (bounds-safe contract)", () => {
         (mockLastPressableScaleProps as Record<string, unknown> | null)?.scaleOnHover
       ).toBeUndefined();
 
-      const pill = getByLabelText("Search");
-      expect(boxOf(pill as never)).toEqual(REST_BOX);
-      fireEvent(pill, "focus");
-      expect(boxOf(pill as never)).toEqual(REST_BOX);
+      const pill = getByTestId("search-bar");
+      expect(boxOf(pill)).toEqual(REST_BOX);
+      fireEvent(pill, "pressIn");
+
+      // No growth without motion — but the click state still shows as colour.
+      expect(boxOf(pill)).toEqual(REST_BOX);
       expect(classNameOf(pill)).not.toContain(SEARCH_BAR_HEIGHT_GROWN);
+      expect(hasClass(pill, "border-primary")).toBe(true);
     });
   });
 });

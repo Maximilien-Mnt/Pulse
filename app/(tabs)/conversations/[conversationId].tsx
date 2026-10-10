@@ -23,6 +23,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeScreen } from '@/components/shared/SafeScreen';
+import type { ActionMenuAnchor } from '@/components/shared/ActionMenuPopover';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackButton } from '@/components/ui/BackButton';
 import Toast from 'react-native-toast-message';
@@ -44,6 +45,10 @@ export default function ConversationScreen() {
   const scrollOffsetRef = useRef(0);
   const [text, setText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  // On-screen rect of the header settings gear, used to anchor the floating
+  // options menu next to the button — same pattern as ConversationItem/MessageBubble.
+  const [menuAnchor, setMenuAnchor] = useState<ActionMenuAnchor | null>(null);
+  const settingsRef = useRef<View>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [lastCursor, setLastCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -63,6 +68,46 @@ export default function ConversationScreen() {
     } catch {
       Toast.show({ type: 'error', text1: 'Copy failed' });
     }
+  }, []);
+
+  // Measure the header gear's window rect, then open: iOS ignores the rect and
+  // presents the real system action sheet; Android/web anchor the same clean
+  // floating menu next to the button (fully-visible clamp + outside-tap close).
+  const openSettingsMenu = useCallback(() => {
+    const node = settingsRef.current;
+    const open = (anchor: ActionMenuAnchor | null) => {
+      setMenuAnchor(anchor);
+      setMenuOpen(true);
+    };
+    if (node && typeof node.measureInWindow === 'function') {
+      let settled = false;
+      try {
+        node.measureInWindow((x, y, width, height) => {
+          if (!settled) {
+            settled = true;
+            open({ x, y, width, height });
+          }
+        });
+      } catch {
+        open(null);
+        return;
+      }
+      // Safety net: test renderers expose measureInWindow but never invoke its
+      // callback — the menu trigger must never hang.
+      setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          open(null);
+        }
+      }, 50);
+    } else {
+      open(null);
+    }
+  }, []);
+
+  const closeSettingsMenu = useCallback(() => {
+    setMenuOpen(false);
+    setMenuAnchor(null);
   }, []);
 
   const otherFromParams = useMemo(() => {
@@ -379,7 +424,14 @@ const handleTextChange = useCallback((newText: string) => {
             {effectiveTitle}
           </Text>
         </Pressable>
-        <Pressable onPress={() => setMenuOpen(true)}>
+        <Pressable
+          ref={settingsRef}
+          onPress={openSettingsMenu}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Conversation settings"
+          testID="conversation-settings"
+        >
           <Icon name='Settings' size={22} color='text-secondary' />
         </Pressable>
       </View>
@@ -453,12 +505,19 @@ const handleTextChange = useCallback((newText: string) => {
         conversationId={conversationId ?? ''}
         name={effectiveTitle}
         pinned={pinned}
-        onClose={() => setMenuOpen(false)}
-        onDeleted={() => router.back()}
+        onClose={closeSettingsMenu}
+        onDeleted={() => {
+          closeSettingsMenu();
+          router.back();
+        }}
         targetAuthorId={other?.id}
         isGroup={isGroupChat}
         groupName={groupName ?? undefined}
-        onLeft={() => router.back()}
+        anchor={menuAnchor}
+        onLeft={() => {
+          closeSettingsMenu();
+          router.back();
+        }}
         onRenamed={(newName) => {
           // Belt-and-braces: the mutation already updates this cache key
           // optimistically, but this guarantees the header reflects the new

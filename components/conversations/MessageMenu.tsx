@@ -4,9 +4,12 @@
 // Options for a chat message (Copier / Modifier / Supprimer), presented through
 // the **native OS options menu**:
 //   - iOS     -> the system action sheet (ActionSheetIOS).
-//   - Android -> the shared in-app sheet (ActionMenuSheet) — RN has no native
-//                list-style menu without a native module.
-//   - web     -> same shared sheet.
+//   - Android -> the shared in-app **floating menu** anchored next to the
+//                button / long-pressed bubble that opened it (the same
+//                ActionMenuPopover the conversations tab uses) — RN has no
+//                native list-style menu without a native module. Without an
+//                anchor it falls back to the bottom sheet (ActionMenuSheet).
+//   - web     -> same floating popover / bottom-sheet fallback.
 // Deleting is an irreversible action, so it always goes through a native
 // confirmation dialog first.
 // ---------------------------------------------------------------------------
@@ -14,6 +17,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ActionMenuSheet } from "@/components/shared/ActionMenuSheet";
+import {
+  ActionMenuPopover,
+  type ActionMenuAnchor,
+} from "@/components/shared/ActionMenuPopover";
 import type { IconName } from "@/components/ui/Icon";
 import {
   confirmAction,
@@ -32,6 +39,12 @@ export interface MessageMenuProps {
   onDelete: () => void;
   /** A message action is in flight: the destructive option is shown disabled. */
   isDeleting?: boolean;
+  /**
+   * On-screen rect of the button / bubble that opened the menu. When present
+   * (and the platform has no native menu), the options render as a floating
+   * menu anchored next to the message instead of the bottom sheet.
+   */
+  anchor?: ActionMenuAnchor | null;
 }
 
 /** Icons used by the in-app fallback (Android / web); the OS sheet has none. */
@@ -48,6 +61,7 @@ export function MessageMenu({
   onEdit,
   onDelete,
   isDeleting = false,
+  anchor = null,
 }: MessageMenuProps) {
   const { t } = useTranslation();
   const { colors, mode } = useDesignTokens();
@@ -113,15 +127,31 @@ export function MessageMenu({
     }
   }, [descriptor, runOption, visible]);
 
-  return (
+  // Android / web: the options render from the very same descriptor. With an
+  // anchor (the "⋮" that was clicked, or the long-pressed bubble) they appear
+  // as a floating menu anchored next to the message — clamped so it stays
+  // fully visible on any screen — and a tap anywhere outside dismisses it.
+  // Without one, they fall back to the bottom sheet. iOS shows the real sheet.
+  const closeFallback = () => {
+    setFallback(null);
+    onClose();
+  };
+
+  return anchor ? (
+    <ActionMenuPopover
+      visible={!!fallback}
+      descriptor={fallback}
+      anchor={anchor}
+      icons={FALLBACK_ICONS}
+      onClose={closeFallback}
+      onSelect={runOption}
+    />
+  ) : (
     <ActionMenuSheet
       visible={!!fallback}
       descriptor={fallback}
       icons={FALLBACK_ICONS}
-      onClose={() => {
-        setFallback(null);
-        onClose();
-      }}
+      onClose={closeFallback}
       onSelect={runOption}
     />
   );

@@ -2,13 +2,14 @@
 // PULSE CONVERSATIONS - Message Bubble
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Platform, Pressable, View, Linking, Text as RNText } from 'react-native';
 import { cn } from '@/utils/format';
 import {Text} from '@/components/ui/Text';
 import {Icon} from '@/components/ui/Icon';
 import type {MessageType} from '@/types';
 import {MessageMenu} from './MessageMenu';
+import type {ActionMenuAnchor} from '@/components/shared/ActionMenuPopover';
 
 interface MessageBubbleProps {
   text: string;
@@ -36,15 +37,67 @@ export function MessageBubble({
   onDelete,
 }: MessageBubbleProps) {
   const [menuVisible, setMenuVisible] = useState(false);
+  // On-screen rect of the trigger (the "⋮" button, or the bubble on the
+  // native long-press path), used to anchor the floating options menu next
+  // to the message — the same pattern as the conversations tab.
+  const [anchor, setAnchor] = useState<ActionMenuAnchor | null>(null);
   const [hovered, setHovered] = useState(false);
   const isWeb = Platform.OS === 'web';
 
-  // Options are presented by the OS / shared action menu, so there is no
-  // anchor to measure anymore.
-  const openMenu = useCallback(() => {
-    if (!canModify) return;
-    setMenuVisible(true);
-  }, [canModify]);
+  const optionsRef = useRef<View>(null);
+  const bubbleRef = useRef<View>(null);
+
+  // Measure a view's window rect and hand it to `cb`. Guarded so it degrades
+  // gracefully in environments without a layout engine (tests / SSR): `cb`
+  // then receives `null` and the menu falls back to its default placement.
+  const measureAnchor = useCallback(
+    (node: View | null, cb: (next: ActionMenuAnchor | null) => void) => {
+      if (node && typeof node.measureInWindow === 'function') {
+        let settled = false;
+        try {
+          node.measureInWindow((x, y, width, height) => {
+            if (!settled) {
+              settled = true;
+              cb({ x, y, width, height });
+            }
+          });
+        } catch {
+          cb(null);
+          return;
+        }
+        // Safety net: test renderers expose measureInWindow but never invoke
+        // its callback — the menu trigger must never hang.
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            cb(null);
+          }
+        }, 50);
+      } else {
+        cb(null);
+      }
+    },
+    []
+  );
+
+  // Measure the trigger first, then open: the fallback menu (Android / web)
+  // anchors next to the message; iOS ignores the rect and presents the real
+  // system action sheet.
+  const openMenu = useCallback(
+    (node: View | null) => {
+      if (!canModify) return;
+      measureAnchor(node, (next) => {
+        setAnchor(next);
+        setMenuVisible(true);
+      });
+    },
+    [canModify, measureAnchor]
+  );
+
+  const closeMenu = useCallback(() => {
+    setMenuVisible(false);
+    setAnchor(null);
+  }, []);
 
   const handleLinkPress = useCallback(async (url: string) => {
     try {
@@ -119,7 +172,8 @@ export function MessageBubble({
       >
         {isWeb && canModify && (
           <Pressable
-            onPress={openMenu}
+            ref={optionsRef}
+            onPress={() => openMenu(optionsRef.current)}
             accessibilityRole='button'
             accessibilityLabel='Message options'
             hitSlop={8}
@@ -136,7 +190,8 @@ export function MessageBubble({
         )}
 
         <Pressable
-          onLongPress={isWeb ? undefined : openMenu}
+          ref={bubbleRef}
+          onLongPress={isWeb ? undefined : () => openMenu(bubbleRef.current)}
           delayLongPress={300}
           disabled={!canModify}
           accessibilityRole='text'
@@ -153,10 +208,11 @@ export function MessageBubble({
 
       <MessageMenu
         visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        onCopy={() => { setMenuVisible(false); onCopy?.(); }}
-        onEdit={() => { setMenuVisible(false); onEdit?.(); }}
-        onDelete={() => { setMenuVisible(false); onDelete?.(); }}
+        anchor={anchor}
+        onClose={closeMenu}
+        onCopy={() => { closeMenu(); onCopy?.(); }}
+        onEdit={() => { closeMenu(); onEdit?.(); }}
+        onDelete={() => { closeMenu(); onDelete?.(); }}
         isDeleting={isDeleting}
       />
     </>

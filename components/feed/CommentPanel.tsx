@@ -3,9 +3,10 @@
 // Slide-in panel from right side showing comments for a post
 // ---------------------------------------------------------------------------
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Animated,
+  type LayoutChangeEvent,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -49,6 +50,14 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     () => new Animated.Value(visible ? 1 : 0),
     []
   );
+  // Height of the pinned composer bar, measured via onLayout. Used as
+  // content padding on the ScrollView so the last comment is never
+  // hidden behind the bar.
+  const [bottomBarHeight, setBottomBarHeight] = useState(0);
+  const handleBottomBarLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setBottomBarHeight((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+  }, []);
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -113,6 +122,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
     <Animated.View
       className="flex-1 bg-surface min-h-0"
       style={{
+        height: "100%",
         transform: [{ translateX }],
         opacity: slideAnim,
       }}
@@ -134,13 +144,14 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
       </View>
 
       <KeyboardAvoidingView
-        className="flex-1"
+        className="flex-1 flex-col"
+        style={{ position: "relative", minHeight: 0 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomBarHeight }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={true}
         >
@@ -155,7 +166,7 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
               </Text>
             </View>
           ) : (
-            <View className="flex-1">
+            <>
               {comments.map((comment) => (
                 <CommentItem
                   key={comment.id}
@@ -164,11 +175,15 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
                   onEdit={editComment}
                 />
               ))}
-            </View>
+            </>
           )}
         </ScrollView>
 
-        <View className="flex-row items-end gap-2 px-4 py-3 border-t border-border bg-surface dark:bg-surface-dark">
+        <View
+          onLayout={handleBottomBarLayout}
+          className="flex-row items-end gap-2 px-4 py-3 border-t border-border bg-surface dark:bg-surface-dark w-full"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
+        >
           <TextInput
             className="flex-1 border-2 border-border rounded-xl px-3 py-2 text-base text-text-primary dark:text-text-primary-dark bg-bg dark:bg-bg-dark max-h-28"
             placeholder="Ton commentaire…"

@@ -575,6 +575,7 @@ export default function FeedScreen() {
               className="border-l border-border flex-1 min-h-0"
               style={{
                 width: "50%",
+                height: "100%",
               }}
             >
               <CommentPanel

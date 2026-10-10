@@ -7,7 +7,7 @@ import * as Clipboard from 'expo-clipboard';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { Message } from '@/types';
-import { Icon } from '@/components/ui/Icon';
+import { IconButton } from '@/components/ui/IconButton';
 import { SendButton } from '@/components/ui/SendButton';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -475,21 +475,22 @@ const handleTextChange = useCallback((newText: string) => {
           className='flex-1 flex-row items-center gap-2 pl-1'
           onPress={() => { if (!isGroupChat && other?.id) router.push('/profile/' + other.id); }}
         >
-          <Avatar uri={effectiveAvatarUrl} size={36} />
+          <Avatar uri={effectiveAvatarUrl} size={44} className="shrink-0" />
           <Text className='text-base font-semibold text-neutral-900 dark:text-neutral-50' numberOfLines={1}>
             {effectiveTitle}
           </Text>
         </Pressable>
-        <Pressable
-          ref={settingsRef}
-          onPress={openSettingsMenu}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Conversation settings"
-          testID="conversation-settings"
-        >
-          <Icon name='Settings' size={22} color='text-secondary' />
-        </Pressable>
+        <View ref={settingsRef} collapsable={false} className="shrink-0">
+          <IconButton
+            icon='Settings'
+            label="Conversation settings"
+            tone="primary"
+            size="md"
+            iconSize={22}
+            onPress={openSettingsMenu}
+            testID="conversation-settings"
+          />
+        </View>
       </View>
       
       <KeyboardAvoidingView className='flex-1' behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80 + keyboardHeight}>

@@ -284,27 +284,56 @@ export function ConversationItem({
           </Text>
         </View>
 
-        {conversation.last_message_at ? (
-          // Stable-width slot: the date defines its width so the flex-1 name
-          // column never reflows when the date crossfades into the options
-          // button on hover.
-          <View className="shrink-0 self-start ml-auto pt-0.5">
-            {/* Date — fades out as the row lifts. Never interactive. */}
-            <Animated.View
-              testID="conversation-date"
-              style={{ opacity: dateOpacity }}
-              pointerEvents="none"
-            >
-              <Text variant="caption" className="text-text-tertiary" numberOfLines={1}>
-                {formatRelative(conversation.last_message_at)}
-              </Text>
-            </Animated.View>
+        {/* Right slot: always mounted so the hover options button is reachable
+            for every conversation kind (DM, group/club/event) — even when
+            `last_message_at` is null (e.g. brand-new group chats with no
+            messages yet). With a date, the date crossfades into the options
+            button on hover; without one the slot just hosts the button. */}
+        <View className="shrink-0 self-start ml-auto pt-0.5 min-w-[20px] items-end">
+          {conversation.last_message_at ? (
+            // Stable-width slot: the date defines its width so the flex-1 name
+            // column never reflows when the date crossfades into the options
+            // button on hover.
+            <View>
+              {/* Date — fades out as the row lifts. Never interactive. */}
+              <Animated.View
+                testID="conversation-date"
+                style={{ opacity: dateOpacity }}
+                pointerEvents="none"
+              >
+                <Text variant="caption" className="text-text-tertiary" numberOfLines={1}>
+                  {formatRelative(conversation.last_message_at)}
+                </Text>
+              </Animated.View>
 
-            {/* Options button — fades in over the date while hovered/focused and
-                becomes pressable, opening the conversation's options menu. At
-                rest it is inert so presses fall through to the row. */}
+              {/* Options button — fades in over the date while hovered/focused and
+                  becomes pressable, opening the conversation's options menu. At
+                  rest it is inert so presses fall through to the row. */}
+              <Animated.View
+                style={[styles.optionsLayer, { opacity: optionsOpacity }]}
+                pointerEvents={active ? "auto" : "none"}
+              >
+                <Pressable
+                  ref={optionsRef}
+                  testID="conversation-options"
+                  onPress={handleOptionsPress}
+                  onHoverIn={isWeb ? handleActive : undefined}
+                  onFocus={handleActive}
+                  onBlur={scheduleOff}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("conv.options")}
+                >
+                  <Icon name="MoreVertical" size={20} color="text-tertiary" />
+                </Pressable>
+              </Animated.View>
+            </View>
+          ) : (
+            // No timestamp yet (typical for fresh group/club/event chats):
+            // render the options button in-flow so it can still fade in on
+            // hover/focus. Inert at rest so presses fall through to the row.
             <Animated.View
-              style={[styles.optionsLayer, { opacity: optionsOpacity }]}
+              style={{ opacity: optionsOpacity }}
               pointerEvents={active ? "auto" : "none"}
             >
               <Pressable
@@ -321,8 +350,8 @@ export function ConversationItem({
                 <Icon name="MoreVertical" size={20} color="text-tertiary" />
               </Pressable>
             </Animated.View>
-          </View>
-        ) : null}
+          )}
+        </View>
       </Animated.View>
     </Pressable>
   );

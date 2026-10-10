@@ -269,6 +269,33 @@ describe("ConversationItem", () => {
     expect(arg === null || typeof arg === "object").toBe(true);
   });
 
+  it("exposes the options button on hover even without a timestamp (group/club/event chats)", async () => {
+    const onOptionsPress = jest.fn();
+    const groupConversation = {
+      ...conversation,
+      name: "Club Rando",
+      last_message: "Nouvelle conversation",
+      last_message_at: null as string | null,
+    };
+    const { getAllByTestId, getByTestId, queryByTestId } = render(
+      <ConversationItem
+        conversation={groupConversation}
+        onPress={jest.fn()}
+        onOptionsPress={onOptionsPress}
+      />
+    );
+
+    // No date slot, but the options button is still mounted.
+    expect(queryByTestId("conversation-date")).toBeNull();
+    expect(getByTestId("conversation-options")).toBeTruthy();
+
+    fireEvent(getAllByTestId("conversation-item")[0], "hoverIn");
+    fireEvent.press(getByTestId("conversation-options"));
+    await waitFor(() => {
+      expect(onOptionsPress).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("keeps the row lifted while the pointer rests on the options button", async () => {
     const { getAllByTestId, getByTestId } = render(
       <ConversationItem conversation={conversation} onPress={jest.fn()} />

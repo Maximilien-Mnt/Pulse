@@ -40,6 +40,17 @@ export default function ConversationScreen() {
   }>();
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
+  const authInitialized = useAuthStore((s) => s.initialized);
+  // Gate all message reads on auth being resolved: on cold start the Supabase
+  // JWT may not be loaded yet and RLS would return 0 rows (success) which we
+  // must never cache/show as "no messages".
+  const authReady = authInitialized && !!userId;
+  // Single canonical cache key for this conversation's messages. Memoized so
+  // realtime/edit/delete callbacks keep stable references.
+  const MESSAGES_KEY = useMemo(
+    () => ['messages', conversationId] as unknown as readonly unknown[],
+    [conversationId],
+  );
   const qc = useQueryClient();
   const listRef = useRef<FlatList>(null);
   const scrollOffsetRef = useRef(0);
@@ -147,7 +158,7 @@ export default function ConversationScreen() {
 
   const { data: convRow } = useQuery({
     queryKey: ['conv-row', conversationId],
-    enabled: !!conversationId,
+    enabled: !!conversationId && authReady,
     queryFn: async () => {
       const { data: row, error } = await supabase
         .from('conversations')
@@ -169,7 +180,7 @@ export default function ConversationScreen() {
 
   const { data: pinned = false } = useQuery({
     queryKey: ['conv-pinned', conversationId, userId],
-    enabled: !!conversationId && !!userId,
+    enabled: !!conversationId && authReady,
     queryFn: async () => {
       const { data: row } = await supabase
         .from('conversation_participants')
@@ -181,54 +192,59 @@ export default function ConversationScreen() {
     },
   });
 
-  const loadMessages = useCallback(async (cursor?: string, append = false) => {
-    if (!conversationId) return { messages: [], names: {} as Record<string, string>, nextCursor: null as string | null };
-    
+  const loadMessages = useCallback(async (cursor?: string) => {
+    if (!conversationId) return { messages: [], names: {} as Record<string, string>, nextCursor: null as string | null, hasMore: false };
+    // Newest-first page: fetch the latest PAGE, then sort ASC for display.
+    // This guarantees recent messages are always visible even in long histories.
     const query = supabase
       .from('messages')
       .select('*, profiles(full_name)')
       .eq('conversation_id', conversationId!)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(MESSAGES_PAGE_SIZE);
-    
+
     if (cursor) {
       query.lt('created_at', cursor);
     }
-    
+
     const { data: msgs, error } = await query;
     if (error) throw error;
-    
-    const list = (msgs ?? []) as Message[];
-    const lastMsg = list[list.length - 1];
-    const nextCursor = lastMsg ? lastMsg.created_at : null;
-    const hasMoreMessages = list.length === MESSAGES_PAGE_SIZE;
-    
+
+    const pageDesc = ((msgs ?? []) as Message[]).slice();
+    // Display order is ASC (oldest -> newest).
+    const list = pageDesc.slice().reverse();
+    const oldest = list[0];
+    const nextCursor = pageDesc.length === MESSAGES_PAGE_SIZE && oldest ? oldest.created_at : null;
+    const hasMoreMessages = pageDesc.length === MESSAGES_PAGE_SIZE;
+
     const ids = [...new Set(list.map((m) => m.sender_id))];
     let names: Record<string, string> = {};
     if (ids.length) {
       const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', ids);
       if (profs) names = Object.fromEntries(profs.map((p) => [p.id, p.full_name]));
     }
-    
+
     return { messages: list, names, nextCursor, hasMore: hasMoreMessages };
   }, [conversationId]);
 
-  const messagesQuery = useQuery({
-    queryKey: ['messages', conversationId, lastCursor],
-    enabled: !!conversationId && !!lastCursor,
-    queryFn: () => loadMessages(lastCursor ?? undefined),
+  const initialQuery = useQuery({
+    queryKey: MESSAGES_KEY,
+    enabled: !!conversationId && authReady,
+    // Never serve a stale empty list from a previous cold-start race:
+    // messages must always refetch once auth is ready.
+    staleTime: 0,
+    gcTime: 1000 * 60 * 60 * 24,
+    queryFn: () => loadMessages(),
   });
 
-  const initialQuery = useQuery({
-    queryKey: ['messages-initial', conversationId],
-    enabled: !!conversationId,
-    queryFn: async () => {
-      const result = await loadMessages();
-      setLastCursor(result.nextCursor);
-      setHasMore(result.hasMore ?? false);
-      return result;
-    },
-  });
+  // Keep pagination cursors as derived effects — never setState inside queryFn.
+  useEffect(() => {
+    const d = initialQuery.data;
+    if (!d) return;
+    setLastCursor(d.nextCursor ?? null);
+    setHasMore(d.hasMore ?? false);
+  }, [initialQuery.data]);
 
   const messages = initialQuery.data?.messages ?? [];
   const nameMap = initialQuery.data?.names ?? {};
@@ -237,26 +253,26 @@ export default function ConversationScreen() {
 
   const handleNewMessage = useCallback((newMessage: any) => {
     setText('');
-    void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+    void qc.setQueryData(MESSAGES_KEY, (old: any) => {
       if (!old) return old;
       return { ...old, messages: mergeNewMessage(old.messages, newMessage) };
     });
     void qc.invalidateQueries({ queryKey: ['conversations'] });
-  }, [conversationId, qc]);
+  }, [MESSAGES_KEY, qc]);
 
   const handleEdit = useCallback((editedMessage: any) => {
-    void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+    void qc.setQueryData(MESSAGES_KEY, (old: any) => {
       if (!old) return old;
       return { ...old, messages: old.messages.map((m: any) => m.id === editedMessage.id ? editedMessage : m) };
     });
-  }, [conversationId, qc]);
+  }, [MESSAGES_KEY, qc]);
 
   const handleDelete = useCallback((deletedMessageId: string) => {
-    void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+    void qc.setQueryData(MESSAGES_KEY, (old: any) => {
       if (!old) return old;
       return { ...old, messages: old.messages.map((m: any) => m.id === deletedMessageId ? { ...m, is_deleted: true } : m) };
     });
-  }, [conversationId, qc]);
+  }, [MESSAGES_KEY, qc]);
 
   // Broadcast handler: another participant renamed the chat (or changed the
   // group photo). Patch the caches so this client never needs a refresh.
@@ -338,7 +354,7 @@ export default function ConversationScreen() {
         _optimistic: true,
       };
       
-      void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+      void qc.setQueryData(MESSAGES_KEY, (old: any) => {
         if (!old) return { messages: [optimisticMessage], names: {} };
         return { ...old, messages: [...old.messages, optimisticMessage] };
       });
@@ -350,7 +366,7 @@ export default function ConversationScreen() {
       }).select().single();
       
       if (error) {
-        void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+        void qc.setQueryData(MESSAGES_KEY, (old: any) => {
           if (!old) return old;
           return { ...old, messages: old.messages.filter((m: any) => m.id !== clientId) };
         });
@@ -363,7 +379,7 @@ export default function ConversationScreen() {
       const serverMessage = result?.serverMessage;
       if (serverMessage) {
         const clientId = result.clientId as string;
-        void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+        void qc.setQueryData(MESSAGES_KEY, (old: any) => {
           if (!old) return old;
           // Drop the optimistic placeholder (keyed by clientId), then add the
           // authoritative server row. mergeNewMessage dedupes by id, so if the
@@ -385,12 +401,16 @@ export default function ConversationScreen() {
     const result = await loadMessages(lastCursor);
     setLastCursor(result.nextCursor);
     setHasMore(result.hasMore ?? false);
-    
-    void qc.setQueryData(['messages-initial', conversationId], (old: any) => {
+
+    void qc.setQueryData(MESSAGES_KEY, (old: any) => {
       if (!old) return { messages: result.messages, names: result.names };
-      return { ...old, messages: [...result.messages, ...old.messages] };
+      // Dedupe by id: concurrent realtime INSERTs may already contain rows.
+      const seen = new Set(result.messages.map((m: any) => m.id));
+      const existing = old.messages.filter((m: any) => !seen.has(m.id));
+      const names = { ...result.names, ...old.names };
+      return { ...old, messages: [...result.messages, ...existing], names };
     });
-  }, [hasMore, lastCursor, conversationId, loadMessages, qc]);
+  }, [hasMore, lastCursor, MESSAGES_KEY, loadMessages, qc]);
 
   const scrollToBottom = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });

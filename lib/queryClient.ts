@@ -131,10 +131,26 @@ export function persistQueryCache(): () => void {
             if (query.state.status !== "success") return false;
             const key = query.queryKey;
             const prefix = Array.isArray(key) ? key[0] : undefined;
-            return (
-              typeof prefix !== "string" ||
-              !NON_SERIALIZABLE_QUERY_PREFIXES.includes(prefix)
-            );
+            if (
+              typeof prefix === "string" &&
+              NON_SERIALIZABLE_QUERY_PREFIXES.includes(prefix)
+            )
+              return false;
+            // Never persist an empty messages page: a cold-start fetch that ran
+            // before the auth JWT was ready returns [] (RLS success) and must
+            // not overwrite the good cache — messages always refetch live.
+            if (prefix === "messages") {
+              const data = query.state.data as
+                | { messages?: unknown[] }
+                | undefined;
+              if (
+                !data ||
+                !Array.isArray((data as { messages?: unknown[] }).messages) ||
+                (data as { messages?: unknown[] }).messages!.length === 0
+              )
+                return false;
+            }
+            return true;
           },
         });
         const payload: PersistedCache = {

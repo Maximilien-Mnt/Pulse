@@ -338,6 +338,23 @@ export default function FeedScreen() {
     []
   );
 
+  // ── Anchored panel content (shared by the loading / error / normal
+  // branches) — each panel hangs directly under its header trigger button.
+  const filterPanel = filterOpen ? (
+    <FeedFilterPanel
+      options={searchOptions}
+      onChange={setSearchOptions}
+      onClose={handleCloseFilters}
+    />
+  ) : null;
+  const sortPanel = sortOpen ? (
+    <FeedSortPanel
+      value={searchOptions.sort}
+      onSelect={handleSortSelect}
+      onClose={handleCloseSort}
+    />
+  ) : null;
+
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
       <PostCard
@@ -405,21 +422,11 @@ export default function FeedScreen() {
           isGridAvailable={isGridAvailable}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
+          filterOpen={filterOpen}
+          sortOpen={sortOpen}
+          filterPanel={filterPanel}
+          sortPanel={sortPanel}
         />
-        {filterOpen ? (
-          <FeedFilterPanel
-            options={searchOptions}
-            onChange={setSearchOptions}
-            onClose={handleCloseFilters}
-          />
-        ) : null}
-        {sortOpen ? (
-          <FeedSortPanel
-            value={searchOptions.sort}
-            onSelect={handleSortSelect}
-            onClose={handleCloseSort}
-          />
-        ) : null}
         <FeedSkeleton />
       </SafeScreen>
     );
@@ -443,21 +450,11 @@ export default function FeedScreen() {
           isGridAvailable={isGridAvailable}
           viewMode={viewMode}
           onToggleViewMode={handleToggleViewMode}
+          filterOpen={filterOpen}
+          sortOpen={sortOpen}
+          filterPanel={filterPanel}
+          sortPanel={sortPanel}
         />
-        {filterOpen ? (
-          <FeedFilterPanel
-            options={searchOptions}
-            onChange={setSearchOptions}
-            onClose={handleCloseFilters}
-          />
-        ) : null}
-        {sortOpen ? (
-          <FeedSortPanel
-            value={searchOptions.sort}
-            onSelect={handleSortSelect}
-            onClose={handleCloseSort}
-          />
-        ) : null}
         <FeedError onRetry={() => void refetch()} />
       </SafeScreen>
     );
@@ -480,23 +477,11 @@ export default function FeedScreen() {
         isGridAvailable={isGridAvailable}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
+        filterOpen={filterOpen}
+        sortOpen={sortOpen}
+        filterPanel={filterPanel}
+        sortPanel={sortPanel}
       />
-
-      {/* Inline filter panel */}
-      {filterOpen ? (
-        <FeedFilterPanel
-          options={searchOptions}
-          onChange={setSearchOptions}
-          onClose={handleCloseFilters}
-        />
-      ) : null}
-      {sortOpen ? (
-        <FeedSortPanel
-          value={searchOptions.sort}
-          onSelect={handleSortSelect}
-          onClose={handleCloseSort}
-        />
-      ) : null}
 
       {/* Filter chips — sticky */}
       <React.Fragment>

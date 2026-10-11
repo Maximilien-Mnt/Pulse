@@ -16,12 +16,14 @@
 // ---------------------------------------------------------------------------
 
 import { View } from 'react-native';
+import type { ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { t } from '@/hooks/useTranslation';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SearchBar } from '@/components/shared/SearchBar';
+import { AnchoredDropdown } from '@/components/shared/AnchoredDropdown';
 
 export interface FeedFilterSortBarProps {
   searchValue: string;
@@ -37,6 +39,14 @@ export interface FeedFilterSortBarProps {
   isGridAvailable: boolean;
   viewMode: 'list' | 'grid';
   onToggleViewMode: () => void;
+  /** Whether the filter panel is open (drives the anchored dropdown). */
+  filterOpen: boolean;
+  /** Whether the sort panel is open (drives the anchored dropdown). */
+  sortOpen: boolean;
+  /** Filter panel content, attached under the filter button when open. */
+  filterPanel?: ReactNode;
+  /** Sort panel content, attached under the sort button when open. */
+  sortPanel?: ReactNode;
 }
 
 export function FeedFilterSortBar({
@@ -51,6 +61,10 @@ export function FeedFilterSortBar({
   isGridAvailable,
   viewMode,
   onToggleViewMode,
+  filterOpen,
+  sortOpen,
+  filterPanel,
+  sortPanel,
 }: FeedFilterSortBarProps) {
   return (
     <View className='flex-row items-center justify-between px-4 py-3 bg-bg dark:bg-bg-dark gap-3'>
@@ -76,43 +90,59 @@ export function FeedFilterSortBar({
         />
       </View>
 
-      {/* - Filter button - */}
-      <PressableScale
-        onPress={onFilterPress}
-        scaleOnPress={0.9}
-        scaleOnHover={1.06}
-        accessibilityRole='button'
-        accessibilityLabel={t('feed.filter')}
-        className='relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150'
+      {/* - Filter button + anchored panel - */}
+      <AnchoredDropdown
+        trigger={
+          <PressableScale
+            onPress={onFilterPress}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
+            accessibilityRole='button'
+            accessibilityLabel={t('feed.filter')}
+            className='relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150'
+          >
+            <Icon
+              name='ListFilter'
+              size={20}
+              color={filterActive ? 'primary' : 'text-secondary'}
+            />
+            {filterActive ? (
+              <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
+            ) : null}
+          </PressableScale>
+        }
+        open={filterOpen}
+        testID='feed-filter-dropdown'
       >
-        <Icon
-          name='ListFilter'
-          size={20}
-          color={filterActive ? 'primary' : 'text-secondary'}
-        />
-        {filterActive ? (
-          <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
-        ) : null}
-      </PressableScale>
+        {filterPanel}
+      </AnchoredDropdown>
 
-      {/* - Sort button - */}
-      <PressableScale
-        onPress={onSortPress}
-        scaleOnPress={0.9}
-        scaleOnHover={1.06}
-        accessibilityRole='button'
-        accessibilityLabel={t('feed.sort')}
-        className='relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150'
+      {/* - Sort button + anchored panel - */}
+      <AnchoredDropdown
+        trigger={
+          <PressableScale
+            onPress={onSortPress}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
+            accessibilityRole='button'
+            accessibilityLabel={t('feed.sort')}
+            className='relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150'
+          >
+            <Icon
+              name='ArrowUpDown'
+              size={20}
+              color={sortActive ? 'primary' : 'text-secondary'}
+            />
+            {sortActive ? (
+              <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
+            ) : null}
+          </PressableScale>
+        }
+        open={sortOpen}
+        testID='feed-sort-dropdown'
       >
-        <Icon
-          name='ArrowUpDown'
-          size={20}
-          color={sortActive ? 'primary' : 'text-secondary'}
-        />
-        {sortActive ? (
-          <View className='absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary' />
-        ) : null}
-      </PressableScale>
+        {sortPanel}
+      </AnchoredDropdown>
 
       {/* - View mode toggle (grid available only) - */}
       {isGridAvailable ? (

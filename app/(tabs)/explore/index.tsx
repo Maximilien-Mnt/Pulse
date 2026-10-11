@@ -5,7 +5,7 @@
 // and responsive list/grid of ClubCard / EventCard components.
 // ---------------------------------------------------------------------------
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   FlatList,
   Pressable,
@@ -37,6 +37,7 @@ import { ExploreFilterPanel } from "@/components/explore/ExploreFilterPanel";
 import { ExploreSortPanel } from "@/components/explore/ExploreSortPanel";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { SafeScreen } from "@/components/shared/SafeScreen";
+import { AnchoredDropdown } from "@/components/shared/AnchoredDropdown";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeedLayout } from "@/hooks/useFeedLayout";
 import { useTranslation , t } from "@/hooks/useTranslation";
@@ -327,6 +328,33 @@ export default function ExploreScreen() {
 
   const keyExtractor = useCallback((item: any) => item.id, []);
 
+  // ── Anchored panel content (shared by the loading / error / normal
+  // branches) — each panel hangs directly under its header trigger button.
+  const filterPanel = filterOpen ? (
+    <ExploreFilterPanel
+      tab={tab}
+      clubFilters={clubFilters}
+      eventFilters={eventFilters}
+      onChangeClubFilters={setClubFilters}
+      onChangeEventFilters={setEventFilters}
+      onClose={handleCloseFilters}
+    />
+  ) : null;
+  const sortPanel = sortOpen ? (
+    <ExploreSortPanel
+      options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
+      value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
+      onSelect={handleSortSelect}
+      radiusKm={
+        tab === "clubs" ? clubFilters.radiusKm ?? 10 : eventFilters.radiusKm ?? 10
+      }
+      onRadiusKm={handleRadiusChange}
+      isLocationEnabled={isLocationEnabled}
+      onRequestLocation={requestPermission}
+      onClose={handleCloseSort}
+    />
+  ) : null;
+
   // ------------------------------------------------------------------
   // Loading — only when there is nothing to show yet. A filter change that
   // refetches keeps the panel and the current list mounted.
@@ -346,33 +374,11 @@ export default function ExploreScreen() {
           filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
           onOpenSort={handleOpenSort}
           sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
+          filterOpen={filterOpen}
+          sortOpen={sortOpen}
+          filterPanel={filterPanel}
+          sortPanel={sortPanel}
         />
-        {filterOpen ? (
-          <ExploreFilterPanel
-            tab={tab}
-            clubFilters={clubFilters}
-            eventFilters={eventFilters}
-            onChangeClubFilters={setClubFilters}
-            onChangeEventFilters={setEventFilters}
-            onClose={handleCloseFilters}
-          />
-        ) : null}
-        {sortOpen ? (
-          <ExploreSortPanel
-            options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
-            value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
-            onSelect={handleSortSelect}
-            radiusKm={
-              tab === "clubs"
-                ? clubFilters.radiusKm ?? 10
-                : eventFilters.radiusKm ?? 10
-            }
-            onRadiusKm={handleRadiusChange}
-            isLocationEnabled={isLocationEnabled}
-            onRequestLocation={requestPermission}
-            onClose={handleCloseSort}
-          />
-        ) : null}
         <ExploreSkeleton />
       </SafeScreen>
     );
@@ -396,33 +402,11 @@ export default function ExploreScreen() {
           filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
           onOpenSort={handleOpenSort}
           sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
+          filterOpen={filterOpen}
+          sortOpen={sortOpen}
+          filterPanel={filterPanel}
+          sortPanel={sortPanel}
         />
-        {filterOpen ? (
-          <ExploreFilterPanel
-            tab={tab}
-            clubFilters={clubFilters}
-            eventFilters={eventFilters}
-            onChangeClubFilters={setClubFilters}
-            onChangeEventFilters={setEventFilters}
-            onClose={handleCloseFilters}
-          />
-        ) : null}
-        {sortOpen ? (
-          <ExploreSortPanel
-            options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
-            value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
-            onSelect={handleSortSelect}
-            radiusKm={
-              tab === "clubs"
-                ? clubFilters.radiusKm ?? 10
-                : eventFilters.radiusKm ?? 10
-            }
-            onRadiusKm={handleRadiusChange}
-            isLocationEnabled={isLocationEnabled}
-            onRequestLocation={requestPermission}
-            onClose={handleCloseSort}
-          />
-        ) : null}
         <View className="flex-1 items-center justify-center px-8">
           <Icon name="Search" size={32} color="text-tertiary" />
           <Text variant="subtitle" className="text-text-primary mt-4 mb-2 text-center">
@@ -453,37 +437,11 @@ export default function ExploreScreen() {
         filterActive={tab === "clubs" ? clubFiltersActive : eventFiltersActive}
         onOpenSort={handleOpenSort}
         sortActive={tab === "clubs" ? clubSortActive : eventSortActive}
+        filterOpen={filterOpen}
+        sortOpen={sortOpen}
+        filterPanel={filterPanel}
+        sortPanel={sortPanel}
       />
-
-      {/* Inline filter panel — right under the header, above the list */}
-      {filterOpen ? (
-        <ExploreFilterPanel
-          tab={tab}
-          clubFilters={clubFilters}
-          eventFilters={eventFilters}
-          onChangeClubFilters={setClubFilters}
-          onChangeEventFilters={setEventFilters}
-          onClose={handleCloseFilters}
-        />
-      ) : null}
-
-      {/* Inline sort panel — same design/logic as the filter panel */}
-      {sortOpen ? (
-        <ExploreSortPanel
-          options={tab === "clubs" ? CLUB_SORT_OPTIONS : EVENT_SORT_OPTIONS}
-          value={tab === "clubs" ? clubFilters.sort : eventFilters.sort}
-          onSelect={handleSortSelect}
-          radiusKm={
-            tab === "clubs"
-              ? clubFilters.radiusKm ?? 10
-              : eventFilters.radiusKm ?? 10
-          }
-          onRadiusKm={handleRadiusChange}
-          isLocationEnabled={isLocationEnabled}
-          onRequestLocation={requestPermission}
-          onClose={handleCloseSort}
-        />
-      ) : null}
 
       {items.length === 0 ? (
         <ExploreEmpty tab={tab} />
@@ -582,6 +540,10 @@ function ExploreHeader({
   filterActive,
   onOpenSort,
   sortActive,
+  filterOpen,
+  sortOpen,
+  filterPanel,
+  sortPanel,
 }: {
   tab: ExploreTab;
   setTab: (t: ExploreTab) => void;
@@ -594,6 +556,10 @@ function ExploreHeader({
   filterActive: boolean;
   onOpenSort: () => void;
   sortActive: boolean;
+  filterOpen: boolean;
+  sortOpen: boolean;
+  filterPanel?: ReactNode;
+  sortPanel?: ReactNode;
 }) {
   return (
     <View className="bg-bg dark:bg-bg-dark">
@@ -654,42 +620,58 @@ function ExploreHeader({
               <PressableScale>. Motion + surface classes are copied verbatim
               from <IconButton tone="neutral"> so the row animates as one
               system (components/ui/IconButton.tsx). */}
-          <PressableScale
-            onPress={onOpenFilterModal}
-            scaleOnPress={0.9}
-            scaleOnHover={1.06}
-            accessibilityRole="button"
-            accessibilityLabel={t("explore.filtersSort")}
-            className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
+          <AnchoredDropdown
+            trigger={
+              <PressableScale
+                onPress={onOpenFilterModal}
+                scaleOnPress={0.9}
+                scaleOnHover={1.06}
+                accessibilityRole="button"
+                accessibilityLabel={t("explore.filtersSort")}
+                className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
+              >
+                <Icon
+                  name="ListFilter"
+                  size={20}
+                  color={filterActive ? "primary" : "text-secondary"}
+                />
+                {filterActive ? (
+                  <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                ) : null}
+              </PressableScale>
+            }
+            open={filterOpen}
+            testID="explore-filter-dropdown"
           >
-            <Icon
-              name="ListFilter"
-              size={20}
-              color={filterActive ? "primary" : "text-secondary"}
-            />
-            {filterActive ? (
-              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-            ) : null}
-          </PressableScale>
+            {filterPanel}
+          </AnchoredDropdown>
 
           {/* Order / sort */}
-          <PressableScale
-            onPress={onOpenSort}
-            scaleOnPress={0.9}
-            scaleOnHover={1.06}
-            accessibilityRole="button"
-            accessibilityLabel={t("explore.sort")}
-            className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
+          <AnchoredDropdown
+            trigger={
+              <PressableScale
+                onPress={onOpenSort}
+                scaleOnPress={0.9}
+                scaleOnHover={1.06}
+                accessibilityRole="button"
+                accessibilityLabel={t("explore.sort")}
+                className="relative w-11 h-11 rounded-full items-center justify-center shrink-0 bg-neutral-100 dark:bg-neutral-800 active:bg-neutral-200 dark:active:bg-neutral-700 transition-colors duration-150"
+              >
+                <Icon
+                  name="ArrowUpDown"
+                  size={20}
+                  color={sortActive ? "primary" : "text-secondary"}
+                />
+                {sortActive ? (
+                  <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                ) : null}
+              </PressableScale>
+            }
+            open={sortOpen}
+            testID="explore-sort-dropdown"
           >
-            <Icon
-              name="ArrowUpDown"
-              size={20}
-              color={sortActive ? "primary" : "text-secondary"}
-            />
-            {sortActive ? (
-              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-            ) : null}
-          </PressableScale>
+            {sortPanel}
+          </AnchoredDropdown>
 
           {/* View mode toggle */}
           {isGridAvailable ? (

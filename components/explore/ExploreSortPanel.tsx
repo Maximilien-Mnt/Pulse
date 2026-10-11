@@ -89,7 +89,7 @@ export function ExploreSortPanel(props: ExploreSortPanelProps) {
   const showRadius = isNearby && isLocationEnabled;
   return (
     <View testID="explore-sort-panel" style={{ maxHeight }}
-      className="bg-surface dark:bg-surface-dark border-b border-border dark:border-border-dark">
+      className="w-full bg-neutral-100 dark:bg-neutral-800">
       <View className="flex-row items-center justify-between px-4 pt-3 pb-2">
         <View className="flex-row items-center gap-2 flex-1">
           <Text variant="caption" className="text-text-primary">{t("explore.sort")}</Text>

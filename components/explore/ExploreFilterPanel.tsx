@@ -478,7 +478,7 @@ return (
     <View
       testID="explore-filter-panel"
       style={{ maxHeight }}
-      className="bg-surface dark:bg-surface-dark border-b border-border dark:border-border-dark"
+      className="w-full bg-neutral-100 dark:bg-neutral-800"
     >
       {/* ── Panel header ─────────────────────────────────────────────── */}
       <View className="flex-row items-center justify-between px-4 pt-3 pb-2">

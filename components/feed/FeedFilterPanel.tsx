@@ -146,7 +146,7 @@ export function FeedFilterPanel({ options, onChange, onClose }: Props) {
   }, [options, onChange]);
 
   return (
-    <View className="bg-bg dark:bg-bg-dark border-b border-neutral-200 dark:border-neutral-800">
+    <View className="w-full bg-neutral-100 dark:bg-neutral-800">
       {/* ── Header ─────────────────────────────────────────────────── */}
       <View className="flex-row items-center justify-between px-4 pt-3 pb-2">
         <View className="flex-row items-center gap-2 flex-1">

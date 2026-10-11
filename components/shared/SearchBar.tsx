@@ -8,12 +8,13 @@
 // never paints over (or vacates space beside) the neighbouring title / icon
 // buttons in the packed header row:
 //   - HOVER (pointer only, web): a little, simple animation — the surface
-//     tints blue (primary-tint light/dark) and the search glyph tints to
-//     primary and slides SEARCH_BAR_GLYPH_NUDGE px right, replaying
-//     on every entry (hoverCount bumps the glyph's replay key). It never
-//     grows the box and never draws a border, and it disappears the moment
-//     the pointer leaves (hoverOut / window blur) — even while the bar is
-//     clicked.
+//     deepens to the app's standard grey hover (neutral-200 light /
+//     neutral-700 dark, same as IconButton tone="neutral") and the search
+//     glyph slides SEARCH_BAR_GLYPH_NUDGE px right while growing in place
+//     to SEARCH_BAR_GLYPH_SCALE, replaying on every entry (hoverCount
+//     bumps the glyph's replay key). It never grows the box and never
+//     draws a border, and it disappears the moment the pointer leaves
+//     (hoverOut / window blur) — even while the bar is clicked.
 //   - CLICK (`active`): what the bar shows after a click until a click lands
 //     outside it. The border turns the theme's primary blue as a flat
 //     `border-2` ring — deliberately NOT a glow, there is no boxShadow halo
@@ -89,11 +90,13 @@ export const SEARCH_BAR_PRESS_DIMPLE = 0.015;
 export const SEARCH_BAR_SQUASH_Y_PRESS = 1 - SEARCH_BAR_PRESS_DIMPLE;
 /** Colour-fade duration shared with IconButton / Button. */
 export const SEARCH_BAR_TRANSITION_MS = 150;
-/** Travel (px) of the search glyph on hover — the field "opens up". */
-export const SEARCH_BAR_GLYPH_NUDGE = 5;
+/** Travel (px) of the search glyph on hover — a subtle slide, the field "opens up". */
+export const SEARCH_BAR_GLYPH_NUDGE = 3;
+/** Glyph scale while hovered — grows in place, mirroring IconButton's HoverGlyph. */
+export const SEARCH_BAR_GLYPH_SCALE = 1.18;
 
 const restSurface = "bg-neutral-100 dark:bg-neutral-800";
-const liftedSurface = "bg-primary-tint dark:bg-primary-tint-dark";
+const liftedSurface = "bg-neutral-200 dark:bg-neutral-700";
 
 /**
  * The click state's affordance: a flat primary ring (light/dark themed via
@@ -108,10 +111,11 @@ const clearRest = "bg-neutral-300/60 dark:bg-neutral-600/60";
 const clearLifted = "bg-neutral-400/80 dark:bg-neutral-500/80";
 
 // ---------------------------------------------------------------------------
-// Search glyph — tints and slides right while the bar is HOVERED, so hover
-// reads as the field "opening up". Same nudge language as <Arrow> (150ms
-// ease-out, snaps under reduced motion). The click state never touches it:
-// the blue border + taller box are the click's own, distinct affordance.
+// Search glyph — slides right a touch and grows in place while the bar is
+// HOVERED, so hover reads as the field "opening up". Same language as
+// <HoverGlyph> / <Arrow> (150ms ease-out, snaps under reduced motion).
+// The click state never touches it: the blue border + taller box are the
+// click's own, distinct affordance.
 // ---------------------------------------------------------------------------
 
 function SearchGlyph({
@@ -119,7 +123,7 @@ function SearchGlyph({
   reduceMotion,
   replayKey,
 }: {
-  /** True while hovered (pointer over, web) — drives slide AND tint. */
+  /** True while hovered (pointer over, web) — drives slide AND grow AND tint. */
   lit: boolean;
   reduceMotion: boolean;
   /**
@@ -130,31 +134,45 @@ function SearchGlyph({
   replayKey: number;
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const to = lit ? SEARCH_BAR_GLYPH_NUDGE : 0;
+    const toX = lit ? SEARCH_BAR_GLYPH_NUDGE : 0;
+    const toScale = lit ? SEARCH_BAR_GLYPH_SCALE : 1;
     if (reduceMotion) {
       // Still move, just without the animation (reduced-motion UX).
-      translateX.setValue(to);
+      translateX.setValue(toX);
+      scale.setValue(toScale);
       return;
     }
-    // Stop any in-flight slide and replay from the live position: re-entering
-    // mid-fade-out restarts the nudge instead of sticking part-way out.
+    // Stop any in-flight motion and replay from the live position:
+    // re-entering mid-fade-out restarts the nudge instead of sticking
+    // part-way out. Both channels share one 150ms ease-out clock so the
+    // slide and the grow land together, cleanly.
     translateX.stopAnimation((current: number) => {
       translateX.setValue(current);
-      Animated.timing(translateX, {
-        toValue: to,
-        duration: SEARCH_BAR_TRANSITION_MS,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }).start();
+      scale.stopAnimation();
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: toX,
+          duration: SEARCH_BAR_TRANSITION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: toScale,
+          duration: SEARCH_BAR_TRANSITION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
-    // `replayKey` intentionally re-runs the slide on every hover-in.
-  }, [lit, replayKey, reduceMotion, translateX]);
+    // `replayKey` intentionally re-runs the motion on every hover-in.
+  }, [lit, replayKey, reduceMotion, translateX, scale]);
 
   return (
-    <Animated.View style={{ transform: [{ translateX }] }}>
-      <Icon name="Search" size={18} color={lit ? "primary" : "text-tertiary"} />
+    <Animated.View style={{ transform: [{ translateX }, { scale }] }}>
+      <Icon name="Search" size={18} color={lit ? "text-secondary" : "text-tertiary"} />
     </Animated.View>
   );
 }

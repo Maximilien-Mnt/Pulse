@@ -136,18 +136,32 @@ export function ExploreHeader({
                   className="bg-neutral-100 dark:bg-neutral-800"
                   style={{ position: "absolute", top: 30, left: 8, right: 8, height: 31, zIndex: 10 }}
                 />
+                {/* Left fillet: grey quadrant tucked top-right, concave opening left. */}
                 <View
                   pointerEvents="none"
                   aria-hidden
-                  className="bg-bg dark:bg-bg-dark rounded-full"
-                  style={{ position: "absolute", top: 43, left: 0, width: 16, height: 16, zIndex: 11 }}
-                />
+                  className="bg-bg dark:bg-bg-dark overflow-hidden"
+                  style={{ position: "absolute", top: 39, left: 8, width: 12, height: 12, zIndex: 11 }}
+                >
+                  <View
+                    aria-hidden
+                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
+                    style={{ position: "absolute", left: 0, top: -12, width: 24, height: 24 }}
+                  />
+                </View>
+                {/* Right fillet: mirrored, concave opening right. */}
                 <View
                   pointerEvents="none"
                   aria-hidden
-                  className="bg-bg dark:bg-bg-dark rounded-full"
-                  style={{ position: "absolute", top: 43, left: 28, width: 16, height: 16, zIndex: 11 }}
-                />
+                  className="bg-bg dark:bg-bg-dark overflow-hidden"
+                  style={{ position: "absolute", top: 39, left: 24, width: 12, height: 12, zIndex: 11 }}
+                >
+                  <View
+                    aria-hidden
+                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
+                    style={{ position: "absolute", left: -12, top: -12, width: 24, height: 24 }}
+                  />
+                </View>
               </>
             ) : null}
           </View>
@@ -180,18 +194,32 @@ export function ExploreHeader({
                   className="bg-neutral-100 dark:bg-neutral-800"
                   style={{ position: "absolute", top: 30, left: 8, right: 8, height: 31, zIndex: 10 }}
                 />
+                {/* Left fillet: grey quadrant tucked top-right, concave opening left. */}
                 <View
                   pointerEvents="none"
                   aria-hidden
-                  className="bg-bg dark:bg-bg-dark rounded-full"
-                  style={{ position: "absolute", top: 43, left: 0, width: 16, height: 16, zIndex: 11 }}
-                />
+                  className="bg-bg dark:bg-bg-dark overflow-hidden"
+                  style={{ position: "absolute", top: 39, left: 8, width: 12, height: 12, zIndex: 11 }}
+                >
+                  <View
+                    aria-hidden
+                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
+                    style={{ position: "absolute", left: 0, top: -12, width: 24, height: 24 }}
+                  />
+                </View>
+                {/* Right fillet: mirrored, concave opening right. */}
                 <View
                   pointerEvents="none"
                   aria-hidden
-                  className="bg-bg dark:bg-bg-dark rounded-full"
-                  style={{ position: "absolute", top: 43, left: 28, width: 16, height: 16, zIndex: 11 }}
-                />
+                  className="bg-bg dark:bg-bg-dark overflow-hidden"
+                  style={{ position: "absolute", top: 39, left: 24, width: 12, height: 12, zIndex: 11 }}
+                >
+                  <View
+                    aria-hidden
+                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
+                    style={{ position: "absolute", left: -12, top: -12, width: 24, height: 24 }}
+                  />
+                </View>
               </>
             ) : null}
           </View>

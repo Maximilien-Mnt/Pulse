@@ -26,6 +26,7 @@ import { Animated, Platform } from "react-native";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import {
   SEARCH_BAR_GLYPH_NUDGE,
+  SEARCH_BAR_GLYPH_SCALE,
   SEARCH_BAR_GROW_LIFT,
   SEARCH_BAR_HEIGHT_GROWN,
   SEARCH_BAR_HEIGHT_REST,
@@ -114,7 +115,7 @@ const REST_BOX = { height: SEARCH_BAR_HEIGHT_REST, top: 0 };
 const GROWN_BOX = { height: SEARCH_BAR_HEIGHT_GROWN, top: -SEARCH_BAR_GROW_LIFT };
 
 const REST_SURFACE = "bg-neutral-100 dark:bg-neutral-800";
-const LIFTED_SURFACE = "bg-primary-tint dark:bg-primary-tint-dark";
+const LIFTED_SURFACE = "bg-neutral-200 dark:bg-neutral-700";
 const REST_BORDER = "border-transparent";
 const STUB_TRANSITION = "transition-[height,top,background-color,border-color]";
 
@@ -188,7 +189,7 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       expect(classNameOf(pill)).not.toContain(SEARCH_BAR_HEIGHT_GROWN);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
       expect(hasClass(pill, "border-primary")).toBe(false);
-      expect(glyph()?.props.color).toBe("primary");
+      expect(glyph()?.props.color).toBe("text-secondary");
 
       fireEvent(pill, "hoverOut");
 
@@ -224,7 +225,7 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       fireEvent(pill, "hoverIn");
       expect(boxOf(pill)).toEqual(GROWN_BOX);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
-      expect(glyph()?.props.color).toBe("primary");
+      expect(glyph()?.props.color).toBe("text-secondary");
 
       // Pointer leaves: the hover animation disappears, the click half stays.
       fireEvent(pill, "hoverOut");
@@ -256,9 +257,9 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       expect(hasClass(pill, "border-primary")).toBe(false);
     });
 
-    it("replays the glyph nudge on every hover-in", () => {
+    it("replays the glyph nudge + grow on every hover-in", () => {
       jest.replaceProperty(Platform, "OS", "web");
-      // Re-entry must restart the slide from wherever it currently sits.
+      // Re-entry must restart the slide + grow from wherever they sit.
       jest
         .spyOn(Animated.Value.prototype, "stopAnimation")
         .mockImplementation(function (this: Animated.Value, cb?: (value: number) => void) {
@@ -274,11 +275,17 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       fireEvent(pill, "hoverOut");
       fireEvent(pill, "hoverIn");
 
+      // Slide (translateX) and grow (scale) run as a parallel pair on every
+      // entry: mount settles once, then each hover-in/out fires both.
       expect(timing.mock.calls.map((call) => call[1]?.toValue)).toEqual([
-        0, // mount settles at rest
-        SEARCH_BAR_GLYPH_NUDGE, // hover-in
-        0, // hover-out
+        0, // mount settles translateX at rest
+        1, // mount settles scale at rest
+        SEARCH_BAR_GLYPH_NUDGE, // hover-in slide
+        SEARCH_BAR_GLYPH_SCALE, // hover-in grow
+        0, // hover-out slide
+        1, // hover-out grow
         SEARCH_BAR_GLYPH_NUDGE, // hover-in again — replays via hoverCount
+        SEARCH_BAR_GLYPH_SCALE,
       ]);
       timing.mock.calls.forEach(([, config]) => {
         expect(config).toMatchObject({
@@ -354,7 +361,7 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       expect(boxOf(pill)).toEqual(REST_BOX);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
       expect(hasClass(pill, "border-primary")).toBe(false);
-      expect(glyph()?.props.color).toBe("primary");
+      expect(glyph()?.props.color).toBe("text-secondary");
 
       fireEvent(pill, "hoverOut");
 
@@ -449,12 +456,15 @@ describe("SearchBar hover / click animation (two-channel contract)", () => {
       fireEvent(getByPlaceholderText("Search"), "blur");
       fireEvent(pill, "hoverIn");
 
-      // Hover lifts the surface without growing; the nudge still lands —
-      // it snaps instead of animating.
+      // Hover lifts the surface without growing; the nudge + grow still
+      // land — they snap instead of animating.
       expect(boxOf(pill)).toEqual(REST_BOX);
       expect(classNameOf(pill)).toContain(LIFTED_SURFACE);
       expect(classNameOf(pill)).not.toContain("transition-all");
       expect(setValue.mock.calls.some((call) => call[0] === SEARCH_BAR_GLYPH_NUDGE)).toBe(
+        true
+      );
+      expect(setValue.mock.calls.some((call) => call[0] === SEARCH_BAR_GLYPH_SCALE)).toBe(
         true
       );
       expect(timing).not.toHaveBeenCalled();

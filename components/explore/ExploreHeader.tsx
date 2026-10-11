@@ -116,7 +116,9 @@ export function ExploreHeader({
               accessibilityLabel={t("explore.filtersSort")}
               className={cn(
                 "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
-                "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+                filterOpen
+                  ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
+                  : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
               )}
             >
               <Icon
@@ -129,40 +131,12 @@ export function ExploreHeader({
               ) : null}
             </PressableScale>
             {filterOpen && panelOpen ? (
-              <>
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800"
-                  style={{ position: "absolute", top: 30, left: 8, right: 8, height: 31, zIndex: 10 }}
-                />
-                {/* Left fillet: grey quadrant tucked top-right, concave opening left. */}
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-bg dark:bg-bg-dark overflow-hidden"
-                  style={{ position: "absolute", top: 39, left: 8, width: 12, height: 12, zIndex: 11 }}
-                >
-                  <View
-                    aria-hidden
-                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                    style={{ position: "absolute", left: 0, top: -12, width: 24, height: 24 }}
-                  />
-                </View>
-                {/* Right fillet: mirrored, concave opening right. */}
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-bg dark:bg-bg-dark overflow-hidden"
-                  style={{ position: "absolute", top: 39, left: 24, width: 12, height: 12, zIndex: 11 }}
-                >
-                  <View
-                    aria-hidden
-                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                    style={{ position: "absolute", left: -12, top: -12, width: 24, height: 24 }}
-                  />
-                </View>
-              </>
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: "absolute", top: 44, left: 0, right: 0, height: 9 }}
+              />
             ) : null}
           </View>
           <View className="relative shrink-0">
@@ -174,7 +148,9 @@ export function ExploreHeader({
               accessibilityLabel={t("explore.sort")}
               className={cn(
                 "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
-                "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+                sortOpen
+                  ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
+                  : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
               )}
             >
               <Icon
@@ -187,40 +163,12 @@ export function ExploreHeader({
               ) : null}
             </PressableScale>
             {sortOpen && panelOpen ? (
-              <>
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800"
-                  style={{ position: "absolute", top: 30, left: 8, right: 8, height: 31, zIndex: 10 }}
-                />
-                {/* Left fillet: grey quadrant tucked top-right, concave opening left. */}
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-bg dark:bg-bg-dark overflow-hidden"
-                  style={{ position: "absolute", top: 39, left: 8, width: 12, height: 12, zIndex: 11 }}
-                >
-                  <View
-                    aria-hidden
-                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                    style={{ position: "absolute", left: 0, top: -12, width: 24, height: 24 }}
-                  />
-                </View>
-                {/* Right fillet: mirrored, concave opening right. */}
-                <View
-                  pointerEvents="none"
-                  aria-hidden
-                  className="bg-bg dark:bg-bg-dark overflow-hidden"
-                  style={{ position: "absolute", top: 39, left: 24, width: 12, height: 12, zIndex: 11 }}
-                >
-                  <View
-                    aria-hidden
-                    className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                    style={{ position: "absolute", left: -12, top: -12, width: 24, height: 24 }}
-                  />
-                </View>
-              </>
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: "absolute", top: 44, left: 0, right: 0, height: 9 }}
+              />
             ) : null}
           </View>
           {isGridAvailable ? (

@@ -11,6 +11,11 @@
 //     arrow nudge (components/ui/Arrow.tsx), since this row has no arrow.
 // Both snap without animation under prefers-reduced-motion.
 //
+// The hover options button (Ellipsis, 32px circle) crossfades in over the
+// date on the right side, vertically centered against the full row height.
+// It carries its own hover affordance (surface → chip, icon
+// text-secondary → primary, 1 → 1.08 scale) on top of the row tint.
+//
 // The avatar is a nested pressable (opens the profile). Its hover/focus
 // re-asserts the row state and it never deactivates it, so sliding the
 // pointer onto the picture keeps the row tint + nudge. Row hover-out / blur
@@ -67,7 +72,116 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
+  // Clear 32px circular hit area — the button itself, not just its glyph.
+  optionsButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 9999,
+  },
 });
+
+// ---------------------------------------------------------------------------
+// OptionsButton — the hover-revealed conversation options trigger
+// ---------------------------------------------------------------------------
+//
+// Clear circular button (32px, surface + hairline border) with its own hover
+// affordance on top of the row tint: surface → chip, icon
+// text-secondary → primary, and a 1 → 1.08 scale pop. Snaps without animation
+// under prefers-reduced-motion. Re-asserts the row hover state on enter so
+// sliding the pointer onto the button never drops the row tint + nudge.
+
+interface OptionsButtonProps {
+  buttonRef: React.Ref<View>;
+  label: string;
+  reduceMotion: boolean;
+  onPress: () => void;
+  onEnterRow: () => void;
+  onLeaveRow: () => void;
+}
+
+function OptionsButton({
+  buttonRef,
+  label,
+  reduceMotion,
+  onPress,
+  onEnterRow,
+  onLeaveRow,
+}: OptionsButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+  const isWeb = Platform.OS === "web";
+  const highlighted = hovered || focused;
+
+  useEffect(() => {
+    const to = pressed ? 0.94 : highlighted ? 1.08 : 1;
+    if (reduceMotion) {
+      scale.setValue(to);
+      return;
+    }
+    Animated.timing(scale, {
+      toValue: to,
+      duration: ARROW_NUDGE_DURATION,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [highlighted, pressed, reduceMotion, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        ref={buttonRef}
+        testID="conversation-options"
+        onPress={onPress}
+        onHoverIn={
+          isWeb
+            ? () => {
+                setHovered(true);
+                onEnterRow();
+              }
+            : undefined
+        }
+        onHoverOut={
+          isWeb
+            ? () => {
+                setHovered(false);
+                onLeaveRow();
+              }
+            : undefined
+        }
+        onFocus={() => {
+          setFocused(true);
+          onEnterRow();
+        }}
+        onBlur={() => {
+          setFocused(false);
+          onLeaveRow();
+        }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        className={cn(
+          "border",
+          highlighted
+            ? "bg-chip dark:bg-chip-dark border-primary dark:border-primary"
+            : "bg-surface dark:bg-surface-dark border-border dark:border-border-dark"
+        )}
+        style={styles.optionsButton}
+      >
+        <Icon
+          name="Ellipsis"
+          size={18}
+          color={highlighted ? "primary" : "text-secondary"}
+        />
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export function ConversationItem({
   conversation,
@@ -288,8 +402,10 @@ export function ConversationItem({
             for every conversation kind (DM, group/club/event) — even when
             `last_message_at` is null (e.g. brand-new group chats with no
             messages yet). With a date, the date crossfades into the options
-            button on hover; without one the slot just hosts the button. */}
-        <View className="shrink-0 self-start ml-auto pt-0.5 min-w-[20px] items-end">
+            button on hover; without one the slot just hosts the button.
+            Stretches to the full row height so the 32px button is vertically
+            centered against the avatar, not top-aligned with the first line. */}
+        <View className="shrink-0 self-stretch ml-auto w-8 items-end justify-center">
           {conversation.last_message_at ? (
             // Stable-width slot: the date defines its width so the flex-1 name
             // column never reflows when the date crossfades into the options
@@ -313,19 +429,14 @@ export function ConversationItem({
                 style={[styles.optionsLayer, { opacity: optionsOpacity }]}
                 pointerEvents={active ? "auto" : "none"}
               >
-                <Pressable
-                  ref={optionsRef}
-                  testID="conversation-options"
+                <OptionsButton
+                  buttonRef={optionsRef}
+                  label={t("conv.options")}
+                  reduceMotion={reduceMotion}
                   onPress={handleOptionsPress}
-                  onHoverIn={isWeb ? handleActive : undefined}
-                  onFocus={handleActive}
-                  onBlur={scheduleOff}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("conv.options")}
-                >
-                  <Icon name="MoreVertical" size={20} color="text-tertiary" />
-                </Pressable>
+                  onEnterRow={handleActive}
+                  onLeaveRow={scheduleOff}
+                />
               </Animated.View>
             </View>
           ) : (
@@ -336,19 +447,14 @@ export function ConversationItem({
               style={{ opacity: optionsOpacity }}
               pointerEvents={active ? "auto" : "none"}
             >
-              <Pressable
-                ref={optionsRef}
-                testID="conversation-options"
+              <OptionsButton
+                buttonRef={optionsRef}
+                label={t("conv.options")}
+                reduceMotion={reduceMotion}
                 onPress={handleOptionsPress}
-                onHoverIn={isWeb ? handleActive : undefined}
-                onFocus={handleActive}
-                onBlur={scheduleOff}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel={t("conv.options")}
-              >
-                <Icon name="MoreVertical" size={20} color="text-tertiary" />
-              </Pressable>
+                onEnterRow={handleActive}
+                onLeaveRow={scheduleOff}
+              />
             </Animated.View>
           )}
         </View>

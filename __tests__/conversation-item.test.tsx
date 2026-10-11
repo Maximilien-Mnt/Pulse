@@ -132,8 +132,9 @@ describe("ConversationItem", () => {
       <ConversationItem conversation={conversation} onPress={jest.fn()} />
     );
 
-    // Idle on mount: the effect still runs once, at rest.
-    expect(timing.mock.calls.map((call) => call[1]?.toValue)).toEqual([0]);
+    // Idle on mount: the row-nudge effect and the options-button scale effect
+    // each run once, at rest (toValue 0 and 1 respectively).
+    expect(timing.mock.calls.map((call) => call[1]?.toValue)).toEqual([1, 0]);
 
     fireEvent(getAllByTestId("conversation-item")[0], "hoverIn");
     expect(timing).toHaveBeenLastCalledWith(

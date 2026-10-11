@@ -85,9 +85,7 @@ export function FeedFilterSortBar({
           />
         </View>
 
-        {/* Filter — open: button stays a full pill; a narrow stadium tab drops
-            from inside the button into the card below, flanked by two
-            background-coloured fillets that round the concave junction. */}
+        {/* Filter — open: square bottom corners melt into the grey bridge below */}
         <View className="relative shrink-0">
           <PressableScale
             onPress={onFilterPress}
@@ -97,7 +95,9 @@ export function FeedFilterSortBar({
             accessibilityLabel={t('feed.filter')}
             className={cn(
               'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-              'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+              filterOpen
+                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
+                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
             )}
           >
             <Icon
@@ -110,41 +110,12 @@ export function FeedFilterSortBar({
             ) : null}
           </PressableScale>
           {filterOpen && panelOpen ? (
-            <>
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-neutral-100 dark:bg-neutral-800"
-                style={{ position: 'absolute', top: 30, left: 8, right: 8, height: 36, zIndex: 10 }}
-              />
-              {/* Left fillet: bg-bg square hugging the card top; grey quadrant
-                  tucked at its top-right so the curve opens concave left. */}
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-bg dark:bg-bg-dark overflow-hidden"
-                style={{ position: 'absolute', top: 44, left: 8, width: 12, height: 12, zIndex: 11 }}
-              >
-                <View
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                  style={{ position: 'absolute', left: 0, top: -12, width: 24, height: 24 }}
-                />
-              </View>
-              {/* Right fillet: mirrored — grey quadrant at top-left, concave right. */}
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-bg dark:bg-bg-dark overflow-hidden"
-                style={{ position: 'absolute', top: 44, left: 24, width: 12, height: 12, zIndex: 11 }}
-              >
-                <View
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                  style={{ position: 'absolute', left: -12, top: -12, width: 24, height: 24 }}
-                />
-              </View>
-            </>
+            <View
+              pointerEvents="none"
+              aria-hidden
+              className="bg-neutral-100 dark:bg-neutral-800"
+              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
+            />
           ) : null}
         </View>
 
@@ -158,7 +129,9 @@ export function FeedFilterSortBar({
             accessibilityLabel={t('feed.sort')}
             className={cn(
               'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-              'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+              sortOpen
+                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
+                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
             )}
           >
             <Icon
@@ -171,40 +144,12 @@ export function FeedFilterSortBar({
             ) : null}
           </PressableScale>
           {sortOpen && panelOpen ? (
-            <>
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-neutral-100 dark:bg-neutral-800"
-                style={{ position: 'absolute', top: 30, left: 8, right: 8, height: 36, zIndex: 10 }}
-              />
-              {/* Left fillet: grey quadrant tucked top-right, concave opening left. */}
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-bg dark:bg-bg-dark overflow-hidden"
-                style={{ position: 'absolute', top: 44, left: 8, width: 12, height: 12, zIndex: 11 }}
-              >
-                <View
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                  style={{ position: 'absolute', left: 0, top: -12, width: 24, height: 24 }}
-                />
-              </View>
-              {/* Right fillet: mirrored, concave opening right. */}
-              <View
-                pointerEvents="none"
-                aria-hidden
-                className="bg-bg dark:bg-bg-dark overflow-hidden"
-                style={{ position: 'absolute', top: 44, left: 24, width: 12, height: 12, zIndex: 11 }}
-              >
-                <View
-                  aria-hidden
-                  className="bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                  style={{ position: 'absolute', left: -12, top: -12, width: 24, height: 24 }}
-                />
-              </View>
-            </>
+            <View
+              pointerEvents="none"
+              aria-hidden
+              className="bg-neutral-100 dark:bg-neutral-800"
+              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
+            />
           ) : null}
         </View>
 

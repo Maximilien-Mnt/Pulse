@@ -1,4 +1,3 @@
-// ---------------------------------------------------------------------------
 // PULSE DESIGN SYSTEM — Side Rail (Web ≥768px)
 //
 // Left sidebar navigation replacing the bottom tab bar on wider viewports.
@@ -15,14 +14,14 @@
 // <NavTab> so it matches the bottom TabBar exactly.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useState } from "react";
-import { View, Animated, Platform, useWindowDimensions } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Platform, View, useWindowDimensions } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useNavbarStore } from "@/stores/navbarStore";
 import { useThemeStore } from "@/stores/themeStore";
-import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
+import { CreatePopover } from "@/components/shared/CreatePopover";
 import {
   INDICATOR_INSET,
   INDICATOR_RADIUS,
@@ -66,6 +65,10 @@ export function SideRail() {
   const expanded = width >= 1024;
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
   const [createOpen, setCreateOpen] = useState(false);
+  // Where the Create button sits in the viewport — the popover is anchored
+  // to it (right of the rail, centered on the button) rather than centered.
+  const createAnchorRef = useRef<View>(null);
+  const [createAnchor, setCreateAnchor] = useState<{ left: number; centerY: number } | null>(null);
   // Shared hover/focus lift for the Create control — both of its shapes.
   const createLift = useHoverLift();
 
@@ -78,6 +81,13 @@ export function SideRail() {
   };
 
   const handleCreatePress = () => {
+    // Measure the button so the popover can float right next to it.
+    const node = createAnchorRef.current;
+    if (node && typeof node.measureInWindow === "function") {
+      node.measureInWindow((x, y, w, h) => {
+        setCreateAnchor({ left: x + w, centerY: y + h / 2 });
+      });
+    }
     setCreateOpen(true);
   };
 
@@ -189,11 +199,13 @@ export function SideRail() {
             </NavTab>
           );
         })}
-
+      </View>
         {/* Create — pill button expands to show label when rail is expanded */}
         {/* Create — pill button expands to show label when rail is expanded.
             A 56px circular target carries more visual mass than a tab row, so it
             gets a gentler press scale than the tab default (0.9). */}
+        {/* Wrapper measured on press so the popover can anchor to the button. */}
+        <View ref={createAnchorRef} collapsable={false} className="self-stretch">
         <PressableScale
           {...createLift.hoverProps}
           onPress={handleCreatePress}
@@ -219,13 +231,17 @@ export function SideRail() {
             </Text>
           ) : null}
         </PressableScale>
-      </View>
+        </View>
 
       {/* Bottom spacer */}
       <View className="flex-1" />
 
-      {/* Create bottom sheet — modal overlay */}
-      <CreateBottomSheet visible={createOpen} onClose={() => setCreateOpen(false)} />
+      {/* Create popover - floats directly right of the rail, on the button */}
+      <CreatePopover
+        visible={createOpen}
+        onClose={() => setCreateOpen(false)}
+        anchor={createAnchor ? { placement: "rail", left: createAnchor.left, centerY: createAnchor.centerY } : undefined}
+      />
 
       {/* Profile / settings at bottom + navbar layout toggle.
           Rendered as `NavTab`s (never selected) so they lift and spring exactly

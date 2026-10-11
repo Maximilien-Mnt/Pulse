@@ -42,8 +42,8 @@ jest.mock("expo-router", () => ({
   usePathname: () => mockPathname,
 }));
 
-jest.mock("@/components/shared/CreateBottomSheet", () => ({
-  CreateBottomSheet: () => null,
+jest.mock("@/components/shared/CreatePopover", () => ({
+  CreatePopover: () => null,
 }));
 
 // The bottom bar is hidden in favour of the SideRail once the viewport is wide

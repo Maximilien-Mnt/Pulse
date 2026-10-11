@@ -36,10 +36,10 @@ jest.mock("expo-router", () => ({
   usePathname: () => mockPathname,
 }));
 
-// The create sheet is an overlay (only mounted once `createOpen` flips), but
+// The create menu is an overlay (only mounted once `createOpen` flips), but
 // mocking it keeps this suite from pulling the whole create flow in.
-jest.mock("@/components/shared/CreateBottomSheet", () => ({
-  CreateBottomSheet: () => null,
+jest.mock("@/components/shared/CreatePopover", () => ({
+  CreatePopover: () => null,
 }));
 
 /** Point `useWindowDimensions` at a given viewport width. */

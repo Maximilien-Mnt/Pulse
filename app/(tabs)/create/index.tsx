@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // PULSE CREATE SCREEN
 //
-// Entry point reached from the CreateBottomSheet (modal overlay).
+// Entry point reached from the CreatePopover (anchored options menu).
 // Reads ?mode=post|club|event|conversation from URL params and shows
 // the corresponding form. A missing mode redirects to the feed.
 // ---------------------------------------------------------------------------
@@ -652,7 +652,7 @@ export default function CreateScreen() {
   }, [router]);
 
   // Safety net: this screen is only reached with a ?mode= param now.
-  // The create menu is a modal overlay (CreateBottomSheet) opened from
+  // The create menu is an anchored popover (CreatePopover) opened from
   // the TabBar / SideRail, so a missing mode means redirect to the feed.
   React.useEffect(() => {
     if (!mode) {

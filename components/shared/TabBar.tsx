@@ -3,7 +3,7 @@
 //
 // 5 tabs: Feed, Explorer, [Create], Messages, Profile
 // The Create button is a raised circle centered above the bar.
-// Tapping it opens CreateBottomSheet instead of navigating.
+// Tapping it opens the CreatePopover options menu instead of navigating.
 //
 // Height: 64px + safe-area-inset-bottom
 // Background: surface, top border: 1px border
@@ -37,7 +37,7 @@ import {
 import { useNavbarStore } from "@/stores/navbarStore";
 import { useIsWebWide } from "@/components/shared/SideRail";
 import { useThemeStore } from "@/stores/themeStore";
-import { CreateBottomSheet } from "@/components/shared/CreateBottomSheet";
+import { CreatePopover } from "@/components/shared/CreatePopover";
 import { semanticColors } from "@/src/design-tokens/semantic/colors";
 import { t } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
@@ -77,7 +77,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const isWeb = Platform.OS === "web";
   const isWebWide = useIsWebWide();
 
-  // Open the create bottom sheet as a modal overlay
+  // Open the create popover, anchored directly above the raised FAB.
   const handleCreatePress = () => {
     setCreateOpen(true);
   };
@@ -266,8 +266,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         </Pressable>
       ) : null}
 
-      {/* Create bottom sheet — modal overlay */}
-      <CreateBottomSheet visible={createOpen} onClose={() => setCreateOpen(false)} />
+      {/* Create popover — the options menu floats directly above the FAB */}
+      <CreatePopover visible={createOpen} onClose={() => setCreateOpen(false)} anchor={{ placement: "bottom" }} />
     </View>
   );
 }

@@ -125,6 +125,7 @@ export function useRenameGroupConversation() {
     }) => {
       const name = groupName.trim();
       if (!name) throw new Error(t("conv.nameRequired"));
+      if (!conversationId?.trim()) throw new Error(t("common.unknownError"));
       const { error } = await supabase
         .from("conversations")
         .update({ group_name: name })

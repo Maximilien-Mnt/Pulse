@@ -143,8 +143,9 @@ describe('useRenameGroupConversation', () => {
 
     mutation.onSettled(null, null, { conversationId: 'conv-1', groupName: 'New Name' });
 
-    // The conversations tab list is refreshed…
-    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['conversations'] });
+    // The conversations tab list is refreshed (prefix match: keys are
+    // ["conversations", userId, publicList])…
+    expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['conversations'], exact: false });
     // …and the header is reconciled with the server value.
     expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: HEADER_KEY });
   });

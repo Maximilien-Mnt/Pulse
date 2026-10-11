@@ -118,7 +118,9 @@ export function ActionMenuPopover({
       toValue: 1,
       duration: ENTER_MS,
       easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
+      // Web has no native animated module — the JS driver handles
+      // opacity/translate/scale fine and avoids the console warning.
+      useNativeDriver: Platform.OS !== "web",
     }).start();
   }, [enter, reduceMotion, visible]);
 

@@ -199,14 +199,12 @@ export function SideRail() {
             </NavTab>
           );
         })}
-      </View>
-        {/* Create — pill button expands to show label when rail is expanded */}
-        {/* Create — pill button expands to show label when rail is expanded.
-            A 56px circular target carries more visual mass than a tab row, so it
-            gets a gentler press scale than the tab default (0.9). */}
+
+        {/* Create — same row width as the tabs above, just under Profil.
+            Pill expands to show label when rail is expanded. */}
         {/* Wrapper measured on press so the popover can anchor to the button. */}
         <View ref={createAnchorRef} collapsable={false} className="self-stretch">
-        <PressableScale
+          <PressableScale
           {...createLift.hoverProps}
           onPress={handleCreatePress}
           scaleOnPress={0.92}
@@ -216,10 +214,10 @@ export function SideRail() {
           // both Create forms — icon-only circle and icon+label pill — scale
           // to the button hover over the shared 150ms fade.
           className={cn(
-            "bg-primary shadow-sm dark:shadow-none mt-2",
+            "bg-primary shadow-sm dark:shadow-none",
             expanded
               ? "flex-row items-center justify-center gap-2 px-4 py-2.5 rounded-full self-stretch"
-              : "w-14 h-14 items-center justify-center rounded-full self-center",
+              : "items-center justify-center rounded-full self-stretch py-3",
             createLift.liftTransitionClassName
           )}
           style={{ transform: createLift.liftTransform }}
@@ -230,8 +228,9 @@ export function SideRail() {
               Créer
             </Text>
           ) : null}
-        </PressableScale>
+          </PressableScale>
         </View>
+      </View>
 
       {/* Bottom spacer */}
       <View className="flex-1" />

@@ -123,6 +123,11 @@ export function ConversationActionSheet({
   // Rename sheet state (Android / web — iOS uses the native prompt).
   const [renameOpen, setRenameOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  // Snapshot the conversation id at open time: the parent clears menuItem
+  // (so the conversationId prop becomes "") when the menu closes, but the rename
+  // modal saves afterwards — it must use the id from before the close.
+  const renameIdRef = useRef(conversationId);
+  if (conversationId) renameIdRef.current = conversationId;
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   // Capture the report target while the menu is open: the parent clears its
   // conversation state on close (menuItem → null), so the values are held
@@ -247,18 +252,26 @@ export function ConversationActionSheet({
         Toast.show({ type: "error", text1: t("conv.nameRequired") });
         return;
       }
+      const id = renameIdRef.current;
+      if (!id) {
+        Toast.show({ type: "error", text1: t("common.unknownError") });
+        return;
+      }
       renameMut.mutate(
-        { conversationId, groupName: next },
+        { conversationId: id, groupName: next },
         {
           onSuccess: (data) => {
             setRenameOpen(false);
             Toast.show({ type: "success", text1: t("conv.groupRenamed") });
             onRenamed?.(data?.groupName ?? next);
           },
+          onError: () => {
+            Toast.show({ type: "error", text1: t("common.unknownError") });
+          },
         }
       );
     },
-    [conversationId, onRenamed, renameMut, t]
+    [onRenamed, renameMut, t]
   );
 
   const handleRename = useCallback(() => {

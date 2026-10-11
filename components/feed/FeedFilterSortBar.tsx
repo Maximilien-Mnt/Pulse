@@ -85,8 +85,9 @@ export function FeedFilterSortBar({
           />
         </View>
 
-        {/* Filter — open: square bottom corners + narrow grey tab bridging the
-            row's bottom padding into the panel below. Only this button connects. */}
+        {/* Filter — open: button stays a full pill; a narrow stadium tab drops
+            from inside the button into the card below, flanked by two
+            background-coloured fillets that round the concave junction. */}
         <View className="relative shrink-0">
           <PressableScale
             onPress={onFilterPress}
@@ -96,9 +97,7 @@ export function FeedFilterSortBar({
             accessibilityLabel={t('feed.filter')}
             className={cn(
               'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-              filterOpen
-                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
-                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+              'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
             )}
           >
             <Icon
@@ -111,12 +110,26 @@ export function FeedFilterSortBar({
             ) : null}
           </PressableScale>
           {filterOpen && panelOpen ? (
-            <View
-              pointerEvents="none"
-              aria-hidden
-              className="bg-neutral-100 dark:bg-neutral-800"
-              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
-            />
+            <>
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: 'absolute', top: 30, left: 8, right: 8, height: 36, zIndex: 10 }}
+              />
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-bg dark:bg-bg-dark rounded-full"
+                style={{ position: 'absolute', top: 48, left: 0, width: 16, height: 16, zIndex: 11 }}
+              />
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-bg dark:bg-bg-dark rounded-full"
+                style={{ position: 'absolute', top: 48, left: 28, width: 16, height: 16, zIndex: 11 }}
+              />
+            </>
           ) : null}
         </View>
 
@@ -130,9 +143,7 @@ export function FeedFilterSortBar({
             accessibilityLabel={t('feed.sort')}
             className={cn(
               'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-              sortOpen
-                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
-                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+              'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
             )}
           >
             <Icon
@@ -145,12 +156,26 @@ export function FeedFilterSortBar({
             ) : null}
           </PressableScale>
           {sortOpen && panelOpen ? (
-            <View
-              pointerEvents="none"
-              aria-hidden
-              className="bg-neutral-100 dark:bg-neutral-800"
-              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
-            />
+            <>
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: 'absolute', top: 30, left: 8, right: 8, height: 36, zIndex: 10 }}
+              />
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-bg dark:bg-bg-dark rounded-full"
+                style={{ position: 'absolute', top: 48, left: 0, width: 16, height: 16, zIndex: 11 }}
+              />
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-bg dark:bg-bg-dark rounded-full"
+                style={{ position: 'absolute', top: 48, left: 28, width: 16, height: 16, zIndex: 11 }}
+              />
+            </>
           ) : null}
         </View>
 
@@ -166,11 +191,13 @@ export function FeedFilterSortBar({
         ) : null}
       </View>
 
-      {/* Expanding slot: full width, in-flow, same grey, no border. Mounted only
-          while open — reserves space (pushes content down) and collapses fully
-          on close; height follows the panel's own collapsible sections. */}
+      {/* Expanding slot: inset card — same px-4 width as the header row,
+          rounded-2xl like the app's popover cards, clipped so the panel
+          content follows the card radius. Mounted only while open. */}
       {panelOpen ? (
-        <View className={cn('w-full', PANEL_GREY)}>{activePanel}</View>
+        <View className="px-4 pb-2">
+          <View className={cn('w-full overflow-hidden rounded-2xl', PANEL_GREY)}>{activePanel}</View>
+        </View>
       ) : null}
     </View>
   );

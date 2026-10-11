@@ -59,7 +59,7 @@ export function ExploreHeader({
   const panelOpen = activePanel != null && (filterOpen || sortOpen);
   return (
     <View className="bg-bg dark:bg-bg-dark">
-      <View className={cn("px-4 pt-3 pb-2", panelOpen && PANEL_GREY)}>
+      <View className="px-4 pt-3 pb-2">
         <View className="flex-row bg-neutral-50 dark:bg-neutral-800 rounded-full p-1">
           <Pressable
             onPress={() => setTab("clubs")}
@@ -91,7 +91,7 @@ export function ExploreHeader({
           </Pressable>
         </View>
       </View>
-      <View className={cn("px-4 pb-2", panelOpen && PANEL_GREY)}>
+      <View className="px-4 pb-2">
         <View className="flex-row items-center gap-2">
           <View className="flex-1">
             <SearchBar
@@ -107,50 +107,70 @@ export function ExploreHeader({
               }
             />
           </View>
-          <PressableScale
-            onPress={onOpenFilterModal}
-            scaleOnPress={0.9}
-            scaleOnHover={1.06}
-            accessibilityRole="button"
-            accessibilityLabel={t("explore.filtersSort")}
-            className={cn(
-              "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
-              filterOpen
-                ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
-                : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
-            )}
-          >
-            <Icon
-              name="ListFilter"
-              size={20}
-              color={filterActive ? "primary" : "text-secondary"}
-            />
-            {filterActive ? (
-              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+          <View className="relative shrink-0">
+            <PressableScale
+              onPress={onOpenFilterModal}
+              scaleOnPress={0.9}
+              scaleOnHover={1.06}
+              accessibilityRole="button"
+              accessibilityLabel={t("explore.filtersSort")}
+              className={cn(
+                "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
+                filterOpen
+                  ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
+                  : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+              )}
+            >
+              <Icon
+                name="ListFilter"
+                size={20}
+                color={filterActive ? "primary" : "text-secondary"}
+              />
+              {filterActive ? (
+                <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+              ) : null}
+            </PressableScale>
+            {filterOpen && panelOpen ? (
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: "absolute", top: 44, left: 0, right: 0, height: 9 }}
+              />
             ) : null}
-          </PressableScale>
-          <PressableScale
-            onPress={onOpenSort}
-            scaleOnPress={0.9}
-            scaleOnHover={1.06}
-            accessibilityRole="button"
-            accessibilityLabel={t("explore.sort")}
-            className={cn(
-              "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
-              sortOpen
-                ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
-                : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
-            )}
-          >
-            <Icon
-              name="ArrowUpDown"
-              size={20}
-              color={sortActive ? "primary" : "text-secondary"}
-            />
-            {sortActive ? (
-              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+          </View>
+          <View className="relative shrink-0">
+            <PressableScale
+              onPress={onOpenSort}
+              scaleOnPress={0.9}
+              scaleOnHover={1.06}
+              accessibilityRole="button"
+              accessibilityLabel={t("explore.sort")}
+              className={cn(
+                "relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150",
+                sortOpen
+                  ? "bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none"
+                  : "bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+              )}
+            >
+              <Icon
+                name="ArrowUpDown"
+                size={20}
+                color={sortActive ? "primary" : "text-secondary"}
+              />
+              {sortActive ? (
+                <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+              ) : null}
+            </PressableScale>
+            {sortOpen && panelOpen ? (
+              <View
+                pointerEvents="none"
+                aria-hidden
+                className="bg-neutral-100 dark:bg-neutral-800"
+                style={{ position: "absolute", top: 44, left: 0, right: 0, height: 9 }}
+              />
             ) : null}
-          </PressableScale>
+          </View>
           {isGridAvailable ? (
             <IconButton
               icon={viewMode === "list" ? "LayoutGrid" : "List"}

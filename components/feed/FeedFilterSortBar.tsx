@@ -62,13 +62,9 @@ export function FeedFilterSortBar({
 
   return (
     <View className="w-full bg-bg dark:bg-bg-dark">
-      {/* Button row — turns the panel grey while open so row + panel read as one body */}
-      <View
-        className={cn(
-          'flex-row items-center justify-between px-4 py-3 gap-3',
-          panelOpen && PANEL_GREY,
-        )}
-      >
+      {/* Button row — always stays on bg-bg; only the open button bridges down
+          to the panel via its own narrow tab (no full-row grey wash). */}
+      <View className="flex-row items-center justify-between px-4 py-3 gap-3">
         <View className="w-10 h-10 rounded-xs bg-primary items-center justify-center overflow-hidden shrink-0">
           <Image
             source={require('@/assets/logo/pulse-logo-10-v3-20260828.png')}
@@ -89,53 +85,74 @@ export function FeedFilterSortBar({
           />
         </View>
 
-        {/* Filter — open: square bottom corners melt into the panel below */}
-        <PressableScale
-          onPress={onFilterPress}
-          scaleOnPress={0.9}
-          scaleOnHover={1.06}
-          accessibilityRole="button"
-          accessibilityLabel={t('feed.filter')}
-          className={cn(
-            'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-            filterOpen
-              ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
-              : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
-          )}
-        >
-          <Icon
-            name="ListFilter"
-            size={20}
-            color={filterActive ? 'primary' : 'text-secondary'}
-          />
-          {filterActive ? (
-            <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+        {/* Filter — open: square bottom corners + narrow grey tab bridging the
+            row's bottom padding into the panel below. Only this button connects. */}
+        <View className="relative shrink-0">
+          <PressableScale
+            onPress={onFilterPress}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
+            accessibilityRole="button"
+            accessibilityLabel={t('feed.filter')}
+            className={cn(
+              'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
+              filterOpen
+                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
+                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+            )}
+          >
+            <Icon
+              name="ListFilter"
+              size={20}
+              color={filterActive ? 'primary' : 'text-secondary'}
+            />
+            {filterActive ? (
+              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+            ) : null}
+          </PressableScale>
+          {filterOpen && panelOpen ? (
+            <View
+              pointerEvents="none"
+              aria-hidden
+              className="bg-neutral-100 dark:bg-neutral-800"
+              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
+            />
           ) : null}
-        </PressableScale>
+        </View>
 
         {/* Sort — same connected behaviour */}
-        <PressableScale
-          onPress={onSortPress}
-          scaleOnPress={0.9}
-          scaleOnHover={1.06}
-          accessibilityRole="button"
-          accessibilityLabel={t('feed.sort')}
-          className={cn(
-            'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
-            sortOpen
-              ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
-              : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
-          )}
-        >
-          <Icon
-            name="ArrowUpDown"
-            size={20}
-            color={sortActive ? 'primary' : 'text-secondary'}
-          />
-          {sortActive ? (
-            <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+        <View className="relative shrink-0">
+          <PressableScale
+            onPress={onSortPress}
+            scaleOnPress={0.9}
+            scaleOnHover={1.06}
+            accessibilityRole="button"
+            accessibilityLabel={t('feed.sort')}
+            className={cn(
+              'relative w-11 h-11 items-center justify-center shrink-0 transition-colors duration-150',
+              sortOpen
+                ? 'bg-neutral-100 dark:bg-neutral-800 rounded-t-full rounded-b-none'
+                : 'bg-neutral-100 dark:bg-neutral-800 rounded-full active:bg-neutral-200 dark:active:bg-neutral-700',
+            )}
+          >
+            <Icon
+              name="ArrowUpDown"
+              size={20}
+              color={sortActive ? 'primary' : 'text-secondary'}
+            />
+            {sortActive ? (
+              <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+            ) : null}
+          </PressableScale>
+          {sortOpen && panelOpen ? (
+            <View
+              pointerEvents="none"
+              aria-hidden
+              className="bg-neutral-100 dark:bg-neutral-800"
+              style={{ position: 'absolute', top: 44, left: 0, right: 0, height: 13 }}
+            />
           ) : null}
-        </PressableScale>
+        </View>
 
         {isGridAvailable ? (
           <IconButton

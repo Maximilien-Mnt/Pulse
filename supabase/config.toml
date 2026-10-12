@@ -5,9 +5,23 @@ project_id = "eqrhjmuaaaarjxuprjaj"
 # The signup function is called from the app with no Authorization header
 # (users must be able to create an account before they have a JWT), so it must
 # be deployed with JWT verification disabled. The function validates the
-# payload itself.
+# payload itself. Abuse controls (CAPTCHA / rate limits) must be enforced in
+# the Supabase Auth dashboard since this endpoint is intentionally public.
 [functions.signup]
 verify_jwt = false
 
 [functions.sync-external-data]
 verify_jwt = false
+
+# Authenticated-only: the gateway rejects missing/invalid JWTs, and the
+# function additionally verifies the user JWT itself.
+[functions.geocode]
+verify_jwt = true
+
+[functions.send-notification]
+verify_jwt = true
+
+# Internal cron job: gateway JWT check ON (no anonymous calls), plus the
+# function requires the x-job-secret header (see STATS_JOB_SECRET).
+[functions.update-user-stats]
+verify_jwt = true

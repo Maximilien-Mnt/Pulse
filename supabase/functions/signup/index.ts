@@ -1,18 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { handlePreflight, jsonWithCors } from "../_shared/cors.ts";
 
 const MIN_AGE = 16;
-
-// CORS headers so the web + mobile app can call this function directly.
-// The signup endpoint is public (no Authorization header is sent) and the
-// browser triggers an OPTIONS preflight before cross-origin POSTs that use a
-// Content-Type of application/json.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Max-Age": "86400",
-};
+const MAX_SPORTS = 10;
+const MAX_OBJECTIVES = 10;
+const MAX_BIO = 2000;
+const MAX_STR = 500;
 
 /**
  * Stable, machine-readable error codes. These are the ONLY contract the
@@ -23,9 +17,11 @@ const corsHeaders = {
  *
  * Conventions:
  *  - INVALID_PAYLOAD   payload failed structural validation
+ *  - INVALID_DATE      birth date is not a real calendar date
  *  - UNDERAGE          birth date is below MIN_AGE
- *  - EMAIL_TAKEN       auth.users already contains this email
- *  - USERNAME_TAKEN    profiles already contains this username
+ *  - SIGNUP_FAILED     account could not be created (generic: also covers
+ *                      already-registered email / taken username so callers
+ *                      cannot enumerate accounts)
  *  - AUTH_SIGNUP_FAILED auth.signUp rejected for any other reason
  *  - PROFILE_INSERT_FAILED / SPORTS_INSERT_FAILED / OBJECTIVES_INSERT_FAILED
  *                       row insert failed after the auth user was created
@@ -33,9 +29,11 @@ const corsHeaders = {
  */
 const ERR = {
   INVALID_PAYLOAD: "INVALID_PAYLOAD",
+  INVALID_DATE: "INVALID_DATE",
   UNDERAGE: "UNDERAGE",
-  EMAIL_TAKEN: "EMAIL_TAKEN",
-  USERNAME_TAKEN: "USERNAME_TAKEN",
+  SIGNUP_FAILED: "SIGNUP_FAILED",
+  EMAIL_TAKEN: "SIGNUP_FAILED",
+  USERNAME_TAKEN: "SIGNUP_FAILED",
   AUTH_SIGNUP_FAILED: "AUTH_SIGNUP_FAILED",
   PROFILE_INSERT_FAILED: "PROFILE_INSERT_FAILED",
   SPORTS_INSERT_FAILED: "SPORTS_INSERT_FAILED",
@@ -52,12 +50,10 @@ type ApiResponseBody = {
   needsConfirmation?: boolean;
 };
 
-/** Always return JSON + CORS, whatever status, so the app can parse it. */
-function json(body: ApiResponseBody, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders },
-  });
+/** Always return JSON + allow-listed CORS, whatever status. */
+function json(req: Request, body: ApiResponseBody, status = 200): Response {
+  const { detail: _detail, ...safe } = body;
+  return jsonWithCors(req, safe as unknown as Record<string, unknown>, status);
 }
 
 const supabase = createClient(
@@ -67,6 +63,15 @@ const supabase = createClient(
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isStrongPassword(pw: string): boolean {
+  return pw.length >= 8 && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[!@#$%^&]/.test(pw);
+}
+
+function isSafeUrlOrPath(v: string): boolean {
+  if (v.length > MAX_STR) return false;
+  return v.startsWith("https://") || v.startsWith("avatars/");
 }
 
 function isValidPayload(raw: unknown): {
@@ -132,21 +137,32 @@ function isValidPayload(raw: unknown): {
     typeof email !== "string" ||
     !isValidEmail(email) ||
     typeof password !== "string" ||
-    password.length < 8 ||
+    !isStrongPassword(password) ||
     typeof full_name !== "string" ||
     full_name.trim().length === 0 ||
+    full_name.trim().length > 120 ||
     typeof username !== "string" ||
     !/^[a-zA-Z0-9_-]+$/.test(username) ||
     username.length < 3 ||
     username.length > 30 ||
     typeof birth_date !== "string" ||
     typeof country !== "string" ||
-    country.trim().length === 0
+    country.trim().length === 0 ||
+    country.trim().length > 120
   ) {
     return { ok: false, error: "Invalid payload" };
   }
 
-  if (!Array.isArray(interested_sports) || !Array.isArray(sports) || !Array.isArray(objectives)) {
+  if (
+    !Array.isArray(interested_sports) ||
+    interested_sports.length > 30 ||
+    !interested_sports.every((v) => typeof v === "string" && (v as string).length <= MAX_STR) ||
+    !Array.isArray(sports) ||
+    sports.length > MAX_SPORTS ||
+    !Array.isArray(objectives) ||
+    objectives.length > MAX_OBJECTIVES ||
+    !objectives.every((v) => typeof v === "string" && (v as string).length <= MAX_STR)
+  ) {
     return { ok: false, error: "Invalid payload" };
   }
 
@@ -157,8 +173,11 @@ function isValidPayload(raw: unknown): {
       typeof s !== "object" ||
       s === null ||
       typeof (s as any).sportId !== "string" ||
+      (s as any).sportId.length > MAX_STR ||
       typeof (s as any).level !== "string" ||
-      typeof (s as any).practice !== "string"
+      (s as any).level.length > MAX_STR ||
+      typeof (s as any).practice !== "string" ||
+      (s as any).practice.length > MAX_STR
     ) {
       return { ok: false, error: "Invalid payload" };
     }
@@ -167,21 +186,41 @@ function isValidPayload(raw: unknown): {
     // slots: { weekday: number, startHour: number, endHour: number }.
     const timeSlots = (s as any).timeSlots;
     if (timeSlots !== undefined) {
-      if (!Array.isArray(timeSlots)) {
+      if (!Array.isArray(timeSlots) || timeSlots.length > 21) {
         return { ok: false, error: "Invalid payload" };
       }
       for (const slot of timeSlots) {
+        const w = (slot as any)?.weekday;
+        const sh = (slot as any)?.startHour;
+        const eh = (slot as any)?.endHour;
         if (
           typeof slot !== "object" ||
           slot === null ||
-          typeof (slot as any).weekday !== "number" ||
-          typeof (slot as any).startHour !== "number" ||
-          typeof (slot as any).endHour !== "number"
+          !Number.isInteger(w) || w < 0 || w > 6 ||
+          typeof sh !== "number" || sh < 0 || sh > 24 ||
+          typeof eh !== "number" || eh < 0 || eh > 24 ||
+          !(eh > sh)
         ) {
           return { ok: false, error: "Invalid payload" };
         }
       }
     }
+  }
+
+  if (height_cm !== undefined && (typeof height_cm !== "number" || !Number.isFinite(height_cm) || height_cm < 50 || height_cm > 300)) {
+    return { ok: false, error: "Invalid payload" };
+  }
+  if (weight_kg !== undefined && (typeof weight_kg !== "number" || !Number.isFinite(weight_kg) || weight_kg < 20 || weight_kg > 500)) {
+    return { ok: false, error: "Invalid payload" };
+  }
+  if (bio !== undefined && (typeof bio !== "string" || bio.length > MAX_BIO)) {
+    return { ok: false, error: "Invalid payload" };
+  }
+  if (avatar_url !== undefined && (typeof avatar_url !== "string" || !isSafeUrlOrPath(avatar_url))) {
+    return { ok: false, error: "Invalid payload" };
+  }
+  if (discovery_source !== undefined && (typeof discovery_source !== "string" || discovery_source.length > MAX_STR)) {
+    return { ok: false, error: "Invalid payload" };
   }
 
   const parsed: any = {
@@ -202,7 +241,10 @@ function isValidPayload(raw: unknown): {
     objectives,
   };
 
-  if (typeof p.city === "string") parsed.city = p.city;
+  if (typeof p.city === "string") {
+    if (p.city.length > MAX_STR) return { ok: false, error: "Invalid payload" };
+    parsed.city = p.city;
+  }
   return { ok: true, data: parsed };
 }
 
@@ -216,7 +258,7 @@ function isValidDate(dateStr: string): boolean {
   const day = parseInt(parts[2]!, 10);
   if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) return false;
   if (m < 1 || m > 12) return false;
-  const daysInMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   if (day < 1 || day > daysInMonth) return false;
   return true;
 }
@@ -244,31 +286,30 @@ function isUniqueViolation(error: { message?: string }, column: string): boolean
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests from the browser
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  // Handle CORS preflight requests from the browser (allow-listed origins only)
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
 
   if (req.method !== "POST") {
-    return json({ ok: false, error: "Method not allowed" }, 405);
+    return json(req, { ok: false, error: "Method not allowed" }, 405);
   }
 
   try {
     const raw = await req.json();
     const validation = isValidPayload(raw);
     if (!validation.ok) {
-      return json({ ok: false, error: ERR.INVALID_PAYLOAD }, 400);
+      return json(req, { ok: false, error: ERR.INVALID_PAYLOAD }, 400);
     }
 
     const data = validation.data;
 
     if (!isValidDate(data.birth_date)) {
-      return json({ ok: false, error: "INVALID_DATE" }, 400);
+      return json(req, { ok: false, error: ERR.INVALID_DATE }, 400);
     }
 
     const age = calculateAge(data.birth_date);
     if (age < MIN_AGE) {
-      return json({ ok: false, error: ERR.UNDERAGE }, 403);
+      return json(req, { ok: false, error: ERR.UNDERAGE }, 403);
     }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -277,13 +318,10 @@ Deno.serve(async (req) => {
     });
 
     if (authError || !authData.user) {
-      const message = authError?.message ?? "Auth signup failed";
-      // GoTrue reports existing emails with a human message; map it to a
-      // stable code so the client can show a precise, localized toast.
-      const code = message.toLowerCase().includes("already registered")
-        ? ERR.EMAIL_TAKEN
-        : ERR.AUTH_SIGNUP_FAILED;
-      return json({ ok: false, error: code, detail: message }, 400);
+      // Generic failure on purpose: distinguishing "already registered" from
+      // other failures lets unauthenticated callers enumerate accounts.
+      console.error("signup auth failure:", authError?.message ?? "unknown");
+      return json(req, { ok: false, error: ERR.SIGNUP_FAILED }, 400);
     }
 
     const userId = authData.user.id;
@@ -313,15 +351,11 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       await supabase.auth.admin.deleteUser(userId);
-      // Map unique-constraint violations (username/email already taken) to
-      // stable codes instead of leaking the Postgres message.
-      const message = profileError.message ?? "";
-      const code = isUniqueViolation(profileError, "username")
-        ? ERR.USERNAME_TAKEN
-        : isUniqueViolation(profileError, "email")
-          ? ERR.EMAIL_TAKEN
-          : ERR.PROFILE_INSERT_FAILED;
-      return json({ ok: false, error: code, detail: message }, 400);
+      // Generic failure: the Postgres message names the violated constraint
+      // (profiles_username_key / profiles_email_key), which would let callers
+      // enumerate taken usernames/emails.
+      console.error("signup profile failure:", profileError.message ?? "unknown");
+      return json(req, { ok: false, error: ERR.SIGNUP_FAILED }, 400);
     }
 
     // "Aucun sport" (no-sport path) sends an empty sports array. Skip the
@@ -342,10 +376,8 @@ Deno.serve(async (req) => {
       const { error: sportsError } = await supabase.from("user_sports").insert(sportsRows);
       if (sportsError) {
         await supabase.auth.admin.deleteUser(userId);
-        return json(
-          { ok: false, error: ERR.SPORTS_INSERT_FAILED, detail: sportsError.message },
-          400
-        );
+        console.error("signup sports failure:", sportsError.message ?? "unknown");
+        return json(req, { ok: false, error: ERR.SPORTS_INSERT_FAILED }, 400);
       }
     }
 
@@ -361,29 +393,19 @@ Deno.serve(async (req) => {
 
       if (objError) {
         await supabase.auth.admin.deleteUser(userId);
-        return json(
-          { ok: false, error: ERR.OBJECTIVES_INSERT_FAILED, detail: objError.message },
-          400
-        );
+        console.error("signup objectives failure:", objError.message ?? "unknown");
+        return json(req, { ok: false, error: ERR.OBJECTIVES_INSERT_FAILED }, 400);
       }
     }
 
-    return json({
+    return json(req, {
       ok: true,
       userId,
       email: data.email,
       needsConfirmation: !authData.session,
     });
-  } catch (e) {
-    // Never leak internal error text: the client maps our codes to localized
-    // toasts. Detail is still attached for server-side log correlation.
-    return json(
-      {
-        ok: false,
-        error: ERR.INTERNAL,
-        detail: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error",
-      },
-      500
-    );
+  } catch {
+    // Never leak internal error text; server logs carry the cause.
+    return json(req, { ok: false, error: ERR.INTERNAL }, 500);
   }
 });

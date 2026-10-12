@@ -52,11 +52,62 @@ export function useUpdateClub() {
       if (clubError) throw clubError;
       if (club.created_by !== userId) throw new Error("unauthorized");
 
+      // Allow-list: never spread caller data straight into the update —
+      // extra keys (created_by, id, member_count, …) must not be writable.
+      const {
+        name,
+        description,
+        short_description,
+        address,
+        postal_code,
+        contact_email,
+        phone_number,
+        website_url,
+        registration_url,
+        required_level,
+        required_levels,
+        sports,
+        league,
+        founded_date,
+        age_min,
+        age_max,
+        cover_url,
+        logo_url,
+        hero_urls,
+        opening_hours,
+        instagram_url,
+        facebook_url,
+        tiktok_url,
+        extra_link,
+      } = data;
       // Update the club
       const { error: updateError } = await supabase
         .from("clubs")
         .update({
-          ...data,
+          name,
+          description,
+          short_description,
+          address,
+          postal_code,
+          contact_email,
+          phone_number,
+          website_url,
+          registration_url,
+          required_level,
+          required_levels,
+          sports,
+          league,
+          founded_date,
+          age_min,
+          age_max,
+          cover_url,
+          logo_url,
+          hero_urls,
+          opening_hours,
+          instagram_url,
+          facebook_url,
+          tiktok_url,
+          extra_link,
           updated_at: new Date().toISOString(),
         })
         .eq("id", clubId);

@@ -51,8 +51,13 @@ export const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
   // Machine-readable codes returned by supabase/functions/signup/index.ts.
   INVALID_PAYLOAD: "signup.error.invalidPayload",
   INVALID_DATE: "signup.error.invalidDate",
-  EMAIL_TAKEN: "signup.error.emailTaken",
-  USERNAME_TAKEN: "signup.error.usernameTaken",
+  // Generic creation failure (also covers already-registered email / taken
+  // username so the UI cannot be used to enumerate accounts).
+  SIGNUP_FAILED: "signup.error.authFailed",
+  // Legacy distinct codes (pre-enumeration-hardening deployments) — kept so
+  // older error strings still map to a friendly label.
+  EMAIL_TAKEN: "signup.error.authFailed",
+  USERNAME_TAKEN: "signup.error.authFailed",
   UNDERAGE: "signup.error.underage",
   AUTH_SIGNUP_FAILED: "signup.error.authFailed",
   PROFILE_INSERT_FAILED: "signup.error.profileInsert",

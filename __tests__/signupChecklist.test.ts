@@ -4,8 +4,11 @@ import { useSignupStore } from "@/stores/signupStore";
 describe("getSignupErrorKey", () => {
   it("maps the machine codes the edge function returns", () => {
     expect(getSignupErrorKey("INVALID_PAYLOAD")).toBe("signup.error.invalidPayload");
-    expect(getSignupErrorKey("EMAIL_TAKEN")).toBe("signup.error.emailTaken");
-    expect(getSignupErrorKey("USERNAME_TAKEN")).toBe("signup.error.usernameTaken");
+    // Enumeration hardening: distinct taken-account codes collapse to the
+    // generic failure (legacy codes still map, never reveal which field).
+    expect(getSignupErrorKey("SIGNUP_FAILED")).toBe("signup.error.authFailed");
+    expect(getSignupErrorKey("EMAIL_TAKEN")).toBe("signup.error.authFailed");
+    expect(getSignupErrorKey("USERNAME_TAKEN")).toBe("signup.error.authFailed");
     expect(getSignupErrorKey("UNDERAGE")).toBe("signup.error.underage");
   });
 

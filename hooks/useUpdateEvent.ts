@@ -48,11 +48,62 @@ export function useUpdateEvent() {
       // Verify the current user manages the event (creator or publishing-club owner/admin)
       const event = await assertCanManageEvent(eventId, userId);
 
+      // Allow-list: never spread caller data straight into the update —
+      // server-managed columns (created_by, id, places_left, …) stay read-only.
+      const {
+        name,
+        description,
+        short_description,
+        country,
+        city,
+        venue_address,
+        postal_code,
+        website_url,
+        registration_url,
+        contact_email,
+        league,
+        cover_url,
+        logo_url,
+        hero_urls,
+        required_level,
+        required_levels,
+        sports,
+        sport,
+        start_date,
+        end_date,
+        price_cents,
+        places_total,
+        age_min,
+        age_max,
+      } = data;
       // Update the event
       const { error: updateError } = await supabase
         .from("events")
         .update({
-          ...data,
+          name,
+          description,
+          short_description,
+          country,
+          city,
+          venue_address,
+          postal_code,
+          website_url,
+          registration_url,
+          contact_email,
+          league,
+          cover_url,
+          logo_url,
+          hero_urls,
+          required_level,
+          required_levels,
+          sports,
+          sport,
+          start_date,
+          end_date,
+          price_cents,
+          places_total,
+          age_min,
+          age_max,
           updated_at: new Date().toISOString(),
         })
         .eq("id", eventId);

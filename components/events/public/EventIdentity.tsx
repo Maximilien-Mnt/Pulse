@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Icon } from '@/components/ui/Icon';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { safeHttpUrl } from '@/utils/links';
 import { Pill, SportBadge, SourcePill } from './EventSharedUI';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { EventRow } from '@/types';
@@ -78,8 +79,11 @@ export function EventIdentity({ event, shortDesc, sports, organizingClub }: Even
           <PressableScale
             scaleOnPress={0.98}
             onPress={async () => {
+              // source_url is a stored third-party/imported string: http(s) only.
+              const safe = event.source_url ? safeHttpUrl(event.source_url) : null;
+              if (!safe) return;
               const { openBrowserAsync } = await import('expo-web-browser');
-              await openBrowserAsync(event.source_url!);
+              await openBrowserAsync(safe);
             }}
             accessibilityRole='link'
             accessibilityLabel={`${event.source_name || 'External'} · ${t('events.viewOriginal')}`}

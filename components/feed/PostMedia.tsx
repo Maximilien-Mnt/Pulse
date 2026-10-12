@@ -6,6 +6,7 @@ import { GalleryArrowButton } from "@/components/ui/GalleryArrowButton";
 import { FlatList, Modal, Platform, Pressable, Text, View } from "react-native";
 import { lazy, Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { t } from "@/hooks/useTranslation";
+import { safeHttpUrl } from "@/utils/links";
 
 const calculateImageHeight = (width: number) => Math.min(300, Math.max(200, width * 0.35));
 
@@ -442,8 +443,12 @@ export function PostMedia({ format, urls, videoUrl, videoThumbnail, videoDuratio
                 className="flex-1 py-3 rounded-xl bg-primary items-center"
                 onPress={async () => {
                   if (pdfOpen) {
-                    const { openBrowserAsync } = await import("expo-web-browser");
-                    await openBrowserAsync(pdfOpen);
+                    // Stored attachment URL: http(s) only.
+                    const safe = safeHttpUrl(pdfOpen);
+                    if (safe) {
+                      const { openBrowserAsync } = await import("expo-web-browser");
+                      await openBrowserAsync(safe);
+                    }
                   }
                   setPdfOpen(null);
                 }}

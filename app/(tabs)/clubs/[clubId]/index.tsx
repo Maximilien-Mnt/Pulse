@@ -24,6 +24,7 @@ import type { LinkRowData } from '@/components/clubs/public/ClubSharedUI';
 import type { StatData } from '@/components/clubs/public/ClubStatTiles';
 import type { LevelRow } from '@/components/clubs/public/ClubInfoGrid';
 import { buildSportLevelRows, practicedSports } from '@/lib/sportLevels';
+import { safeHttpUrl } from '@/utils/links';
 
 export default function ClubDetailScreen() {
   const params = useLocalSearchParams<{ clubId: string; public?: string }>();
@@ -86,8 +87,11 @@ export default function ClubDetailScreen() {
 
   const handleExternalRegister = async () => {
     if (!externalRegUrl) return;
+    // Stored club URL: http(s) only, never javascript:/data:/custom schemes.
+    const safe = safeHttpUrl(externalRegUrl);
+    if (!safe) return;
     const { openBrowserAsync } = await import('expo-web-browser');
-    await openBrowserAsync(externalRegUrl);
+    await openBrowserAsync(safe);
   };
 
   // ── Derived display values (require a loaded club — see guard above) ──

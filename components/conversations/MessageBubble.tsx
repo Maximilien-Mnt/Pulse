@@ -5,6 +5,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Platform, Pressable, View, Linking, Text as RNText } from 'react-native';
 import { cn } from '@/utils/format';
+import { safeHttpUrl } from '@/utils/links';
 import {Text} from '@/components/ui/Text';
 import {Icon} from '@/components/ui/Icon';
 import type {MessageType} from '@/types';
@@ -101,10 +102,14 @@ export function MessageBubble({
 
   const handleLinkPress = useCallback(async (url: string) => {
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) await Linking.openURL(url);
+      // Stored message text is untrusted: only open strict http(s) URLs.
+      // Anything else (javascript:/data:/custom schemes) is ignored.
+      const safe = safeHttpUrl(url);
+      if (!safe) return;
+      const supported = await Linking.canOpenURL(safe);
+      if (supported) await Linking.openURL(safe);
     } catch {
-      console.warn('Could not open link:', url);
+      console.warn('Could not open link.');
     }
   }, []);
 

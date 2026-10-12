@@ -40,7 +40,7 @@ describe("event media uploads", () => {
     expect(mockedUpload).toHaveBeenCalledTimes(1);
     expect(mockedUpload).toHaveBeenCalledWith({
       bucket: "events",
-      path: expect.stringMatching(/^user-1\/cover-\d+\.jpg$/),
+      path: expect.stringMatching(/^user-1\/[0-9a-z]+\.jpg$/),
       uri: PICKED.uri,
       upsert: true,
       role: "cover",
@@ -53,13 +53,13 @@ describe("event media uploads", () => {
     });
   });
 
-  it("forwards the picker metadata for a photo, with its index in the path", async () => {
+  it("forwards the picker metadata for a photo (server-generated safe path)", async () => {
     await uploadEventPhoto("user-1", PICKED, 2);
 
     expect(mockedUpload).toHaveBeenCalledWith(
       expect.objectContaining({
         bucket: "events",
-        path: expect.stringMatching(/^user-1\/photo-\d+-2\.jpg$/),
+        path: expect.stringMatching(/^user-1\/[0-9a-z]+\.jpg$/),
         uri: PICKED.uri,
         upsert: true,
         role: "gallery",

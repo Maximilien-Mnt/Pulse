@@ -25,6 +25,7 @@ import { buildSportLevelRows, practicedSports } from "@/lib/sportLevels";
 import { useTranslation } from "@/hooks/useTranslation";
 import { isNetworkError } from "@/utils/isNetworkError";
 import { logQueryError } from "@/utils/logQueryError";
+import { safeHttpUrl, safeMailto } from "@/utils/links";
 import { EventActionHeader } from "@/components/events/public/EventActionHeader";
 import { EventHeroBar } from "@/components/events/public/EventHeroBar";
 import { EventIdentity } from "@/components/events/public/EventIdentity";
@@ -171,8 +172,11 @@ export default function EventDetailScreen() {
 
       if (isExternal && event?.registration_url) {
         Toast.show({ type: "success", text1: t("events.waitingListNotice") });
+        // registration_url is a stored owner/imported string: http(s) only.
+        const safe = safeHttpUrl(event.registration_url);
+        if (!safe) return;
         const { openBrowserAsync } = await import("expo-web-browser");
-        await openBrowserAsync(event.registration_url);
+        await openBrowserAsync(safe);
       } else {
         Toast.show({ type: "success", text1: t("events.requestSent") });
       }
@@ -385,15 +389,26 @@ export default function EventDetailScreen() {
 
   // ── Derived display data for the composed detail sections ──────────────
   // Contact & link rows (website, registration, email) for the links section.
+  // Stored owner/imported strings: validate schemes at build time so only
+  // safe URLs reach the browser. Invalid rows are dropped (fail closed).
   const linkRows: LinkRowData[] = [];
   if (event.website_url) {
-    linkRows.push({ icon: "Globe", label: t("forms.website"), value: event.website_url, url: event.website_url });
+    const safeWebsite = safeHttpUrl(event.website_url);
+    if (safeWebsite) {
+      linkRows.push({ icon: "Globe", label: t("forms.website"), value: event.website_url, url: safeWebsite });
+    }
   }
   if (registrationUrl) {
-    linkRows.push({ icon: "ExternalLink", label: t("create.event.registrationLink"), value: registrationUrl, url: registrationUrl });
+    const safeRegistration = safeHttpUrl(registrationUrl);
+    if (safeRegistration) {
+      linkRows.push({ icon: "ExternalLink", label: t("create.event.registrationLink"), value: registrationUrl, url: safeRegistration });
+    }
   }
   if (event.contact_email) {
-    linkRows.push({ icon: "Mail", label: t("create.event.contactEmailShort"), value: event.contact_email, url: `mailto:${event.contact_email}` });
+    const safeContactMail = safeMailto(event.contact_email);
+    if (safeContactMail) {
+      linkRows.push({ icon: "Mail", label: t("create.event.contactEmailShort"), value: event.contact_email, url: safeContactMail });
+    }
   }
 
   // Price label shared by the stat tile. Imported OpenAgenda rows with an

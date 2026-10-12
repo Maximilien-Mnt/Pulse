@@ -2,6 +2,12 @@ import { z } from "zod";
 import { isValidLink } from "@/utils/links";
 import { isUnderageFromISO, isValidBirthDateISO, toBirthDateISO } from "@/utils/signupDate";
 
+/** Optional URL fields on club forms: "" = not provided, else must be http(s). */
+const optionalLinkSchema = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || isValidLink(v), "validation.invalidUrl");
+
 export const linkSchema = z
   .string()
   .trim()
@@ -172,11 +178,11 @@ export const clubPrivateSchema = z.object({
   address: z.string().optional(),
   postal_code: z.string().optional(),
   phone_number: z.string().optional(),
-  instagram_url: z.string().optional().or(z.literal("")),
-  facebook_url: z.string().optional().or(z.literal("")),
-  tiktok_url: z.string().optional().or(z.literal("")),
-  extra_link: z.string().optional().or(z.literal("")),
-  website_url: z.string().optional().or(z.literal("")),
+  instagram_url: optionalLinkSchema.optional().or(z.literal("")),
+  facebook_url: optionalLinkSchema.optional().or(z.literal("")),
+  tiktok_url: optionalLinkSchema.optional().or(z.literal("")),
+  extra_link: optionalLinkSchema.optional().or(z.literal("")),
+  website_url: optionalLinkSchema.optional().or(z.literal("")),
   opening_hours: z.array(z.any()).default([]),
 });
 
@@ -188,22 +194,22 @@ export const clubPublicSchema = z.object({
   short_description: z.string().optional(),
   country: z.string().min(1, "validation.countryRequired"),
   city: z.string().min(1, "validation.cityRequired"),
-  registration_url: z.string().optional().or(z.literal("")),
+  registration_url: optionalLinkSchema.optional().or(z.literal("")),
   required_level: z.string().optional(),
   required_levels: z.record(z.string(), z.string()).optional(),
   logo_url: z.string().optional(),
   hero_urls: z.array(z.string()).max(10).default([]),
   address: z.string().optional(),
   contact_email: z.string().optional().or(z.literal("")),
-  website_url: z.string().optional().or(z.literal("")),
+  website_url: optionalLinkSchema.optional().or(z.literal("")),
   founded_date: z.string().optional(),
   league: z.string().optional(),
   postal_code: z.string().optional(),
   phone_number: z.string().optional(),
-  instagram_url: z.string().optional().or(z.literal("")),
-  facebook_url: z.string().optional().or(z.literal("")),
-  tiktok_url: z.string().optional().or(z.literal("")),
-  extra_link: z.string().optional().or(z.literal("")),
+  instagram_url: optionalLinkSchema.optional().or(z.literal("")),
+  facebook_url: optionalLinkSchema.optional().or(z.literal("")),
+  tiktok_url: optionalLinkSchema.optional().or(z.literal("")),
+  extra_link: optionalLinkSchema.optional().or(z.literal("")),
   age_min: z.number().optional(),
   age_max: z.number().optional(),
   training_schedule: z.any().optional(),

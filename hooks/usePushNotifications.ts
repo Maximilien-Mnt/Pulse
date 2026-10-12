@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
+import { safeDeepLinkPath, safeIdSegment } from "@/utils/links";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
@@ -89,22 +90,36 @@ export function usePushNotifications() {
         dataType === "club_member_left";
 
       if (deepLink) {
-        const url = `pulse:///(tabs)/${deepLink.replace(/^\/+/, "")}`;
+        // Push payloads are remotely influenced: only allow relative
+        // in-app paths (clubs|events|conversations/...), never full URLs.
+        const safePath = safeDeepLinkPath(deepLink);
+        if (!safePath) return;
+        const url = `pulse:///(tabs)/${safePath}`;
         await Linking.openURL(url);
       } else if (data?.club_id && opensMemberList) {
-        const url = `pulse:///(tabs)/clubs/${data.club_id}/members`;
+        const id = safeIdSegment(data.club_id);
+        if (!id) return;
+        const url = `pulse:///(tabs)/clubs/${id}/members`;
         await Linking.openURL(url);
       } else if (data?.club_id) {
-        const url = `pulse:///(tabs)/clubs/${data.club_id}`;
+        const id = safeIdSegment(data.club_id);
+        if (!id) return;
+        const url = `pulse:///(tabs)/clubs/${id}`;
         await Linking.openURL(url);
       } else if (data?.event_id) {
-        const url = `pulse:///(tabs)/events/${data.event_id}`;
+        const id = safeIdSegment(data.event_id);
+        if (!id) return;
+        const url = `pulse:///(tabs)/events/${id}`;
         await Linking.openURL(url);
       } else if (data?.conversation_id) {
-        const url = `pulse:///(tabs)/conversations/${data.conversation_id}`;
+        const id = safeIdSegment(data.conversation_id);
+        if (!id) return;
+        const url = `pulse:///(tabs)/conversations/${id}`;
         await Linking.openURL(url);
       } else if (data?.type === 'join_request' && data?.club_id) {
-        const url = `pulse:///(tabs)/clubs/${data.club_id}/members`;
+        const id = safeIdSegment(data.club_id);
+        if (!id) return;
+        const url = `pulse:///(tabs)/clubs/${id}/members`;
         await Linking.openURL(url);
       } else {
         // No navigation target, just show notification

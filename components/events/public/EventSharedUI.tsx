@@ -6,6 +6,7 @@ import type { IconName } from '@/components/ui/Icon';
 import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
 import { Text as PulseText } from '@/components/ui/Text';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { safeHttpUrl } from '@/utils/links';
 import { SportPill } from '@/components/shared/SportPill';
 import { SourceBadge } from '@/components/shared/SourceBadge';
 
@@ -184,8 +185,11 @@ export function LinkRow({
       scaleOnPress={0.98}
       scaleOnHover={1.02}
       onPress={async () => {
+        // `url` comes from stored club/event rows: only open strict http(s).
+        const safe = safeHttpUrl(url);
+        if (!safe) return;
         const { openBrowserAsync } = await import('expo-web-browser');
-        await openBrowserAsync(url);
+        await openBrowserAsync(safe);
       }}
       accessibilityRole='link'
       accessibilityLabel={`${label} : ${value}`}

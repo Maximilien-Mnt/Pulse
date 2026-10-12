@@ -1,32 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Image } from 'expo-image';
-import { Pressable, ScrollView, Text, View, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeScreen } from '@/components/shared/SafeScreen';
-import Toast from 'react-native-toast-message';
-import { useAuthStore } from '@/stores/authStore';
-import { queryClient } from '@/lib/queryClient';
-import { usePostHog } from 'posthog-react-native';
-import { getCountryDisplay } from '@/utils/countries';
-import { SPORTS } from '@/lib/constants';
-import { buildSportLevelRows, practicedSports } from '@/lib/sportLevels';
-import { ClubTopActions, ClubTopIconButton, ClubTopPillButton } from '@/components/clubs/public/ClubTopActions';
-import { Button } from '@/components/ui/Button';
-import { SourceBadge } from '@/components/shared/SourceBadge';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
-import { IconButton } from '@/components/ui/IconButton';
-import { Text as PulseText } from '@/components/ui/Text';
-import { Avatar } from '@/components/ui/Avatar';
-import { BackButton } from '@/components/ui/BackButton';
-import { PressableScale } from '@/components/ui/PressableScale';
-import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
-import type { Member } from '@/components/shared/MembersListSheet';
-import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
+imClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { RefuseJoinRequestSheet } from '@/components/shared/RefuseJoinRequestSheet';
 import { useClubEvents } from '@/hooks/useClubEvents';
+import { safeHttpUrl, safeMailto, safeTel } from '@/utils/links';
 import { useCancelEvent } from '@/hooks/useCancelEvent';
 import { CancelEventSheet } from '@/components/clubs/CancelEventSheet';
 import { EventCard } from '@/components/events/EventCard';
@@ -343,16 +320,25 @@ export default function ClubDashboardScreen() {
     club.required_level
   );
 
+  // Contact rows built from stored club fields: validate schemes at build
+  // time so `mailto:`/`tel:` injection and non-http(s) website URLs never
+  // reach the browser. Invalid rows are dropped (fail closed).
   const linkRows: { icon: string; label: string; value: string; url: string }[] = [
-    ...(club.contact_email
-      ? [{ icon: 'Mail', label: 'Email', value: club.contact_email, url: `mailto:${club.contact_email}` }]
-      : []),
-    ...(club.phone_number
-      ? [{ icon: 'Smartphone', label: 'Téléphone', value: club.phone_number, url: `tel:${club.phone_number}` }]
-      : []),
-    ...(club.website_url
-      ? [{ icon: 'Globe', label: 'Site web', value: club.website_url, url: club.website_url }]
-      : []),
+    ...(() => {
+      const raw = club.contact_email ?? null;
+      const mailto = raw ? safeMailto(raw) : null;
+      return mailto && raw ? [{ icon: 'Mail', label: 'Email', value: raw, url: mailto }] : [];
+    })(),
+    ...(() => {
+      const raw = club.phone_number ?? null;
+      const tel = raw ? safeTel(raw) : null;
+      return tel && raw ? [{ icon: 'Smartphone', label: 'Téléphone', value: raw, url: tel }] : [];
+    })(),
+    ...(() => {
+      const raw = club.website_url ?? null;
+      const site = raw ? safeHttpUrl(raw) : null;
+      return site && raw ? [{ icon: 'Globe', label: 'Site web', value: raw, url: site }] : [];
+    })(),
   ];
 
   return (

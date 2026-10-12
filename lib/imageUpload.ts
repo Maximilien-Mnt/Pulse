@@ -2,7 +2,13 @@ import { Platform } from "react-native";
 // @ts-ignore - expo-file-system is not available on web
 import * as FileSystem from "expo-file-system/legacy";
 import { supabase } from "@/lib/supabase";
-import { normalizeImageForRole, type MediaRole } from "./mediaPipeline";
+import { normalizeImageForRole, MEDIA_ROLE_CONFIG, type MediaRole } from "./mediaPipeline";
+import {
+  MAX_VIDEO_BYTES,
+  classifyPickedAsset,
+  contentTypeForBytes,
+  validateStorageObjectName,
+} from "./uploadSecurity";
 
 // ---------------------------------------------------------------------------
 // Cross-platform image upload helpers for Supabase Storage.
@@ -26,7 +32,6 @@ export type UploadProgressCallback = (fraction: number) => void;
 
 /** Decode a base64 string to an ArrayBuffer (web native atob + RN fallback). */
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
   const binary = typeof globalThis.atob === "function" ? globalThis.atob(base64) : atobPolyfill(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
@@ -71,10 +76,12 @@ export async function uriToArrayBuffer(uri: string): Promise<ArrayBuffer> {
 export type UploadImageOptions = {
   /** Supabase Storage bucket name (e.g. "avatars", "posts", "clubs", "events"). */
   bucket: string;
-  /** Full path inside the bucket. */
+  /** Full server-generated path inside the bucket (never a client filename). */
   path: string;
   /** Local URI of the picked image. */
   uri: string;
+  /** Original client filename for classification (never used as storage key). */
+  fileName?: string | null;
   /** MIME type of the uploaded file. Defaults to "image/jpeg". */
   contentType?: string;
   /** Overwrite existing file at the same path. Defaults to false. */
@@ -113,6 +120,7 @@ export async function uploadImageToStorage({
   bucket,
   path,
   uri,
+  fileName,
   contentType = "image/jpeg",
   upsert = false,
   cacheBust = false,
@@ -121,6 +129,22 @@ export async function uploadImageToStorage({
   onProgress,
 }: UploadImageOptions): Promise<string> {
   onProgress?.(0);
+
+  // 0. Storage key must be a normalized, allow-listed object name. Client
+  //    filenames are never trusted as keys — validate the final key instead.
+  const ext = validateStorageObjectName(path);
+  if (!ext) {
+    const { MediaNormalizationError } = await import("./mediaPipeline");
+    throw new MediaNormalizationError("invalidType", "media.error.invalidType");
+  }
+
+  // 0b. Declared type must survive the blocklist even when the picker MIME
+  //     looks innocent (e.g. shell.php served as image/jpeg).
+  const classified = classifyPickedAsset({ uri: fileName ?? uri, mimeType: pickerMeta?.mimeType });
+  if ("rejected" in classified) {
+    const { MediaNormalizationError } = await import("./mediaPipeline");
+    throw new MediaNormalizationError("invalidType", "media.error.invalidType");
+  }
 
   // Run the shared pipeline when a role is given. This validates type + size,
   // inspects dimensions and resizes to the role's documented max edge.
@@ -142,8 +166,25 @@ export async function uploadImageToStorage({
   }
 
   const arrayBuffer = await uriToArrayBuffer(uploadUri);
+  // 1. Magic-byte gate on the real bytes (fail-closed). The stored
+  //    Content-Type comes from the sniffed container, never a client claim.
+  const sniffKind = role ? "image" : ext === "mp4" || ext === "mov" ? "video" : "image";
+  const fullBytes = new Uint8Array(arrayBuffer);
+  const finalType = contentTypeForBytes(fullBytes, sniffKind, pickerMeta?.mimeType ?? uploadContentType);
+  if (!finalType) {
+    const { MediaNormalizationError } = await import("./mediaPipeline");
+    throw new MediaNormalizationError("invalidType", "media.error.invalidType");
+  }
+  // 2. Enforce byte limits server-claim-independent (role config or video cap).
+  const limit = role ? MEDIA_ROLE_CONFIG[role].maxBytes : MAX_VIDEO_BYTES;
+  if (fullBytes.byteLength > limit) {
+    const { MediaNormalizationError } = await import("./mediaPipeline");
+    throw new MediaNormalizationError("oversized", "media.error.oversized", {
+      mb: Math.round(limit / (1024 * 1024)),
+    });
+  }
   const { error } = await supabase.storage.from(bucket).upload(path, arrayBuffer, {
-    contentType: uploadContentType,
+    contentType: finalType,
     upsert,
   });
   if (error) throw error;

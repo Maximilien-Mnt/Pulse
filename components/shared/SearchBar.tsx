@@ -39,7 +39,7 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Platform, Text, TextInput, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/Icon";
 import { PressableScale } from "@/components/ui/PressableScale";
 import {
@@ -437,7 +437,7 @@ export function SearchBar({
   // outside the box. Chrome clicks are handled above so a click INSIDE the
   // pill can never blur the field and drop the click state.
   return (
-    <View
+    <Pressable
       ref={rootRef}
       testID="search-bar"
       className={pillClass("transition-all duration-150")}
@@ -466,6 +466,6 @@ export function SearchBar({
         style={{ outlineStyle: "none" } as never}
       />
       {value.length > 0 ? <ClearButton onPress={handleClear} /> : null}
-    </View>
+    </Pressable>
   );
 }

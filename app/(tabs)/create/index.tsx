@@ -30,6 +30,7 @@ import { usePostHog } from "posthog-react-native";
 import { Image } from "expo-image";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import { MediaNormalizationError, buildPickerImageOptions } from "@/lib/mediaPipeline";
+import { MAX_VIDEO_BYTES, buildSafeStoragePath, classifyPickedAsset } from "@/lib/uploadSecurity";
 
 import { Text } from "@/components/ui/Text";
 import { Icon } from "@/components/ui/Icon";
@@ -102,23 +103,36 @@ function PostForm({ onClose }: { onClose: () => void }) {
       for (let i = 0; i < media.length; i++) {
         const item = media[i]!;
         const uri = item.uri;
-        const isImage = !item.mimeType || item.mimeType.startsWith("image/");
-        const path = `${userId}/${Date.now()}_${i}.${isImage ? "jpg" : "mp4"}`;
+        // Classify without trusting the picker MIME alone: blocked extensions
+        // (.php/.jsp/...) reject even when the MIME claims image/* or video/*.
+        const classified = classifyPickedAsset({ uri, mimeType: item.mimeType });
+        if ("rejected" in classified) {
+          throw new MediaNormalizationError("invalidType", "media.error.invalidType");
+        }
+        const isImage = classified.kind === "image";
+        if (!isImage && (item.fileSize ?? 0) > MAX_VIDEO_BYTES) {
+          throw new MediaNormalizationError("oversized", "media.error.oversized", {
+            mb: Math.round(MAX_VIDEO_BYTES / (1024 * 1024)),
+          });
+        }
+        const path = buildSafeStoragePath(userId, isImage ? "image" : "video", {
+          ext: isImage ? "jpg" : item.mimeType?.toLowerCase().includes("quicktime") ? "mov" : "mp4",
+        });
         setUploadProgress(i / Math.max(media.length, 1));
         // Images flow through the shared pipeline (validate + resize + quality).
-        // Videos are uploaded as-is — never routed through the image pipeline.
+        // Videos upload magic-byte-verified as-is via the hardened uploader.
         const url = await uploadImageToStorage({
           bucket: "posts",
           path,
           uri,
-          upsert: true,
+          upsert: false,
           role: isImage ? "gallery" : undefined,
           pickerMeta: isImage
             ? {
                 mimeType: item.mimeType,
                 fileSize: item.fileSize,
               }
-            : undefined,
+            : { mimeType: classified.mime, fileSize: item.fileSize },
         });
         urls.push(url);
       }

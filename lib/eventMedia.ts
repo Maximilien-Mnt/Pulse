@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { removeFromStorageByUrl, uploadImageToStorage } from "@/lib/imageUpload";
+import { buildSafeStoragePath } from "@/lib/uploadSecurity";
 import type { PickedImage } from "@/lib/mediaPipeline";
 
 /** Supabase Storage bucket holding every event image. */
@@ -28,7 +29,7 @@ export const MAX_EVENT_PHOTOS = 5;
 export async function uploadEventCover(userId: string, image: PickedImage): Promise<string> {
   return uploadImageToStorage({
     bucket: EVENTS_BUCKET,
-    path: `${userId}/cover-${Date.now()}.jpg`,
+    path: buildSafeStoragePath(userId, "image"),
     uri: image.uri,
     upsert: true,
     role: "cover",
@@ -45,11 +46,12 @@ export async function uploadEventCover(userId: string, image: PickedImage): Prom
 export async function uploadEventPhoto(
   userId: string,
   image: PickedImage,
-  index: number,
+  _index: number,
 ): Promise<string> {
+  void _index;
   return uploadImageToStorage({
     bucket: EVENTS_BUCKET,
-    path: `${userId}/photo-${Date.now()}-${index}.jpg`,
+    path: buildSafeStoragePath(userId, "image"),
     uri: image.uri,
     upsert: true,
     role: "gallery",

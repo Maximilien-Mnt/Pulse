@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { CLUB_CARD_SELECT, type ClubCardRow } from "@/hooks/clubProjections";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { escapeIlikeTerm } from "@/utils/ilike";
 
 const PAGE = 20;
 
@@ -95,7 +96,7 @@ export function useClubs(filters: ClubListFilters, userId: string | null) {
 
       if (f.sports.length) q = q.in("sport", f.sports);
       if (f.location.trim()) {
-        const v = `%${f.location.trim()}%`;
+        const v = `%${escapeIlikeTerm(f.location)}%`;
         q = q.ilike("city", v);
       }
       if (f.requiredLevel.trim()) q = q.eq("required_level", f.requiredLevel);

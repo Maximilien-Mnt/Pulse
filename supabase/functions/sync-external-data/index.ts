@@ -8,6 +8,7 @@ import {
   type OpenAgendaAgenda,
   type OpenAgendaEvent,
 } from "../../../lib/openAgenda.ts";
+import { secretsEqual } from "../_shared/cors.ts";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const OPENAGENDA_API = "https://api.openagenda.com/v2";
@@ -225,7 +226,7 @@ Deno.serve(async (req) => {
 
   const expectedSecret = Deno.env.get("EXTERNAL_SYNC_SECRET");
   const receivedSecret = req.headers.get("x-sync-secret");
-  if (!expectedSecret || !receivedSecret || receivedSecret !== expectedSecret) {
+  if (!expectedSecret || !receivedSecret || !secretsEqual(receivedSecret, expectedSecret)) {
     return json({ error: "Unauthorized" }, 401);
   }
 

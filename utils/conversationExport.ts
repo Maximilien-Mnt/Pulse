@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { supabase } from "@/lib/supabase";
+import { safeIdSegment } from "@/utils/links";
 import type { Message } from "@/types";
 
 /**
@@ -8,10 +9,14 @@ import type { Message } from "@/types";
  * JSON-lines file, writes it to cache, and opens the native share sheet.
  */
 export async function exportConversationToJsonl(conversationId: string): Promise<void> {
+  // conversationId reaches the cache filename below: reject path separators
+  // (`../`, `/`, `\`) so the export cannot escape the cache directory.
+  const safeId = safeIdSegment(conversationId);
+  if (!safeId) throw new Error("Invalid conversation id.");
   const { data, error } = await supabase
     .from("messages")
     .select("*")
-    .eq("conversation_id", conversationId)
+    .eq("conversation_id", safeId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
@@ -33,7 +38,9 @@ export async function exportConversationToJsonl(conversationId: string): Promise
 
   const content = lines.join("\n");
 
-  const uri = `${FileSystem.cacheDirectory}pulse-conversation-${conversationId}.jsonl`;
+  // Use the validated id in the filename so `../`/`/`/`\` can never escape
+  // the cache directory (safeIdSegment already rejected path separators).
+  const uri = `${FileSystem.cacheDirectory}pulse-conversation-${safeId}.jsonl`;
   await FileSystem.writeAsStringAsync(uri, content, {
     encoding: FileSystem.EncodingType.UTF8,
   });

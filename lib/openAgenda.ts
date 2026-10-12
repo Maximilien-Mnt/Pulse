@@ -112,11 +112,37 @@ function plainText(markdown: string): string {
     .trim();
 }
 
+/**
+ * Reject URLs that only make sense on an internal network. Third-party agenda
+ * data is untrusted and these URLs are stored, then opened later from the app,
+ * so we must never persist a loopback / private / link-local / metadata link.
+ */
+function isPrivateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "::1" || host === "0.0.0.0") return true;
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    if (a === 0 || a === 10 || a === 127) return true; // 0/8, 10/8, 127/8
+    if (a === 192 && b === 168) return true; // 192.168/16
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16/12
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata 169.254/16
+  }
+  // IPv6 ULA fc00::/7 and link-local fe80::/10
+  if (/^f[cd][0-9a-f]{2}:/.test(host)) return true;
+  if (/^fe[89ab][0-9a-f]:/.test(host)) return true;
+  return false;
+}
+
 function safeHttpUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   try {
     const url = new URL(value.trim());
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (!url.hostname || isPrivateHost(url.hostname)) return null;
+    return url.toString();
   } catch {
     return null;
   }

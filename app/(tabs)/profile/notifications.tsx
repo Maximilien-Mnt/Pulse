@@ -47,6 +47,7 @@ import {
   resolveNotificationTitle,
 } from "@/lib/notifications/labels";
 import { getDeviceTimeZone } from "@/lib/locale";
+import { safeIdSegment } from "@/utils/links";
 import { formatDateTimeLocalized, formatRelativeLocalized } from "@/utils/date";
 
 type FilterKey = "all" | "pending" | "processed";
@@ -127,10 +128,15 @@ export default function ProfileNotificationsScreen() {
     }
     const data = getNotificationData(item);
     if (isJoinRequest(item)) {
-      const route =
+      const id =
         item.type === "club_join_request"
-          ? `/clubs/${data.club_id}`
-          : `/events/${data.event_id}`;
+          ? safeIdSegment(data.club_id)
+          : safeIdSegment(data.event_id);
+      // A forged notification row must not be able to steer navigation to an
+      // arbitrary in-app path; only well-formed id segments are accepted.
+      if (!id) return;
+      const route =
+        item.type === "club_join_request" ? `/clubs/${id}` : `/events/${id}`;
       router.push(route as any);
     } else if (
       // Membership notifications carry `club_id` (migration 058 / 050) and
@@ -140,7 +146,9 @@ export default function ProfileNotificationsScreen() {
         item.type === "club_member_left") &&
       data.club_id
     ) {
-      router.push(`/clubs/${data.club_id}/members` as any);
+      const id = safeIdSegment(data.club_id);
+      if (!id) return;
+      router.push(`/clubs/${id}/members` as any);
     }
   };
 

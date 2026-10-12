@@ -233,4 +233,48 @@ describe("OpenAgenda event normalization", () => {
     expect(first).toBe(second);
     expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
+
+  it("drops registration/website URLs that point at internal hosts", () => {
+    const internal = normalizeOpenAgendaEvent(
+      makeEvent({
+        registration: [
+          { type: "link", value: "http://169.254.169.254/latest/meta-data" },
+          { type: "link", value: "http://localhost:8080/admin" },
+          { type: "link", value: "https://tickets.example/register/345" },
+        ],
+        onlineAccessLink: "http://192.168.1.10/secret",
+      }),
+      agenda,
+      now,
+    );
+    // The safe public link still wins over the internal ones.
+    expect(internal?.registration_url).toBe("https://tickets.example/register/345");
+    // website_url derives only from onlineAccessLink, which is internal → dropped.
+    expect(internal?.website_url).toBeNull();
+    const blob = JSON.stringify(internal);
+    expect(blob).not.toContain("169.254.169.254");
+    expect(blob).not.toContain("localhost");
+    expect(blob).not.toContain("192.168.1.10");
+  });
+
+  it("falls back to the source URL when every registration link is internal", () => {
+    const normalized = normalizeOpenAgendaEvent(
+      makeEvent({
+        registration: [
+          { type: "link", value: "http://10.0.0.5/register" },
+          { type: "link", value: "http://[::1]/register" },
+        ],
+        onlineAccessLink: undefined,
+      }),
+      agenda,
+      now,
+    );
+    // No safe registration/online link → falls back to the generated source page.
+    expect(normalized?.registration_url).toBe(
+      "https://openagenda.com/lux-sport/events/trail-de-luxembourg",
+    );
+    const blob = JSON.stringify(normalized);
+    expect(blob).not.toContain("10.0.0.5");
+    expect(blob).not.toContain("::1");
+  });
 });

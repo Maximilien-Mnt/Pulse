@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { attachEventCreators } from "@/lib/eventIdentity";
 import type { EventRow } from "@/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { escapeIlikeTerm } from "@/utils/ilike";
 
 const PAGE = 20;
 
@@ -66,7 +67,7 @@ export function useEvents(filters: EventListFilters, userId: string | null) {
 
       if (filters.sports.length) q = q.in("sport", filters.sports);
       if (filters.location.trim()) {
-        const v = `%${filters.location.trim()}%`;
+        const v = `%${escapeIlikeTerm(filters.location)}%`;
         q = q.ilike("city", v);
       }
       if (filters.dateFrom) q = q.gte("start_date", filters.dateFrom);

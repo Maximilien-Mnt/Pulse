@@ -59,13 +59,14 @@ const renderOpen = (onClose: () => void = jest.fn()) =>
 
 describe("createMenuLayout", () => {
   it("uses a single row of squares once everything fits", () => {
-    // One row needs 4 tiles + 3 gaps (~484px).
+    // One row needs 4 shrinkable tiles + 3 gaps (~340px of content).
     expect(createMenuLayout(4 * TILE_SIZE + 3 * 12 + 8)).toBe("square");
+    expect(createMenuLayout(400)).toBe("square");
   });
 
   it("falls back to a 2-column grid when one row no longer fits", () => {
-    // 240-483px: two square columns fit, four in a row don't.
-    expect(createMenuLayout(400)).toBe("grid");
+    // 240-339px: two square columns fit, four in a row don't.
+    expect(createMenuLayout(339)).toBe("grid");
     expect(createMenuLayout(240)).toBe("grid");
   });
 

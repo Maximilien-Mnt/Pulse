@@ -13,10 +13,11 @@
 //
 //   - Adaptive option layout (driven by the CARD's own content width, so it
 //     stays correct even when the card is width-capped by a thin viewport):
-//       · `square` — rounded custom squares side by side in a single row,
-//         once they all fit without wrapping (≥ ~400px of card content),
-//       · `grid`   — the same rounded squares in a 2-column grid when the
-//         card is not wide enough for one row (240–399px),
+//       · `square` — four tiles side by side in a single row, once the card
+//         is wide enough for four legible tiles (≥ ~340px of card content;
+//         tiles shrink from 112px to fit the 420px card),
+//       · `grid`   — the same tiles in a 2-column grid when the card is not
+//         wide enough for one row (240–339px),
 //       · `list`   — a plain icon+label row list when the screen is too thin
 //         for squares (< 240px), since a squeezed square can't hold its label.
 //     The card's outer width follows the content mode (clamped to the
@@ -79,10 +80,13 @@ export const TILE_SIZE = 112;
 /** Layout mode of the option list — see the header for the thresholds. */
 export type CreateMenuLayout = "list" | "grid" | "square";
 
-/** Content width (px) below which a single row of squares no longer fits. */
+/** Content width (px) below which a single row no longer fits comfortably.
+ *  Tiles shrink to fit the 420px card (down to ~76px each), so this is much
+ *  smaller than 4 full-size tiles — it just needs room for 4 legible tiles. */
 const CREATE_OPTION_COUNT = 4;
+const MIN_SQUARE_TILE = 76;
 const SQUARE_ROW_MIN =
-  CREATE_OPTION_COUNT * TILE_SIZE + (CREATE_OPTION_COUNT - 1) * OPTION_GAP;
+  CREATE_OPTION_COUNT * MIN_SQUARE_TILE + (CREATE_OPTION_COUNT - 1) * OPTION_GAP;
 
 /** Pure layout decision — exported so tests can assert the breakpoints. */
 export function createMenuLayout(contentWidth: number): CreateMenuLayout {
@@ -247,6 +251,18 @@ export function CreatePopover({ visible, onClose, anchor }: CreatePopoverProps) 
     layout === "list"
       ? Math.max(0, Math.min(available, LIST_MIN_CONTENT))
       : Math.max(0, Math.min(available, 420));
+  // Tile width: split the card's inner width evenly (minus gaps) so 4 tiles
+  // fit in one row on wide cards, 2 per row in the grid — never wider than
+  // TILE_SIZE so tiles don't stretch on very wide viewports.
+  const cardInner = Math.max(0, cardWidth - 2 * CARD_PADDING);
+  const tileCols = layout === "square" ? CREATE_OPTION_COUNT : COLUMNS;
+  const tileWidth =
+    layout === "list"
+      ? TILE_SIZE
+      : Math.max(
+          0,
+          Math.min(TILE_SIZE, (cardInner - (tileCols - 1) * OPTION_GAP) / tileCols),
+        );
 
   // ---- Card position (clamped to the viewport) ----------------------------
   const railAnchor = anchor && anchor.placement === "rail" ? anchor : null;
@@ -273,9 +289,9 @@ export function CreatePopover({ visible, onClose, anchor }: CreatePopoverProps) 
             : { flex: 1 }
         }
       >
-        {/* Backdrop — tap outside the card to dismiss */}
+        {/* Dimmed backdrop — solid enough that the options stay readable, tap to dismiss */}
         <Pressable
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.3)" }}
           onPress={onClose}
           accessibilityRole="button"
           accessibilityLabel={t("common.close")}
@@ -359,6 +375,7 @@ export function CreatePopover({ visible, onClose, anchor }: CreatePopoverProps) 
                     label={o.label}
                     description={o.description}
                     layout={layout}
+                    tileWidth={tileWidth}
                     onPress={onPress}
                   />
                 );
@@ -398,10 +415,11 @@ interface CreateTileProps {
   label: string;
   description?: string;
   layout: Exclude<CreateMenuLayout, "list">;
+  tileWidth: number;
   onPress: () => void;
 }
 
-function CreateTile({ icon, label, description, layout, onPress }: CreateTileProps) {
+function CreateTile({ icon, label, description, layout, tileWidth, onPress }: CreateTileProps) {
   const [hovered, setHovered] = useState(false);
   const isWeb = Platform.OS === "web";
   const lifted = hovered;
@@ -421,7 +439,7 @@ function CreateTile({ icon, label, description, layout, onPress }: CreateTilePro
       accessibilityRole="menuitem"
       accessibilityLabel={label}
       accessibilityHint={description}
-      style={{ width: TILE_SIZE }}
+      style={{ width: tileWidth }}
       className={cn(
         // The colour fade that turns the surface swap into an animation —
         // the hover state is a lifted version of the pressed colour, so the
@@ -506,3 +524,4 @@ function CreateListRow({ icon, label, description, onPress }: CreateListRowProps
     </PressableScale>
   );
 }
+

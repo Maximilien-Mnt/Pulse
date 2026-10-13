@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react';
-imClubSheet } from '@/components/profile/DeleteClubSheet';
+import { useState, useEffect, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import Toast from 'react-native-toast-message';
+import { usePostHog } from 'posthog-react-native';
+import { useAuthStore } from '@/stores/authStore';
+import { queryClient } from '@/lib/queryClient';
+import { getCountryDisplay } from '@/utils/countries';
+import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { InvitationButton } from '@/components/shared/InvitationButton';
 import { RefuseJoinRequestSheet } from '@/components/shared/RefuseJoinRequestSheet';
 import { useClubEvents } from '@/hooks/useClubEvents';
@@ -18,8 +27,28 @@ import {
 import type { OpeningHourSlot } from '@/lib/openingHours';
 import { sanitizeOpeningHours } from '@/lib/openingHours';
 import { CLUB_DETAIL_SELECT, type ClubDetailRow, type ClubEventRow } from '@/hooks/clubProjections';
-import { useTranslation } from '@/hooks/useTranslation';
-import { t } from '@/hooks/useTranslation';
+import { Text as PulseText } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
+import { Arrow, useArrowNudge } from '@/components/ui/Arrow';
+import { Avatar } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { BackButton } from '@/components/ui/BackButton';
+import { IconButton } from '@/components/ui/IconButton';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { SourceBadge } from '@/components/shared/SourceBadge';
+import {
+  ClubTopActions,
+  ClubTopIconButton,
+  ClubTopPillButton,
+} from '@/components/clubs/public/ClubTopActions';
+import type { Member } from '@/components/shared/MembersListSheet';
+import { SafeScreen } from '@/components/shared/SafeScreen';
+import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
+import { useClubDetail } from '@/hooks/useClubDetail';
+import { useTranslation, t } from '@/hooks/useTranslation';
+import { SPORTS } from '@/lib/constants';
+import { buildSportLevelRows, practicedSports } from '@/lib/sportLevels';
 
 const CARD =
   'bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700';
@@ -240,7 +269,11 @@ export default function ClubDashboardScreen() {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
-  const handleRequestAction = useMutation({
+  const handleRequestAction = useMutation<
+    void,
+    Error,
+    { action: 'accept' | 'refuse'; request: ClubJoinRequest; message?: string }
+  >({
     mutationFn: async ({
       action,
       request,
@@ -259,7 +292,10 @@ export default function ClubDashboardScreen() {
         message: action === 'refuse' ? message : undefined,
       });
     },
-    onSuccess: (_data, { action }) => {
+    onSuccess: (
+      _data: void,
+      { action }: { action: 'accept' | 'refuse' },
+    ) => {
       posthog.capture('club_join_request_' + action, { club_id: clubId });
       Toast.show({
         type: 'success',
@@ -634,7 +670,7 @@ export default function ClubDashboardScreen() {
                 <PulseText variant='overline' className='text-neutral-400'>Localisation</PulseText>
               </View>
               <View className='flex-row items-center gap-2'>
-                <Text className='text-base'>{club.country ? getCountryDisplay(club.country).split(' ')[0] : ''}</Text>
+                <PulseText variant='body' className='text-base'>{club.country ? getCountryDisplay(club.country).split(' ')[0] : ''}</PulseText>
                 <PulseText variant='body' className='text-neutral-800 dark:text-neutral-100 font-medium'>
                   {[club.city, club.country ? getCountryDisplay(club.country).replace(/^[^A-Za-z]+/, '') : null].filter(Boolean).join(', ') || '—'}
                 </PulseText>
@@ -829,9 +865,9 @@ function Section({
   headerRight,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  headerRight?: React.ReactNode;
+  headerRight?: ReactNode;
 }) {
   return (
     <View className={className}>

@@ -1,3 +1,17 @@
+# ---------------------------------------------------------------------------
+# ACTION PINNING POLICY
+# ---------------------------------------------------------------------------
+# Every third-party action below is pinned to a full 40-char commit SHA, NOT a
+# mutable tag. A tag (even a version tag like @v4) can be re-pointed by anyone
+# with write access to the upstream repo, or by an attacker who compromises it.
+# This workflow has repository secrets in scope (EXPO_PUBLIC_SUPABASE_URL,
+# EXPO_PUBLIC_SUPABASE_ANON_KEY), so a re-pointed tag would be arbitrary code
+# execution with those secrets available.
+#
+# Renovate/Dependabot raise a PR when a new release lands; update the SHA and
+# the trailing comment together. Never move back to a bare tag.
+# ---------------------------------------------------------------------------
+
 name: CI
 
 on:
@@ -5,7 +19,33 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: the default token can be write-scoped depending on repo
+# settings. Nothing in this workflow needs more than read.
+permissions:
+  contents: read
+
 jobs:
+  secrets:
+    name: secret scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        # actions/checkout v4.4.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d275973664c9af683
+        with:
+          # Full history so a secret introduced anywhere is caught, not just
+          # the current tree.
+          fetch-depth: 0
+
+      - name: Scan working tree + history for secrets (gitleaks)
+        # gitleaks/gitleaks-action v2.3.9
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+        env:
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_NOTIFY_USER_LIST: ""
+
   quality:
     name: typecheck, lint, test, build:web
     runs-on: ubuntu-latest
@@ -16,16 +56,52 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # actions/checkout v4.4.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d275973664c9af683
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        # actions/setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies (from lockfile)
         run: npm ci
+
+      - name: Audit dependencies - regression gate (BLOCKING)
+        # See scripts/check-audit-baseline.mjs for why `npm audit --audit-level`
+        # is NOT used as the gate here. Short version: Expo SDK 54 declares its
+        # whole build toolchain (Metro, @expo/cli, PostCSS, node-forge) as
+        # regular prod dependencies, so neither `npm audit` nor
+        # `npm audit --omit=dev` distinguishes "ships to a user's device" from
+        # "used by the bundler". Both report ~50 HIGH that cannot be fixed
+        # without breaking SDK 54.
+        #
+        # This gates on REGRESSION instead: any CRITICAL, any advisory absent
+        # from .audit-baseline.json, or any baselined advisory getting worse.
+        run: npm run check:audit
+
+      - name: Audit dependencies - full report (informational)
+        # The known-backlog view, recorded in the run summary so it is visible
+        # and auditable rather than invisible. Shrinking this list is tracked
+        # work; the gate above guarantees it can never silently regress.
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          {
+            echo "### Dependency audit - full tree (informational, non-blocking)"
+            echo ""
+            echo "Distinct advisories accepted in \`.audit-baseline.json\`: **$(node -e 'console.log(Object.keys(require("./.audit-baseline.json")).length)')**"
+            echo ""
+            echo "Severity counts:"
+            npm audit --json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const v=JSON.parse(s).metadata.vulnerabilities;console.log(`- critical: ${v.critical}`);console.log(`- high: ${v.high}`);console.log(`- moderate: ${v.moderate}`);console.log(`- total: ${v.total}`)})'
+            echo ""
+            echo '```'
+            npm audit || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Typecheck
         run: npm run typecheck
@@ -35,6 +111,53 @@ jobs:
 
       - name: Test
         run: npm test -- --ci
+
+      - name: Verify no service-role key or private key is committed
+        # Defence in depth alongside gitleaks: these exact patterns must never
+        # appear in a tracked file. Service-role keys bypass RLS entirely.
+        #
+        # `git grep` without a revision only inspects the CURRENT tree. The
+        # Supabase anon key and PostHog token committed in 6eda9cc are permanent
+        # in history, so a working-tree check cannot see them. Rotation is the
+        # real fix (see wrangler.toml); this step only stops a NEW leak.
+        run: |
+          set -euo pipefail
+          if git grep -I -n -E 'BEGIN [A-Z ]*PRIVATE KEY|"role"[[:space:]]*:[[:space:]]*"service_role"|sb_secret_[A-Za-z0-9]' -- . ; then
+            echo "::error::A private key or service-role credential appears in a tracked file."
+            exit 1
+          fi
+          echo "No service-role/private-key material found in tracked files."
+
+      - name: Scan git history for leaked Supabase anon keys
+        # The working-tree grep above cannot see history. This scans every blob
+        # reachable from every ref, so a key committed and later deleted is
+        # still reported (only its `ref` claim is printed — never the token).
+        #
+        # BLOCKING for a new leak. The script exits 0 when it finds only refs
+        # listed in ACKNOWLEDGED_REFS, so the key leaked at 6eda9cc does not
+        # block CI: it is permanent in history, cannot be un-committed without
+        # rewriting published history, and its real remediation is ROTATION.
+        # A ref that is NOT acknowledged exits 1 and fails the build, which is
+        # exactly the "someone committed a new key" case we want to catch.
+        run: |
+          set -euo pipefail
+          {
+            echo "### Historical secret scan"
+            echo ""
+            echo '```'
+            npm run check:history-secrets
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed signup function matches repository source
+        # Non-blocking on purpose: the manifest (supabase/.deployed/signup.json)
+        # is produced by a deploy, not by CI, and is gitignored because it
+        # carries the project ref. So on a normal PR it is simply absent. The
+        # deploy pipeline runs this step after deploying and MUST treat a
+        # failure as blocking. Kept in CI so the source hash is printed on
+        # every run and drift is visible rather than invisible.
+        continue-on-error: true
+        run: npm run check:drift
 
       - name: Export web
         run: npm run build:web

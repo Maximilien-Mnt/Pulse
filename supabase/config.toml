@@ -1,4 +1,14 @@
 # Supabase CLI configuration
+#
+# NOTE on project_id: this value is infrastructure reconnaissance data and would
+# ideally not be tracked. It is kept because the Supabase CLI needs it for
+# `supabase link` / `supabase db push`, and removing it would break deploys.
+#
+# Removing it would NOT actually protect anything: the same project ref is
+# embedded as the `ref` claim inside the anon key JWT that was committed in
+# 6eda9cc and is therefore permanent in git history. The real remediation is
+# ROTATION (see wrangler.toml), not redaction. If you do move this to an
+# untracked override, pass `--project-ref` explicitly to every CLI invocation.
 project_id = "eqrhjmuaaaarjxuprjaj"
 
 # Edge function defaults

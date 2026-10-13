@@ -1,0 +1,74 @@
+# Automated dependency updates.
+#
+# Two ecosystems matter here:
+#   - npm:        package.json + package-lock.json (the real dependency surface)
+#   - github-actions: the SHA-pinned third-party actions in .github/workflows.
+#                  Dependabot rewrites the SHA *and* the version comment, which
+#                  is what keeps the pinning policy from rotting.
+#
+# Grouping is deliberately conservative on the majors that are coupled to the
+# Expo SDK: expo / react-native / react-native-reanimated / jest / tailwind
+# must NOT be bumped as a group, because a single incompatible bump among them
+# breaks `expo export`, Jest, or the Reanimated Babel plugin. They each arrive
+# as their own PR so they can be validated against typecheck + lint + test +
+# build:web independently. Everything else is batched to keep PR volume sane.
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/Luxembourg"
+    open-pull-requests-limit: 10
+    # Security-only updates ignore the grouping below so a patched advisory is
+    # never held back waiting for an unrelated batch.
+    groups:
+      patch-and-minor:
+        applies-to: version-updates
+        update-types:
+          - patch
+          - minor
+    ignore:
+      # Majors in these packages are locked to the Expo SDK 54 / React Native
+      # 0.81 pairing. Upgrading them means upgrading the whole SDK, which is a
+      # planned migration with its own test matrix — not a Dependabot PR.
+      - dependency-name: expo
+        update-types: ["version-update:semver-major"]
+      - dependency-name: expo-*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-native
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-native-*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: jest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: jest-*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/jest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: tailwindcss
+        update-types: ["version-update:semver-major"]
+      - dependency-name: nativewind
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@shopify/flash-list"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: "Europe/Luxembourg"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

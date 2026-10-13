@@ -6,24 +6,61 @@
 # (It runs scripts/check-web-env.mjs first so a build without the
 # required EXPO_PUBLIC_* env vars fails instead of shipping a broken bundle.)
 #
-# Build-time variables live in [vars] below. Cloudflare's Pages builder reads
-# them via "wrangler pages functions build-env" BEFORE the build command runs
-# and reports them in the build log as "Build environment variables".
-# Settings > Environment variables (named "Variables and Secrets" in the
-# current dashboard) is not reliably injected into builds, so the values must
-# live here (see cloudflare-docs issue #30714).
+# ---------------------------------------------------------------------------
+# WHERE THE BUILD VARIABLES LIVE — READ BEFORE EDITING
+# ---------------------------------------------------------------------------
+# These values used to be hardcoded in a [vars] block in THIS FILE, which is
+# tracked in git. The repository is PUBLIC, so the Supabase project URL, the
+# anon key and the PostHog token were world-readable and are permanently in
+# git history (introduced in 6eda9cc). The [vars] block was removed.
 #
-# These values are inlined into the public JS bundle by Expo, so they are NOT
-# secrets: never put a service-role key or any real secret in this file.
-# Changing them requires a rebuild.
+# The values are inlined into the public JS bundle by Expo, so the anon key is
+# not a secret in the confidentiality sense — but the project reference, the
+# organization id and the connection metadata committed under
+# supabase/.temp/ were infrastructure reconnaissance data, and the safety of a
+# publicly-known anon key depends ENTIRELY on RLS being correct on every table
+# (see supabase/migrations/059). Do not reintroduce them here.
+#
+# Set them in Cloudflare Pages > Settings > Variables and Secrets instead:
+#   EXPO_PUBLIC_SUPABASE_URL
+#   EXPO_PUBLIC_SUPABASE_ANON_KEY
+#   POSTHOG_PROJECT_TOKEN
+#   POSTHOG_HOST            (defaults to https://eu.i.posthog.com)
+#   EXPO_PUBLIC_APP_SCHEME  (defaults to pulse)
+#
+# If the Pages build does not inject dashboard variables into the build
+# environment (see cloudflare-docs issue #30714), supply them through a
+# NON-tracked local `.env` file at build time, or a CI secret. Never commit
+# them. Changing any of these requires a rebuild.
+#
+# ROTATION REQUIRED: the previously committed anon key must be treated as
+# exposed. Fix the RLS gaps first (migration 059), then rotate the project JWT
+# secret in the Supabase dashboard and redeploy web + ship an app update.
+# The committed PostHog token should also be rotated in PostHog project
+# settings.
+# ---------------------------------------------------------------------------
 
 name = "pulse"
+# Pinned to the date this configuration was last reviewed, per Cloudflare's
+# compatibility-date policy. Bump deliberately when upgrading the Workers
+# runtime behaviour, not as part of an unrelated change.
 compatibility_date = "2026-09-15"
 pages_build_output_dir = "dist"
 
-[vars]
-EXPO_PUBLIC_SUPABASE_URL = "https://eqrhjmuaaaarjxuprjaj.supabase.co"
-EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxcmhqbXVhYWFhcmp4dXByamFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzYxNDUsImV4cCI6MjA5ODkxMjE0NX0.FZJmLKAzRh8gFgqMJr61KcbsGG1DBDnVW2IKMAVXWzA"
-POSTHOG_PROJECT_TOKEN = "phc_nckqkVQixU8ExpCaSY7Aq2CwffYxwgTZyVZ8w38QEXUi"
-POSTHOG_HOST = "https://eu.i.posthog.com"
-EXPO_PUBLIC_APP_SCHEME = "pulse"
+# ---------------------------------------------------------------------------
+# BUILD REPRODUCIBILITY
+# ---------------------------------------------------------------------------
+# Pages has no [build] section, so the command and Node version live in the
+# Cloudflare dashboard (Settings > Build). Keep them in sync with CI:
+#
+#   Build command:            npm run build:web
+#   Build system version:     Node 22   (matches .github/workflows/ci.yml and
+#                                     netlify.toml)
+#
+# Do NOT use `npx expo export --platform web` here. `npx` falls back to the
+# registry when the local binary does not satisfy the request, which bypasses
+# package-lock.json and can ship a different `expo` than CI tested.
+# `npm run build:web` runs scripts/check-web-env.mjs first, so a build without
+# the required EXPO_PUBLIC_* vars fails instead of shipping a broken bundle.
+# ---------------------------------------------------------------------------
+

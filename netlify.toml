@@ -1,6 +1,9 @@
 [build]
-  command = "bash -c 'test -n \"$EXPO_PUBLIC_SUPABASE_URL\" && test -n \"$EXPO_PUBLIC_SUPABASE_ANON_KEY\" || { echo \"ERROR: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set (Netlify Site settings > Environment variables) — they are inlined at build time.\"; exit 1; }; npx expo export --platform web'"
+  command = "bash -c 'test -n \"$EXPO_PUBLIC_SUPABASE_URL\" && test -n \"$EXPO_PUBLIC_SUPABASE_ANON_KEY\" || { echo \"ERROR: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set (Netlify Site settings > Environment variables) — they are inlined at build time.\"; exit 1; }; npm run build:web'"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # Must match .github/workflows/ci.yml (NODE_VERSION: 22). This tree is built and
+  # validated on Node 22; Node 20 can change Metro/Babel output, so a future bump
+  # should be an isolated change with the exported bundle diffed.
+  NODE_VERSION = "22"

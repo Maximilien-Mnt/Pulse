@@ -21,6 +21,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege: this workflow only needs to read the repository.
+permissions:
+  contents: read
+
 jobs:
   replay:
     name: Replay 001 + 002 twice on a scratch PostgreSQL
@@ -29,7 +33,12 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        # Pinned by digest, not by tag. `postgres:17` is a mutable tag: it moves
+        # to a new 17.x on every patch release, so a compromised or rewritten
+        # upstream image would be pulled into this job without any diff. The
+        # digest below is the linux/amd64+arm64 manifest list for 17.
+        # Bump deliberately: docker buildx imagetools inspect postgres:17
+        image: postgres@sha256:2d2b8998d31037bf721cfdf7764d76ba74171b4fab34431b7f72c27c56ddbdf99e3
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -50,7 +59,8 @@ jobs:
 
     steps:
       - name: Checkout (full history - scenario A needs the pre-hardening file)
-        uses: actions/checkout@v4
+        # actions/checkout v4.4.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d275973664c9af683
         with:
           fetch-depth: 0
 
@@ -114,6 +124,26 @@ jobs:
               [ "$policies" -ge 40 ] || { echo "::error::only $policies public policies after pass 1 (expected >= 40)"; exit 1; }
               echo "sanity after pass 1: $tables public tables, $policies public policies"
               echo "sanity after pass 1: $tables public tables, $policies public policies" >> /tmp/sanity.txt
+
+              # RLS coverage guard (MUST be zero).
+              #
+              # A PostgreSQL policy is INERT until `ENABLE ROW LEVEL SECURITY`
+              # is set on its table. 003_v3.sql declared policies on five tables
+              # but never enabled RLS, so those tables were fully readable and
+              # writable by `anon` through PostgREST despite having
+              # well-authored policies. Migration 059 enables RLS; this
+              # assertion makes any future "policy added, RLS forgotten"
+              # mistake a hard CI failure instead of a silent exposure.
+              rls_off=$(psql -tA -d pulse_after -c "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity")
+              [ "$rls_off" -eq 0 ] || { echo "::error::$rls_off public table(s) have RLS DISABLED. Policies are inert without ENABLE ROW LEVEL SECURITY — every row is readable/writable by anon through PostgREST."; exit 1; }
+              echo "sanity after pass 1: $rls_off public tables with RLS disabled" >> /tmp/sanity.txt
+
+              # RLS enabled but no policy = accidental deny-all. Surfaced so it
+              # shows up in the pass-1/pass-2 diff instead of silently
+              # breaking reads in production.
+              rls_nopolicy=$(psql -tA -d pulse_after -c "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity and not exists (select 1 from pg_policies p where p.schemaname = 'public' and p.tablename = c.relname)")
+              [ "$rls_nopolicy" -eq 0 ] || { echo "::error::$rls_nopolicy public table(s) have RLS enabled but NO policy (deny-all for every role)."; exit 1; }
+              echo "sanity after pass 1: $rls_nopolicy public tables with RLS enabled but no policy" >> /tmp/sanity.txt
             fi
             echo "::endgroup::"
           done

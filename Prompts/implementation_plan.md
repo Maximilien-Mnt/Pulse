@@ -51,7 +51,8 @@ The `Database["public"]["Tables"]` mapping is reused everywhere; no schema chang
 - `components/profile/ProfileClubsSection.tsx` — list of `ClubCard` (compact) for clubs the user is a member of.
 - `components/profile/ProfileEventsSection.tsx` — list of `EventCard` (compact) for upcoming events the user is registered to.
 - `components/profile/EditProfileSheet.tsx` — extracted from the inline modal in `profile/index.tsx` and extended with: photo, height, weight, language, objectives, sports.
-- `components/profile/DeleteAccountSheet.tsx` — password input → `supabase.auth.signInWithPassword` (re-auth) → `supabase.auth.deleteUser()` → soft delete `profiles.deleted_at = now()`.
+- `components/profile/DeleteAccountSheet.tsx` — password input → re-auth via `supabase.rpc("delete_my_account", { p_password })` (SECURITY DEFINER RPC, verified with `pgcrypto.crypt()`) → hard-delete `auth.users` with cascade (deployed; supersedes the earlier V1 soft-delete `profiles.deleted_at` artifact). The hard-delete decision was finalized during the privacy/security review (see `docs/retention-schedule.md` §3.1).
+> **Privacy/Security-review decision (G1):** password display is **deprecated**. `lib/passwordStorage.ts` deliberately stores the plaintext password in `expo-secure-store` (native only; web refuses) as an intentional anti-pattern, with a TODO recommending removal.
 - `components/profile/SecuritySection.tsx` — `collapsible` showing email + password with show/hide eye toggles (display only; no re-auth flow in V1).
 - `components/feed/TagFilterBanner.tsx` — small bar above the `FlashList` showing the active tag from `useFeedStore.activeTag` with a clear button.
 - `utils/countries.ts` — full ISO 3166-1 alpha-2 list (249 entries) with French labels. (Replaces the current 57-entry list inside `lib/constants.ts`.)
@@ -136,7 +137,7 @@ Steps are sequenced to keep the working tree compilable at every step and to avo
 6. **Event detail enrichment** — `app/(tabs)/events/[eventId].tsx`. Verify: places and linked club visible.
 7. **Conversation features** — date grouping in `app/(tabs)/conversations/[conversationId].tsx`, real `Supprimer`/`Masquer` in `MessageBubble`, real `.jsonl` export in `ConversationItem` via `utils/conversationExport.ts`. Verify: long-press deletes or hides; download produces a `.jsonl` file.
 8. **Create screen polish** — debounce user search, title/description counters, `TagInput`. Verify: typing pauses 500 ms before searching; counters update.
-9. **Profile enrichment** — `hooks/useMyClubMemberships.ts`, `hooks/useMyUpcomingEvents.ts`, `components/profile/ProfileClubsSection.tsx`, `components/profile/ProfileEventsSection.tsx`, `components/profile/SecuritySection.tsx`, `components/profile/EditProfileSheet.tsx`, `hooks/useDeleteAccount.ts`, `components/profile/DeleteAccountSheet.tsx`, `app/(tabs)/profile/index.tsx`. Verify: edit modal updates height/weight/photo/objectives/sports/language; delete account signs out and soft-deletes.
+9. **Profile enrichment** — `hooks/useMyClubMemberships.ts`, `hooks/useMyUpcomingEvents.ts`, `components/profile/ProfileClubsSection.tsx`, `components/profile/ProfileEventsSection.tsx`, `components/profile/SecuritySection.tsx`, `components/profile/EditProfileSheet.tsx`, `hooks/useDeleteAccount.ts`, `components/profile/DeleteAccountSheet.tsx`, `app/(tabs)/profile/index.tsx`. Verify: edit modal updates height/weight/photo/objectives/sports/language; delete account signs out and hard-deletes (see `docs/data-flow-inventory.md` §5).
 10. **Final sweep** — `tsc --noEmit`, manual walkthrough on a clean database with the seed data.
 
 Each step ends with a single, self-contained commit message and a `tsc --noEmit` check.

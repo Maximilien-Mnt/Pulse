@@ -1,0 +1,159 @@
+{
+  "GHSA-253c-mchw-3w2r": {
+    "severity": "moderate",
+    "title": "markdown-it linkify: true has two quadratic paths, so a few hundred KB of markdown blocks the event loop for tens of seconds",
+    "packages": [
+      "markdown-it"
+    ]
+  },
+  "GHSA-5p2g-fcmc-qvqq": {
+    "severity": "high",
+    "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+    "packages": [
+      "image-size"
+    ]
+  },
+  "GHSA-6g55-p6wh-862q": {
+    "severity": "high",
+    "title": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+    "packages": [
+      "postcss"
+    ]
+  },
+  "GHSA-6j4f-fj2g-mc7p": {
+    "severity": "high",
+    "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+    "packages": [
+      "@eslint/config-array/node_modules/brace-expansion",
+      "@eslint/eslintrc/node_modules/brace-expansion",
+      "@expo/fingerprint/node_modules/brace-expansion",
+      "@jest/reporters/node_modules/brace-expansion",
+      "@react-native/codegen/node_modules/brace-expansion",
+      "@typescript-eslint/typescript-estree/node_modules/brace-expansion",
+      "brace-expansion",
+      "eslint-plugin-import/node_modules/brace-expansion",
+      "eslint-plugin-react/node_modules/brace-expansion",
+      "eslint/node_modules/brace-expansion",
+      "glob/node_modules/brace-expansion",
+      "jest-config/node_modules/brace-expansion",
+      "jest-runtime/node_modules/brace-expansion",
+      "react-native/node_modules/brace-expansion",
+      "rimraf/node_modules/brace-expansion",
+      "test-exclude/node_modules/brace-expansion"
+    ]
+  },
+  "GHSA-86w9-cpqp-85rv": {
+    "severity": "high",
+    "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+    "packages": [
+      "node-forge"
+    ]
+  },
+  "GHSA-fxqj-rqcc-2cmp": {
+    "severity": "moderate",
+    "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q ÔÇö attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+    "packages": [
+      "postcss"
+    ]
+  },
+  "GHSA-hp3w-g68c-fv3c": {
+    "severity": "moderate",
+    "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers",
+    "packages": [
+      "sprintf-js"
+    ]
+  },
+  "GHSA-q2hr-2g5m-vwhr": {
+    "severity": "moderate",
+    "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+    "packages": [
+      "@eslint/config-array/node_modules/brace-expansion",
+      "@eslint/eslintrc/node_modules/brace-expansion",
+      "@expo/fingerprint/node_modules/brace-expansion",
+      "@jest/reporters/node_modules/brace-expansion",
+      "@react-native/codegen/node_modules/brace-expansion",
+      "@typescript-eslint/typescript-estree/node_modules/brace-expansion",
+      "brace-expansion",
+      "eslint-plugin-import/node_modules/brace-expansion",
+      "eslint-plugin-react/node_modules/brace-expansion",
+      "eslint/node_modules/brace-expansion",
+      "glob/node_modules/brace-expansion",
+      "jest-config/node_modules/brace-expansion",
+      "jest-runtime/node_modules/brace-expansion",
+      "react-native/node_modules/brace-expansion",
+      "rimraf/node_modules/brace-expansion",
+      "test-exclude/node_modules/brace-expansion"
+    ]
+  },
+  "GHSA-qhr7-859c-m2p7": {
+    "severity": "high",
+    "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+    "packages": [
+      "@eslint/config-array/node_modules/brace-expansion",
+      "@eslint/eslintrc/node_modules/brace-expansion",
+      "@expo/fingerprint/node_modules/brace-expansion",
+      "@jest/reporters/node_modules/brace-expansion",
+      "@react-native/codegen/node_modules/brace-expansion",
+      "@typescript-eslint/typescript-estree/node_modules/brace-expansion",
+      "brace-expansion",
+      "eslint-plugin-import/node_modules/brace-expansion",
+      "eslint-plugin-react/node_modules/brace-expansion",
+      "eslint/node_modules/brace-expansion",
+      "glob/node_modules/brace-expansion",
+      "jest-config/node_modules/brace-expansion",
+      "jest-runtime/node_modules/brace-expansion",
+      "react-native/node_modules/brace-expansion",
+      "rimraf/node_modules/brace-expansion",
+      "test-exclude/node_modules/brace-expansion"
+    ]
+  },
+  "GHSA-qx2v-qp2m-jg93": {
+    "severity": "moderate",
+    "title": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+    "packages": [
+      "postcss"
+    ]
+  },
+  "GHSA-r28c-9q8g-f849": {
+    "severity": "high",
+    "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+    "packages": [
+      "postcss"
+    ]
+  },
+  "GHSA-rj75-hqrm-r3gf": {
+    "severity": "moderate",
+    "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion",
+    "packages": [
+      "postcss-selector-parser"
+    ]
+  },
+  "GHSA-vcc3-ghjq-m6fr": {
+    "severity": "moderate",
+    "title": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input",
+    "packages": [
+      "decode-uri-component"
+    ]
+  },
+  "GHSA-vfj7-8cjw-p6xm": {
+    "severity": "high",
+    "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+    "packages": [
+      "braces"
+    ]
+  },
+  "GHSA-w3rx-r6r6-pgpr": {
+    "severity": "high",
+    "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+    "packages": [
+      "image-size"
+    ]
+  },
+  "GHSA-w5hq-g745-h8pq": {
+    "severity": "moderate",
+    "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+    "packages": [
+      "uuid"
+    ]
+  }
+}

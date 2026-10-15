@@ -7,37 +7,23 @@
 # required EXPO_PUBLIC_* env vars fails instead of shipping a broken bundle.)
 #
 # ---------------------------------------------------------------------------
-# WHERE THE BUILD VARIABLES LIVE — READ BEFORE EDITING
+# WHERE THE BUILD VARIABLES LIVE
 # ---------------------------------------------------------------------------
-# These values used to be hardcoded in a [vars] block in THIS FILE, which is
-# tracked in git. The repository is PUBLIC, so the Supabase project URL, the
-# anon key and the PostHog token were world-readable and are permanently in
-# git history (introduced in 6eda9cc). The [vars] block was removed.
+# Build vars are NOT in this file (Pages ignores [vars] at build time, and
+# this repo is public). Set them in the dashboard:
+#   Cloudflare Pages > pulse > Settings > Variables and Secrets
+#   > Production AND Preview:
+#     EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY (required)
+#     POSTHOG_PROJECT_TOKEN / POSTHOG_HOST / EXPO_PUBLIC_APP_SCHEME (optional)
+# Changing any of these requires a rebuild (Expo inlines them). If the build
+# still reports "missing environment variables", the dashboard vars were not
+# injected — re-save them and hit Retry deployment.
 #
-# The values are inlined into the public JS bundle by Expo, so the anon key is
-# not a secret in the confidentiality sense — but the project reference, the
-# organization id and the connection metadata committed under
-# supabase/.temp/ were infrastructure reconnaissance data, and the safety of a
-# publicly-known anon key depends ENTIRELY on RLS being correct on every table
-# (see supabase/migrations/059). Do not reintroduce them here.
-#
-# Set them in Cloudflare Pages > Settings > Variables and Secrets instead:
-#   EXPO_PUBLIC_SUPABASE_URL
-#   EXPO_PUBLIC_SUPABASE_ANON_KEY
-#   POSTHOG_PROJECT_TOKEN
-#   POSTHOG_HOST            (defaults to https://eu.i.posthog.com)
-#   EXPO_PUBLIC_APP_SCHEME  (defaults to pulse)
-#
-# If the Pages build does not inject dashboard variables into the build
-# environment (see cloudflare-docs issue #30714), supply them through a
-# NON-tracked local `.env` file at build time, or a CI secret. Never commit
-# them. Changing any of these requires a rebuild.
-#
-# ROTATION REQUIRED: the previously committed anon key must be treated as
-# exposed. Fix the RLS gaps first (migration 059), then rotate the project JWT
-# secret in the Supabase dashboard and redeploy web + ship an app update.
-# The committed PostHog token should also be rotated in PostHog project
-# settings.
+# History note: a [vars] block with the live Supabase URL + anon key was
+# committed in 6eda9cc and later removed. Treat that key as exposed: fix RLS
+# gaps first (supabase/migrations/059), then rotate the JWT secret in the
+# Supabase dashboard, redeploy web, and ship an app update. Also rotate the
+# PostHog token. Never commit supabase/.temp/ contents.
 # ---------------------------------------------------------------------------
 
 name = "pulse"

@@ -26,28 +26,83 @@ try {
 const REQUIRED = ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"];
 const OPTIONAL = ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST", "EXPO_PUBLIC_APP_SCHEME"];
 
-const missingRequired = REQUIRED.filter((k) => !process.env[k]);
+// Values copied verbatim from .env.example — committed placeholders, not real
+// credentials. Treat them as missing so a build with an unedited .env fails
+// here instead of shipping a bundle pointed at a fake project.
+const PLACEHOLDER_PATTERNS = [/your-project/i, /your-anon-key/i, /your-posthog-project-token/i, /example\.com/i];
 
-if (missingRequired.length > 0) {
+function getStatus(key) {
+  const raw = process.env[key];
+  if (!raw || raw.trim() === "") return { state: "missing", reason: "unset or empty" };
+  const value = raw.trim();
+  if (PLACEHOLDER_PATTERNS.some((re) => re.test(value))) {
+    return { state: "missing", reason: "still holds the .env.example placeholder" };
+  }
+  return { state: "present", value };
+}
+
+function describeBuildContext() {
+  // Cloudflare Pages sets CF_PAGES=1 on the build container.
+  if (process.env.CF_PAGES === "1" || process.env.CLOUDFLARE_PAGES === "1") {
+    return "Cloudflare Pages build container (CF_PAGES=1)";
+  }
+  if (process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true") return "CI runner";
+  return "local machine (.env file + process env)";
+}
+
+function isValidSupabaseUrl(url) {
+  // Managed Supabase projects are always https://<ref>.supabase.co.
+  // Self-hosted instances use a custom https URL — accept any https URL but
+  // reject http / bare hostnames that indicate a copy-paste mistake.
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url) || /^https:\/\/[^/\s]+\.[^/\s]+/i.test(url);
+}
+
+function isValidAnonKey(key) {
+  // The publishable/anon key is a JWT (three base64url segments). The legacy
+  // sb_publishable_* format is also accepted.
+  const trimmed = key.trim();
+  if (/^sb_publishable_[A-Za-z0-9_-]+$/.test(trimmed)) return true;
+  const parts = trimmed.split(".");
+  return parts.length === 3 && parts.every((p) => p.length >= 8 && /^[A-Za-z0-9_-]+$/.test(p));
+}
+
+const context = describeBuildContext();
+
+// --- Required vars: missing, placeholder, or malformed all abort the build.
+const requiredProblems = [];
+for (const key of REQUIRED) {
+  const status = getStatus(key);
+  if (status.state === "missing") {
+    requiredProblems.push({ key, reason: status.reason });
+    continue;
+  }
+  if (key === "EXPO_PUBLIC_SUPABASE_URL" && !isValidSupabaseUrl(status.value)) {
+    requiredProblems.push({ key, reason: `malformed URL "${status.value.slice(0, 40)}…" (expected https://<ref>.supabase.co)` });
+  }
+  if (key === "EXPO_PUBLIC_SUPABASE_ANON_KEY" && !isValidAnonKey(status.value)) {
+    requiredProblems.push({ key, reason: "malformed value (expected a JWT anon key or sb_publishable_* key)" });
+  }
+}
+
+if (requiredProblems.length > 0) {
   console.error("\n=============================================");
   console.error("  WEB BUILD ABORTED — missing environment variables:");
-  for (const key of missingRequired) {
-    console.error(`    - ${key}`);
+  for (const { key, reason } of requiredProblems) {
+    console.error(`    - ${key} (${reason})`);
   }
-  console.error(
-    "  These are inlined into the web bundle at build time. Set them in the"
-  );
-  console.error(
-    "  hosting provider's build environment (Cloudflare Pages > Settings >"
-  );
-  console.error(
-    "  Variables and Secrets) or in a local .env file, then rebuild."
-  );
+  console.error("");
+  console.error(`  Build context: ${context}.`);
+  console.error("  These are inlined into the web bundle at build time, so a");
+  console.error("  build without them ships a blank page. Set them, then rebuild:");
+  console.error("    Cloudflare Pages > pulse > Settings > Variables and Secrets");
+  console.error("      > Production AND Preview > Save > Retry deployment.");
+  console.error("  Or provide them via a local .env file (see .env.example).");
   console.error("=============================================\n");
   process.exit(1);
 }
 
-const missingOptional = OPTIONAL.filter((k) => !process.env[k]);
+const missingOptional = OPTIONAL.filter((k) => getStatus(k).state === "missing");
+
 if (missingOptional.length > 0) {
   console.warn("[build:web] Optional env vars not set (may degrade features):");
   for (const key of missingOptional) {
@@ -55,4 +110,9 @@ if (missingOptional.length > 0) {
   }
 }
 
-console.log("[build:web] Environment check passed. Starting web export…");
+const presentOptional = OPTIONAL.length - missingOptional.length;
+console.log(
+  `[build:web] Environment check passed (${REQUIRED.length}/${REQUIRED.length} required, ` +
+    `${presentOptional}/${OPTIONAL.length} optional) on ${context}. Starting web export…`
+);
+

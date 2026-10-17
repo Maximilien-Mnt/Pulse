@@ -65,6 +65,9 @@ export function SideRail() {
   const expanded = width >= 1024;
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
   const [createOpen, setCreateOpen] = useState(false);
+  // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
+  const rotationAnim = useRef(new Animated.Value(0)).current;
+  const [isRotating, setIsRotating] = useState(false);
   // Where the Create button sits in the viewport — the popover is anchored
   // to it (right of the rail, centered on the button) rather than centered.
   const createAnchorRef = useRef<View>(null);
@@ -81,17 +84,34 @@ export function SideRail() {
   };
 
   const handleCreatePress = () => {
-    // Measure the button so the popover can float right next to it.
-    const node = createAnchorRef.current;
-    if (node && typeof node.measureInWindow === "function") {
-      node.measureInWindow((x, y, w, h) => {
-        setCreateAnchor({ left: x + w, centerY: y + h / 2 });
-      });
-    }
+  // Measure the button so the popover can float right next to it.
+  const node = createAnchorRef.current;
+  if (node && typeof node.measureInWindow === "function") {
+    node.measureInWindow((x, y, w, h) => {
+      setCreateAnchor({ left: x + w, centerY: y + h / 2 });
+    });
+  }
+  // Animate the "+" icon to "×" (45°) before the form opens.
+  Animated.timing(rotationAnim, {
+    toValue: Math.PI / 4,
+    duration: ICON_BUTTON_TRANSITION_MS,
+    useNativeDriver: true,
+  }).start(() => {
     setCreateOpen(true);
-  };
+  });
+};
+  const handleCreateClose = () => {
+  Animated.timing(rotationAnim, {
+    toValue: 0,
+    duration: ICON_BUTTON_TRANSITION_MS,
+    useNativeDriver: true,
+  })
+.start(() => {
+    setCreateOpen(false);
+  });
+};
 
-  const railWidth = expanded ? 240 : 72;
+const railWidth = expanded ? 240 : 72;
 
   // ---- Sliding active indicator -------------------------------------------
   // NOTE: `findIndex` hands the callback the tab *object*, not its route
@@ -222,7 +242,12 @@ export function SideRail() {
           )}
           style={{ transform: createLift.liftTransform }}
         >
-          <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
+          <Icon
+  name="Plus"
+  size={NAV_TAB_ICON_SIZE}
+  color="text-inverse"
+  style={{ transform: [{ rotate: rotationAnim }] }}
+/>
           {expanded ? (
             <Text variant="buttonLabel" className="text-white">
               Créer
@@ -238,12 +263,13 @@ export function SideRail() {
       {/* Create popover - floats directly right of the rail, on the button */}
       <CreatePopover
         visible={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCreateClose}
         anchor={createAnchor ? { placement: "rail", left: createAnchor.left, centerY: createAnchor.centerY } : undefined}
       />
 
       {/* Profile / settings at bottom + navbar layout toggle.
-          Rendered as `NavTab`s (never selected) so they lift and spring exactly
+          Rendered as 
+avTab`s (never selected) so they lift and spring exactly
           like the tabs above them — a rail whose footer doesn't animate reads as
           a different, unfinished component. */}
       <View className="pb-6" style={{ paddingHorizontal: INDICATOR_INSET }}>

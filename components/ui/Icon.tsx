@@ -392,7 +392,7 @@ export const Icon = React.memo<IconProps>(
       if (effectiveHint) iconProps.accessibilityHint = effectiveHint;
     }
 
-    return <LucideComponent {...iconProps} />;
+    return <LucideComponent {...iconProps} {...rest} />;
   }
 );
 

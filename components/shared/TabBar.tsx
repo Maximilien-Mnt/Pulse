@@ -17,7 +17,7 @@
 // bottom padding included.
 // ---------------------------------------------------------------------------
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, View, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
@@ -71,6 +71,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const pathname = usePathname();
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
   const [createOpen, setCreateOpen] = useState(false);
+  // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
+  const rotationAnim = useRef(new Animated.Value(0)).current;
+  const [isRotating, setIsRotating] = useState(false);
   // Shared hover/focus lift with the rail Create — one mechanism, both shapes.
   const createLift = useHoverLift();
 
@@ -79,10 +82,27 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   // Open the create popover, anchored directly above the raised FAB.
   const handleCreatePress = () => {
+  Animated.timing(rotationAnim, {
+    toValue: Math.PI / 4,
+    duration: ICON_BUTTON_TRANSITION_MS,
+    useNativeDriver: true,
+  }).start(() => {
     setCreateOpen(true);
-  };
+  });
+};
 
-  const isActive = (routeName: string) => {
+// Close the creation form and rotate the icon back to "+".
+const handleCreateClose = () => {
+  Animated.timing(rotationAnim, {
+    toValue: 0,
+    duration: ICON_BUTTON_TRANSITION_MS,
+    useNativeDriver: true,
+  }).start(() => {
+    setCreateOpen(false);
+  });
+}};
+
+const isActive = (routeName: string) => {
     // routeName is the tab folder name (e.g. "feed", "explore")
     // pathname is the current Expo Router path (e.g. "/feed", "/feed/[postId]/comments")
     const pathParts = pathname.split("/").filter(Boolean);
@@ -242,7 +262,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               ...(Platform.OS === "web" ? { boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } : {}),
             }}
           >
-            <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
+            <Icon
+  name="Plus"
+  size={NAV_TAB_ICON_SIZE}
+  color="text-inverse"
+  style={{ transform: [{ rotate: rotationAnim }] }}
+/>
           </PressableScale>
         </View>
 
@@ -267,7 +292,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       ) : null}
 
       {/* Create popover — the options menu floats directly above the FAB */}
-      <CreatePopover visible={createOpen} onClose={() => setCreateOpen(false)} anchor={{ placement: "bottom" }} />
+      <CreatePopover visible={createOpen} onClose={handleCreateClose} anchor={{ placement: "bottom" }} />
     </View>
   );
 }

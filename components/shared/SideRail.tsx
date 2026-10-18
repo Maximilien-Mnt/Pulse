@@ -35,6 +35,7 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { useHoverLift } from "@/components/ui/useHoverLift";
 import { t } from "@/hooks/useTranslation";
 import { semanticColors } from "@/src/design-tokens/semantic/colors";
+import { ICON_BUTTON_TRANSITION_MS } from "@/components/ui/IconButton";
 import { cn } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,6 @@ export function SideRail() {
   const [createOpen, setCreateOpen] = useState(false);
   // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
   const rotationAnim = useRef(new Animated.Value(0)).current;
-  const [isRotating, setIsRotating] = useState(false);
   // Where the Create button sits in the viewport — the popover is anchored
   // to it (right of the rail, centered on the button) rather than centered.
   const createAnchorRef = useRef<View>(null);
@@ -84,34 +84,32 @@ export function SideRail() {
   };
 
   const handleCreatePress = () => {
-  // Measure the button so the popover can float right next to it.
-  const node = createAnchorRef.current;
-  if (node && typeof node.measureInWindow === "function") {
-    node.measureInWindow((x, y, w, h) => {
-      setCreateAnchor({ left: x + w, centerY: y + h / 2 });
+    // Measure the button so the popover can float right next to it.
+    const node = createAnchorRef.current;
+    if (node && typeof node.measureInWindow === "function") {
+      node.measureInWindow((x, y, w, h) => {
+        setCreateAnchor({ left: x + w, centerY: y + h / 2 });
+      });
+    }
+    Animated.timing(rotationAnim, {
+      toValue: Math.PI / 4,
+      duration: ICON_BUTTON_TRANSITION_MS,
+      useNativeDriver: true,
+    }).start(() => {
+      setCreateOpen(true);
     });
-  }
-  // Animate the "+" icon to "×" (45°) before the form opens.
-  Animated.timing(rotationAnim, {
-    toValue: Math.PI / 4,
-    duration: ICON_BUTTON_TRANSITION_MS,
-    useNativeDriver: true,
-  }).start(() => {
-    setCreateOpen(true);
-  });
-};
+  };
   const handleCreateClose = () => {
-  Animated.timing(rotationAnim, {
-    toValue: 0,
-    duration: ICON_BUTTON_TRANSITION_MS,
-    useNativeDriver: true,
-  })
-.start(() => {
-    setCreateOpen(false);
-  });
-};
+    Animated.timing(rotationAnim, {
+      toValue: 0,
+      duration: ICON_BUTTON_TRANSITION_MS,
+      useNativeDriver: true,
+    }).start(() => {
+      setCreateOpen(false);
+    });
+  };
 
-const railWidth = expanded ? 240 : 72;
+  const railWidth = expanded ? 240 : 72;
 
   // ---- Sliding active indicator -------------------------------------------
   // NOTE: `findIndex` hands the callback the tab *object*, not its route
@@ -242,12 +240,20 @@ const railWidth = expanded ? 240 : 72;
           )}
           style={{ transform: createLift.liftTransform }}
         >
-          <Icon
-  name="Plus"
-  size={NAV_TAB_ICON_SIZE}
-  color="text-inverse"
-  style={{ transform: [{ rotate: rotationAnim }] }}
-/>
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  rotate: rotationAnim.interpolate({
+                    inputRange: [0, Math.PI / 4],
+                    outputRange: ["0rad", `${Math.PI / 4}rad`],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
+          </Animated.View>
           {expanded ? (
             <Text variant="buttonLabel" className="text-white">
               Créer

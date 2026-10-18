@@ -39,6 +39,7 @@ import { useIsWebWide } from "@/components/shared/SideRail";
 import { useThemeStore } from "@/stores/themeStore";
 import { CreatePopover } from "@/components/shared/CreatePopover";
 import { semanticColors } from "@/src/design-tokens/semantic/colors";
+import { ICON_BUTTON_TRANSITION_MS } from "@/components/ui/IconButton";
 import { t } from "@/hooks/useTranslation";
 import { cn } from "@/utils/format";
 import type { TranslationKey } from "@/lib/translations";
@@ -73,7 +74,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const [createOpen, setCreateOpen] = useState(false);
   // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
   const rotationAnim = useRef(new Animated.Value(0)).current;
-  const [isRotating, setIsRotating] = useState(false);
   // Shared hover/focus lift with the rail Create — one mechanism, both shapes.
   const createLift = useHoverLift();
 
@@ -82,25 +82,24 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   // Open the create popover, anchored directly above the raised FAB.
   const handleCreatePress = () => {
-  Animated.timing(rotationAnim, {
-    toValue: Math.PI / 4,
-    duration: ICON_BUTTON_TRANSITION_MS,
-    useNativeDriver: true,
-  }).start(() => {
-    setCreateOpen(true);
-  });
-};
+    Animated.timing(rotationAnim, {
+      toValue: Math.PI / 4,
+      duration: ICON_BUTTON_TRANSITION_MS,
+      useNativeDriver: true,
+    }).start(() => {
+      setCreateOpen(true);
+    });
+  };
 
-// Close the creation form and rotate the icon back to "+".
-const handleCreateClose = () => {
-  Animated.timing(rotationAnim, {
-    toValue: 0,
-    duration: ICON_BUTTON_TRANSITION_MS,
-    useNativeDriver: true,
-  }).start(() => {
-    setCreateOpen(false);
-  });
-}};
+  const handleCreateClose = () => {
+    Animated.timing(rotationAnim, {
+      toValue: 0,
+      duration: ICON_BUTTON_TRANSITION_MS,
+      useNativeDriver: true,
+    }).start(() => {
+      setCreateOpen(false);
+    });
+  };
 
 const isActive = (routeName: string) => {
     // routeName is the tab folder name (e.g. "feed", "explore")
@@ -262,12 +261,20 @@ const isActive = (routeName: string) => {
               ...(Platform.OS === "web" ? { boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } : {}),
             }}
           >
-            <Icon
-  name="Plus"
-  size={NAV_TAB_ICON_SIZE}
-  color="text-inverse"
-  style={{ transform: [{ rotate: rotationAnim }] }}
-/>
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    rotate: rotationAnim.interpolate({
+                      inputRange: [0, Math.PI / 4],
+                      outputRange: ["0rad", `${Math.PI / 4}rad`],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Icon name="Plus" size={NAV_TAB_ICON_SIZE} color="text-inverse" />
+            </Animated.View>
           </PressableScale>
         </View>
 

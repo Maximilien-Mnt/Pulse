@@ -10,7 +10,8 @@
  * Used by `npm run build:web` (Cloudflare Pages build command).
  *
  * Fatal (build must stop): EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY
- * Warn only (optional at build time): POSTHOG_PROJECT_TOKEN, POSTHOG_HOST, EXPO_PUBLIC_APP_SCHEME
+ * Warn only (optional at build time): EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN,
+ *   EXPO_PUBLIC_POSTHOG_HOST, POSTHOG_PROJECT_TOKEN, POSTHOG_HOST, EXPO_PUBLIC_APP_SCHEME
  */
 
 // This script runs as a plain Node process, so it does not automatically get
@@ -24,12 +25,24 @@ try {
 }
 
 const REQUIRED = ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"];
-const OPTIONAL = ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST", "EXPO_PUBLIC_APP_SCHEME"];
+const OPTIONAL = [
+  "EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN",
+  "EXPO_PUBLIC_POSTHOG_HOST",
+  "POSTHOG_PROJECT_TOKEN",
+  "POSTHOG_HOST",
+  "EXPO_PUBLIC_APP_SCHEME",
+];
 
 // Values copied verbatim from .env.example — committed placeholders, not real
 // credentials. Treat them as missing so a build with an unedited .env fails
 // here instead of shipping a bundle pointed at a fake project.
-const PLACEHOLDER_PATTERNS = [/your-project/i, /your-anon-key/i, /your-posthog-project-token/i, /example\.com/i];
+const PLACEHOLDER_PATTERNS = [
+  /your-project/i,
+  /your-anon-key/i,
+  /your-posthog-project-token/i,
+  /phc_your_project_token_here/i,
+  /example\.com/i,
+];
 
 function getStatus(key) {
   const raw = process.env[key];

@@ -3,13 +3,18 @@ import Constants from "expo-constants";
 
 const apiKey =
   (Constants.expoConfig?.extra?.posthogProjectToken as string | undefined) ||
+  process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+  process.env.POSTHOG_PROJECT_TOKEN ||
+  // Legacy fallback — use EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN for new setups.
   process.env.EXPO_PUBLIC_POSTHOG_KEY ||
   undefined;
 const host =
   (Constants.expoConfig?.extra?.posthogHost as string) ||
+  process.env.EXPO_PUBLIC_POSTHOG_HOST ||
   process.env.POSTHOG_HOST ||
   "https://eu.i.posthog.com";
-export const isPostHogConfigured = !!apiKey && apiKey !== "phc_your_project_token_here";
+export const isPostHogConfigured =
+  !!apiKey && apiKey !== "phc_your_project_token_here" && apiKey !== "your-posthog-project-token";
 
 export const posthog = new PostHog(apiKey || "placeholder_key", {
   host,

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { assertCanManageEvent } from "@/lib/eventPermissions";
 import { useAuthStore } from "@/stores/authStore";
+import { stripUnknownFields } from "@/utils/protectedMutations";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
@@ -48,62 +49,15 @@ export function useUpdateEvent() {
       // Verify the current user manages the event (creator or publishing-club owner/admin)
       const event = await assertCanManageEvent(eventId, userId);
 
-      // Allow-list: never spread caller data straight into the update —
-      // server-managed columns (created_by, id, places_left, …) stay read-only.
-      const {
-        name,
-        description,
-        short_description,
-        country,
-        city,
-        venue_address,
-        postal_code,
-        website_url,
-        registration_url,
-        contact_email,
-        league,
-        cover_url,
-        logo_url,
-        hero_urls,
-        required_level,
-        required_levels,
-        sports,
-        sport,
-        start_date,
-        end_date,
-        price_cents,
-        places_total,
-        age_min,
-        age_max,
-      } = data;
+      // Field Tampering protection: strip server-managed columns
+      // (created_by, id, places_left, publisher_club_id, accepted_count, …)
+      // before writing — never spread caller data straight into the update.
+      const clean = stripUnknownFields("events", data);
       // Update the event
       const { error: updateError } = await supabase
         .from("events")
         .update({
-          name,
-          description,
-          short_description,
-          country,
-          city,
-          venue_address,
-          postal_code,
-          website_url,
-          registration_url,
-          contact_email,
-          league,
-          cover_url,
-          logo_url,
-          hero_urls,
-          required_level,
-          required_levels,
-          sports,
-          sport,
-          start_date,
-          end_date,
-          price_cents,
-          places_total,
-          age_min,
-          age_max,
+          ...clean,
           updated_at: new Date().toISOString(),
         })
         .eq("id", eventId);

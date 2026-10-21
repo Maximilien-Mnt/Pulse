@@ -4,6 +4,7 @@ import type { SignupSportSelection } from "@/types";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import { isUnderageFromISO, isValidBirthDateISO } from "@/utils/signupDate";
 import { composeOtherOption } from "@/lib/constants";
+import { stripUnknownFields } from "@/utils/protectedMutations";
 
 const PENDING_SIGNUP_KEY = "pulse:pending-signup";
 
@@ -81,7 +82,7 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
   }
 
   const { error: pe } = await supabase.from("profiles").upsert(
-    {
+    stripUnknownFields("profiles", {
       id: profile.id,
       email: profile.email,
       full_name: profile.full_name,
@@ -96,14 +97,15 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
       weight_kg: profile.weight_kg,
       discovery_source: profile.discovery_source,
       interested_sports: profile.interested_sports,
-    },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any,
     { onConflict: "id", ignoreDuplicates: true }
   );
   if (pe) throw pe;
 
   for (const s of sports) {
     const { error: se } = await supabase.from("user_sports").upsert(
-      {
+      stripUnknownFields("user_sports", {
         user_id: profile.id,
         sport_id: s.sportId,
         // Signup sports are always *practiced* sports. Without this the
@@ -120,8 +122,8 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
           startHour: slot.startHour,
           endHour: slot.endHour,
         })),
-      },
-      // Conflict on the natural key so re-running signup updates the existing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
       // row instead of inserting a duplicate (the old `onConflict: "id"` never
       // matched, since `id` is generated and not supplied).
       { onConflict: "user_id,sport_id,category", ignoreDuplicates: false }
@@ -131,10 +133,10 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
 
   for (const o of objectives) {
     const { error: oe } = await supabase.from("user_objectives").upsert(
-      {
+      stripUnknownFields("user_objectives", {
         user_id: profile.id,
         objective: o,
-      },
+      }) as any,
       { onConflict: "id", ignoreDuplicates: true }
     );
     if (oe) throw oe;

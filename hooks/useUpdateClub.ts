@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { stripUnknownFields } from "@/utils/protectedMutations";
 import Toast from "react-native-toast-message";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@/hooks/useTranslation";
@@ -52,62 +53,14 @@ export function useUpdateClub() {
       if (clubError) throw clubError;
       if (club.created_by !== userId) throw new Error("unauthorized");
 
-      // Allow-list: never spread caller data straight into the update —
-      // extra keys (created_by, id, member_count, …) must not be writable.
-      const {
-        name,
-        description,
-        short_description,
-        address,
-        postal_code,
-        contact_email,
-        phone_number,
-        website_url,
-        registration_url,
-        required_level,
-        required_levels,
-        sports,
-        league,
-        founded_date,
-        age_min,
-        age_max,
-        cover_url,
-        logo_url,
-        hero_urls,
-        opening_hours,
-        instagram_url,
-        facebook_url,
-        tiktok_url,
-        extra_link,
-      } = data;
+      // Field Tampering protection: strip any key not in the table whitelist
+      // (created_by, id, member_count, …) before writing.
+      const clean = stripUnknownFields("clubs", data);
       // Update the club
       const { error: updateError } = await supabase
         .from("clubs")
         .update({
-          name,
-          description,
-          short_description,
-          address,
-          postal_code,
-          contact_email,
-          phone_number,
-          website_url,
-          registration_url,
-          required_level,
-          required_levels,
-          sports,
-          league,
-          founded_date,
-          age_min,
-          age_max,
-          cover_url,
-          logo_url,
-          hero_urls,
-          opening_hours,
-          instagram_url,
-          facebook_url,
-          tiktok_url,
-          extra_link,
+          ...clean,
           updated_at: new Date().toISOString(),
         })
         .eq("id", clubId);

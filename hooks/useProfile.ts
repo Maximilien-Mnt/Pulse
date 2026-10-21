@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { stripUnknownFields } from "@/utils/protectedMutations";
 
 export function useProfile(userId: string | null) {
   return useQuery({
@@ -21,9 +22,13 @@ export function useProfile(userId: string | null) {
 export function useUpdateProfile(userId: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: any) => {
+    mutationFn: async (patch: Record<string, unknown>) => {
       if (!userId) throw new Error("auth");
-      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+      const clean = stripUnknownFields("profiles", patch);
+      const { error } = await supabase
+        .from("profiles")
+        .update(clean)
+        .eq("id", userId);
       if (error) throw error;
     },
     onSuccess: () => {

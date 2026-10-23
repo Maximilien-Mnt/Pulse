@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { setStoredPassword } from "@/lib/passwordStorage";
 import { useAuthStore } from "@/stores/authStore";
 import Toast from "react-native-toast-message";
 import { t } from "@/hooks/useTranslation";
@@ -10,7 +9,12 @@ import { userFacingMessageFor } from "@/lib/reporting/userMessage";
 
 /**
  * Hook to change the user's password.
- * Updates both Supabase (which updates the hash) and local storage.
+ * Updates the password in Supabase (which updates the bcrypt hash).
+ *
+ * NOTE: The previous implementation also stored the plaintext password
+ * locally in SecureStore (see `lib/passwordStorage.ts` which was deleted).
+ * Reversible plaintext storage has been removed for security; users must
+ * use "Forgot password" if they forget their credential.
  */
 export function useChangePassword() {
   const userId = useAuthStore((s) => s.userId);
@@ -39,14 +43,6 @@ export function useChangePassword() {
         });
         setIsLoading(false);
         return false;
-      }
-
-      // Update secure local storage with the new password
-      try {
-        await setStoredPassword(userId, newPassword);
-      } catch (storageError) {
-        logger.warn("auth", "failed to update secure password storage");
-        // Don't fail the operation if storage fails - password is still changed in Supabase
       }
 
       Toast.show({ type: "success", text1: t("actions.changePassword.success") });

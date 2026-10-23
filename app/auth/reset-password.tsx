@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
-import { setStoredPassword } from "@/lib/passwordStorage";
 import { useSignupStore } from "@/stores/signupStore";
 import { resetPasswordSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
@@ -160,15 +159,9 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    // Store the new password securely so the user can view it in Settings.
-    // The recovery session user is available on the updated session.
-    if (data.user?.id) {
-      try {
-        await setStoredPassword(data.user.id, values.password);
-      } catch (storageError) {
-        logger.warn("auth", "failed to store new password securely");
-      }
-    }
+    // Password is hashed by Supabase Auth. No local plaintext storage.
+    // The legacy "view my password" feature was removed for security.
+    // See lib/passwordStorage.ts (deleted) for context.
 
     posthog.capture("password_reset_completed", { success: true });
 

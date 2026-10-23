@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { Header } from "@/components/shared/Header";
 import { supabase } from "@/lib/supabase";
-import { setStoredPassword } from "@/lib/passwordStorage";
 import { signInSchema } from "@/utils/validation";
 import { localizeError } from "@/utils/localizeError";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +46,6 @@ export default function SignInScreen() {
     }
     const userId = data.session?.user?.id;
     if (userId) {
-      await setStoredPassword(userId, values.password);
       posthog.identify(userId, {
         $set_once: { first_sign_in_date: new Date().toISOString() },
       });

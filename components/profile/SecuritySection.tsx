@@ -3,7 +3,6 @@ import { Icon } from "@/components/ui/Icon";
 import { useState, useEffect } from "react";
 import { Pressable, Text, View, Modal, TextInput, Alert, ActivityIndicator } from "react-native";
 import { useChangePassword } from "@/hooks/useChangePassword";
-import { usePassword } from "@/hooks/usePassword";
 import { t } from "@/hooks/useTranslation";
 
 type Props = {
@@ -11,17 +10,14 @@ type Props = {
 };
 
 /**
- * Collapsible showing email + password with show/hide eye toggles.
- * Also allows changing the password.
+ * Collapsible showing email with a "Change password" option.
  *
- * The password is stored securely on-device (SecureStore) during signup,
- * on sign-in, and on password change so the user can always reveal it
- * here in Settings.
+ * NOTE: The old "show my password" feature was removed. Passwords are
+ * never stored or displayed locally; they are hashed by Supabase Auth
+ * (bcrypt via auth.users.encrypted_password).
  */
 export function SecuritySection({ email }: Props) {
   const [showEmail, setShowEmail] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const { password: storedPassword, isLoading: isLoadingPassword, reloadPassword } = usePassword();
 
   // Change password modal state
   const [showChangeModal, setShowChangeModal] = useState(false);
@@ -32,12 +28,7 @@ export function SecuritySection({ email }: Props) {
 
   const { changePassword, isLoading: isChangingPassword } = useChangePassword();
 
-  // Reload password when change modal closes (to get updated password)
-  useEffect(() => {
-    if (!showChangeModal) {
-      reloadPassword();
-    }
-  }, [showChangeModal, reloadPassword]);
+  // (no reload needed — password is never stored locally)
 
   const handleChangePassword = async () => {
     // Validate passwords
@@ -59,8 +50,6 @@ export function SecuritySection({ email }: Props) {
     }
   };
 
-  const canShowPassword = storedPassword !== null && storedPassword.length > 0;
-
   return (
     <View className="mt-4 p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">
       <Text className="text-lg font-semibold mb-3 text-neutral-900 dark:text-neutral-50">Sécurité</Text>
@@ -78,32 +67,17 @@ export function SecuritySection({ email }: Props) {
         </Pressable>
       </View>
 
-      {/* Password Row */}
+      {/* Password: strictly controlled (only changed by user, never shown in plaintext) */}
       <View className="flex-row items-center justify-between py-2 border-t border-neutral-100 dark:border-neutral-700 mt-2 pt-3">
         <View className="flex-1">
           <Text className="text-sm text-neutral-500">{t("settings.password")}</Text>
-          {isLoadingPassword ? (
-            <ActivityIndicator size="small" className="mt-1" />
-          ) : canShowPassword ? (
-            <Text className="text-base text-neutral-900 dark:text-neutral-50 mt-0.5">
-              {showPassword ? storedPassword : "••••••••••••"}
-            </Text>
-          ) : (
-            <Text className="text-base text-neutral-400 dark:text-neutral-500 mt-0.5">
-              Connectez-vous une fois pour rendre votre mot de passe visible ici
-            </Text>
-          )}
+          <Text className="text-base text-neutral-400 dark:text-neutral-500 mt-0.5">
+            Mot de passe confidentiel — changez-le via "Modifier"
+          </Text>
         </View>
-        <View className="flex-row items-center gap-2">
-          {canShowPassword && (
-            <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
-              <Icon name={showPassword ? "EyeOff" : "Eye"} size={22} color="#64748B" />
-            </Pressable>
-          )}
-          <Pressable onPress={() => setShowChangeModal(true)} hitSlop={8}>
-            <Icon name="Pen" size={20} color="#64748B" />
-          </Pressable>
-        </View>
+        <Pressable onPress={() => setShowChangeModal(true)} hitSlop={8}>
+          <Icon name="Pen" size={20} color="#64748B" />
+        </Pressable>
       </View>
 
       {/* Change Password Modal */}

@@ -26,6 +26,22 @@ const storage = secureStorage;
 
 export const signupEdgeFunctionUrl = `${supabaseUrl}/functions/v1/signup`;
 
+// Lazily resolved device id so every outgoing Supabase request carries
+// X-Device-Id without blocking the first request. Resolves on first use.
+let _deviceIdPromise: Promise<string> | null = null;
+function getCachedDeviceId(): Promise<string> {
+  if (!_deviceIdPromise) {
+    _deviceIdPromise = (async () => {
+      try {
+        return await (await import("./deviceId")).getDeviceId();
+      } catch {
+        return "";
+      }
+    })();
+  }
+  return _deviceIdPromise;
+}
+
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
@@ -43,7 +59,15 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
         const start = Date.now();
         try {
           logSupabase("REQUEST", [safeUrl, init?.method ?? "GET"]);
-          const res = await fetch(input, init);
+          const deviceId = await getCachedDeviceId();
+          const modifiedInit: RequestInit = {
+            ...init,
+            headers: {
+              ...(init?.headers ?? {}),
+              ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+            },
+          };
+          const res = await fetch(input, modifiedInit);
           const duration = Date.now() - start;
           if (!res.ok) {
             // Never log response bodies: they may contain user-generated content.

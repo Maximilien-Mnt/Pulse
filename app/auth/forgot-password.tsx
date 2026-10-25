@@ -13,11 +13,12 @@ import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import Toast from "react-native-toast-message";
 import { Icon } from "@/components/ui/Icon";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { useTranslation, t } from "@/hooks/useTranslation";
 import { reportError } from "@/lib/reporting/errorReport";
 import { userFacingMessageFor } from "@/lib/reporting/userMessage";
+import { getDeviceId } from "@/lib/deviceId";
 
 type Form = z.infer<typeof forgotPasswordSchema>;
 
@@ -36,8 +37,22 @@ export default function ForgotPasswordScreen() {
   });
 
   const [sent, setSent] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (cooldownUntil && Date.now() >= cooldownUntil) {
+      setCooldownUntil(null);
+    }
+  }, [cooldownUntil]);
+
+  const cooldownRemaining = cooldownUntil ? Math.max(0, cooldownUntil - Date.now()) : 0;
+  const isCooldownActive = cooldownRemaining > 0;
 
   const onSubmit = handleSubmit(async (values) => {
+    if (isCooldownActive) return;
+
+    const deviceId = await getDeviceId().catch(() => "");
+
     const redirectTo = getRedirectUrl();
     const { error } = await supabase.auth.resetPasswordForEmail(values.email.trim(), {
       redirectTo,
@@ -50,11 +65,14 @@ export default function ForgotPasswordScreen() {
         text1: t("common.error"),
         text2: userFacingMessageFor(error),
       });
-      posthog.capture("password_reset_requested", { success: false });
+      posthog.capture("password_reset_requested", { success: false, platform: "native", deviceId: deviceId || "" });
       return;
     }
 
-    posthog.capture("password_reset_requested", { success: true });
+    // Cooldown to prevent email/OTP abuse: 60 seconds per reset request.
+    setCooldownUntil(Date.now() + 60_000);
+
+    posthog.capture("password_reset_requested", { success: true, platform: "native", deviceId: deviceId || "" });
     setSent(true);
   });
 
@@ -132,11 +150,21 @@ export default function ForgotPasswordScreen() {
             )}
           />
           <Button
-            title={t("auth.forgotPassword.submit")}
+            title={
+              isCooldownActive
+                ? `${t("auth.forgotPassword.submit")} (${Math.ceil(cooldownRemaining / 1000)}s)`
+                : t("auth.forgotPassword.submit")
+            }
             onPress={onSubmit}
             loading={isSubmitting}
+            disabled={isCooldownActive || isSubmitting}
             className="mb-3"
           />
+          {isCooldownActive && (
+            <Text className="text-neutral-500 dark:text-neutral-400 text-xs text-center mb-3">
+              {t("auth.forgotPassword.cooldown", { seconds: Math.ceil(cooldownRemaining / 1000) })}
+            </Text>
+          )}
           <View className="mt-4">
             <Button
               title={t("auth.forgotPassword.backToSignin")}

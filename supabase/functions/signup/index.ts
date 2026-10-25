@@ -1,8 +1,21 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { handlePreflight, jsonWithCors } from "../_shared/cors.ts";
+import {
+  handlePreflight,
+  jsonWithCors,
+  buildSignupLimiters,
+  clientIp,
+  deviceId,
+} from "../_shared/cors.ts";
 
 const MIN_AGE = 16;
+
+// Per-isolate rate limiters for the public signup path (defense-in-depth;
+// Cloudflare WAF + Supabase Auth provide the persistent IP-based limits).
+const signupLimiters = buildSignupLimiters();
+
+// Max body size for signup requests (~200 KB) to reject blob / abuse payloads.
+const MAX_BODY_BYTES = 200_000;
 const MAX_SPORTS = 10;
 const MAX_OBJECTIVES = 10;
 const MAX_BIO = 2000;
@@ -35,6 +48,9 @@ const ERR = {
   EMAIL_TAKEN: "SIGNUP_FAILED",
   USERNAME_TAKEN: "SIGNUP_FAILED",
   AUTH_SIGNUP_FAILED: "AUTH_SIGNUP_FAILED",
+  RATE_LIMITED: "RATE_LIMITED",
+  CAPTCHA_REQUIRED: "CAPTCHA_REQUIRED",
+  CAPTCHA_INVALID: "CAPTCHA_INVALID",
   PROFILE_INSERT_FAILED: "PROFILE_INSERT_FAILED",
   SPORTS_INSERT_FAILED: "SPORTS_INSERT_FAILED",
   OBJECTIVES_INSERT_FAILED: "OBJECTIVES_INSERT_FAILED",
@@ -294,8 +310,51 @@ Deno.serve(async (req) => {
     return json(req, { ok: false, error: "Method not allowed" }, 405);
   }
 
+  // --- Body size guard ----------------------------------------------------
+  const contentLength = req.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    return json(req, { ok: false, error: ERR.INVALID_PAYLOAD }, 413);
+  }
+
+  // --- Rate limiting (per IP + per device) --------------------------------
+  const ip = clientIp(req);
+  const devId = deviceId(req);
+  if (!signupLimiters.ip.check(`ip:${ip}`)) {
+    return json(req, { ok: false, error: ERR.RATE_LIMITED }, 429);
+  }
+  if (devId && !signupLimiters.device.check(`device:${devId}`)) {
+    return json(req, { ok: false, error: ERR.RATE_LIMITED }, 429);
+  }
+
+  // --- Turnstile CAPTCHA (web only) ---------------------------------------
+  const turnstileSecret = Deno.env.get("CLOUDFLARE_TURNSTILE_SECRET_KEY");
+  const origin = req.headers.get("origin");
+  const isWeb = Boolean(origin); // browsers send Origin; RN mobile does not
+  let turnstileToken: string | null = null;
+
   try {
     const raw = await req.json();
+    turnstileToken =
+      typeof raw === "object" && raw !== null && typeof raw.turnstileToken === "string"
+        ? raw.turnstileToken
+        : null;
+
+    // Web clients must present a Turnstile token when the secret is configured.
+    if (isWeb && turnstileSecret) {
+      if (!turnstileToken) {
+        return json(req, { ok: false, error: ERR.CAPTCHA_REQUIRED }, 429);
+      }
+      const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `secret=${encodeURIComponent(turnstileSecret)}&response=${encodeURIComponent(turnstileToken)}`,
+      });
+      const result = (await verify.json()) as { success?: boolean; ["error-codes"]?: string[] };
+      if (!result.success) {
+        return json(req, { ok: false, error: ERR.CAPTCHA_INVALID }, 400);
+      }
+    }
+
     const validation = isValidPayload(raw);
     if (!validation.ok) {
       return json(req, { ok: false, error: ERR.INVALID_PAYLOAD }, 400);

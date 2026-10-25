@@ -77,3 +77,74 @@ export function secretsEqual(a: string, b: string): boolean {
   }
   return diff === 0;
 }
+
+// ---------------------------------------------------------------------------
+// In-memory sliding-window rate limiter (per-isolate; defense-in-depth burst
+// protection for the public signup edge function).
+//
+// Keys are strings like "ip:1.2.3.4" or "device:abc123". Each hit appends the
+// current timestamp; hits older than the window are pruned. When the count
+// exceeds `limit`, the request is rate-limited.
+//
+// Fail-open: if anything unexpected happens, allow the request (log to console).
+// ---------------------------------------------------------------------------
+
+type WindowEntry = { timestamp: number };
+
+class SlidingWindowLimiter {
+  private windows = new Map<string, WindowEntry[]>();
+
+  constructor(
+    private limit: number,
+    private windowSecs: number,
+  ) {}
+
+  /** Returns true if the request is allowed, false if rate-limited. */
+  check(key: string): boolean {
+    try {
+      const now = Date.now();
+      const cutoff = now - this.windowSecs * 1000;
+      const entries = this.windows.get(key) ?? [];
+      const recent = entries.filter((e) => e.timestamp > cutoff);
+      if (recent.length >= this.limit) {
+        this.windows.set(key, recent);
+        return false;
+      }
+      recent.push({ timestamp: now });
+      this.windows.set(key, recent);
+      return true;
+    } catch {
+      // Fail-open on any unexpected error.
+      return true;
+    }
+  }
+}
+
+/**
+ * Builds per-IP and per-device rate limiters from env vars with safe defaults.
+ * Call once per isolate (module scope is fine).
+ */
+export function buildSignupLimiters() {
+  const perIp = parseInt(Deno.env.get("SIGNUP_RATE_LIMIT_PER_IP") ?? "5", 10);
+  const perDevice = parseInt(Deno.env.get("SIGNUP_RATE_LIMIT_PER_DEVICE") ?? "3", 10);
+  const windowSecs = parseInt(Deno.env.get("SIGNUP_RATE_LIMIT_WINDOW_SECS") ?? "3600", 10);
+  return {
+    ip: new SlidingWindowLimiter(perIp > 0 ? perIp : 5, windowSecs > 0 ? windowSecs : 3600),
+    device: new SlidingWindowLimiter(perDevice > 0 ? perDevice : 3, windowSecs > 0 ? windowSecs : 3600),
+  };
+}
+
+/** Best-effort client IP from Cloudflare headers, falling back to "unknown". */
+export function clientIp(req: Request): string {
+  return (
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+/** Best-effort device id from the X-Device-Id header. */
+export function deviceId(req: Request): string | null {
+  return req.headers.get("x-device-id") ?? null;
+}

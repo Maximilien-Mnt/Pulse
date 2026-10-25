@@ -64,6 +64,10 @@ export const SERVER_ERROR_MAP: Readonly<Record<string, TranslationKey>> = {
   SPORTS_INSERT_FAILED: "signup.error.sportsInsert",
   OBJECTIVES_INSERT_FAILED: "signup.error.objectivesInsert",
   INTERNAL: "signup.error.generic",
+  // Bot-protection codes returned by the hardened signup edge function.
+  RATE_LIMITED: "signup.error.rateLimited",
+  CAPTCHA_REQUIRED: "signup.error.captchaRequired",
+  CAPTCHA_INVALID: "signup.error.captchaInvalid",
   // Legacy raw messages (older deployed functions) — still mapped so the
   // client degrades gracefully if the server lags behind.
   "Invalid payload": "signup.error.invalidPayload",

@@ -29,6 +29,8 @@ import type { TranslationKey } from "@/lib/translations";
 import { buildSignupPayload } from "@/utils/signupPayload";
 import { uploadImageToStorage } from "@/lib/imageUpload";
 import { buildPickerImageOptions, MediaNormalizationError, type PickedImage } from "@/lib/mediaPipeline";
+import { getDeviceId } from "@/lib/deviceId";
+import { getTurnstileToken, shouldUseTurnstile } from "@/lib/botProtection";
 
 type Form = z.infer<typeof signupStep5Schema>;
 
@@ -276,6 +278,21 @@ export default function SignupStep5() {
       // Phase 2 — submit to the edge function.
       setSubmitState("submitting");
 
+      // Collect device fingerprint + (web) Turnstile token for bot protection.
+      // Device ID is best-effort: never block signup on it. Turnstile is web-only;
+      // the edge function requires a valid token only for web-origin requests.
+      const deviceId = await getDeviceId().catch(() => "");
+      let turnstileToken: string | null = null;
+      if (shouldUseTurnstile()) {
+        turnstileToken = await getTurnstileToken();
+      }
+
+      posthog.capture("auth.signup.attempt", {
+        platform: Platform.OS,
+        deviceId: deviceId || "",
+        hasTurnstile: !!turnstileToken,
+      });
+
       const payload = buildSignupPayload({
         step1,
         step2,
@@ -288,8 +305,14 @@ export default function SignupStep5() {
 
       const res = await fetch(signupEdgeFunctionUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+          ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+        },
+        body: JSON.stringify({
+          ...payload,
+          ...(turnstileToken ? { turnstileToken } : {}),
+        }),
       });
 
       // Guard against non-JSON responses (edge-runtime/proxy errors, the
@@ -313,8 +336,25 @@ export default function SignupStep5() {
 
       if (!res.ok || !json.ok) {
         if (json.error === "UNDERAGE") {
+          posthog.capture("auth.signup.underage", {
+            platform: Platform.OS,
+            deviceId: deviceId || "",
+          });
           router.replace("/auth/signup/under16");
           return;
+        }
+        // Bot-protection failures: capture specific codes for monitoring.
+        if (json.error === "RATE_LIMITED") {
+          posthog.capture("auth.signup.rate_limited", {
+            platform: Platform.OS,
+            deviceId: deviceId || "",
+          });
+        } else if (json.error === "CAPTCHA_REQUIRED" || json.error === "CAPTCHA_INVALID") {
+          posthog.capture("auth.signup.captcha_failed", {
+            platform: Platform.OS,
+            deviceId: deviceId || "",
+            code: json.error,
+          });
         }
         // Log the machine code only (never user data) — the toast stays generic.
         reportError(new Error(json.error ?? "signup_failed"), {
@@ -341,6 +381,14 @@ export default function SignupStep5() {
       posthog.identify(json.userId ?? step1.username, {
         $set: { language: step1.language },
         $set_once: { signup_date: new Date().toISOString(), discovery_source: discoverySource },
+      });
+      posthog.capture("auth.signup.success", {
+        platform: Platform.OS,
+        deviceId: deviceId || "",
+        language: step1.language,
+        has_avatar: !!avatarUri,
+        sports_count: step3.length,
+        discovery_source: discoverySource,
       });
       posthog.capture("user_signed_up", {
         language: step1.language,

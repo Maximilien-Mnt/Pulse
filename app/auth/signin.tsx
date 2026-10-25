@@ -17,6 +17,7 @@ import { useTranslation, t } from "@/hooks/useTranslation";
 import { useState } from "react";
 import { reportError } from "@/lib/reporting/errorReport";
 import { userFacingMessageFor } from "@/lib/reporting/userMessage";
+import { getDeviceId } from "@/lib/deviceId";
 
 type Form = z.infer<typeof signInSchema>;
 
@@ -31,12 +32,24 @@ export default function SignInScreen() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
+    const deviceId = await getDeviceId().catch(() => "");
+
+    posthog.capture("auth.signin.attempt", {
+      platform: Platform.OS,
+      deviceId: deviceId || "",
+    });
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email.trim(),
       password: values.password,
     });
     if (error) {
       reportError(error, { operation: "auth.signIn", route: "/auth/signin" });
+      posthog.capture("auth.signin.failure", {
+        platform: Platform.OS,
+        deviceId: deviceId || "",
+        error: error?.message ?? "unknown",
+      });
       Toast.show({
         type: "error",
         text1: t("common.error"),
@@ -50,6 +63,10 @@ export default function SignInScreen() {
         $set_once: { first_sign_in_date: new Date().toISOString() },
       });
     }
+    posthog.capture("auth.signin.success", {
+      platform: Platform.OS,
+      deviceId: deviceId || "",
+    });
     posthog.capture("user_signed_in");
     router.replace("/(tabs)/feed");
   });

@@ -26,6 +26,31 @@
 # PostHog token. Never commit supabase/.temp/ contents.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# BOT PROTECTION (Cloudflare) — configure in the Cloudflare dashboard, not
+# in this file (Pages ignores [vars] at build time):
+#
+# 1. Turnstile: create a site at dash.cloudflare.com → Turnstile.
+#    Set EXPO_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY (public) and
+#    CLOUDFLARE_TURNSTILE_SECRET_KEY (server-only, Supabase Edge Function
+#    env var) in the respective dashboards.
+#
+# 2. WAF Bot Fight Mode: enable for the zone.
+#
+# 3. WAF custom rules (Security → WAF → Create rule):
+#    a) Path contains "/auth/signin" → Rate limit: 10 req/60s per IP,
+#       action: Challenge (managed CAPTCHA).
+#    b) Path contains "/functions/v1/signup" → Rate limit: 5 req/60s per IP,
+#       action: Block.
+#    c) Bot management score <= 30 on auth/signup paths → Challenge.
+#
+# 4. Supabase Dashboard → Authentication → Rate limiting:
+#    - Signup: max 3/hr per IP, max 3/hr per email
+#    - Signin: max 10/hr per IP, max 5/hr per email
+#    - Password reset / OTP: max 3/hr per IP per email
+#    - Enable email confirmation + password leak detection.
+# ---------------------------------------------------------------------------
+
 name = "pulse"
 # Pinned to the date this configuration was last reviewed, per Cloudflare's
 # compatibility-date policy. Bump deliberately when upgrading the Workers

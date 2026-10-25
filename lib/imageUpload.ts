@@ -7,6 +7,7 @@ import {
   MAX_VIDEO_BYTES,
   classifyPickedAsset,
   contentTypeForBytes,
+  secureUpload,
   validateStorageObjectName,
 } from "./uploadSecurity";
 
@@ -183,14 +184,17 @@ export async function uploadImageToStorage({
       mb: Math.round(limit / (1024 * 1024)),
     });
   }
-  const { error } = await supabase.storage.from(bucket).upload(path, arrayBuffer, {
-    contentType: finalType,
+  const { publicUrl, path: storedPath } = await secureUpload({
+    bucket,
+    path,
+    bytes: fullBytes,
+    declaredMime: pickerMeta?.mimeType ?? uploadContentType,
     upsert,
+    maxBytes: limit,
+    onProgress,
   });
-  if (error) throw error;
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  onProgress?.(1);
-  return cacheBust ? `${data.publicUrl}?t=${Date.now()}` : data.publicUrl;
+  void storedPath; // path already validated by secureUpload; return public URL below
+  return cacheBust ? `${publicUrl}?t=${Date.now()}` : publicUrl;
 }
 
 /**

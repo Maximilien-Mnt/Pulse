@@ -144,6 +144,7 @@ export const translations = {
       "Saisissez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
     "auth.forgotPassword.email": "Email",
     "auth.forgotPassword.submit": "Envoyer le lien",
+    "auth.forgotPassword.cooldown": "Réessayer dans {{seconds}}s",
     "auth.forgotPassword.backToSignin": "Retour à la connexion",
     "auth.forgotPassword.sent.title": "Email envoyé",
     "auth.forgotPassword.sent.description":
@@ -1597,6 +1598,7 @@ export const translations = {
       "Enter your email and we'll send you a link to reset your password.",
     "auth.forgotPassword.email": "Email",
     "auth.forgotPassword.submit": "Send link",
+    "auth.forgotPassword.cooldown": "Retry in {{seconds}}s",
     "auth.forgotPassword.backToSignin": "Back to sign in",
     "auth.forgotPassword.sent.title": "Email sent",
     "auth.forgotPassword.sent.description":

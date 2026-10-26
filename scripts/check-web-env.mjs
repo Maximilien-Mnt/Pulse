@@ -18,10 +18,23 @@
 // the values from the local .env file (unlike Expo, which loads it during the
 // actual export). Load it explicitly so local/CI builds match what Expo sees.
 // No-op when .env is absent (e.g. on CI, where vars come from secrets).
+// Load .env explicitly so local/CI builds match what Expo sees.
+// On Cloudflare Pages, .env is absent (gitignored); fall back to .env.production
+// if present as a template/fallback. loadEnvFile does NOT override existing
+// process.env vars, so dashboard-injected values take precedence.
+let loaded = false;
 try {
   process.loadEnvFile();
+  loaded = true;
 } catch {
-  // .env missing is fine — vars may be provided by the environment instead.
+  // .env missing - try .env.production as fallback
+}
+if (!loaded) {
+  try {
+    process.loadEnvFile(".env.production");
+  } catch {
+    // .env.production also missing - vars may come from environment instead
+  }
 }
 
 const REQUIRED = ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"];

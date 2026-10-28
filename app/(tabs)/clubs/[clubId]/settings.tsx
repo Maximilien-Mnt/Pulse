@@ -22,6 +22,7 @@ import type { Club } from "@/types";
 import type { OpeningHourSlot } from "@/lib/openingHours";
 import { ClubOpeningHoursEditor } from "@/components/clubs/ClubOpeningHours";
 import { useDeleteClub } from "@/hooks/useDeleteClub";
+import { useCanManageClub } from "@/hooks/useCanManageClub";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const CARD = "rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800";
@@ -63,7 +64,7 @@ export default function ClubSettings() {
   const [extraLink, setExtraLink] = useState("");
   const [initialized, setInitialized] = useState(false);
 
-  const isAdmin = !!userId && club?.created_by === userId;
+  const { canManage, isLoading: canManageLoading } = useCanManageClub(clubId);
 
   useEffect(() => {
     if (!clubId) return;
@@ -72,8 +73,9 @@ export default function ClubSettings() {
         const { data, error } = await supabase.from("clubs").select("*").eq("id", clubId).single();
         if (error || !data) { setLoading(false); return; }
         setClub(data);
-        // Settings are admin-only: bounce non-admins back to the club page.
-        if (!userId || data.created_by !== userId) {
+        // Settings are manager-only (creator or club admin): bounce others.
+        // Wait for the permission check to resolve before redirecting.
+        if (!canManageLoading && !canManage) {
           Toast.show({ type: "error", text1: t("clubs.settings.adminOnly") });
           router.replace(`/(tabs)/clubs/${clubId}`);
           return;
@@ -249,7 +251,7 @@ export default function ClubSettings() {
       <View className="flex-row items-center gap-3 px-3 py-2">
         <BackButton
           useInAppSession
-          fallbackRoute={isAdmin ? "/(tabs)/clubs" : `/(tabs)/clubs/${clubId}`}
+          fallbackRoute={canManage ? "/(tabs)/clubs" : `/(tabs)/clubs/${clubId}`}
         />
         <Text variant="h2" className="flex-1 text-center" numberOfLines={1}>
           {t("clubs.settings.editTitle")}
@@ -400,9 +402,9 @@ export default function ClubSettings() {
         </View>
         <View className="h-6" />
 
-        <Button title={t("common.save")} onPress={handleSave} loading={saving} disabled={saving || sports.length === 0 || !name.trim()} />
+        <Button title={t("common.save")} onPress={handleSave} loading={saving} disabled={!canManage || saving || sports.length === 0 || !name.trim()} />
         <View className="h-4" />
-        <Button title={t("clubs.dashboard.deleteClub")} onPress={() => setShowDelete(true)} variant="destructive" disabled={saving} />
+        <Button title={t("clubs.dashboard.deleteClub")} onPress={() => setShowDelete(true)} variant="destructive" disabled={!canManage || saving} />
         <View className="h-6" />
       </ScrollView>
 

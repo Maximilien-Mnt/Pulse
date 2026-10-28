@@ -58,8 +58,12 @@ module.exports = {
       ],
     ],
     extra: {
-      posthogProjectToken: process.env.POSTHOG_PROJECT_TOKEN,
-      posthogHost: process.env.POSTHOG_HOST || "https://eu.i.posthog.com",
+      posthogProjectToken:
+        process.env.POSTHOG_PROJECT_TOKEN || process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN,
+      posthogHost:
+        process.env.POSTHOG_HOST ||
+        process.env.EXPO_PUBLIC_POSTHOG_HOST ||
+        "https://eu.i.posthog.com",
     },
   },
 };

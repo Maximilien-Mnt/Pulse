@@ -133,6 +133,8 @@ Pulse n'est pas destiné aux personnes de moins de 16 ans. Si nous apprenons qu'
 ## 11. Cookies et traceurs
 
 Selon la version utilisée (application mobile ou site web), Pulse peut utiliser des identifiants techniques et des outils de mesure d'audience (PostHog) pour comprendre l'usage de l'application. Sur la version web, si des cookies ou traceurs non essentiels sont utilisés, votre consentement vous sera demandé conformément à la réglementation applicable, et vous pourrez le refuser sans perdre l'accès aux fonctionnalités essentielles.
+
+Les détails sur les cookies et traceurs utilisés par Pulse, ainsi que sur vos choix et le retrait de votre consentement, sont disponibles dans notre **Politique de cookies**.
 ## 12. Modifications de cette politique
 
 Nous pouvons modifier cette politique, notamment en cas d'évolution du Service, des prestataires utilisés, ou de la loi applicable. Les modifications substantielles vous seront signalées dans l'application ou par e-mail.

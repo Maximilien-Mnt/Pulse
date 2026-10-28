@@ -236,9 +236,9 @@ export default function SettingsScreen() {
 
           <SettingsRow
             icon="FileText"
-            title="Politique de cookies"
-            subtitle="Gestion des cookies et traceurs"
-            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "03-politique-cookies.md", title: "Politique de cookies" } })}
+            title={t("legal.cookies.title")}
+            subtitle={t("legal.cookies.subtitle")}
+            onPress={() => router.push({ pathname: "/(tabs)/profile/legal", params: { filePath: "03-politique-cookies.md", title: t("legal.cookies.title") } })}
           />
 
           <View className="h-px bg-neutral-100 dark:bg-neutral-700" />

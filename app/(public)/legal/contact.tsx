@@ -14,6 +14,7 @@ import { useTranslation , t } from "@/hooks/useTranslation";
 const iconMap: Record<LegalSlug, IconName> = {
   terms: "FileText",
   privacy: "Shield",
+  cookies: "FileText",
   moderation: "Shield",
   "bug-report": "MessageSquare",
   imprint: "Info",

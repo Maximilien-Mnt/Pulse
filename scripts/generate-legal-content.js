@@ -17,6 +17,7 @@ const outFile = path.join(root, "lib", "legalContent.ts");
 const files = [
   { key: "terms", file: "01-conditions-utilisation.md" },
   { key: "privacy", file: "02-politique-confidentialite.md" },
+  { key: "cookies", file: "03-politique-cookies.md" },
   { key: "bugReport", file: "03-signaler-un-bug.md" },
   { key: "moderation", file: "04-politique-de-moderation.md" },
   { key: "imprint", file: "05-mentions-legales.md" },

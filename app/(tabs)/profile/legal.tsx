@@ -26,6 +26,7 @@ export default function LegalScreen() {
   const legacyToSlug: Record<string, LegalSlug | undefined> = {
     "01-conditions-utilisation.md": "terms",
     "02-politique-confidentialite.md": "privacy",
+    "03-politique-cookies.md": "cookies",
     "04-politique-de-moderation.md": "moderation",
     "03-signaler-un-bug.md": "bug-report",
     "05-mentions-legales.md": "imprint",

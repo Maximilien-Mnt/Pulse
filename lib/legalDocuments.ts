@@ -13,6 +13,10 @@ export const LEGAL_DOCUMENTS = {
     title: LEGAL_META.privacy.title,
     content: LEGAL_CONTENT.privacy,
   },
+  cookies: {
+    title: LEGAL_META.cookies.title,
+    content: LEGAL_CONTENT.cookies,
+  },
   moderation: {
     title: LEGAL_META.moderation.title,
     content: LEGAL_CONTENT.moderation,

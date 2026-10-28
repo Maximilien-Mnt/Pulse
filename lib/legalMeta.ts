@@ -10,6 +10,7 @@
 export const LEGAL_META = {
   terms: { title: "Conditions d'utilisation" },
   privacy: { title: "Politique de confidentialité" },
+  cookies: { title: "Politique de cookies" },
   moderation: { title: "Politique de modération" },
   "bug-report": { title: "Comment signaler un problème" },
   imprint: { title: "Mentions légales" },

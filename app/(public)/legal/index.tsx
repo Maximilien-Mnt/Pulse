@@ -13,6 +13,7 @@ import { cn } from "@/utils/format";
 const iconMap: Record<LegalSlug, IconName> = {
   terms: "FileText",
   privacy: "Shield",
+  cookies: "FileText",
   moderation: "Shield",
   "bug-report": "MessageSquare",
   imprint: "Info",

@@ -54,3 +54,9 @@ webexport_*.txt
 
 expo-env.d.ts
 # @end expo-cli
+
+# Agent/OS scratch files — never commit
+*.bak
+*.debug.txt
+desktop.ini
+Thumbs.db

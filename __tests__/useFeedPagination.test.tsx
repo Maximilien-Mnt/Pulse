@@ -60,7 +60,7 @@ jest.mock("@/lib/supabase", () => ({
 }));
 
 jest.mock("@/stores/authStore", () => ({
-  useAuthStore: (selector: any) => selector({ userId: null }),
+  useAuthStore: (selector: any) => selector({ userId: "test-user-123" }),
 }));
 
 function wrap() {

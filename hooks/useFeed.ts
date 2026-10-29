@@ -225,6 +225,7 @@ export function useFeed(tag: string | null | undefined, filter: FeedFilter = { t
 
   return useInfiniteQuery({
     queryKey: ["feed", tag, filter, userId],
+    enabled: !!userId,
     queryFn: async ({ pageParam }) => {
       const result = await fetchFeedPage(pageParam ?? null, tag ?? null, userId, filter);
       return result;

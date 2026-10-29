@@ -5,6 +5,7 @@ import { secureStorage } from "./storage";
 import { logger } from "@/lib/reporting/logger";
 import { reportError, reportPerformance } from "@/lib/reporting/errorReport";
 import { redactUrl } from "@/lib/reporting/redact";
+import { useAuthStore } from "@/stores/authStore";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -29,6 +30,28 @@ export const signupEdgeFunctionUrl = `${supabaseUrl}/functions/v1/signup`;
 // Lazily resolved device id so every outgoing Supabase request carries
 // X-Device-Id without blocking the first request. Resolves on first use.
 let _deviceIdPromise: Promise<string> | null = null;
+
+// Guards against re-entrant 401 recovery (e.g. sign-out itself triggering
+// further requests that also return 401).
+let _recoveringFrom401 = false;
+
+async function handle401Recovery() {
+  if (_recoveringFrom401) return;
+  _recoveringFrom401 = true;
+  try {
+    // Clear the Supabase session (access + refresh tokens) so subsequent
+    // requests stop carrying a stale/invalid JWT.
+    await supabase.auth.signOut({ scope: "global" });
+  } catch {
+    // Best-effort: even if sign-out fails, clear the local store so the
+    // AuthGuard can redirect to sign-in.
+  } finally {
+    const { setUserId, setInitialized } = useAuthStore.getState();
+    setUserId(null);
+    setInitialized(false);
+    _recoveringFrom401 = false;
+  }
+}
 function getCachedDeviceId(): Promise<string> {
   if (!_deviceIdPromise) {
     _deviceIdPromise = (async () => {
@@ -72,6 +95,13 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
           if (!res.ok) {
             // Never log response bodies: they may contain user-generated content.
             logger.warn("supabase", `request failed: ${res.status} ${safeUrl} (${duration}ms)`);
+            // A 401 means the access token is missing/expired and cannot be
+            // refreshed — recover by signing out and clearing the local auth
+            // store so AuthGuard redirects to sign-in instead of being stuck
+            // with every Supabase request returning 401.
+            if (res.status === 401) {
+              void handle401Recovery();
+            }
             reportError(new Error(`Supabase request failed: ${res.status}`), {
               operation: "supabase.fetch",
               extra: { status: res.status, durationMs: duration },

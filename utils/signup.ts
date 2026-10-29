@@ -81,27 +81,40 @@ export async function completeSignup(data: PendingSignupData): Promise<void> {
     }
   }
 
+  // Insert into profiles WITHOUT sensitive columns (they live in profile_private)
   const { error: pe } = await supabase.from("profiles").upsert(
     stripUnknownFields("profiles", {
       id: profile.id,
-      email: profile.email,
       full_name: profile.full_name,
       username: profile.username,
       avatar_url: avatarUrl,
       bio: profile.bio,
-      birth_date: profile.birth_date,
       country: profile.country,
       city: profile.city,
       language: profile.language,
-      height_cm: profile.height_cm,
-      weight_kg: profile.weight_kg,
-      discovery_source: profile.discovery_source,
       interested_sports: profile.interested_sports,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      is_public_profile: false,
+      public_status: {},
+      public_photos: [],
     }) as any,
     { onConflict: "id", ignoreDuplicates: true }
   );
   if (pe) throw pe;
+
+  // Insert sensitive columns into profile_private (RLS owner-only)
+  const { error: ppe } = await supabase.from("profile_private").upsert(
+    {
+      user_id: profile.id,
+      email: profile.email,
+      birth_date: profile.birth_date,
+      height_cm: profile.height_cm,
+      weight_kg: profile.weight_kg,
+      discovery_source: profile.discovery_source,
+      push_token: null,
+    },
+    { onConflict: "user_id" }
+  );
+  if (ppe) throw ppe;
 
   for (const s of sports) {
     const { error: se } = await supabase.from("user_sports").upsert(

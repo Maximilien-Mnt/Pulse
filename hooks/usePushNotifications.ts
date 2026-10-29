@@ -59,7 +59,7 @@ export function usePushNotifications() {
         const token = tokenData.data;
         if (!token) return;
 
-        await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
+        await supabase.from("profile_private").upsert({ user_id: userId, push_token: token }, { onConflict: "user_id" });
       } catch (e) {
         // ignore
       }

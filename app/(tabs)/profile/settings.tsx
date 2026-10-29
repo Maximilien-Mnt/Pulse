@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { useEffect } from "react";
 import { useSignupStore } from "@/stores/signupStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useThemeStore } from "@/stores/themeStore";
@@ -72,6 +73,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const { data: profile } = useProfile(userId);
+// Email is no longer in profiles (moved to profile_private / auth.users)
+const { data: authEmail } = await supabase.from("auth.users")
+  .select("email")
+  .eq("id", userId!)
+  .maybeSingle();
   const isDark = useThemeStore((s) => s.isDark);
   const setDark = useThemeStore((s) => s.setDark);
   const language = useLanguageStore((s) => s.language);
@@ -182,7 +188,7 @@ export default function SettingsScreen() {
           Sécurité
         </Text>
         <View className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700 overflow-hidden mb-4">
-          <SecuritySection email={profile?.email ?? ""} />
+          <SecuritySection email={authEmail?.email ?? ""} />
         </View>
 
          {/* {t("common.session")} */}

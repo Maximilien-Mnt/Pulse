@@ -27,18 +27,13 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
-          email: string;
           full_name: string;
           username: string;
           avatar_url: string | null;
           bio: string | null;
-          birth_date: string | null;
           country: string | null;
           city: string | null;
           language: string;
-          height_cm: number | null;
-          weight_kg: number | null;
-          discovery_source: string | null;
           interested_sports: string[];
           created_at: string;
           updated_at: string;
@@ -46,22 +41,16 @@ export type Database = {
           is_public_profile: boolean;
           public_status: Json;
           public_photos: string[];
-          push_token: string | null;
         };
         Insert: {
           id: string;
-          email: string;
           full_name: string;
           username: string;
           avatar_url?: string | null;
           bio?: string | null;
-          birth_date?: string | null;
           country?: string | null;
           city?: string | null;
           language?: string;
-          height_cm?: number | null;
-          weight_kg?: number | null;
-          discovery_source?: string | null;
           interested_sports?: string[];
           created_at?: string;
           updated_at?: string;
@@ -69,9 +58,34 @@ export type Database = {
           is_public_profile?: boolean;
           public_status?: Json;
           public_photos?: string[];
-          push_token?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      profile_private: {
+        Row: {
+          user_id: string;
+          email: string | null;
+          birth_date: string | null;
+          push_token: string | null;
+          height_cm: number | null;
+          weight_kg: number | null;
+          discovery_source: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email?: string | null;
+          birth_date?: string | null;
+          push_token?: string | null;
+          height_cm?: number | null;
+          weight_kg?: number | null;
+          discovery_source?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profile_private"]["Insert"]>;
         Relationships: [];
       };
       user_sports: {
@@ -908,6 +922,14 @@ export type Database = {
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
+  event_join_atomic: {
+    Args: { p_event_id: string; p_user_id: string; };
+    Returns: undefined;
+  };
+  event_leave_atomic: {
+    Args: { p_event_id: string; p_user_id: string; };
+    Returns: undefined;
+  };
   };
 };
 
@@ -980,8 +1002,6 @@ export type ProfileUpdate = {
   full_name?: string;
   bio?: string | null;
   city?: string | null;
-  height_cm?: number | null;
-  weight_kg?: number | null;
   avatar_url?: string | null;
   language?: string;
 };

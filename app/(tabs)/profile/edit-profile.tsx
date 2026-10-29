@@ -31,6 +31,7 @@ import { useKeyboardHeight } from "@/lib/keyboardUtils";
 import { getCountryDisplay } from "@/utils/countries";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
+import { usePrivateProfileFields } from "@/hooks/usePrivateProfile";
 import { useTranslation , t } from "@/hooks/useTranslation";
 
 // Hours available for selection (6 AM -> 11 PM)
@@ -115,6 +116,7 @@ export default function EditProfileScreen() {
   const userId = useAuthStore((s) => s.userId);
   const { t } = useTranslation();
   const { data: profile } = useProfile(userId);
+  const { data: privateFields } = usePrivateProfileFields();
   const { focusSection } = useLocalSearchParams<{ focusSection?: string }>();
   const keyboardHeight = useKeyboardHeight();
 
@@ -180,11 +182,11 @@ export default function EditProfileScreen() {
     setBio(profile.bio ?? "");
     setCity(profile.city ?? "");
     setCountry(profile.country ?? null);
-    setHeight(profile.height_cm ? String(profile.height_cm) : "");
-    setWeight(profile.weight_kg ? String(profile.weight_kg) : "");
+    setHeight(privateFields?.height_cm ? String(privateFields.height_cm) : "");
+    setWeight(privateFields?.weight_kg ? String(privateFields.weight_kg) : "");
     setAvatarUri(null);
     setInterestedSports((profile.interested_sports as string[]) ?? []);
-  }, [profile]);
+  }, [profile, privateFields]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -491,8 +493,8 @@ export default function EditProfileScreen() {
             <ReadOnlyField
               label="Date de naissance"
               value={
-                profile?.birth_date
-                  ? dayjs(profile.birth_date).format("DD/MM/YYYY")
+                privateFields?.birth_date
+                  ? dayjs(privateFields.birth_date).format("DD/MM/YYYY")
                   : t("profile.country.unspecified")
               }
             />

@@ -24,30 +24,12 @@ export function useRemoveEventParticipant() {
       if (eventError) throw eventError;
       if (event.created_by !== userId) throw new Error("unauthorized");
 
-      // Remove the participant
-      const { error: deleteError } = await supabase
-        .from("event_participants")
-        .delete()
-        .eq("event_id", eventId)
-        .eq("user_id", participantId);
-
-      if (deleteError) throw deleteError;
-
-      // If event has limited places, increment places_left and decrement accepted_count
-      if (event.places_total != null) {
-        const newPlacesLeft = (event.places_left ?? 0) + 1;
-        const newAcceptedCount = (event.accepted_count ?? 0) - 1;
-
-        const { error: updateError } = await supabase
-          .from("events")
-          .update({
-            places_left: newPlacesLeft,
-            accepted_count: newAcceptedCount,
-          })
-          .eq("id", eventId);
-
-        if (updateError) throw updateError;
-      }
+      // Remove the participant via atomic RPC (trigger keeps accepted_count in sync)
+      const { error: leaveError } = await supabase.rpc("event_leave_atomic", {
+        p_event_id: eventId,
+        p_user_id: participantId,
+      });
+      if (leaveError) throw leaveError;
 
       // Send notification to the removed participant
       const { error: notifError } = await supabase.from("notifications").insert({

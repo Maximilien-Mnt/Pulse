@@ -387,33 +387,40 @@ Deno.serve(async (req) => {
 
     const { error: profileError } = await supabase.from("profiles").insert({
       id: userId,
-      email: data.email,
       full_name: data.full_name,
       username: data.username,
       avatar_url: data.avatar_url ?? null,
       bio: data.bio ?? null,
-      birth_date: data.birth_date,
       country: data.country,
       city: data.city ?? null,
       language: data.language,
-      height_cm: data.height_cm ?? null,
-      weight_kg: data.weight_kg ?? null,
-      discovery_source: data.discovery_source ?? null,
       interested_sports: data.interested_sports,
       // New accounts are private by default; the user must explicitly opt in
       // to a public profile via the confirmation flow (GoPublicSheet).
       is_public_profile: false,
       public_status: {},
       public_photos: [],
-      push_token: null,
     });
 
     if (profileError) {
       await supabase.auth.admin.deleteUser(userId);
-      // Generic failure: the Postgres message names the violated constraint
-      // (profiles_username_key / profiles_email_key), which would let callers
-      // enumerate taken usernames/emails.
       console.error("signup profile failure:", profileError.message ?? "unknown");
+      return json(req, { ok: false, error: ERR.SIGNUP_FAILED }, 400);
+    }
+
+    const { error: profilePrivateError } = await supabase.from("profile_private").insert({
+      user_id: userId,
+      email: data.email,
+      birth_date: data.birth_date,
+      height_cm: data.height_cm ?? null,
+      weight_kg: data.weight_kg ?? null,
+      discovery_source: data.discovery_source ?? null,
+      push_token: null,
+    });
+
+    if (profilePrivateError) {
+      await supabase.auth.admin.deleteUser(userId);
+      console.error("signup profile_private failure:", profilePrivateError.message ?? "unknown");
       return json(req, { ok: false, error: ERR.SIGNUP_FAILED }, 400);
     }
 

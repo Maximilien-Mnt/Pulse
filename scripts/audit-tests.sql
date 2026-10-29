@@ -348,6 +348,162 @@ END;
 $$;
 
 -- ===========================================================================
+-- TEST 11: notify_user — pas de grant PUBLIC/anon (SECURITY DEFINER durci)
+-- ===========================================================================
+DO $$
+DECLARE
+    v_public boolean;
+    v_anon boolean;
+BEGIN
+    SELECT
+        EXISTS (SELECT 1 FROM pg_proc p WHERE p.proname = 'notify_user' AND pg_has_function(p.oid, 'execute', 'PUBLIC')),
+        EXISTS (SELECT 1 FROM pg_proc p WHERE p.proname = 'notify_user' AND pg_has_function(p.oid, 'execute', 'anon'))
+    INTO v_public, v_anon;
+
+    PERFORM _audit_test_assert(true, NOT v_public, 'notify_user: EXECUTE révoqué de PUBLIC');
+    PERFORM _audit_test_assert(true, NOT v_anon, 'notify_user: EXECUTE révoqué de anon');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 12: get_scored_feed supprimé (RPC orpheline)
+-- ===========================================================================
+DO $$
+DECLARE
+    v_exists boolean;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'get_scored_feed'
+    ) INTO v_exists;
+    PERFORM _audit_test_assert(true, NOT v_exists, 'get_scored_feed: fonction supprimée');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 13: get_conversation_other_participants supprimé (RPC orpheline)
+-- ===========================================================================
+DO $$
+DECLARE
+    v_exists boolean;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'get_conversation_other_participants'
+    ) INTO v_exists;
+    PERFORM _audit_test_assert(true, NOT v_exists, 'get_conversation_other_participants: fonction supprimée');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 14: profile_private existe avec RLS activée et policy propriétaire uniquement
+-- ===========================================================================
+DO $$
+DECLARE
+    v_exists boolean;
+    v_rls boolean;
+    v_policy_count integer;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'profile_private'
+    ), (
+        SELECT relrowsecurity FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relname = 'profile_private'
+    ), (
+        SELECT count(*) FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'profile_private'
+    ) INTO v_exists, v_rls, v_policy_count;
+
+    PERFORM _audit_test_assert(true, v_exists, 'profile_private: table existe');
+    PERFORM _audit_test_assert(true, v_rls, 'profile_private: RLS activée');
+    PERFORM _audit_test_assert(true, v_policy_count >= 1, 'profile_private: au moins une policy définie');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 15: profiles — colonnes sensibles retirées
+-- ===========================================================================
+DO $$
+DECLARE
+    v_email boolean;
+    v_birth_date boolean;
+    v_push_token boolean;
+    v_height boolean;
+    v_weight boolean;
+    v_discovery boolean;
+BEGIN
+    SELECT
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='email'),
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='birth_date'),
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='push_token'),
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='height_cm'),
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='weight_kg'),
+        EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='discovery_source')
+    INTO v_email, v_birth_date, v_push_token, v_height, v_weight, v_discovery;
+
+    PERFORM _audit_test_assert(true, NOT v_email, 'profiles: colonne email retirée');
+    PERFORM _audit_test_assert(true, NOT v_birth_date, 'profiles: colonne birth_date retirée');
+    PERFORM _audit_test_assert(true, NOT v_push_token, 'profiles: colonne push_token retirée');
+    PERFORM _audit_test_assert(true, NOT v_height, 'profiles: colonne height_cm retirée');
+    PERFORM _audit_test_assert(true, NOT v_weight, 'profiles: colonne weight_kg retirée');
+    PERFORM _audit_test_assert(true, NOT v_discovery, 'profiles: colonne discovery_source retirée');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 16: profiles_select_public supprimée, profiles_select avec blocage bidirectionnel
+-- ===========================================================================
+DO $$
+DECLARE
+    v_public boolean;
+    v_unique integer;
+    v_block_both boolean;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_select_public'
+    ), (
+        SELECT count(*) FROM pg_policies
+        WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_select'
+    ), (
+        EXISTS (
+            SELECT 1 FROM pg_policies
+            WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_select'
+              AND pg_get_policydef(oid) ILIKE '%blocked_users%blocker_id = auth.uid()%'
+        ) AND EXISTS (
+            SELECT 1 FROM pg_policies
+            WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_select'
+              AND pg_get_policydef(oid) ILIKE '%blocked_users%blocker_id = public.profiles.id%'
+        )
+    ) INTO v_public, v_unique, v_block_both;
+
+    PERFORM _audit_test_assert(true, NOT v_public, 'profiles_select_public: supprimée');
+    PERFORM _audit_test_assert(true, v_unique = 1, 'profiles_select: policy unique présente');
+    PERFORM _audit_test_assert(true, v_block_both, 'profiles_select: blocage bidirectionnel présent');
+END;
+$$;
+
+-- ===========================================================================
+-- TEST 17: Stockage — policies SELECT larges supprimées des buckets publics
+-- ===========================================================================
+DO $$
+DECLARE
+    v_count integer;
+BEGIN
+    SELECT count(*) INTO v_count
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND policyname IN ('Avatars public read','Posts public read','Public profiles read',
+                         'Group photos read','Clubs read','Events read');
+
+    PERFORM _audit_test_assert(true, v_count = 0,
+        'stockage: policies SELECT larges supprimées des buckets publics');
+END;
+$$;
+
+-- ===========================================================================
 -- Cleanup helper function
 -- ===========================================================================
 DROP FUNCTION IF EXISTS _audit_test_assert(boolean, boolean, text);

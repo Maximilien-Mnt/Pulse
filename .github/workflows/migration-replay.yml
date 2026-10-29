@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Checkout (full history - scenario A needs the pre-hardening file)
         # actions/checkout v4.4.0
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d275973664c9af683
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 

@@ -31,9 +31,9 @@ try {
 }
 if (!loaded) {
   try {
-    process.loadEnvFile(".env.production");
+    process.loadEnvFile(".env.production.example");
   } catch {
-    // .env.production also missing - vars may come from environment instead
+    // .env.production.example also missing - vars may come from environment instead
   }
 }
 

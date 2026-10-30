@@ -301,6 +301,8 @@ export default function SignupStep5() {
         bio: values.bio || null,
         avatarUrl: avatar_url,
         discoverySource,
+        acceptTerms: watch("acceptTerms"),
+        acceptPrivacy: watch("acceptPrivacy"),
       });
 
       const res = await fetch(signupEdgeFunctionUrl, {

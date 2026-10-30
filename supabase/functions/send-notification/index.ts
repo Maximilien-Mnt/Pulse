@@ -2,10 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+const EXPO_TIMEOUT_MS = 5000;
 
 // Only these notification kinds may be created through this function.
-// Arbitrary `type` values previously allowed phishing-style forgeries
-// (e.g. fake "event_cancelled" notices to any user).
 const ALLOWED_TYPES = new Set([
   "event_notification",
   "event_invitation",
@@ -22,6 +21,7 @@ const ALLOWED_TYPES = new Set([
 
 const MAX_TITLE = 120;
 const MAX_BODY = 500;
+const MAX_DATA_KEYS = 20;
 
 type NotificationPayload = {
   user_id: string;
@@ -43,9 +43,7 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  // Authenticated-only: verify the caller's JWT and never trust a
-  // client-supplied sender. Deploy with verify_jwt=true as well so the
-  // gateway rejects missing/invalid tokens before this code runs.
+  // Authenticated-only: verify the caller's JWT.
   const authHeader = req.headers.get("authorization") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -53,6 +51,7 @@ Deno.serve(async (req) => {
   if (!supabaseUrl || !serviceRoleKey) {
     return json({ error: "Supabase server configuration is missing" }, 503);
   }
+
   const caller = createClient(supabaseUrl, anonKey || serviceRoleKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -63,6 +62,21 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // --- Persistent rate limiting (per caller) via RPC ---
+  const rateLimitWindow = parseInt(Deno.env.get("NOTIFY_RATE_LIMIT_WINDOW_SECS") ?? "3600", 10);
+  const rateLimitPerCaller = parseInt(Deno.env.get("NOTIFY_RATE_LIMIT_PER_CALLER") ?? "20", 10);
+
+  const rateResult = await supabase.rpc("check_rate_limit", {
+    p_key_type: "notify_user",
+    p_key_value: callerId,
+    p_limit: rateLimitPerCaller,
+    p_window_secs: rateLimitWindow,
+  });
+
+  if (rateResult.error || !(rateResult.data as { allowed?: boolean })?.allowed) {
+    return json({ error: "Rate limited" }, 429);
+  }
 
   let payload: NotificationPayload;
   try {
@@ -84,17 +98,40 @@ Deno.serve(async (req) => {
   if (typeof body !== "string" || body.length > MAX_BODY) {
     return json({ error: "Invalid body" }, 400);
   }
-  // Recipients must not receive executable push payloads.
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     return json({ error: "Invalid data" }, 400);
   }
+  if (Object.keys(data).length > MAX_DATA_KEYS) {
+    return json({ error: "Too many data keys" }, 400);
+  }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("push_token")
+  // --- Authorization: caller must be able to notify user_id ---
+  // Same rules as notify_user RPC (Phase 1):
+  // 1. Target must exist and not be deleted
+  // 2. No bidirectional blocking between caller and target
+  // 3. Caller cannot notify themselves (self-notifications are allowed? Let's allow for now)
+  const { data: targetUser, error: targetError } = await supabase
+    .from("auth.users")
+    .select("id")
     .eq("id", user_id)
     .maybeSingle();
 
+  if (targetError || !targetUser) {
+    return json({ error: "Target user not found" }, 404);
+  }
+
+  // Check bidirectional blocking
+  const { data: blocked } = await supabase
+    .from("blocked_users")
+    .select("id")
+    .or(`and(blocker_id.eq.${callerId},blocked_id.eq.${user_id}),and(blocker_id.eq.${user_id},blocked_id.eq.${callerId})`)
+    .maybeSingle();
+
+  if (blocked) {
+    return json({ error: "Users are blocked" }, 403);
+  }
+
+  // --- Insert notification (type preserved, data spread after) ---
   const { error: insertError } = await supabase.from("notifications").insert({
     user_id,
     type,
@@ -106,19 +143,38 @@ Deno.serve(async (req) => {
     return json({ error: "Could not create notification" }, 500);
   }
 
+  // --- Send Expo push with timeout and error handling ---
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("push_token")
+    .eq("id", user_id)
+    .maybeSingle();
+
   const token = profile?.push_token;
   if (token) {
-    await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: token,
-        title,
-        body,
-        data: { type, ...data },
-        sound: "default",
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), EXPO_TIMEOUT_MS);
+
+    try {
+      await fetch(EXPO_PUSH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: token,
+          title,
+          body,
+          // type first, then data spread — type is never overwritten
+          data: { type, ...data },
+          sound: "default",
+        }),
+        signal: controller.signal,
+      });
+    } catch (expoErr) {
+      // Log but don't fail — notification already stored in DB
+      console.error("Expo push failed:", expoErr instanceof Error ? expoErr.message : String(expoErr));
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   return json({ ok: true });

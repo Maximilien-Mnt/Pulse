@@ -32,9 +32,12 @@ interface ExternalEventRow extends Record<string, unknown> {
 
 const COUNTRIES = [
   { code: "LU", name: "Luxembourg", bbox: "5.5,49.4,6.5,50.2" },
-  { code: "FR", name: "France", bbox: "-5.0,41.0,9.0,51.0" },
+  { code: "FR", name: "France", bbox: "-5.0,42.0,10.0,51.5" },
   { code: "BE", name: "Belgium", bbox: "2.5,49.5,6.5,51.5" },
 ];
+
+const BATCH_SIZE = 200;
+const OVERPASS_TIMEOUT_MS = 110000;
 
 function generateOverpassQuery(bbox: string): string {
   return `
@@ -49,6 +52,26 @@ function generateOverpassQuery(bbox: string): string {
     );
     out center;
   `;
+}
+
+function isValidUrl(v: string | null): boolean {
+  if (!v) return true;
+  try {
+    const url = new URL(v);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+function isValidPhone(v: string | null): boolean {
+  if (!v) return true;
+  return /^\+?[1-9]\d{1,14}$/.test(v.replace(/[\s\-]/g, ''));
+}
+
+function isValidEmail(v: string | null): boolean {
+  if (!v) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
 async function fetchOverpassData(query: string): Promise<OverpassResponse> {

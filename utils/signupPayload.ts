@@ -28,6 +28,8 @@ export type SignupPayload = {
   avatar_url: string | null;
   discovery_source: string | null;
   interested_sports: string[];
+  accept_terms: boolean;
+  accept_privacy: boolean;
   sports: {
     sportId: string;
     level: string;
@@ -48,6 +50,8 @@ export type SignupPayloadInput = {
   bio: string | null;
   avatarUrl: string | null;
   discoverySource: string | null;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
 };
 
 /** Number coercion used by the form: empty string → null. */
@@ -58,7 +62,7 @@ function toNum(value: string | undefined): number | null {
 }
 
 export function buildSignupPayload(input: SignupPayloadInput): SignupPayload {
-  const { step1, step2, step3, step4, bio, avatarUrl, discoverySource } = input;
+  const { step1, step2, step3, step4, bio, avatarUrl, discoverySource, acceptTerms, acceptPrivacy } = input;
 
   return {
     email: step1.email,
@@ -75,6 +79,8 @@ export function buildSignupPayload(input: SignupPayloadInput): SignupPayload {
     avatar_url: avatarUrl,
     discovery_source: discoverySource,
     interested_sports: step4.interestedSports,
+    accept_terms: acceptTerms,
+    accept_privacy: acceptPrivacy,
     // "Autre" picks carry the typed detail in `levelOther` / `practiceOther`;
     // composing here means the plain `level` / `practice` columns already hold
     // the final value, so the signup flow and every later reader (profile,

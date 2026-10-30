@@ -10,21 +10,17 @@
  *   cannot drive them cross-origin; they require a secret or JWT.
  */
 
-// Production + local dev origins allowed to call public/authenticated
-// functions from a browser. Extend via ALLOWED_ORIGINS env (comma-separated).
-const DEFAULT_ORIGINS = [
-  "http://localhost:8081",
-  "http://localhost:19006",
-  "https://pulse.app",
-  "https://www.pulse.app",
-];
-
+// Origins allowed to call public/authenticated functions from a browser.
+// Read from ALLOWED_ORIGINS env var (comma-separated). No default origins are
+// shipped — every origin must be explicitly configured after confirming domain
+// ownership. Local dev origins can be added via ALLOWED_ORIGINS when testing.
 export function getAllowedOrigins(): string[] {
-  const extra = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
+  const raw = Deno.env.get("ALLOWED_ORIGINS") ?? "";
+  const extra = raw
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return [...new Set([...DEFAULT_ORIGINS, ...extra])];
+  return [...new Set(extra)];
 }
 
 function resolveOrigin(req: Request): string | null {

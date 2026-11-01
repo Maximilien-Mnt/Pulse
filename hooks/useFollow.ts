@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/authStore";
@@ -60,6 +61,17 @@ export function useFollow(targetUserId: string | null | undefined) {
   const followMut = useMutation({
     mutationFn: async () => {
       if (!userId || !targetUserId) throw new Error("auth");
+      // Validate follow data before Supabase write
+      const followData = {
+        followerId: userId,
+        followingId: targetUserId,
+      };
+      const validation = followSchema.safeParse(followData);
+      if (!validation.success) {
+        throw new Error(
+          `Validation failed: ${validation.error.errors[0].path.join(".")} — ${validation.error.errors[0].message}`
+        );
+      }
       // Idempotency guard: if the follow row already exists (e.g. double-tap),
       // skip both the insert and the notification.
       const { data: existing } = await supabase
@@ -70,8 +82,8 @@ export function useFollow(targetUserId: string | null | undefined) {
         .maybeSingle();
       if (existing) return;
       const { error } = await supabase.from("follows").insert({
-        follower_id: userId,
-        following_id: targetUserId,
+        follower_id: validation.data.followerId,
+        following_id: validation.data.followingId,
       });
       if (error) throw error;
       await supabase.from("notifications").insert({

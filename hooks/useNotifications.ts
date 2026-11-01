@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -108,6 +109,15 @@ export function useMarkAllAsRead() {
 
 type JoinRequestAction = "accept" | "refuse";
 
+/** Notification write contract. */
+const notificationSchema = z.object({
+  userId: z.string().uuid("validation.userIdInvalid"),
+  type: z.string().trim().min(1, "validation.notificationTypeRequired").max(50),
+  title: z.string().trim().min(1, "validation.notificationTitleRequired").max(120),
+  body: z.string().trim().max(500, "validation.notificationBodyTooLong").optional().or(z.literal("")),
+  data: z.record(z.string(), z.unknown()).max(20, "validation.notificationDataTooMany"),
+});
+
 export function useJoinRequestAction() {
   const qc = useQueryClient();
   const userId = useAuthStore((s) => s.userId);
@@ -180,6 +190,24 @@ export function useJoinRequestAction() {
         if (message?.trim()) {
           notificationData.message = message.trim();
         }
+      }
+
+      // Validate notification data before Supabase write
+      const validation = notificationSchema.safeParse({
+        userId: requesterId,
+        type: `${notifType}_${action}`,
+        title: action === "accept" ? "Demande acceptée" : "Demande refusée",
+        body: action === "accept"
+          ? "Invitation acceptée"
+          : message?.trim()
+            ? message.trim()
+            : "Invitation refusée",
+        data: notificationData,
+      });
+      if (!validation.success) {
+        throw new Error(
+          `Validation failed: ${validation.error.errors[0].path.join(".")} — ${validation.error.errors[0].message}`
+        );
       }
 
       const { error: notifErr } = await supabase.from("notifications").insert({

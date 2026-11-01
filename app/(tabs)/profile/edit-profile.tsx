@@ -1,4 +1,45 @@
+import { z } from "zod";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isValidLink } from "./links";
+import { OBJECTIVES, SPORTS, OTHER_OPTION } from "@/lib/constants";
+import { nonEmptyString, MAX_OBJECTIVES, MAX_SPORTS, VALID_OBJECTIVES, VALID_LEVELS, VALID_PRACTICES } from "@/utils/validation-shared";
+// ---------------------------------------------------------------------------
+// Validation schemas (profile edit)
+// ---------------------------------------------------------------------------
+
+/** Validate a single objective value. */
+const objectiveValueSchema = z
+  .string()
+  .trim()
+  .min(1, "validation.objectiveRequired")
+  .max(200, "validation.objectiveTooLong")
+  .refine((v) => VALID_OBJECTIVES.has(v), "validation.objectiveInvalid");
+
+/** Validate objectives array. */
+const objectivesArraySchema = z
+  .array(objectiveValueSchema)
+  .min(0)
+  .max(MAX_OBJECTIVES, "validation.objectivesMax")
+  .refine(
+    (arr) => new Set(arr).size === arr.length,
+    "validation.objectivesDuplicate"
+  );
+
+/** Validate a single sport selection with level/practice. */
+const sportSelectionSchema = z.object({
+  sportId: z.string().trim().min(1, "validation.sportRequired").refine(
+    (v) => ["football", "basketball", "tennis", "running", "cycling", "swimming", "volleyball", "handball", "padel", "badminton", "fitness", "rugby", "squash", "table_tennis", "martial_arts", "yoga", "pilates", "boxing", "climbing", "golf", "dance", "surfing"].includes(v),
+    "validation.sportInvalid"
+  ),
+  level: z.string().trim().min(1, "validation.levelRequired").max(50).refine(
+    (v) => VALID_LEVELS.has(v),
+    "validation.levelInvalid"
+  ),
+  practice: z.string().trim().min(1, "validation.practiceRequired").max(50).refine(
+    (v) => VALID_PRACTICES.has(v),
+    "validation.practiceInvalid"
+  ),
+});
 import {
   findNodeHandle,
   Platform,
@@ -352,24 +393,51 @@ export default function EditProfileScreen() {
       .eq("user_id", userId);
     if (delErr) throw delErr;
 
-    const toInsert: any[] = [
-      ...practicedSports.map((sport) => ({
+    const toInsert: any[] = [];
+
+    // Validate and insert practiced sports
+    for (const sport of practicedSports) {
+      const level = practicedSportDetails[sport]?.level ?? "";
+      const practice = practicedSportDetails[sport]?.practice ?? "";
+      const validation = sportSelectionSchema.safeParse({
+        sportId: sport,
+        level,
+        practice,
+      });
+      if (!validation.success) {
+        console.warn("Invalid sport entry in profile edit:", validation.error.errors);
+        continue;
+      }
+      toInsert.push({
         user_id: userId,
         sport_id: sport,
         category: "practiced" as const,
-        level: practicedSportDetails[sport]?.level ?? "",
-        practice: practicedSportDetails[sport]?.practice ?? "",
+        level: validation.data.level,
+        practice: validation.data.practice,
         time_slots: practicedSportDetails[sport]?.timeSlots ?? [],
-      })),
-      ...interestedSports.map((sport) => ({
+      });
+    }
+
+    // Validate and insert interested sports
+    for (const sport of interestedSports) {
+      const validation = sportSelectionSchema.safeParse({
+        sportId: sport,
+        level: "",
+        practice: "",
+      });
+      if (!validation.success) {
+        console.warn("Invalid sport entry in profile edit:", validation.error.errors);
+        continue;
+      }
+      toInsert.push({
         user_id: userId,
         sport_id: sport,
         category: "interested" as const,
-        level: "",
-        practice: "",
+        level: validation.data.level,
+        practice: validation.data.practice,
         time_slots: [],
-      })),
-    ];
+      });
+    }
 
     if (toInsert.length) {
       const { error } = await (supabase as any).from("user_sports").insert(toInsert);
@@ -395,10 +463,23 @@ export default function EditProfileScreen() {
       if (error) throw error;
     }
     if (toAdd.length) {
-      const { error } = await supabase.from("user_objectives").insert(
-        toAdd.map((o) => ({ user_id: userId, objective: o }))
+      // Validate each objective before inserting
+      const validatedObjectives: string[] = [];
+      for (const o of toAdd) {
+        const validation = objectiveValueSchema.safeParse(o.trim());
+        if (validation.success) {
+          validatedObjectives.push(validation.data);
+        } else {
+          console.warn("Invalid objective in profile edit:", validation.error.errors);
+        }
+      }
       );
-      if (error) throw error;
+      if (validatedObjectives.length) {
+        const { error } = await supabase.from("user_objectives").insert(
+          validatedObjectives.map((obj) => ({ user_id: userId, objective: obj }))
+        );
+        if (error) throw error;
+      }
     }
   }
   const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;

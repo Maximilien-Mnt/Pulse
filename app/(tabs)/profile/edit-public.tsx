@@ -1,8 +1,10 @@
+import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { SPORTS } from "@/lib/constants";
+import { nonEmptyString, MAX_OBJECTIVES, MAX_SPORTS, VALID_OBJECTIVES, VALID_LEVELS, VALID_PRACTICES } from "@/utils/validation-shared";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -61,6 +63,48 @@ export default function EditPublicProfileScreen() {
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Validation schemas (public profile edit)
+  // ---------------------------------------------------------------------------
+
+  /** Validate a single sport selection with level/practice. */
+  const sportSelectionSchema = z.object({
+    sportId: z.string().trim().min(1, "validation.sportRequired").refine(
+      (v) =>
+        ["football", "basketball", "tennis", "running", "cycling", "swimming", "volleyball", "handball", "padel", "badminton", "fitness", "rugby", "squash", "table_tennis", "martial_arts", "yoga", "pilates", "boxing", "climbing", "golf", "dance", "surfing"].includes(
+          v
+        ),
+      "validation.sportInvalid"
+    ),
+    level: z.string().trim().min(1, "validation.levelRequired").max(50).refine(
+      (v) => VALID_LEVELS.has(v),
+      "validation.levelInvalid"
+    ),
+    practice: z.string().trim().min(1, "validation.practiceRequired").max(50).refine(
+      (v) => VALID_PRACTICES.has(v),
+      "validation.practiceInvalid"
+    ),
+  });
+
+  /** Validate objectives. */
+  const objectiveValueSchema = z
+    .string()
+    .trim()
+    .min(1, "validation.objectiveRequired")
+    .max(200, "validation.objectiveTooLong")
+    .refine((v) => VALID_OBJECTIVES.has(v), "validation.objectiveInvalid");
+
+  /** Validate objectives array. */
+  const objectivesArraySchema = z
+    .array(objectiveValueSchema)
+    .min(0)
+    .max(MAX_OBJECTIVES, "validation.objectivesMax")
+    .refine(
+      (arr) => new Set(arr).size === arr.length,
+      "validation.objectivesDuplicate"
+    );
+  // ---------------------------------------------------------------------------
+
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!profile || !profile.id) return;
@@ -84,14 +128,46 @@ export default function EditPublicProfileScreen() {
       // Add practiced sports
       for (const sport of practicedSports) {
         if (!currentSet.has(`${sport}-practiced`)) {
-          toUpsert.push({ user_id: profile.id, sport_id: sport, category: "practiced", level: "", practice: "" });
+          // Validate sport entry before upsert
+          const validation = sportSelectionSchema.safeParse({
+            sportId: sport,
+            level: "",
+            practice: "",
+          });
+          if (!validation.success) {
+            console.warn("Invalid sport in profile edit:", validation.error.errors);
+            continue;
+          }
+          toUpsert.push({
+            user_id: profile.id,
+            sport_id: validation.data.sportId,
+            category: "practiced",
+            level: validation.data.level,
+            practice: validation.data.practice,
+          });
         }
       }
 
       // Add interested sports
       for (const sport of interestedSports) {
         if (!currentSet.has(`${sport}-interested`)) {
-          toUpsert.push({ user_id: profile.id, sport_id: sport, category: "interested", level: "", practice: "" });
+          // Validate sport entry before upsert
+          const validation = sportSelectionSchema.safeParse({
+            sportId: sport,
+            level: "",
+            practice: "",
+          });
+          if (!validation.success) {
+            console.warn("Invalid sport in profile edit:", validation.error.errors);
+            continue;
+          }
+          toUpsert.push({
+            user_id: profile.id,
+            sport_id: validation.data.sportId,
+            category: "interested",
+            level: validation.data.level,
+            practice: validation.data.practice,
+          });
         }
       }
 

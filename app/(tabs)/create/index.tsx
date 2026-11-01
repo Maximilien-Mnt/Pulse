@@ -6,7 +6,45 @@
 // the corresponding form. A missing mode redirects to the feed.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+// ---------------------------------------------------------------------------
+// Quick-create validation schemas (inline — avoids additional import paths)
+// ---------------------------------------------------------------------------
+
+/** Quick-create post schema. */
+const quickCreatePostSchema = z.object({
+  title: z.string().trim().max(500, "validation.postTitleTooLong").optional().or(z.literal("")),
+  body: z.string().trim().max(500, "validation.postBodyTooLong").optional().or(z.literal("")),
+  sport: z.string().trim().optional(),
+  tags: z.array(z.string().trim().max(50)).max(20, "validation.tagsMax"),
+});
+
+/** Quick-create club schema. */
+const quickCreateClubSchema = z.object({
+  name: z.string().trim().min(1, "validation.clubNameRequired").max(500),
+  description: z.string().trim().max(500, "validation.clubDescriptionTooLong").optional().or(z.literal("")),
+  sport: z.string().trim().min(1, "validation.clubSportRequired").refine(
+    (v) => ["football", "basketball", "tennis", "running", "cycling", "swimming", "volleyball", "handball", "padel", "badminton", "fitness", "rugby", "squash", "table_tennis", "martial_arts", "yoga", "pilates", "boxing", "climbing", "golf", "dance", "surfing"].includes(v),
+    "validation.clubSportInvalid"
+  ),
+  city: z.string().trim().max(100, "validation.clubCityTooLong").optional().or(z.literal("")),
+});
+
+/** Quick-create event schema. */
+const quickCreateEventSchema = z.object({
+  title: z.string().trim().min(1, "validation.eventTitleRequired").max(500),
+  description: z.string().trim().max(500, "validation.eventDescriptionTooLong").optional().or(z.literal("")),
+  sport: z.string().trim().min(1, "validation.eventSportRequired").refine(
+    (v) => ["football", "basketball", "tennis", "running", "cycling", "swimming", "volleyball", "handball", "padel", "badminton", "fitness", "rugby", "squash", "table_tennis", "martial_arts", "yoga", "pilates", "boxing", "climbing", "golf", "dance", "surfing"].includes(v),
+    "validation.eventSportInvalid"
+  ),
+  startDate: z.string().datetime({ message: "validation.eventStartDateRequired" }),
+  city: z.string().trim().max(100, "validation.eventCityTooLong").optional().or(z.literal("")),
+  capacity: z.string().trim().refine(
+    (v) => v === "" || /^\d+$/.test(v),
+    "validation.eventCapacityInvalid"
+  ),
+});
 import {
   FlatList,
   Pressable,
@@ -99,6 +137,19 @@ function PostForm({ onClose }: { onClose: () => void }) {
   const publishMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+      // Validate form data before Supabase write
+      const postData = {
+        title: title.trim(),
+        body: body.trim(),
+        sport: sport ?? undefined,
+        tags: parsedTags,
+      };
+      const validation = quickCreatePostSchema.safeParse(postData);
+      if (!validation.success) {
+        throw new Error(
+          `Validation failed: ${validation.error.errors[0].path.join(".")} — ${validation.error.errors[0].message}`
+        );
+      }
       const urls: string[] = [];
       for (let i = 0; i < media.length; i++) {
         const item = media[i]!;
@@ -291,6 +342,19 @@ function ClubForm({ onClose }: { onClose: () => void }) {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+      // Validate form data before Supabase write
+      const clubData = {
+        name: name.trim(),
+        description: description.trim(),
+        sport: sport ?? "",
+        city: city.trim(),
+      };
+      const validation = quickCreateClubSchema.safeParse(clubData);
+      if (!validation.success) {
+        throw new Error(
+          `Validation failed: ${validation.error.errors[0].path.join(".")} — ${validation.error.errors[0].message}`
+        );
+      }
       let coverUrl: string | null = null;
       if (coverUri) {
         const path = `${userId}/clubs/${Date.now()}.jpg`;
@@ -447,6 +511,20 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("auth");
+      // Validate form data before Supabase write
+      const eventData = {
+        title: title.trim(),
+        description: description.trim(),
+        sport: sport ?? "",
+        city: location.trim(),
+        capacity: capacity,
+      };
+      const validation = quickCreateEventSchema.safeParse(eventData);
+      if (!validation.success) {
+        throw new Error(
+          `Validation failed: ${validation.error.errors[0].path.join(".")} — ${validation.error.errors[0].message}`
+        );
+      }
       let coverUrl: string | null = null;
       if (coverUri) {
         const path = `${userId}/events/${Date.now()}.jpg`;

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
+import { z } from "zod";
 import { safeDeepLinkPath, safeIdSegment } from "@/utils/links";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
@@ -35,6 +36,15 @@ function getNotifications(): NotificationsNamespace | null {
 export function usePushNotifications() {
   const userId = useAuthStore((s) => s.userId);
 
+  // ---------------------------------------------------------------------------
+  // Push token write contract validation
+  // ---------------------------------------------------------------------------
+
+  const pushTokenSchema = z.object({
+    userId: z.string().uuid("validation.userIdInvalid"),
+    pushToken: z.string().trim().min(1, "validation.pushTokenRequired").max(500),
+  });
+
   useEffect(() => {
     if (!userId) return;
     const Notifications = getNotifications();
@@ -59,7 +69,17 @@ export function usePushNotifications() {
         const token = tokenData.data;
         if (!token) return;
 
-        await supabase.from("profile_private").upsert({ user_id: userId, push_token: token }, { onConflict: "user_id" });
+        // Validate push token data before Supabase write
+        const pushValidation = pushTokenSchema.safeParse({
+          userId,
+          pushToken: token,
+        });
+        if (!pushValidation.success) {
+          console.warn("Invalid push token in profile edit:", pushValidation.error.errors);
+          return;
+        }
+
+        await supabase.from("profile_private").upsert({ user_id: pushValidation.data.userId, push_token: pushValidation.data.pushToken }, { onConflict: "user_id" });
       } catch (e) {
         // ignore
       }

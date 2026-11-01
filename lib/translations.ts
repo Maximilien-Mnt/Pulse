@@ -86,6 +86,7 @@ export const translations = {
     "errors.offline": "Tu es hors ligne. Reconnecte-toi puis réessaie.",
     "errors.unauthorized": "Ta session a expiré. Reconnecte-toi.",
     "errors.notFound": "Contenu introuvable.",
+    "errors.rateLimited": "Trop de tentatives. Réessayez dans {seconds}s.",
     "errors.crash.title": "Une erreur est survenue",
     "errors.crash.body": "Quelque chose s'est mal passé. Réessaie.",
     "errors.crash.retry": "Réessayer",
@@ -139,6 +140,8 @@ export const translations = {
     "auth.signin.submit": "Se connecter",
     "auth.signin.noAccount": "Pas encore de compte ?",
     "auth.signin.signup": "S'inscrire",
+    "auth.signin.rateLimited": "Trop de tentatives de connexion. Réessayez dans {seconds}s.",
+    "auth.signin.rateLimitedTitle": "Connexion ({remaining}s)",
     "auth.forgotPassword.title": "Mot de passe oublié",
     "auth.forgotPassword.subtitle":
       "Saisissez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
@@ -1541,6 +1544,7 @@ export const translations = {
     "errors.offline": "You are offline. Reconnect and try again.",
     "errors.unauthorized": "Your session expired. Please sign in again.",
     "errors.notFound": "Content not found.",
+    "errors.rateLimited": "Too many attempts. Try again in {seconds}s.",
     "errors.crash.title": "Something went wrong",
     "errors.crash.body": "Something went wrong. Please try again.",
     "errors.crash.retry": "Retry",
@@ -1593,6 +1597,8 @@ export const translations = {
     "auth.signin.submit": "Sign in",
     "auth.signin.noAccount": "Don't have an account?",
     "auth.signin.signup": "Sign up",
+    "auth.signin.rateLimited": "Too many sign-in attempts. Try again in {seconds}s.",
+    "auth.signin.rateLimitedTitle": "Sign in ({remaining}s)",
     "auth.forgotPassword.title": "Forgot password",
     "auth.forgotPassword.subtitle":
       "Enter your email and we'll send you a link to reset your password.",

@@ -14,10 +14,16 @@ import Toast from "react-native-toast-message";
 import { z } from "zod";
 import { usePostHog } from "posthog-react-native";
 import { useTranslation, t } from "@/hooks/useTranslation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { reportError } from "@/lib/reporting/errorReport";
 import { userFacingMessageFor } from "@/lib/reporting/userMessage";
 import { getDeviceId } from "@/lib/deviceId";
+import {
+  checkSignInRateLimit,
+  recordSignInFailure,
+  resetSignInRateLimit,
+  getSignInCooldown,
+} from "@/lib/authRateLimit";
 
 type Form = z.infer<typeof signInSchema>;
 
@@ -31,8 +37,38 @@ export default function SignInScreen() {
     defaultValues: { email: "", password: "" },
   });
 
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (rateLimitedUntil && Date.now() >= rateLimitedUntil) {
+      setRateLimitedUntil(null);
+    }
+  }, [rateLimitedUntil]);
+
+  const rateLimitRemaining = rateLimitedUntil ? Math.max(0, rateLimitedUntil - Date.now()) : 0;
+  const isRateLimited = rateLimitRemaining > 0;
+
   const onSubmit = handleSubmit(async (values) => {
     const deviceId = await getDeviceId().catch(() => "");
+
+    // Client-side rate limiting: block before hitting Supabase.
+    const rateLimit = checkSignInRateLimit(deviceId, values.email);
+    if (!rateLimit.allowed) {
+      setRateLimitedUntil(Date.now() + rateLimit.remainingSeconds * 1000);
+      posthog.capture("auth.signin.rateLimited", {
+        platform: Platform.OS,
+        deviceId: deviceId || "",
+        email: values.email.trim().toLowerCase(),
+        reason: rateLimit.reason,
+        remainingSeconds: rateLimit.remainingSeconds,
+      });
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t("auth.signin.rateLimited", { seconds: rateLimit.remainingSeconds }),
+      });
+      return;
+    }
 
     posthog.capture("auth.signin.attempt", {
       platform: Platform.OS,
@@ -44,6 +80,11 @@ export default function SignInScreen() {
       password: values.password,
     });
     if (error) {
+      recordSignInFailure(values.email);
+      const cooldown = getSignInCooldown(values.email);
+      if (cooldown > 0) {
+        setRateLimitedUntil(Date.now() + cooldown * 1000);
+      }
       reportError(error, { operation: "auth.signIn", route: "/auth/signin" });
       posthog.capture("auth.signin.failure", {
         platform: Platform.OS,
@@ -59,6 +100,7 @@ export default function SignInScreen() {
     }
     const userId = data.session?.user?.id;
     if (userId) {
+      resetSignInRateLimit(values.email);
       posthog.identify(userId, {
         $set_once: { first_sign_in_date: new Date().toISOString() },
       });
@@ -137,11 +179,21 @@ export default function SignInScreen() {
             )}
           />
           <Button
-            title={t("auth.signin.submit")}
+            title={
+              isRateLimited
+                ? t("auth.signin.rateLimitedTitle", { remaining: Math.ceil(rateLimitRemaining / 1000) })
+                : t("auth.signin.submit")
+            }
             onPress={onSubmit}
             loading={isSubmitting}
+            disabled={isRateLimited || isSubmitting}
             className="mb-3"
           />
+          {isRateLimited && (
+            <Text className="text-neutral-500 dark:text-neutral-400 text-xs text-center mb-3">
+              {t("auth.signin.rateLimited", { seconds: Math.ceil(rateLimitRemaining / 1000) })}
+            </Text>
+          )}
           <View className="flex-row gap-3">
             <View className="flex-1">
               <Button

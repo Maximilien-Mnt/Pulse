@@ -60,3 +60,5 @@ expo-env.d.ts
 *.debug.txt
 desktop.ini
 Thumbs.db
+# Cloudflare Pages configuration — contains Supabase anon key and PostHog token
+wrangler.toml

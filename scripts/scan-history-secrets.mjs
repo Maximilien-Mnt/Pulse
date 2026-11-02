@@ -45,7 +45,8 @@ const repoRoot = resolve(here, "..");
  * fail loudly if the old key is still present anywhere in history.
  */
 const ACKNOWLEDGED_REFS = new Set([
-  "eqrhjmuaaaarjxuprjaj", // committed in wrangler.toml at 6eda9cc; rotation pending
+  // committed in wrangler.toml at 6eda9cc; rotation pending — see: .gitignore addition + historical scan
+  "eqrhjmuaaaarjxuprjaj",
 ]);
 
 // A Supabase JWT: HS256 header, base64url payload, base64url signature.

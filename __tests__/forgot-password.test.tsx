@@ -37,7 +37,7 @@ jest.mock("react-native-toast-message", () => ({
 // Mock getRedirectUrl to return a fixed value
 jest.mock("@/lib/constants", () => ({
   ...jest.requireActual("@/lib/constants"),
-  getRedirectUrl: () => "http://localhost:8081/auth/reset-password",
+  getRedirectUrl: () => "https://localhost:8081/auth/reset-password",
 }));
 
 describe("ForgotPasswordScreen", () => {
@@ -70,7 +70,7 @@ describe("ForgotPasswordScreen", () => {
 
     await waitFor(() => {
       expect(mockResetPasswordForEmail).toHaveBeenCalledWith("test@example.com", {
-        redirectTo: "http://localhost:8081/auth/reset-password",
+        redirectTo: "https://localhost:8081/auth/reset-password",
       });
     });
   });

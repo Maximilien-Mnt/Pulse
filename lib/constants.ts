@@ -20,7 +20,7 @@ export function getRedirectUrl(): string {
     if (typeof window !== "undefined" && window.location.origin) {
       return `${window.location.origin}${path}`;
     }
-    return `http://localhost:8081${path}`;
+    return `https://localhost:8081${path}`;
   }
   // Native: use the app scheme (e.g. pulse://auth/reset-password)
   const scheme = process.env.EXPO_PUBLIC_APP_SCHEME || "pulse";

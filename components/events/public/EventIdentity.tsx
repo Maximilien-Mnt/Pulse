@@ -50,11 +50,11 @@ export function EventIdentity({ event, shortDesc, sports, organizingClub }: Even
       </View>
       <View className='mt-2 flex-1 min-w-0'>
         <PulseText variant='h1' numberOfLines={2}>
-          {event.name}
+          {escapeHtml(event.name)}
         </PulseText>
         {shortDesc ? (
           <PulseText variant='body' className='text-neutral-500 mt-1.5' numberOfLines={3}>
-            {shortDesc}
+            {escapeHtml(shortDesc ?? '')}
           </PulseText>
         ) : null}
         <View className='flex-row flex-wrap gap-2 mt-3 items-center'>

@@ -8,6 +8,10 @@ import { Dimensions, Pressable, Share, Text, View } from "react-native";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { formatDateLong } from "@/utils/date";
+import React from "react";
+import { useAuthStore } from "@/stores/authStore";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
+import { useCallback, useState } from "react";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
 
@@ -22,8 +26,25 @@ export function ClubCardGrid({ club, initialIsFavorite, initialFavCount }: Props
     initialFavCount,
   });
 
+  const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteClub");
+      return;
+    }
+    toggle();
+  }, [userId, toggle, openAuthModal]);
+
   return (
-    <Pressable
+    <>
+      <Pressable
       onPress={() => router.push(`/(tabs)/clubs/${club.id}`)}
       className="bg-white dark:bg-neutral-800 rounded-2xl overflow-hidden mb-3 border border-neutral-100 dark:border-neutral-700"
       style={{ width: COL_W }}
@@ -35,28 +56,37 @@ export function ClubCardGrid({ club, initialIsFavorite, initialFavCount }: Props
       />
       <View className="p-2">
         <Text className="text-sm font-semibold text-neutral-900 dark:text-neutral-50" numberOfLines={2}>
-          {club.name}
+          {escapeHtml(club.name)}
         </Text>
         <View className="flex-row flex-wrap gap-1 mt-1 items-center">
           <Badge>{club.sport}</Badge>
           <SourceBadge isExternal={club.is_external} variant="chip" />
         </View>
         <Text className="text-xs text-neutral-500 mt-1" numberOfLines={1}>
-          {club.city}
+          {escapeHtml(club.city)}
         </Text>
         <View className="flex-row justify-end gap-2 mt-2">
           <FavoriteButton
             isFavorite={!!isFavorited}
             count={favCount ?? undefined}
             isPending={isPending}
-            onPress={toggle}
+            onPress={handleFavorite}
           />
-          <Pressable onPress={() => Share.share({ message: club.name })}>
+          <Pressable onPress={() => Share.share({ message: escapeForShare(club.name) })}>
             <Icon name="Share2" size={20} color="text-secondary" />
           </Pressable>
         </View>
       </View>
     </Pressable>
+
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
+    </>
   );
 }
 

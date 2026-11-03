@@ -24,6 +24,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SendButton } from "@/components/ui/SendButton";
 import { Text } from "@/components/ui/Text";
 import { usePostComment } from "@/hooks/usePostComment";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
 
 type CommentCenteredModalProps = {
   postId: string | null;
@@ -37,6 +38,12 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
   const queryClient = useQueryClient();
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
   const {
     commentsCount,
     isPending,
@@ -265,6 +272,10 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
                 disabled={!body.trim()}
                 loading={isPending}
                 onPress={() => {
+                  if (!userId) {
+                    openAuthModal("comment");
+                    return;
+                  }
                   void addComment(body);
                 }}
               />
@@ -273,6 +284,14 @@ export function CommentCenteredModal({ postId, visible, onClose }: CommentCenter
         </View>
         </Animated.View>
       </Animated.View>
+
+      {authModal && (
+        <AuthRequiredModal
+          visible={authModal.visible}
+          onClose={closeAuthModal}
+          action={authModal.action}
+        />
+      )}
     </View>
   );
 }

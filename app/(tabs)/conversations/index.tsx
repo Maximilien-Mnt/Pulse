@@ -21,6 +21,7 @@ import { Tag } from "@/components/ui/Tag";
 import { PressableScale, CHIP_SCALE_HOVER, CHIP_SCALE_PRESS } from "@/components/ui/PressableScale";
 import { ConversationItem } from "@/components/conversations/ConversationItem";
 import { ConversationActionSheet } from "@/components/conversations/ConversationActionSheet";
+import { AuthRequiredModal } from "@/components/shared/AuthRequiredModal";
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -71,8 +72,21 @@ function ConvEmpty() {
 
 export default function ConversationsScreen() {
   const { t } = useTranslation();
+  const initialized = useAuthStore((s) => s.initialized);
   const userId = useAuthStore((s) => s.userId);
   const router = useRouter();
+
+  if (!initialized) return null;
+  if (!userId) {
+    return (
+      <AuthRequiredModal
+        visible
+        onClose={() => router.replace("/(tabs)/feed")}
+        action="conversation"
+      />
+    );
+  }
+
   const [search, setSearch] = useState("");
   const [menuItem, setMenuItem] = useState<any>(null);
   // On-screen rect of the "⋮" / long-pressed row, used to anchor the floating

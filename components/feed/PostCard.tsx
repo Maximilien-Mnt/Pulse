@@ -26,6 +26,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { SportPill } from "@/components/shared/SportPill";
 import { PostMedia } from "./PostMedia";
 import { ReportSheet } from "@/components/shared/ReportSheet";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
 import { usePostLike } from "@/hooks/usePostLike";
 import { FavoriteButton } from "./LikeButton";
 import { CommentButton } from "./CommentButton";
@@ -59,10 +60,17 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
   });
   
   // Only local state is UI-related
+  const userId = useAuthStore((s) => s.userId);
   const [expanded, setExpanded] = useState(false);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [tagsContentLineCount, setTagsContentLineCount] = useState(0);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
 
   const bodyTruncated = useMemo(() => {
     if (!post.body) return false;
@@ -78,8 +86,12 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
   }, [post.id]);
 
   const handleLike = useCallback(() => {
+    if (!userId) {
+      openAuthModal("like");
+      return;
+    }
     toggleLike();
-  }, [toggleLike]);
+  }, [userId, toggleLike, openAuthModal]);
 
   const handleComment = useCallback(() => {
     if (onCommentPress) {
@@ -271,7 +283,13 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
 
         {/* Report */}
         <Pressable
-          onPress={() => setReportSheetVisible(true)}
+          onPress={() => {
+            if (!userId) {
+              openAuthModal("report");
+              return;
+            }
+            setReportSheetVisible(true);
+          }}
           accessibilityRole="button"
           accessibilityLabel="Signaler"
           className="flex-row items-center gap-1.5"
@@ -305,6 +323,15 @@ export function PostCard({ post, onCommentPress, onDeletePress, onLayout }: Post
         targetAuthorId={post.author?.id}
         targetLabel={post.title ?? post.body?.slice(0, 50)}
       />
+
+      {/* Login-required modal (like / report) */}
+      {authModal && (
+        <AuthRequiredModal
+          visible={authModal.visible}
+          onClose={closeAuthModal}
+          action={authModal.action}
+        />
+      )}
     </Card>
   </View>
   );

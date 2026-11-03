@@ -76,8 +76,8 @@ export function ClubCard({ club, isCompact = false, grid = false, initialIsFavor
 
   // ── Share content ──────────────────────────────────────────────────
   const shareContent = {
-    title: club.name,
-    message: `${club.name} — ${shareSportLabel || "Sport"} | Pulse`,
+    title: escapeHtml(club.name),
+    message: `${escapeForShare(club.name)} — ${shareSportLabel || "Sport"} | Pulse`,
     url: `https://pulse.app/club/${club.id}`,
   };
 

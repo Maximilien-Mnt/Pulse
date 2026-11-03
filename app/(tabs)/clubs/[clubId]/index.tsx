@@ -6,6 +6,9 @@ import { useClubDetail } from '@/hooks/useClubDetail';
 import { LeaveClubSheet } from '@/components/clubs/LeaveClubSheet';
 import { DeleteClubSheet } from '@/components/profile/DeleteClubSheet';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useAuthStore } from '@/stores/authStore';
+import { AuthRequiredModal, type AuthRequiredAction } from '@/components/shared/AuthRequiredModal';
+import React from 'react';
 import { ClubActionHeader } from '@/components/clubs/public/ClubActionHeader';
 import { ClubHeroBar } from '@/components/clubs/public/ClubHeroBar';
 import { ClubTopActions, ClubTopIconButton, ClubTopPillButton } from '@/components/clubs/public/ClubTopActions';
@@ -50,6 +53,30 @@ export default function ClubDetailScreen() {
     toggleFavorite,
     joinMut,
   } = useClubDetail(clubId ?? null);
+
+  const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleJoin = useCallback(() => {
+    if (!userId) {
+      openAuthModal("joinClub");
+      return;
+    }
+    joinMut.mutate();
+  }, [userId, joinMut.mutate, openAuthModal]);
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteClub");
+      return;
+    }
+    toggleFavorite();
+  }, [userId, toggleFavorite, openAuthModal]);
 
   const [eventsTab, setEventsTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
@@ -180,7 +207,7 @@ export default function ClubDetailScreen() {
                 label={club.is_private ? t('clubs.joinRequest') : t('common.join')}
                 icon='UserPlus'
                 loading={joinMut.isPending}
-                onPress={() => joinMut.mutate()}
+                onPress={handleJoin}
               />
             )}
           </ClubTopActions>
@@ -199,7 +226,7 @@ export default function ClubDetailScreen() {
           isFavorited={isFavorited}
           favCount={favCount ?? 0}
           isFavPending={isFavPending}
-          onToggle={toggleFavorite}
+          onToggle={handleToggleFavorite}
           onShare={handleShare}
         />
 
@@ -266,6 +293,13 @@ export default function ClubDetailScreen() {
           router.push(`/create/event/${visibility}?clubId=${club.id}`);
         }}
       />
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
     </SafeScreen>
   );
 }

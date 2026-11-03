@@ -70,9 +70,22 @@ function ProfileSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function ProfileScreen() {
+  const initialized = useAuthStore((s) => s.initialized);
   const userId = useAuthStore((s) => s.userId);
   const router = useRouter();
   const { t } = useTranslation();
+
+  if (!initialized) return null;
+  if (!userId) {
+    return (
+      <AuthRequiredModal
+        visible
+        onClose={() => router.replace("/(tabs)/feed")}
+        action="profile"
+      />
+    );
+  }
+
   const { data: profile, isLoading, isError, error, refetch } = usePublicProfile(userId);
   const { data: memberships, isLoading: loadingMemberships } = useMyClubMemberships(userId);
   const { data: createdClubs, isLoading: loadingCreated } = useMyCreatedClubs(userId);

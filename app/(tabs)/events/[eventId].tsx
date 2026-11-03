@@ -21,6 +21,7 @@ import type { EventRow } from "@/types";
 import { formatPriceFromCents } from "@/utils/format";
 import { SPORTS } from "@/lib/constants";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
 import { buildSportLevelRows, practicedSports } from "@/lib/sportLevels";
 import { useTranslation } from "@/hooks/useTranslation";
 import { isNetworkError } from "@/utils/isNetworkError";
@@ -45,6 +46,28 @@ export default function EventDetailScreen() {
   const posthog = usePostHog();
   const { t } = useTranslation();
   const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleJoin = useCallback(() => {
+    if (!userId) {
+      openAuthModal("joinEvent");
+      return;
+    }
+    joinMut.mutate();
+  }, [userId, joinMut.mutate, openAuthModal]);
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteEvent");
+      return;
+    }
+    toggle();
+  }, [userId, toggle, openAuthModal]);
   const queryClient = useQueryClient();
   const { width: winWidth } = useWindowDimensions();
 
@@ -373,7 +396,7 @@ export default function EventDetailScreen() {
           icon={isExternal ? "Globe" : "CheckCircle2"}
           onPress={() => {
             if (isExternal && registrationUrl) void openExternalRegistration();
-            else joinMut.mutate();
+            else handleJoin();
           }}
           loading={joinMut.isPending}
         />
@@ -461,7 +484,7 @@ export default function EventDetailScreen() {
           isFavorited={!!isFavorited}
           favCount={favCount ?? 0}
           isFavPending={isPending}
-          onToggle={() => toggle()}
+          onToggle={handleToggleFavorite}
           onShare={handleShare}
         />
 
@@ -533,6 +556,13 @@ export default function EventDetailScreen() {
         createdBy={event.created_by}
         currentUserId={userId}
       />
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
     </SafeScreen>
   );
 }

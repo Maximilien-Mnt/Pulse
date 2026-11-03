@@ -5,8 +5,7 @@ import { useThemeStore } from "@/stores/themeStore";
 import { useLanguageStore } from "@/stores/languageStore";
 import { Tabs } from "expo-router";
 import { View } from "react-native";
-import { AuthGuard } from "@/components/shared/AuthGuard";
-import { useEffect } from "react";
+import React from "react";
 
 /**
  * Responsive tabs layout:
@@ -56,7 +55,7 @@ export default function TabsLayout() {
   const showBottomBar = !isWebWide || navbarPosition === "bottom";
 
   const content = (
-    <AuthGuard>
+    <>
       {showSideRail ? (
         <View className="flex-1 flex-row bg-bg dark:bg-bg-dark">
           {/* Left rail */}
@@ -70,7 +69,7 @@ export default function TabsLayout() {
           <TabsContent showBottomBar={showBottomBar} />
         </View>
       )}
-    </AuthGuard>
+    </>
   );
 
   return content;

@@ -12,6 +12,10 @@ import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { useAuthStore } from "@/stores/authStore";
+import React from "react";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
+import { useCallback, useState } from "react";
 
 type Props = { event: ClubEventRow; compact?: boolean; onCancel?: () => void; showCancel?: boolean; initialIsFavorite?: boolean; initialFavCount?: number };
 
@@ -35,8 +39,25 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
     initialFavCount,
   });
 
+  const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteEvent");
+      return;
+    }
+    toggle();
+  }, [userId, toggle, openAuthModal]);
+
   return (
-    <Pressable
+    <>
+      <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
       className="flex-row bg-surface dark:bg-surface-dark rounded-2xl p-3 mb-3 border border-border dark:border-border-dark"
     >
@@ -84,7 +105,7 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
             isFavorite={!!isFavorited}
             count={favCount ?? undefined}
             isPending={isPending}
-            onPress={toggle}
+            onPress={handleFavorite}
           />
         <Pressable
           onPress={() => Share.share({ message: event.name })}
@@ -97,5 +118,14 @@ export function EventCard({ event, compact, onCancel, showCancel, initialIsFavor
         </Pressable>
       </View>
     </Pressable>
+
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
+    </>
   );
 }

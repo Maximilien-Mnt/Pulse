@@ -35,6 +35,7 @@ import {
   useSlidingIndicator,
 } from "@/components/shared/NavTabMotion";
 import { useNavbarStore } from "@/stores/navbarStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useIsWebWide } from "@/components/shared/SideRail";
 import { useThemeStore } from "@/stores/themeStore";
 import { CreatePopover } from "@/components/shared/CreatePopover";
@@ -71,6 +72,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
+  const userId = useAuthStore((s) => s.userId);
   const [createOpen, setCreateOpen] = useState(false);
   // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -112,12 +114,14 @@ const isActive = (routeName: string) => {
   const tabBarHeight = 64;
   const paddingBottom = insets.bottom;
 
+  const visibleTabs = userId ? MAIN_TABS : MAIN_TABS.slice(0, 2);
+
   // ---- Sliding active capsule ----------------------------------------------
   // Fed `x`/`width` (not `y`/`height`) because the bar travels horizontally.
   const { recordRow, syncTo, invalidate, indicatorStyle, reduceMotion } =
-    useSlidingIndicator(MAIN_TABS.length, "horizontal");
+    useSlidingIndicator(visibleTabs.length, "horizontal");
 
-  const activeIndex = MAIN_TABS.findIndex((tab) => isActive(tab.route));
+  const activeIndex = visibleTabs.findIndex((tab) => isActive(tab.route));
 
   // `activeIndex` is derived from the pathname on every render, so this effect
   // re-runs on navigation and slides the capsule to the newly selected tab.
@@ -231,12 +235,13 @@ const isActive = (routeName: string) => {
         ) : null}
 
         {/* Feed & Explorer (first 2) */}
-        {MAIN_TABS.slice(0, 2).map((tab, i) => renderTab(tab, i))}
+        {visibleTabs.slice(0, 2).map((tab, i) => renderTab(tab, i))}
 
         {/* Create — floating circle.
             Slightly gentler press scale than the tab default (0.9): a 56px
             circular target carries more visual mass than a tab row, so the same
             squash would read as too aggressive here. */}
+        {userId && (
         <View className="flex-1 items-center justify-center">
           <PressableScale
             {...createLift.hoverProps}
@@ -277,10 +282,11 @@ const isActive = (routeName: string) => {
             </Animated.View>
           </PressableScale>
         </View>
+        )}
 
         {/* Messages & Profile (last 2) — indices continue at 2 so the capsule
             can travel across the Create gap without a re-measure. */}
-        {MAIN_TABS.slice(2).map((tab, i) => renderTab(tab, i + 2))}
+        {userId && MAIN_TABS.slice(2).map((tab, i) => renderTab(tab, i + 2))}
       </View>
 
       {/* Web-only (wide enough for the side rail): move navbar back to the left */}

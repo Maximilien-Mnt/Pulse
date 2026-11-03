@@ -10,6 +10,8 @@ import { Pressable, Share, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
+import React from "react";
 
 type Props = { club: ClubCardRow; compact?: boolean; showDelete?: boolean; onDelete?: () => void; initialIsFavorite?: boolean; initialFavCount?: number };
 
@@ -22,8 +24,25 @@ export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorit
     initialFavCount,
   });
 
+  const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteClub");
+      return;
+    }
+    toggle();
+  }, [userId, toggle, openAuthModal]);
+
   return (
-    <Pressable
+    <>
+      <Pressable
       onPress={() => router.push(`/(tabs)/clubs/${club.id}`)}
       className={cn(
         "flex-row bg-white dark:bg-neutral-800 rounded-2xl p-3 mb-3 border border-neutral-100 dark:border-neutral-700",
@@ -37,7 +56,7 @@ export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorit
       />
       <View className="flex-1 ml-3">
         <Text className="text-base font-semibold text-neutral-900 dark:text-neutral-50" numberOfLines={1}>
-          {club.name}
+          {escapeHtml(club.name)}
         </Text>
         <View className="flex-row flex-wrap gap-2 mt-1 items-center">
           <Badge>{club.sport}</Badge>
@@ -53,11 +72,11 @@ export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorit
             isFavorite={!!isFavorited}
             count={favCount ?? undefined}
             isPending={isPending}
-            onPress={toggle}
+            onPress={handleFavorite}
           />
           <Pressable
             onPress={() =>
-              Share.share({ message: `${club.name} — ${club.short_description || club.description}` })
+              Share.share({ message: escapeForShare(`${club.name} — ${club.short_description || club.description}`) })
             }
             hitSlop={8}
           >
@@ -71,6 +90,15 @@ export function ClubCard({ club, compact, showDelete, onDelete, initialIsFavorit
         </View>
       </View>
     </Pressable>
+
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
+    </>
   );
 }
 

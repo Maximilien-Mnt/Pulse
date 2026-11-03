@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { z } from "zod";
+import React from "react";
 // ---------------------------------------------------------------------------
 // Quick-create validation schemas (inline — avoids additional import paths)
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ import {
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { useAuthStore } from "@/stores/authStore";
+import { AuthRequiredModal } from "@/components/shared/AuthRequiredModal";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/queryClient";
@@ -733,10 +735,23 @@ function ConversationForm({ onClose }: { onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 export default function CreateScreen() {
+  const initialized = useAuthStore((s) => s.initialized);
+  const userId = useAuthStore((s) => s.userId);
   const params = useLocalSearchParams<{ mode?: string }>();
   const router = useRouter();
   const mode = params.mode ?? null;
   const { t } = useTranslation();
+
+  if (!initialized) return null;
+  if (!userId) {
+    return (
+      <AuthRequiredModal
+        visible
+        onClose={() => router.replace("/(tabs)/feed")}
+        action="createPost"
+      />
+    );
+  }
 
   const handleClose = useCallback(() => {
     if (router.canDismiss()) router.dismiss();

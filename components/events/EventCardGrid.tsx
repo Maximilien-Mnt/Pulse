@@ -12,6 +12,9 @@ import { FavoriteButton } from "@/components/feed/LikeButton";
 import { useToggleFavorite } from "@/hooks/useToggleFavorite";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatDateLong } from "@/utils/date";
+import React from "react";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
+import { useCallback, useState } from "react";
 
 const COL_W = (Dimensions.get("window").width - 16 * 2 - 8) / 2;
 
@@ -27,8 +30,25 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
     initialFavCount,
   });
 
+  const userId = useAuthStore((s) => s.userId);
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
+
+  const handleFavorite = useCallback(() => {
+    if (!userId) {
+      openAuthModal("favoriteEvent");
+      return;
+    }
+    toggle();
+  }, [userId, toggle, openAuthModal]);
+
   return (
-    <Pressable
+    <>
+      <Pressable
       onPress={() => router.push(`/(tabs)/events/${event.id}`)}
       className="bg-surface dark:bg-surface-dark rounded-2xl overflow-hidden mb-3 border border-border dark:border-border-dark"
       style={{ width: COL_W }}
@@ -57,7 +77,7 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
             isFavorite={!!isFavorited}
             count={favCount ?? undefined}
             isPending={isPending}
-            onPress={toggle}
+            onPress={handleFavorite}
           />
           <Pressable
             onPress={() => Share.share({ message: event.name })}
@@ -70,5 +90,14 @@ export function EventCardGrid({ event, initialIsFavorite, initialFavCount }: Pro
         </View>
       </View>
     </Pressable>
+
+    {authModal && (
+      <AuthRequiredModal
+        visible={authModal.visible}
+        onClose={closeAuthModal}
+        action={authModal.action}
+      />
+    )}
+    </>
   );
 }

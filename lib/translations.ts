@@ -73,6 +73,13 @@ export const translations = {
     "common.comment": "Commenter",
     "common.loadMore": "Charger plus",
     "common.close": "Fermer",
+
+    // ── Modal d'authentification requise ───────────────────────────────
+    "authRequired.title": "Compte requis",
+    "authRequired.message": "{action} est réservé aux comptes connectés.",
+    "authRequired.signIn": "Se connecter",
+    "authRequired.signUp": "Créer un compte",
+    "authRequired.close": "Fermer",
     "common.unknownError": "Une erreur est survenue",
     "common.today": "Aujourd'hui",
     "common.yesterday": "Hier",
@@ -121,6 +128,14 @@ export const translations = {
     "landing.cta.description":
       "Créez votre compte gratuitement et commencez à explorer Pulse dès maintenant.",
     "landing.cta.button": "S'inscrire gratuitement",
+
+    // ── Découverte libre (visiteurs) ───────────────────────────────────
+    "landing.discover.title": "Découvre sans compte",
+    "landing.discover.subtitle":
+      "Parcours le fil, les clubs et les événements librement. Créer un compte te permet d'aimer, commenter, publier et rejoindre des clubs et événements.",
+    "landing.discover.feed": "Voir le fil",
+    "landing.discover.clubs": "Voir les clubs",
+    "landing.discover.events": "Voir les événements",
     "landing.footer.legalLabel": "Informations légales",
     "landing.footer.support": "Support",
     "landing.footer.editor": "Éditeur : Maximilien MONTANT — maximilien.montant@gmail.com",
@@ -1531,6 +1546,13 @@ export const translations = {
     "common.comment": "Comment",
     "common.loadMore": "Load more",
     "common.close": "Close",
+
+    // ── Login-required modal ───────────────────────────────────────────
+    "authRequired.title": "Account required",
+    "authRequired.message": "{action} is for logged-in accounts only.",
+    "authRequired.signIn": "Sign in",
+    "authRequired.signUp": "Create an account",
+    "authRequired.close": "Close",
     "common.unknownError": "Something went wrong",
     "common.today": "Today",
     "common.yesterday": "Yesterday",
@@ -1578,6 +1600,14 @@ export const translations = {
     "landing.cta.description":
       "Create your account for free and start exploring Pulse right now.",
     "landing.cta.button": "Sign up for free",
+
+    // ── Free discovery (visitors) ──────────────────────────────────────
+    "landing.discover.title": "Discover without an account",
+    "landing.discover.subtitle":
+      "Browse the feed, clubs and events freely. Create an account to like, comment, post and join clubs and events.",
+    "landing.discover.feed": "See the feed",
+    "landing.discover.clubs": "See the clubs",
+    "landing.discover.events": "See the events",
     "landing.footer.legalLabel": "Legal information",
     "landing.footer.support": "Support",
     "landing.footer.editor": "Editor: Maximilien MONTANT — maximilien.montant@gmail.com",

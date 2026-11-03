@@ -8,6 +8,7 @@ import { BackButton } from "../ui/BackButton";
 import { IconButton } from "../ui/IconButton";
 import { TextButton } from "../ui/TextButton";
 import { useThemeStore } from "@/stores/themeStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useLanguageStore } from "@/stores/languageStore";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -68,6 +69,7 @@ export function Header({
   const router = useRouter();
   const { t, language } = useTranslation();
   const isDark = useThemeStore((s) => s.isDark);
+  const userId = useAuthStore((s) => s.userId);
   const fallbackRoute = backFallbackRoute ?? (backToLanding ? "/" : undefined);
 
   return (
@@ -138,7 +140,7 @@ export function Header({
         ) : null}
 
         {showAvatar ? (
-          <Pressable onPress={() => router.push("/(tabs)/profile")} hitSlop={8}>
+          <Pressable onPress={() => router.push(userId ? "/(tabs)/profile" : "/auth/signin")} hitSlop={8}>
             <Avatar uri={avatarUrl ?? null} size={24} />
           </Pressable>
         ) : null}

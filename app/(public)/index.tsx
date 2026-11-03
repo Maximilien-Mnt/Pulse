@@ -150,6 +150,33 @@ export default function LandingScreen() {
           </Text>
         </View>
 
+        {/* ── Découverte sans compte ── */}
+        <View className="px-6 py-6">
+          <View className="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700 p-5 gap-3">
+            <Text variant="h3" className="text-neutral-900 dark:text-neutral-50">
+              {t("landing.discover.title")}
+            </Text>
+            <Text variant="body" className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              {t("landing.discover.subtitle")}
+            </Text>
+            <View className="flex-row gap-3 mt-2">
+              <Link href="/(tabs)/feed" asChild>
+                <Button title={t("landing.discover.feed")} variant="primary" className="flex-1 h-11" />
+              </Link>
+              <Link href="/(tabs)/clubs" asChild>
+                <Button title={t("landing.discover.clubs")} variant="secondary" className="flex-1 h-11" />
+              </Link>
+            </View>
+            <Link href="/(tabs)/events" asChild>
+              <Button
+                title={t("landing.discover.events")}
+                variant="ghost"
+                className="h-11 w-full"
+              />
+            </Link>
+          </View>
+        </View>
+
         <View className="px-6 py-6 gap-4">
           <Text variant="h2" className="text-neutral-900 dark:text-neutral-50 mb-2">
             {t("landing.features.title")}

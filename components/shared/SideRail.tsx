@@ -20,6 +20,7 @@ import { useRouter, usePathname } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useNavbarStore } from "@/stores/navbarStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { CreatePopover } from "@/components/shared/CreatePopover";
 import {
@@ -65,6 +66,8 @@ export function SideRail() {
   const pathname = usePathname();
   const expanded = width >= 1024;
   const setNavbarPosition = useNavbarStore((s) => s.setPosition);
+  const userId = useAuthStore((s) => s.userId);
+  const visibleTabs = userId ? SIDE_TABS : SIDE_TABS.slice(0, 2);
   const [createOpen, setCreateOpen] = useState(false);
   // Rotation animation for the create icon: "+" rotates to "×" (45°) when the form opens, and back to "+" when it closes.
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -115,9 +118,9 @@ export function SideRail() {
   // NOTE: `findIndex` hands the callback the tab *object*, not its route
   // string — `isActive` expects a string, so unwrap it explicitly. Passing
   // `isActive` directly crashes with "routePath.split is not a function".
-  const activeIndex = SIDE_TABS.findIndex((tab) => isActive(tab.route));
+  const activeIndex = visibleTabs.findIndex((tab) => isActive(tab.route));
   const { recordRow, syncTo, invalidate, indicatorStyle, reduceMotion } =
-    useSlidingIndicator(SIDE_TABS.length);
+    useSlidingIndicator(visibleTabs.length);
 
   // `activeIndex` is derived from the pathname on every render, so this effect
   // re-runs on navigation and moves the tint to the newly selected row.

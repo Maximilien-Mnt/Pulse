@@ -23,6 +23,7 @@ import { SendButton } from "@/components/ui/SendButton";
 import { Text } from "@/components/ui/Text";
 import { usePostComment } from "@/hooks/usePostComment";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AuthRequiredModal, type AuthRequiredAction } from "@/components/shared/AuthRequiredModal";
 
 type CommentPanelProps = {
   postId: string | null;
@@ -36,6 +37,12 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
   const queryClient = useQueryClient();
   const [sortLikes, setSortLikes] = useState(false);
   const [body, setBody] = useState("");
+  const [authModal, setAuthModal] = useState<{ visible: boolean; action: AuthRequiredAction } | null>(null);
+
+  const openAuthModal = useCallback((action: AuthRequiredAction) => {
+    setAuthModal({ visible: true, action });
+  }, []);
+  const closeAuthModal = useCallback(() => setAuthModal(null), []);
   const {
     commentsCount,
     isPending,
@@ -197,11 +204,22 @@ export function CommentPanel({ postId, visible, onClose }: CommentPanelProps) {
             disabled={!body.trim()}
             loading={isPending}
             onPress={() => {
+              if (!userId) {
+                openAuthModal("comment");
+                return;
+              }
               void addComment(body);
             }}
           />
         </View>
       </KeyboardAvoidingView>
+      {authModal && (
+        <AuthRequiredModal
+          visible={authModal.visible}
+          onClose={closeAuthModal}
+          action={authModal.action}
+        />
+      )}
     </Animated.View>
   );
 }

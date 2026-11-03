@@ -473,7 +473,7 @@ export default function EditProfileScreen() {
           console.warn("Invalid objective in profile edit:", validation.error.errors);
         }
       }
-      );
+      }
       if (validatedObjectives.length) {
         const { error } = await supabase.from("user_objectives").insert(
           validatedObjectives.map((obj) => ({ user_id: userId, objective: obj }))

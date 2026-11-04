@@ -346,7 +346,9 @@ export default function EventDetailScreen() {
       source_name: event.source_name ?? null,
     });
     const { openBrowserAsync } = await import("expo-web-browser");
-    await openBrowserAsync(registrationUrl);
+    const safe = safeHttpUrl(registrationUrl);
+    if (!safe) return;
+    await openBrowserAsync(safe);
   };
 
   let actionButton: React.ReactNode = null;

@@ -1,5 +1,6 @@
 import { Linking, Alert, ScrollView, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { safeMailto } from "@/utils/links";
 
 import { SafeScreen } from "@/components/shared/SafeScreen";
 import { Text } from "@/components/ui/Text";
@@ -26,11 +27,16 @@ export default function PublicContactScreen() {
 
   const openMailto = () => {
     const address = "maximilien.montant@gmail.com";
+    const mailto = safeMailto(address);
+    if (!mailto) {
+      Alert.alert("Email non disponible", "Adresse email invalide.");
+      return;
+    }
     const subject = encodeURIComponent(t("legal.contactSubject"));
     const body = encodeURIComponent(
       `${t("legal.contactGreeting")}\n\n${t("legal.contactBody")}\n\n`
     );
-    const url = `mailto:${address}?subject=${subject}&body=${body}`;
+    const url = `${mailto}?subject=${subject}&body=${body}`;
 
     Linking.canOpenURL(url)
       .then((supported) => {

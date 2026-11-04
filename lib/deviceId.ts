@@ -12,8 +12,10 @@
  */
 
 import * as SecureStore from "expo-secure-store";
-import { ApplicationNativeModule, Platform } from "expo-application";
-import { DeviceNativeModule } from "expo-device";
+import { Application } from "expo-application";
+import { Device } from "expo-device";
+import { Platform } from "react-native";
+import { randomUUID, digest } from "expo-crypto";
 
 const INSTALL_ID_KEY = "pulse:installation_id";
 
@@ -32,7 +34,8 @@ async function getInstallationId(): Promise<string> {
     // SecureStore unavailable (e.g. some web configs) — fall back below.
   }
 
-  const generated = `${Platform.OS}-${crypto.randomUUID?.() ?? Date.now().toString(36)}`;
+  // expo-crypto.randomUUID est disponible sur natif (Hermes inclus) et web.
+  const generated = `${Platform.OS}-${randomUUID()}`;
   try {
     await SecureStore.setItemAsync(INSTALL_ID_KEY, generated);
   } catch {
@@ -42,9 +45,9 @@ async function getInstallationId(): Promise<string> {
   return _installationId;
 }
 
-/** SHA-256 digest hex string. */
+/** SHA-256 digest hex string (via expo-crypto, compatible Hermes). */
 async function sha256Hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  const buf = await digest("SHA-256", new TextEncoder().encode(input));
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -54,18 +57,17 @@ async function sha256Hex(input: string): Promise<string> {
  * Stable device fingerprint: SHA-256(platform + modelId + osVersion +
  * appId + buildVersion + installationId).
  *
- * Returns null on platforms where crypto.subtle is unavailable.
+ * Uses the public Expo APIs (Application.applicationId, Device.modelId,
+ * Device.osVersion, ...) instead of the internal *NativeModule symbols.
  */
 export async function getDeviceFingerprint(): Promise<string | null> {
-  if (!crypto.subtle) return null;
-
   const installationId = await getInstallationId();
   const parts = [
     Platform.OS ?? "unknown",
-    DeviceNativeModule?.modelId ?? "unknown",
-    DeviceNativeModule?.osVersion ?? "unknown",
-    ApplicationNativeModule?.applicationId ?? "unknown",
-    ApplicationNativeModule?.buildVersion ?? "unknown",
+    Device?.modelId ?? "unknown",
+    Device?.osVersion ?? "unknown",
+    Application?.applicationId ?? "unknown",
+    Application?.buildVersion ?? "unknown",
     installationId,
   ];
 

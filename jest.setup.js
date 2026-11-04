@@ -26,6 +26,50 @@ if (!globalThis.crypto?.subtle) {
   }
 }
 
+// Mock expo-application (native module, unavailable in jsdom)
+jest.mock('expo-application', () => ({
+  Application: {
+    applicationId: 'com.pulse.app.test',
+    buildVersion: '1.0.0',
+    nativeBuildVersion: '1',
+    getApplicationId: jest.fn(() => 'com.pulse.app.test'),
+    getBuildVersion: jest.fn(() => '1.0.0'),
+    getNativeBuildVersion: jest.fn(() => '1'),
+    getIcon: jest.fn(),
+    getIcons: jest.fn(() => []),
+    getUrlScheme: jest.fn(() => 'pulse'),
+    keepAwake: jest.fn(),
+    setKeepAwake: jest.fn(),
+  },
+}), { virtual: true });
+
+// Mock expo-device (native module, unavailable in jsdom)
+jest.mock('expo-device', () => ({
+  Device: {
+    modelId: 'test-model',
+    osVersion: '1.0.0',
+    osName: 'TestOS',
+    platformApiLevel: 30,
+    brand: 'TestBrand',
+    buildId: 'test-build',
+    designName: 'TestDesign',
+    deviceName: 'TestDevice',
+    deviceYearClass: 2024,
+    expectedBuildTime: 0,
+    fingerprint: 'test-fingerprint',
+    hardware: 'test-hardware',
+    hostname: 'test-host',
+    manufacturer: 'TestManufacturer',
+    model: 'TestModel',
+    serialNumber: 'test-serial',
+    totalMemory: 0,
+    totalStorage: 0,
+    isTablet: false,
+    userInterfaceIdiom: 'phone',
+  },
+}), { virtual: true });
+
+// Mock expo-modules-core (native module, unavailable in jsdom)
 jest.mock('expo-modules-core', () => ({
   EventEmitter: jest.fn().mockImplementation(() => ({
     addListener: jest.fn(),
